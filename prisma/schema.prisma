@@ -1,0 +1,674 @@
+// Modelo de datos del piloto Soluciones Creativas.
+// Documentacion: docs/analisis/05-modelo-datos.md
+// Restricciones que Prisma no expresa (CHECK, triggers, funciones): prisma/sql/restricciones.sql
+// Prisma 7: la URL de conexion va en prisma.config.ts, no aqui.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enumeraciones
+// ---------------------------------------------------------------------------
+
+enum CodigoPerfil {
+  GERENCIA
+  VENTAS
+  PRODUCCION
+  ADMIN
+
+  @@map("codigo_perfil")
+}
+
+enum TipoCliente {
+  PERSONA
+  EMPRESA
+
+  @@map("tipo_cliente")
+}
+
+enum UnidadCobro {
+  UNIDAD
+  M2
+
+  @@map("unidad_cobro")
+}
+
+enum UnidadMaterial {
+  UNIDAD
+  METRO
+  M2
+  YARDA
+  PIE
+  LITRO
+  GALON
+  KILOGRAMO
+  LIBRA
+  PLIEGO
+  ROLLO
+
+  @@map("unidad_material")
+}
+
+enum EstadoCotizacion {
+  BORRADOR
+  ENVIADA
+  APROBADA
+  RECHAZADA
+  VENCIDA
+
+  @@map("estado_cotizacion")
+}
+
+enum TipoItem {
+  CATALOGO
+  PERSONALIZADO
+
+  @@map("tipo_item")
+}
+
+enum TipoLineaCosto {
+  MATERIAL
+  MANO_OBRA
+  TERCERO
+
+  @@map("tipo_linea_costo")
+}
+
+enum EstadoOrden {
+  PENDIENTE
+  EN_PRODUCCION
+  LISTA
+  ENTREGADA
+  CERRADA
+  CANCELADA
+
+  @@map("estado_orden")
+}
+
+enum EstadoEtapa {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADA
+  OMITIDA
+
+  @@map("estado_etapa")
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  CONSUMO
+  AJUSTE
+  DEVOLUCION
+
+  @@map("tipo_movimiento")
+}
+
+enum OrigenEstimado {
+  RECETA
+  COTIZACION
+  MANUAL
+
+  @@map("origen_estimado")
+}
+
+enum TipoDocumento {
+  COTIZACION
+  ORDEN_TRABAJO
+
+  @@map("tipo_documento")
+}
+
+enum TipoValorConfig {
+  TEXTO
+  ENTERO
+  DECIMAL
+  BOOLEANO
+
+  @@map("tipo_valor_config")
+}
+
+enum EntidadBitacora {
+  CLIENTE
+  PRODUCTO
+  MATERIAL
+  COTIZACION
+  ORDEN_TRABAJO
+  ETAPA_ORDEN
+  MOVIMIENTO_INVENTARIO
+  USUARIO
+  PERFIL_PERMISO
+  CONFIGURACION
+
+  @@map("entidad_bitacora")
+}
+
+enum AccionBitacora {
+  CREAR
+  EDITAR
+  CAMBIAR_ESTADO
+  ASIGNAR_RESPONSABLE
+  CONVERTIR_EN_ORDEN
+  REGISTRAR_ENTRADA
+  AJUSTAR_INVENTARIO
+  CONSUMIR_MATERIAL
+  DEVOLVER_MATERIAL
+  ARCHIVAR
+  REACTIVAR
+  OTORGAR_PERMISO
+  REVOCAR_PERMISO
+
+  @@map("accion_bitacora")
+}
+
+// ---------------------------------------------------------------------------
+// Acceso
+// ---------------------------------------------------------------------------
+
+model Perfil {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo      CodigoPerfil @unique
+  nombre      String       @db.VarChar(60)
+  descripcion String?
+
+  usuarios Usuario[]
+  permisos PerfilPermiso[]
+
+  @@map("perfil")
+}
+
+model Permiso {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recurso     String  @db.VarChar(40)
+  accion      String  @db.VarChar(40)
+  descripcion String?
+
+  perfiles PerfilPermiso[]
+
+  @@unique([recurso, accion])
+  @@map("permiso")
+}
+
+// Asociacion pura: clave primaria compuesta en lugar de UUID.
+model PerfilPermiso {
+  perfilId      String   @map("perfil_id") @db.Uuid
+  permisoId     String   @map("permiso_id") @db.Uuid
+  otorgadoPorId String?  @map("otorgado_por_id") @db.Uuid
+  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  perfil      Perfil   @relation(fields: [perfilId], references: [id], onDelete: Restrict)
+  permiso     Permiso  @relation(fields: [permisoId], references: [id], onDelete: Restrict)
+  otorgadoPor Usuario? @relation("PermisoOtorgadoPor", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
+
+  @@id([perfilId, permisoId])
+  @@index([permisoId])
+  @@map("perfil_permiso")
+}
+
+model Usuario {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre           String    @db.VarChar(120)
+  // Se guarda en minusculas; CHECK en restricciones.sql.
+  correo           String    @unique @db.VarChar(254)
+  hashContrasena   String    @map("hash_contrasena")
+  perfilId         String    @map("perfil_id") @db.Uuid
+  activo           Boolean   @default(true)
+  intentosFallidos Int       @default(0) @map("intentos_fallidos")
+  bloqueadoHasta   DateTime? @map("bloqueado_hasta") @db.Timestamptz(6)
+  ultimoAcceso     DateTime? @map("ultimo_acceso") @db.Timestamptz(6)
+  creadoEn         DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn    DateTime  @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Restrict)
+
+  sesiones             Sesion[]
+  permisosOtorgados    PerfilPermiso[]        @relation("PermisoOtorgadoPor")
+  cotizacionesCreadas  Cotizacion[]           @relation("CotizacionCreadaPor")
+  ordenesResponsable   OrdenTrabajo[]         @relation("OrdenResponsable")
+  ordenesCreadas       OrdenTrabajo[]         @relation("OrdenCreadaPor")
+  etapasResponsable    EtapaOrden[]           @relation("EtapaResponsable")
+  movimientos          MovimientoInventario[]
+  eventosBitacora      Bitacora[]
+  configuracionesEdit  Configuracion[]
+
+  @@index([perfilId, activo])
+  @@map("usuario")
+}
+
+model Sesion {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // SHA-256 del token opaco en hexadecimal. El token en claro solo viaja en la cookie.
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  usuarioId  String    @map("usuario_id") @db.Uuid
+  creadoEn   DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  expiraEn   DateTime  @map("expira_en") @db.Timestamptz(6)
+  revocadaEn DateTime? @map("revocada_en") @db.Timestamptz(6)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@index([usuarioId])
+  @@index([expiraEn])
+  @@map("sesion")
+}
+
+// ---------------------------------------------------------------------------
+// Clientes y catalogo
+// ---------------------------------------------------------------------------
+
+model Cliente {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre            String      @db.VarChar(200)
+  tipo              TipoCliente
+  // UNIQUE admite varios NULL en PostgreSQL: no hace falta indice parcial.
+  ruc               String?     @unique @db.VarChar(20)
+  contactoPrincipal String?     @map("contacto_principal") @db.VarChar(120)
+  telefono          String?     @db.VarChar(30)
+  correo            String?     @db.VarChar(254)
+  direccion         String?
+  notas             String?
+  activo            Boolean     @default(true)
+  creadoEn          DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn     DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  cotizaciones Cotizacion[]
+
+  @@index([activo, nombre])
+  @@map("cliente")
+}
+
+// Tipo de servicio (rotulacion, gran formato, letras corporeas...). Define las etapas de produccion.
+model Categoria {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre      String  @unique @db.VarChar(80)
+  descripcion String?
+  activo      Boolean @default(true)
+
+  productos       Producto[]
+  etapasPlantilla EtapaPlantilla[]
+  itemsCotizacion ItemCotizacion[]
+  ordenes         OrdenTrabajo[]
+
+  @@map("categoria")
+}
+
+// Area o taller de produccion (diseno, impresion, carpinteria, instalacion...). Agrupa la carga de trabajo (CF-06).
+model Area {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre String  @unique @db.VarChar(80)
+  activo Boolean @default(true)
+
+  etapasPlantilla EtapaPlantilla[]
+  etapasOrden     EtapaOrden[]
+
+  @@map("area")
+}
+
+model Producto {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo        String      @unique @db.VarChar(30)
+  nombre        String      @db.VarChar(160)
+  descripcion   String?
+  categoriaId   String      @map("categoria_id") @db.Uuid
+  unidadCobro   UnidadCobro @map("unidad_cobro")
+  precioBase    Decimal     @map("precio_base") @db.Decimal(14, 2)
+  activo        Boolean     @default(true)
+  creadoEn      DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  categoria Categoria        @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  receta    RecetaProducto[]
+  items     ItemCotizacion[]
+
+  @@index([categoriaId, activo])
+  @@map("producto")
+}
+
+// Cantidad de material por unidad de cobro del producto (por unidad o por m2).
+model RecetaProducto {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productoId String  @map("producto_id") @db.Uuid
+  materialId String  @map("material_id") @db.Uuid
+  cantidad   Decimal @db.Decimal(14, 3)
+
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([productoId, materialId])
+  @@index([materialId])
+  @@map("receta_producto")
+}
+
+// ---------------------------------------------------------------------------
+// Inventario
+// ---------------------------------------------------------------------------
+
+model Material {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo        String         @unique @db.VarChar(30)
+  nombre        String         @db.VarChar(160)
+  descripcion   String?
+  unidad        UnidadMaterial
+  // existencia y costoPromedio solo cambian por el trigger de movimiento_inventario.
+  existencia    Decimal        @default(0) @db.Decimal(14, 3)
+  // Costo unitario con 4 decimales: el promedio ponderado con 2 acumula error de redondeo.
+  costoPromedio Decimal        @default(0) @map("costo_promedio") @db.Decimal(14, 4)
+  stockMinimo   Decimal        @default(0) @map("stock_minimo") @db.Decimal(14, 3)
+  activo        Boolean        @default(true)
+  creadoEn      DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  recetas           RecetaProducto[]
+  lineasCosto       LineaCosto[]
+  movimientos       MovimientoInventario[]
+  consumos          ConsumoOrden[]
+  consumosEstimados ConsumoEstimado[]
+
+  @@index([activo, nombre])
+  @@map("material")
+}
+
+// Libro de solo insercion. cantidad lleva signo: existencia = SUM(cantidad) por material.
+model MovimientoInventario {
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  materialId              String         @map("material_id") @db.Uuid
+  tipo                    TipoMovimiento
+  cantidad                Decimal        @db.Decimal(14, 3)
+  // El trigger fija costoUnitario salvo en ENTRADA, y calcula los dos campos resultantes.
+  costoUnitario           Decimal        @default(0) @map("costo_unitario") @db.Decimal(14, 4)
+  existenciaResultante    Decimal        @default(0) @map("existencia_resultante") @db.Decimal(14, 3)
+  costoPromedioResultante Decimal        @default(0) @map("costo_promedio_resultante") @db.Decimal(14, 4)
+  motivo                  String?
+  referencia              String?        @db.VarChar(60)
+  usuarioId               String         @map("usuario_id") @db.Uuid
+  creadoEn                DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  material Material      @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  usuario  Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  consumo  ConsumoOrden?
+
+  // Destino de la clave foranea compuesta de consumo_orden (garantiza el mismo material).
+  @@unique([id, materialId])
+  @@index([materialId, creadoEn])
+  @@index([tipo, creadoEn])
+  @@index([usuarioId])
+  @@map("movimiento_inventario")
+}
+
+// Une orden, material y movimiento (CF-03 con CF-04). Incluye CONSUMO y DEVOLUCION de una orden.
+// Cantidad y costo se leen del movimiento: una sola fuente de verdad.
+model ConsumoOrden {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ordenId      String @map("orden_id") @db.Uuid
+  materialId   String @map("material_id") @db.Uuid
+  movimientoId String @unique @map("movimiento_id") @db.Uuid
+
+  orden      OrdenTrabajo         @relation(fields: [ordenId], references: [id], onDelete: Restrict)
+  material   Material             @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  movimiento MovimientoInventario @relation(fields: [movimientoId, materialId], references: [id, materialId], onDelete: Restrict)
+
+  @@unique([movimientoId, materialId])
+  @@index([ordenId, materialId])
+  @@index([materialId])
+  @@map("consumo_orden")
+}
+
+// Consumo previsto por orden. Separado de ConsumoOrden para que movimientoId siga obligatorio.
+model ConsumoEstimado {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ordenId    String         @map("orden_id") @db.Uuid
+  materialId String         @map("material_id") @db.Uuid
+  cantidad   Decimal        @db.Decimal(14, 3)
+  origen     OrigenEstimado
+  creadoEn   DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  orden    OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Restrict)
+  material Material     @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([ordenId, materialId])
+  @@index([materialId])
+  @@map("consumo_estimado")
+}
+
+// ---------------------------------------------------------------------------
+// Cotizacion
+// ---------------------------------------------------------------------------
+
+model Cotizacion {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero             String           @unique @db.VarChar(20)
+  clienteId          String           @map("cliente_id") @db.Uuid
+  estado             EstadoCotizacion @default(BORRADOR)
+  asunto             String?          @db.VarChar(200)
+  condiciones        String?
+  // Duplicado de otra cotizacion (reutilizacion, R-02).
+  cotizacionOrigenId String?          @map("cotizacion_origen_id") @db.Uuid
+  moneda             String           @default("NIO") @db.Char(3)
+  // Snapshot de valores calculados: cambios de precio o de IVA no alteran cotizaciones pasadas.
+  tasaImpuesto       Decimal          @map("tasa_impuesto") @db.Decimal(5, 2)
+  subtotal           Decimal          @default(0) @db.Decimal(14, 2)
+  descuento          Decimal          @default(0) @db.Decimal(14, 2)
+  impuesto           Decimal          @default(0) @db.Decimal(14, 2)
+  total              Decimal          @default(0) @db.Decimal(14, 2)
+  margenPct          Decimal?         @map("margen_pct") @db.Decimal(5, 2)
+  vigenciaDias       Int              @map("vigencia_dias")
+  // Fechas de calendario (date): evitan desfase de dia por zona horaria (America/Managua, UTC-6).
+  fechaEmision       DateTime?        @map("fecha_emision") @db.Date
+  fechaVencimiento   DateTime?        @map("fecha_vencimiento") @db.Date
+  fechaRespuesta     DateTime?        @map("fecha_respuesta") @db.Timestamptz(6)
+  motivoRechazo      String?          @map("motivo_rechazo")
+  archivada          Boolean          @default(false)
+  creadoPorId        String           @map("creado_por_id") @db.Uuid
+  creadoEn           DateTime         @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn      DateTime         @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  cliente          Cliente          @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  creadoPor        Usuario          @relation("CotizacionCreadaPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
+  cotizacionOrigen Cotizacion?      @relation("CotizacionDuplicada", fields: [cotizacionOrigenId], references: [id], onDelete: Restrict)
+  duplicados       Cotizacion[]     @relation("CotizacionDuplicada")
+  items            ItemCotizacion[]
+  orden            OrdenTrabajo?
+  eventosBitacora  Bitacora[]
+
+  @@index([clienteId, creadoEn])
+  @@index([estado, fechaVencimiento])
+  @@index([creadoPorId, estado])
+  @@index([cotizacionOrigenId])
+  @@map("cotizacion")
+}
+
+model ItemCotizacion {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cotizacionId   String       @map("cotizacion_id") @db.Uuid
+  secuencia      Int
+  tipo           TipoItem
+  productoId     String?      @map("producto_id") @db.Uuid
+  categoriaId    String       @map("categoria_id") @db.Uuid
+  descripcion    String
+  unidadCobro    UnidadCobro  @map("unidad_cobro")
+  cantidad       Decimal      @db.Decimal(14, 3)
+  // Medidas en metros. Obligatorias cuando unidadCobro = M2.
+  ancho          Decimal?     @db.Decimal(14, 3)
+  alto           Decimal?     @db.Decimal(14, 3)
+  // CATALOGO: precio base copiado del producto. PERSONALIZADO: importe / cantidad.
+  precioUnitario Decimal      @map("precio_unitario") @db.Decimal(14, 2)
+  // Solo PERSONALIZADO: suma de lineas de costo y margen sobre precio de venta.
+  costoTotal     Decimal?     @map("costo_total") @db.Decimal(14, 2)
+  margenPct      Decimal?     @map("margen_pct") @db.Decimal(5, 2)
+  importe        Decimal      @db.Decimal(14, 2)
+
+  cotizacion  Cotizacion   @relation(fields: [cotizacionId], references: [id], onDelete: Restrict)
+  producto    Producto?    @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  categoria   Categoria    @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  lineasCosto LineaCosto[]
+
+  @@unique([cotizacionId, secuencia])
+  @@index([productoId])
+  @@index([categoriaId])
+  @@map("item_cotizacion")
+}
+
+model LineaCosto {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId        String         @map("item_id") @db.Uuid
+  secuencia     Int
+  tipo          TipoLineaCosto
+  descripcion   String
+  materialId    String?        @map("material_id") @db.Uuid
+  unidad        String         @db.VarChar(20)
+  cantidad      Decimal        @db.Decimal(14, 3)
+  costoUnitario Decimal        @map("costo_unitario") @db.Decimal(14, 4)
+  mermaPct      Decimal        @default(0) @map("merma_pct") @db.Decimal(5, 2)
+  importe       Decimal        @db.Decimal(14, 2)
+
+  item     ItemCotizacion @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  material Material?      @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([itemId, secuencia])
+  @@index([materialId])
+  @@map("linea_costo")
+}
+
+// ---------------------------------------------------------------------------
+// Orden de trabajo y produccion
+// ---------------------------------------------------------------------------
+
+model OrdenTrabajo {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero            String      @unique @db.VarChar(20)
+  // UNIQUE y obligatorio: una cotizacion APROBADA genera una sola orden (CF-01).
+  cotizacionId      String      @unique @map("cotizacion_id") @db.Uuid
+  categoriaId       String      @map("categoria_id") @db.Uuid
+  estado            EstadoOrden @default(PENDIENTE)
+  responsableId     String      @map("responsable_id") @db.Uuid
+  especificaciones  String?
+  fechaEntrega      DateTime    @map("fecha_entrega") @db.Date
+  fechaInicioReal   DateTime?   @map("fecha_inicio_real") @db.Timestamptz(6)
+  fechaEntregaReal  DateTime?   @map("fecha_entrega_real") @db.Timestamptz(6)
+  fechaCierre       DateTime?   @map("fecha_cierre") @db.Timestamptz(6)
+  motivoCancelacion String?     @map("motivo_cancelacion")
+  creadoPorId       String      @map("creado_por_id") @db.Uuid
+  creadoEn          DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn     DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  cotizacion        Cotizacion        @relation(fields: [cotizacionId], references: [id], onDelete: Restrict)
+  categoria         Categoria         @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  responsable       Usuario           @relation("OrdenResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  creadoPor         Usuario           @relation("OrdenCreadaPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
+  etapas            EtapaOrden[]
+  consumos          ConsumoOrden[]
+  consumosEstimados ConsumoEstimado[]
+  eventosBitacora   Bitacora[]
+
+  @@index([estado, fechaEntrega])
+  @@index([responsableId, estado])
+  @@index([categoriaId])
+  @@index([creadoPorId])
+  @@map("orden_trabajo")
+}
+
+model EtapaPlantilla {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoriaId String  @map("categoria_id") @db.Uuid
+  areaId      String  @map("area_id") @db.Uuid
+  secuencia   Int
+  nombre      String  @db.VarChar(80)
+  activo      Boolean @default(true)
+
+  categoria Categoria    @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  area      Area         @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  etapas    EtapaOrden[]
+
+  @@unique([categoriaId, secuencia])
+  @@index([areaId])
+  @@map("etapa_plantilla")
+}
+
+// Instancia por orden. nombre y area se copian de la plantilla: editar la plantilla no altera ordenes existentes.
+model EtapaOrden {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ordenId         String      @map("orden_id") @db.Uuid
+  plantillaId     String?     @map("plantilla_id") @db.Uuid
+  areaId          String      @map("area_id") @db.Uuid
+  secuencia       Int
+  nombre          String      @db.VarChar(80)
+  estado          EstadoEtapa @default(PENDIENTE)
+  responsableId   String?     @map("responsable_id") @db.Uuid
+  fechaInicioPlan DateTime?   @map("fecha_inicio_plan") @db.Date
+  fechaFinPlan    DateTime?   @map("fecha_fin_plan") @db.Date
+  fechaInicioReal DateTime?   @map("fecha_inicio_real") @db.Timestamptz(6)
+  fechaFinReal    DateTime?   @map("fecha_fin_real") @db.Timestamptz(6)
+  observaciones   String?
+  creadoEn        DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn   DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  orden       OrdenTrabajo    @relation(fields: [ordenId], references: [id], onDelete: Restrict)
+  plantilla   EtapaPlantilla? @relation(fields: [plantillaId], references: [id], onDelete: Restrict)
+  area        Area            @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  responsable Usuario?        @relation("EtapaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@unique([ordenId, secuencia])
+  @@index([responsableId, estado])
+  @@index([areaId, estado])
+  @@index([plantillaId])
+  @@map("etapa_orden")
+}
+
+// ---------------------------------------------------------------------------
+// Trazabilidad, configuracion y numeracion
+// ---------------------------------------------------------------------------
+
+// Solo insercion: un trigger bloquea UPDATE, DELETE y TRUNCATE.
+model Bitacora {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entidad        EntidadBitacora
+  entidadId      String          @map("entidad_id") @db.Uuid
+  ordenId        String?         @map("orden_id") @db.Uuid
+  cotizacionId   String?         @map("cotizacion_id") @db.Uuid
+  accion         AccionBitacora
+  estadoAnterior String?         @map("estado_anterior") @db.VarChar(20)
+  estadoNuevo    String?         @map("estado_nuevo") @db.VarChar(20)
+  usuarioId      String          @map("usuario_id") @db.Uuid
+  creadoEn       DateTime        @default(now()) @map("creado_en") @db.Timestamptz(6)
+  detalle        Json            @default("{}")
+
+  orden      OrdenTrabajo? @relation(fields: [ordenId], references: [id], onDelete: Restrict)
+  cotizacion Cotizacion?   @relation(fields: [cotizacionId], references: [id], onDelete: Restrict)
+  usuario    Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@index([ordenId, creadoEn])
+  @@index([cotizacionId, creadoEn])
+  @@index([entidad, entidadId, creadoEn])
+  @@index([usuarioId, creadoEn])
+  @@index([creadoEn])
+  @@map("bitacora")
+}
+
+model Configuracion {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clave            String          @unique @db.VarChar(60)
+  tipo             TipoValorConfig
+  valor            String
+  descripcion      String?
+  actualizadoPorId String?         @map("actualizado_por_id") @db.Uuid
+  actualizadoEn    DateTime        @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  actualizadoPor Usuario? @relation(fields: [actualizadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([actualizadoPorId])
+  @@map("configuracion")
+}
+
+// Numeracion legible sin huecos. Se incrementa con siguiente_numero() dentro de la transaccion del alta.
+model Contador {
+  tipo   TipoDocumento
+  anio   Int
+  ultimo Int           @default(0)
+
+  @@id([tipo, anio])
+  @@map("contador")
+}

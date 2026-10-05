@@ -21,7 +21,7 @@ Alimenta el Capítulo IV y la matriz de pruebas del OE3.
 | S-12 | Plantillas de cotización | Duplicar una cotización existente y condiciones comerciales por defecto | R-02 pide plantillas y reutilización | R-02 | F13 documentado 0.44 |
 | S-13 | Campos del cliente | Nombre o razón social, tipo, RUC opcional, contacto, teléfono, correo, dirección, notas | R-13 no define campos | Vacío 2.6 | F23 documentado 0.62 |
 | S-14 | Unidades de medida | Unidad, metro, metro cuadrado, metro lineal, pliego, hora | Material y cotización necesitan unidad | Vacío 2.6 | - |
-| S-15 | Margen, descuento y merma | Margen % y descuento % por cotización. Merma % por línea de material | R-03 pide costos variables sin fórmula | CF-10 | F14 supuesto 0.66, F19 supuesto 1.00 |
+| S-15 | Margen, descuento y merma | Margen % por ítem personalizado, descuento global y merma % por línea de material (ver SD-14) | R-03 pide costos variables sin fórmula | CF-10 | F14 supuesto 0.66, F19 supuesto 1.00 |
 | S-16 | Movimientos de inventario | ENTRADA, CONSUMO, AJUSTE, DEVOLUCION | R-05 nombra entradas, salidas y consumo | R-05 | F20 supuesto 0.95 |
 | S-17 | Numeración | COT-AAAA-NNNN y OT-AAAA-NNNN | Referencia en pantalla y papel | Vacío | F12 supuesto 1.00 |
 | S-18 | Reportes de R-11 | Cotizaciones por estado. Existencias y alertas. Carga por operario. Órdenes por etapa. Exportación CSV | R-11 no los lista | R-11 | F10 supuesto 0.92 |
@@ -33,3 +33,27 @@ Alimenta el Capítulo IV y la matriz de pruebas del OE3.
 | S-24 | Interfaz en móvil | Responsiva hasta 390 px. Prueba de esfuerzo | P10 y Anexo D ofrecen móvil | D4 | F18 documentado 0.91 |
 
 Filas con Jev menor de 0.8: S-05, S-10, S-12, S-13, S-22 y S-15 (parcial). Se consultan en la aprobación.
+
+## Supuestos de datos (modelo de la Fase 1)
+
+Nacen del diseño del modelo (docs/analisis/05-modelo-datos.md). Usan prefijo SD para no chocar con S.
+Donde un SD detalla o corrige un S, manda el SD.
+
+| ID | Supuesto | Relación con S |
+|---|---|---|
+| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único. Teléfono o correo obligatorio | Detalla S-13 |
+| SD-13 | Área de producción como catálogo editable. Cada etapa pertenece a un área | Nuevo. Lo exige la carga por área (CF-06) |
+| SD-14 | Ítem personalizado = suma de líneas (material con merma, mano de obra, terceros). Margen sobre precio de venta por ítem. Descuento como monto global | Corrige S-15 |
+| SD-15 | Unidad de cobro: UNIDAD o M2. Lista cerrada de unidades de material. Texto libre en líneas de costo | Corrige S-14 |
+| SD-16 | Etapa sin estado BLOQUEADA | Nuevo |
+| SD-17 | Transiciones de las tres máquinas según la sección (c) del modelo | Detalla S-06 y S-07 |
+| SD-18 | Numeración anual por tipo, sin huecos, año según hora de Managua | Detalla S-17 |
+| SD-19 | DEVOLUCION reingresa el sobrante de una orden. Salida sin orden es AJUSTE negativo con motivo | Detalla S-16 |
+| SD-20 | Consumos, ajustes y devoluciones se valoran al costo promedio vigente | Detalla S-05 |
+| SD-21 | Inicio de sesión por correo. Bloqueo temporal tras intentos fallidos | Nuevo |
+| SD-22 | Fechas comprometidas y planificadas como fecha de calendario (date) | Nuevo. Precisa la regla de timestamptz |
+| SD-23 | Cada orden tiene una categoría principal que define sus etapas. Se agregan etapas a mano | Detalla S-22 |
+| SD-24 | Matriz de permisos por defecto de la sección (c) del modelo | Detalla S-01 |
+| SD-25 | La cotización enviada no se edita. Se corrige con un duplicado | Detalla S-12 |
+
+Desviaciones a aprobar (P-04): fechas de calendario en date (SD-22) y costo unitario con cuatro decimales.

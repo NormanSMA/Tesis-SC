@@ -80,3 +80,17 @@ Captura: ruta en docs/capturas. Prueba: archivo y caso.
 | S-22 Etapas por servicio | Vacío de la tesis: 2.6 | Producción | supuesto | por definir | - |
 | S-23 Proforma imprimible | Vacío de la tesis: 2.6 | Cotizaciones | supuesto | por definir | - |
 | S-24 Interfaz en móvil | Vacío de la tesis: D4 | Layout | supuesto | por definir | - |
+| SD-12 Cliente | Modelo de datos 05, sección (b) | Clientes | supuesto | por definir | - |
+| SD-13 Áreas de producción | Modelo de datos 05, sección (b) | Producción | supuesto | por definir | - |
+| SD-14 Fórmula de costeo | Modelo de datos 05, sección (b) | Cotizaciones | supuesto | por definir | - |
+| SD-15 Unidades | Modelo de datos 05, sección (b) | Inventario, Cotizaciones | supuesto | por definir | - |
+| SD-16 Etapa sin BLOQUEADA | Modelo de datos 05, sección (b) | Producción | supuesto | por definir | - |
+| SD-17 Transiciones de estado | Modelo de datos 05, sección (b) | Órdenes, Cotizaciones | supuesto | por definir | - |
+| SD-18 Numeración sin huecos | Modelo de datos 05, sección (b) | Cotizaciones, Órdenes | supuesto | por definir | - |
+| SD-19 Devolución y ajuste | Modelo de datos 05, sección (b) | Inventario | supuesto | por definir | - |
+| SD-20 Valoración al costo promedio | Modelo de datos 05, sección (b) | Inventario | supuesto | por definir | - |
+| SD-21 Sesión y bloqueo | Modelo de datos 05, sección (b) | Acceso | supuesto | por definir | - |
+| SD-22 Fechas de calendario | Modelo de datos 05, sección (b) | Órdenes | supuesto | por definir | - |
+| SD-23 Categoría principal de la orden | Modelo de datos 05, sección (b) | Producción | supuesto | por definir | - |
+| SD-24 Matriz de permisos por defecto | Modelo de datos 05, sección (b) | Acceso | supuesto | por definir | - |
+| SD-25 Cotización enviada inmutable | Modelo de datos 05, sección (b) | Cotizaciones | supuesto | por definir | - |
