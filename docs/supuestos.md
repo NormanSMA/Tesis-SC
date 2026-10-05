@@ -2,7 +2,7 @@
 
 Lo que la tesis no define se registra aquí como supuesto.
 Cada supuesto tiene una opción propuesta y una razón.
-Estado: propuesto hasta la aprobación de la Fase 1.
+Estado: aprobado por el usuario el 2026-10-05 (Fase 1). Incluye margen sobre precio, fechas en date, costo unitario con cuatro decimales, ajustes de inventario solo para Gerencia y las seis clasificaciones Jev bajo 0.8 con la recomendación del orquestador.
 Alimenta el Capítulo IV y la matriz de pruebas del OE3.
 
 | ID | Tema | Opción propuesta | Razón | Fuente del vacío | Jev |
@@ -32,7 +32,7 @@ Alimenta el Capítulo IV y la matriz de pruebas del OE3.
 | S-23 | Proforma imprimible | Vista de impresión y PDF de la cotización | 2.6 define la proforma como documento | 2.6 | F11 supuesto 0.99 |
 | S-24 | Interfaz en móvil | Responsiva hasta 390 px. Prueba de esfuerzo | P10 y Anexo D ofrecen móvil | D4 | F18 documentado 0.91 |
 
-Filas con Jev menor de 0.8: S-05, S-10, S-12, S-13, S-22 y S-15 (parcial). Se consultan en la aprobación.
+Filas con Jev menor de 0.8: S-05, S-10, S-12, S-13, S-15 y S-22. Aprobadas con la recomendación del orquestador (S-05, S-10, S-15 supuesto; S-12 documentado; S-13 y S-22 parcial).
 
 ## Supuestos de datos (modelo de la Fase 1)
 
