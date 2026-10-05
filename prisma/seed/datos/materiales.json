@@ -1,0 +1,266 @@
+[
+  {
+    "codigo": "VIN-BLA-01",
+    "nombre": "Vinil adhesivo blanco brillo",
+    "unidad": "ROLLO",
+    "costoUnitario": 3850,
+    "existenciaInicial": 3,
+    "stockMinimo": 5
+  },
+  {
+    "codigo": "VIN-NEG-01",
+    "nombre": "Vinil adhesivo negro mate",
+    "unidad": "ROLLO",
+    "costoUnitario": 4100,
+    "existenciaInicial": 2,
+    "stockMinimo": 5
+  },
+  {
+    "codigo": "VIN-COL-01",
+    "nombre": "Vinil adhesivo colores variados",
+    "unidad": "ROLLO",
+    "costoUnitario": 4400,
+    "existenciaInicial": 4,
+    "stockMinimo": 4
+  },
+  {
+    "codigo": "LNA-FRT-01",
+    "nombre": "Lona frontlit 440 gr/m2",
+    "unidad": "M2",
+    "costoUnitario": 65,
+    "existenciaInicial": 120,
+    "stockMinimo": 100
+  },
+  {
+    "codigo": "LNA-BKL-01",
+    "nombre": "Lona backlit 510 gr/m2",
+    "unidad": "M2",
+    "costoUnitario": 92,
+    "existenciaInicial": 80,
+    "stockMinimo": 80
+  },
+  {
+    "codigo": "PVC-ESP-01",
+    "nombre": "PVC espumado blanco 5mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 1300,
+    "existenciaInicial": 25,
+    "stockMinimo": 20
+  },
+  {
+    "codigo": "PVC-ESP-02",
+    "nombre": "PVC espumado negro 3mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 950,
+    "existenciaInicial": 18,
+    "stockMinimo": 15
+  },
+  {
+    "codigo": "ACR-TRA-01",
+    "nombre": "Acrílico transparente 3mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 3000,
+    "existenciaInicial": 12,
+    "stockMinimo": 10
+  },
+  {
+    "codigo": "ACR-TRA-02",
+    "nombre": "Acrílico transparente 5mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 4800,
+    "existenciaInicial": 8,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "ACR-OPA-01",
+    "nombre": "Acrílico opaco blanco 3mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 2850,
+    "existenciaInicial": 15,
+    "stockMinimo": 12
+  },
+  {
+    "codigo": "LAM-MAT-01",
+    "nombre": "Laminado mate 150 micras",
+    "unidad": "M2",
+    "costoUnitario": 22,
+    "existenciaInicial": 500,
+    "stockMinimo": 300
+  },
+  {
+    "codigo": "LAM-BRI-01",
+    "nombre": "Laminado brillo 150 micras",
+    "unidad": "M2",
+    "costoUnitario": 27,
+    "existenciaInicial": 450,
+    "stockMinimo": 300
+  },
+  {
+    "codigo": "ACM-BLA-01",
+    "nombre": "Lámina ACM blanca 3mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 3000,
+    "existenciaInicial": 10,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "ACM-NEG-01",
+    "nombre": "Lámina ACM negra 3mm",
+    "unidad": "PLIEGO",
+    "costoUnitario": 3100,
+    "existenciaInicial": 7,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "TUB-ALU-01",
+    "nombre": "Tubo aluminio 40x40mm",
+    "unidad": "METRO",
+    "costoUnitario": 575,
+    "existenciaInicial": 50,
+    "stockMinimo": 40
+  },
+  {
+    "codigo": "TUB-ACE-01",
+    "nombre": "Tubo acero galvanizado 40x40mm",
+    "unidad": "METRO",
+    "costoUnitario": 450,
+    "existenciaInicial": 60,
+    "stockMinimo": 50
+  },
+  {
+    "codigo": "PER-ALU-01",
+    "nombre": "Perfil aluminio anodizado",
+    "unidad": "METRO",
+    "costoUnitario": 310,
+    "existenciaInicial": 80,
+    "stockMinimo": 60
+  },
+  {
+    "codigo": "PIN-BLA-01",
+    "nombre": "Pintura blanca anticorrosiva",
+    "unidad": "LITRO",
+    "costoUnitario": 1100,
+    "existenciaInicial": 12,
+    "stockMinimo": 10
+  },
+  {
+    "codigo": "PIN-NEG-01",
+    "nombre": "Pintura negra anticorrosiva",
+    "unidad": "LITRO",
+    "costoUnitario": 1200,
+    "existenciaInicial": 8,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "MOD-LED-01",
+    "nombre": "Módulo LED SMD 5050 blanco",
+    "unidad": "UNIDAD",
+    "costoUnitario": 45,
+    "existenciaInicial": 100,
+    "stockMinimo": 80
+  },
+  {
+    "codigo": "MOD-LED-02",
+    "nombre": "Módulo LED SMD 5050 RGB",
+    "unidad": "UNIDAD",
+    "costoUnitario": 70,
+    "existenciaInicial": 60,
+    "stockMinimo": 50
+  },
+  {
+    "codigo": "FTE-PWR-01",
+    "nombre": "Fuente de poder LED 100W",
+    "unidad": "UNIDAD",
+    "costoUnitario": 1700,
+    "existenciaInicial": 8,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "FTE-PWR-02",
+    "nombre": "Fuente de poder LED 200W",
+    "unidad": "UNIDAD",
+    "costoUnitario": 3100,
+    "existenciaInicial": 4,
+    "stockMinimo": 4
+  },
+  {
+    "codigo": "TIN-ECO-01",
+    "nombre": "Tinta eco-solvente negro",
+    "unidad": "LITRO",
+    "costoUnitario": 1750,
+    "existenciaInicial": 6,
+    "stockMinimo": 8
+  },
+  {
+    "codigo": "TIN-ECO-02",
+    "nombre": "Tinta eco-solvente cian",
+    "unidad": "LITRO",
+    "costoUnitario": 1750,
+    "existenciaInicial": 3,
+    "stockMinimo": 5
+  },
+  {
+    "codigo": "TIN-ECO-03",
+    "nombre": "Tinta eco-solvente magenta",
+    "unidad": "LITRO",
+    "costoUnitario": 1750,
+    "existenciaInicial": 3,
+    "stockMinimo": 5
+  },
+  {
+    "codigo": "TIN-ECO-04",
+    "nombre": "Tinta eco-solvente amarillo",
+    "unidad": "LITRO",
+    "costoUnitario": 1750,
+    "existenciaInicial": 0,
+    "stockMinimo": 5
+  },
+  {
+    "codigo": "PAP-COU-01",
+    "nombre": "Papel couché 240 gr/m2",
+    "unidad": "PLIEGO",
+    "costoUnitario": 33,
+    "existenciaInicial": 800,
+    "stockMinimo": 500
+  },
+  {
+    "codigo": "CAR-BLA-01",
+    "nombre": "Cartulina blanca 300 gr/m2",
+    "unidad": "PLIEGO",
+    "costoUnitario": 52,
+    "existenciaInicial": 600,
+    "stockMinimo": 400
+  },
+  {
+    "codigo": "CAM-LIS-01",
+    "nombre": "Camiseta blanca lisa talla M",
+    "unidad": "UNIDAD",
+    "costoUnitario": 145,
+    "existenciaInicial": 50,
+    "stockMinimo": 30
+  },
+  {
+    "codigo": "TAZ-BLA-01",
+    "nombre": "Taza blanca cerámica 11 oz",
+    "unidad": "UNIDAD",
+    "costoUnitario": 72,
+    "existenciaInicial": 120,
+    "stockMinimo": 80
+  },
+  {
+    "codigo": "ADH-AER-01",
+    "nombre": "Adhesivo aerosol 500ml",
+    "unidad": "UNIDAD",
+    "costoUnitario": 330,
+    "existenciaInicial": 24,
+    "stockMinimo": 20
+  },
+  {
+    "codigo": "ADH-HOT-01",
+    "nombre": "Adhesivo hot melt barra",
+    "unidad": "KILOGRAMO",
+    "costoUnitario": 460,
+    "existenciaInicial": 10,
+    "stockMinimo": 8
+  }
+]

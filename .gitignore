@@ -11,3 +11,5 @@ test-results/
 src/generated/
 tsconfig.tsbuildinfo
 audit/
+respaldos/
+docs/capturas/_wip/

@@ -1,0 +1,848 @@
+[
+  {
+    "clave": "cot-borrador-001",
+    "cliente": "Distribuidora Los Pinos",
+    "asunto": "Señalización fachada tienda",
+    "estadoFinal": "BORRADOR",
+    "diasAtras": 2,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ROT-VIN-001",
+        "cantidad": 10
+      }
+    ]
+  },
+  {
+    "clave": "cot-borrador-002",
+    "cliente": "Clínica Dental Sonrisa Plena",
+    "asunto": "Logo 3D en fachada",
+    "estadoFinal": "BORRADOR",
+    "diasAtras": 1,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Letras corpóreas y rótulos luminosos",
+        "descripcion": "Logo clínica corpóreo 2.5 m de alto con iluminación LED RGB variable",
+        "cantidad": 1,
+        "margenPct": 35,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "ACR-OPA-01",
+            "descripcion": "Acrílico opaco blanco 3mm para cuerpo",
+            "cantidad": 5,
+            "mermaPct": 8
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "LAM-MAT-01",
+            "descripcion": "Laminado mate para acabado",
+            "cantidad": 3,
+            "mermaPct": 5
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "MOD-LED-02",
+            "descripcion": "Módulos LED RGB para iluminación",
+            "cantidad": 15,
+            "mermaPct": 3
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Diseño e ingeniería",
+            "horas": 4,
+            "tarifa": 150
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Fabricación de estructura",
+            "horas": 6,
+            "tarifa": 140
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "clave": "cot-enviada-001",
+    "cliente": "Restaurante La Ceiba",
+    "asunto": "Menús impresos estándar",
+    "estadoFinal": "ENVIADA",
+    "diasAtras": 3,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-FOL-001",
+        "cantidad": 5
+      }
+    ]
+  },
+  {
+    "clave": "cot-enviada-002",
+    "cliente": "Constructora Horizonte",
+    "asunto": "Stand de feria modular",
+    "estadoFinal": "ENVIADA",
+    "diasAtras": 5,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Rotulación y gran formato",
+        "descripcion": "Stand modular 3x3 metros con estructura aluminio, lona frontlit impresa y rótulos internos",
+        "cantidad": 1,
+        "margenPct": 40,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "TUB-ALU-01",
+            "descripcion": "Tubo aluminio 40x40mm para estructura",
+            "cantidad": 20,
+            "mermaPct": 5
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "LNA-FRT-01",
+            "descripcion": "Lona frontlit 440gr para impresión",
+            "cantidad": 20,
+            "mermaPct": 10
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "PVC-ESP-01",
+            "descripcion": "PVC espumado para rótulos internos",
+            "cantidad": 6,
+            "mermaPct": 8
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Diseño de estructura modular",
+            "horas": 6,
+            "tarifa": 160
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Armado e impresión digital",
+            "horas": 12,
+            "tarifa": 150
+          },
+          {
+            "tipo": "TERCERO",
+            "descripcion": "Transporte e instalación en venue",
+            "costo": 3500
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "clave": "cot-rechazada-001",
+    "cliente": "Colegio San Ignacio",
+    "asunto": "Uniformes deportivos estampados",
+    "estadoFinal": "RECHAZADA",
+    "diasAtras": 8,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ART-CAM-001",
+        "cantidad": 50
+      }
+    ]
+  },
+  {
+    "clave": "cot-rechazada-002",
+    "cliente": "ONG Visión Comunitaria",
+    "asunto": "Campaña de concientización",
+    "estadoFinal": "RECHAZADA",
+    "diasAtras": 10,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-TAR-001",
+        "cantidad": 3
+      }
+    ]
+  },
+  {
+    "clave": "cot-vencida-001",
+    "cliente": "Farmacia del Centro",
+    "asunto": "Etiquetas para nuevo producto",
+    "estadoFinal": "VENCIDA",
+    "diasAtras": 20,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-EST-001",
+        "cantidad": 2
+      }
+    ]
+  },
+  {
+    "clave": "cot-aprobada-001",
+    "cliente": "Panadería Los Andes",
+    "asunto": "Bolsas impresas personalizadas",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 12,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-BOL-001",
+        "cantidad": 2
+      }
+    ],
+    "orden": {
+      "estadoFinal": "ENTREGADA",
+      "responsable": "op-laser",
+      "diasParaEntrega": 5,
+      "etapas": [
+        {
+          "nombre": "Preparación de archivos",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 12,
+          "diasFin": 11
+        },
+        {
+          "nombre": "Impresión",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 11,
+          "diasFin": 9
+        },
+        {
+          "nombre": "Acabados",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 9,
+          "diasFin": 5
+        }
+      ],
+      "consumos": [
+        {
+          "material": "PAP-COU-01",
+          "cantidad": 0.4,
+          "diasAtras": 10
+        }
+      ]
+    }
+  },
+  {
+    "clave": "cot-aprobada-002",
+    "cliente": "Estudio Fotográfico Luz Perfecta",
+    "asunto": "Tarjetas profesionales evento",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 7,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-TAR-001",
+        "cantidad": 1
+      }
+    ],
+    "orden": {
+      "estadoFinal": "CERRADA",
+      "responsable": "jefe-prod",
+      "diasParaEntrega": 3,
+      "etapas": [
+        {
+          "nombre": "Preparación de archivos",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 7,
+          "diasFin": 6
+        },
+        {
+          "nombre": "Impresión",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 6,
+          "diasFin": 4
+        },
+        {
+          "nombre": "Acabados",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 4,
+          "diasFin": 3
+        }
+      ],
+      "consumos": [
+        {
+          "material": "PAP-COU-01",
+          "cantidad": 1,
+          "diasAtras": 5
+        }
+      ]
+    }
+  },
+  {
+    "clave": "cot-aprobada-003",
+    "cliente": "Agencia Viajes Tropical",
+    "asunto": "Folletos promoción destinos",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 6,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-FOL-001",
+        "cantidad": 3
+      }
+    ],
+    "orden": {
+      "estadoFinal": "EN_PRODUCCION",
+      "responsable": "op-impresion",
+      "diasParaEntrega": 2,
+      "etapas": [
+        {
+          "nombre": "Preparación de archivos",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 6,
+          "diasFin": 5
+        },
+        {
+          "nombre": "Impresión",
+          "estado": "EN_CURSO",
+          "responsable": "op-impresion",
+          "diasInicio": 5,
+          "diasFin": 2
+        },
+        {
+          "nombre": "Acabados",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": 2,
+          "diasFin": null
+        }
+      ],
+      "consumos": [
+        {
+          "material": "PAP-COU-01",
+          "cantidad": 1.5,
+          "diasAtras": 4
+        }
+      ]
+    }
+  },
+  {
+    "clave": "cot-aprobada-004",
+    "cliente": "Hotel Gran Centrómera",
+    "asunto": "Rótulos y señalética corporativa",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 4,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ROT-VIN-001",
+        "cantidad": 5
+      },
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Letras corpóreas y rótulos luminosos",
+        "descripcion": "Letras corporativas 1.5 m iluminadas",
+        "cantidad": 1,
+        "margenPct": 30,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "ACR-OPA-01",
+            "descripcion": "Acrílico blanco 3mm para letras",
+            "cantidad": 4,
+            "mermaPct": 10
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "MOD-LED-01",
+            "descripcion": "Módulos LED blanco",
+            "cantidad": 10,
+            "mermaPct": 5
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "FTE-PWR-01",
+            "descripcion": "Fuente poder LED 100W",
+            "cantidad": 1,
+            "mermaPct": 0
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Diseño e ingeniería",
+            "horas": 3,
+            "tarifa": 140
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Fabricación y ensamble",
+            "horas": 4,
+            "tarifa": 130
+          }
+        ]
+      }
+    ],
+    "orden": {
+      "estadoFinal": "LISTA",
+      "responsable": "jefe-prod",
+      "diasParaEntrega": 1,
+      "etapas": [
+        {
+          "nombre": "Diseño y aprobación de arte",
+          "estado": "COMPLETADA",
+          "responsable": "jefe-prod",
+          "diasInicio": 4,
+          "diasFin": 3
+        },
+        {
+          "nombre": "Impresión",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 3,
+          "diasFin": 2
+        },
+        {
+          "nombre": "Laminado y corte",
+          "estado": "COMPLETADA",
+          "responsable": "op-laser",
+          "diasInicio": 2,
+          "diasFin": 1
+        },
+        {
+          "nombre": "Fabricación estructura LED",
+          "estado": "COMPLETADA",
+          "responsable": "op-carpinteria",
+          "diasInicio": 1,
+          "diasFin": 0
+        }
+      ],
+      "consumos": [
+        {
+          "material": "VIN-BLA-01",
+          "cantidad": 2.5,
+          "diasAtras": 3
+        },
+        {
+          "material": "LAM-MAT-01",
+          "cantidad": 2.5,
+          "diasAtras": 3
+        },
+        {
+          "material": "ACR-OPA-01",
+          "cantidad": 1,
+          "diasAtras": 2
+        },
+        {
+          "material": "MOD-LED-01",
+          "cantidad": 20,
+          "diasAtras": 2
+        },
+        {
+          "material": "FTE-PWR-01",
+          "cantidad": 1,
+          "diasAtras": 2
+        }
+      ]
+    }
+  },
+  {
+    "clave": "cot-aprobada-005",
+    "cliente": "Óptica Visión 20/20",
+    "asunto": "Letras 3D para fachada",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 15,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Letras corpóreas y rótulos luminosos",
+        "descripcion": "Letras corpóreas acrílico 2 metros iluminación LED blanca",
+        "cantidad": 1,
+        "margenPct": 32,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "ACR-OPA-01",
+            "descripcion": "Acrílico opaco blanco 3mm",
+            "cantidad": 5,
+            "mermaPct": 12
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "MOD-LED-01",
+            "descripcion": "Módulos LED blanco",
+            "cantidad": 12,
+            "mermaPct": 3
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "FTE-PWR-01",
+            "descripcion": "Fuente poder LED 100W",
+            "cantidad": 1,
+            "mermaPct": 0
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Ingeniería y diseño",
+            "horas": 4,
+            "tarifa": 150
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Fabricación estructura",
+            "horas": 5,
+            "tarifa": 140
+          }
+        ]
+      }
+    ],
+    "orden": {
+      "estadoFinal": "PENDIENTE",
+      "responsable": "jefe-prod",
+      "diasParaEntrega": 10,
+      "etapas": [
+        {
+          "nombre": "Diseño e ingeniería",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": 0,
+          "diasFin": null
+        },
+        {
+          "nombre": "Fabricación de estructura",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        },
+        {
+          "nombre": "Acabado y pintura",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        },
+        {
+          "nombre": "Instalación eléctrica y LED",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        },
+        {
+          "nombre": "Instalación",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        }
+      ],
+      "consumos": []
+    }
+  },
+  {
+    "clave": "cot-aprobada-006",
+    "cliente": "Centro de Belleza Iris",
+    "asunto": "Uniforme personal con logo",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 9,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ART-CAM-001",
+        "cantidad": 15
+      }
+    ],
+    "orden": {
+      "estadoFinal": "CANCELADA",
+      "responsable": "op-impresion",
+      "diasParaEntrega": 5,
+      "etapas": [
+        {
+          "nombre": "Recepción y preparación",
+          "estado": "OMITIDA",
+          "responsable": null,
+          "diasInicio": 9,
+          "diasFin": 9
+        },
+        {
+          "nombre": "Impresión o grabado",
+          "estado": "OMITIDA",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        },
+        {
+          "nombre": "Control de calidad",
+          "estado": "OMITIDA",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        },
+        {
+          "nombre": "Empaque y despacho",
+          "estado": "OMITIDA",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        }
+      ],
+      "consumos": []
+    }
+  },
+  {
+    "clave": "cot-personalizado-001",
+    "cliente": "Supermercado La Frontera",
+    "asunto": "Mobiliario stand promocional",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 18,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Mobiliario",
+        "descripcion": "Stand promocional 2.5 x 2 metros, estructura aluminio, revestimiento vinil, asientos modulares",
+        "cantidad": 1,
+        "margenPct": 45,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "TUB-ALU-01",
+            "descripcion": "Tubo aluminio 40x40mm para estructura",
+            "cantidad": 16,
+            "mermaPct": 6
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "PER-ALU-01",
+            "descripcion": "Perfil aluminio anodizado",
+            "cantidad": 10,
+            "mermaPct": 4
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "VIN-BLA-01",
+            "descripcion": "Vinil adhesivo blanco brillo",
+            "cantidad": 1,
+            "mermaPct": 5
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "PIN-BLA-01",
+            "descripcion": "Pintura blanca anticorrosiva",
+            "cantidad": 2,
+            "mermaPct": 8
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Diseño y planos",
+            "horas": 5,
+            "tarifa": 160
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Fabricación estructura",
+            "horas": 10,
+            "tarifa": 150
+          },
+          {
+            "tipo": "TERCERO",
+            "descripcion": "Diseño de asientos modulares",
+            "costo": 2000
+          }
+        ]
+      }
+    ],
+    "orden": {
+      "estadoFinal": "EN_PRODUCCION",
+      "responsable": "op-carpinteria",
+      "diasParaEntrega": 8,
+      "etapas": [
+        {
+          "nombre": "Diseño y planos",
+          "estado": "COMPLETADA",
+          "responsable": "jefe-prod",
+          "diasInicio": 18,
+          "diasFin": 16
+        },
+        {
+          "nombre": "Fabricación",
+          "estado": "EN_CURSO",
+          "responsable": "op-carpinteria",
+          "diasInicio": 16,
+          "diasFin": 8
+        },
+        {
+          "nombre": "Acabado",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": 8,
+          "diasFin": null
+        },
+        {
+          "nombre": "Instalación",
+          "estado": "PENDIENTE",
+          "responsable": null,
+          "diasInicio": null,
+          "diasFin": null
+        }
+      ],
+      "consumos": [
+        {
+          "material": "TUB-ALU-01",
+          "cantidad": 12,
+          "diasAtras": 16
+        },
+        {
+          "material": "PER-ALU-01",
+          "cantidad": 8,
+          "diasAtras": 16
+        },
+        {
+          "material": "VIN-BLA-01",
+          "cantidad": 3,
+          "diasAtras": 14
+        }
+      ]
+    }
+  },
+  {
+    "clave": "cot-mixta-001",
+    "cliente": "Policlínica San Carlos",
+    "asunto": "Señalización clínica mixta",
+    "estadoFinal": "APROBADA",
+    "diasAtras": 11,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ROT-VIN-001",
+        "cantidad": 3
+      },
+      {
+        "tipo": "PERSONALIZADO",
+        "categoria": "Letras corpóreas y rótulos luminosos",
+        "descripcion": "Señal entrada 1.5 x 0.8 metros con LED",
+        "cantidad": 1,
+        "margenPct": 28,
+        "lineas": [
+          {
+            "tipo": "MATERIAL",
+            "material": "PVC-ESP-01",
+            "descripcion": "PVC espumado blanco 5mm",
+            "cantidad": 2,
+            "mermaPct": 10
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "LAM-MAT-01",
+            "descripcion": "Laminado mate para acabado",
+            "cantidad": 2,
+            "mermaPct": 5
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "MOD-LED-01",
+            "descripcion": "Módulos LED blanco",
+            "cantidad": 6,
+            "mermaPct": 3
+          },
+          {
+            "tipo": "MATERIAL",
+            "material": "FTE-PWR-01",
+            "descripcion": "Fuente poder LED 100W",
+            "cantidad": 1,
+            "mermaPct": 0
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Diseño y aprobación",
+            "horas": 2,
+            "tarifa": 130
+          },
+          {
+            "tipo": "MANO_OBRA",
+            "descripcion": "Fabricación y ensamble",
+            "horas": 3,
+            "tarifa": 140
+          },
+          {
+            "tipo": "TERCERO",
+            "descripcion": "Cableado e instalación",
+            "costo": 1200
+          }
+        ]
+      }
+    ],
+    "orden": {
+      "estadoFinal": "LISTA",
+      "responsable": "jefe-prod",
+      "diasParaEntrega": 2,
+      "etapas": [
+        {
+          "nombre": "Diseño y aprobación de arte",
+          "estado": "COMPLETADA",
+          "responsable": "jefe-prod",
+          "diasInicio": 11,
+          "diasFin": 10
+        },
+        {
+          "nombre": "Impresión",
+          "estado": "COMPLETADA",
+          "responsable": "op-impresion",
+          "diasInicio": 10,
+          "diasFin": 8
+        },
+        {
+          "nombre": "Laminado y corte",
+          "estado": "COMPLETADA",
+          "responsable": "op-laser",
+          "diasInicio": 8,
+          "diasFin": 5
+        },
+        {
+          "nombre": "Fabricación estructura LED",
+          "estado": "COMPLETADA",
+          "responsable": "op-carpinteria",
+          "diasInicio": 5,
+          "diasFin": 2
+        }
+      ],
+      "consumos": [
+        {
+          "material": "VIN-BLA-01",
+          "cantidad": 1.5,
+          "diasAtras": 9
+        },
+        {
+          "material": "LAM-MAT-01",
+          "cantidad": 1.5,
+          "diasAtras": 9
+        },
+        {
+          "material": "PVC-ESP-01",
+          "cantidad": 0.25,
+          "diasAtras": 7
+        },
+        {
+          "material": "MOD-LED-01",
+          "cantidad": 8,
+          "diasAtras": 6
+        },
+        {
+          "material": "FTE-PWR-01",
+          "cantidad": 0.5,
+          "diasAtras": 6
+        }
+      ]
+    }
+  }
+]

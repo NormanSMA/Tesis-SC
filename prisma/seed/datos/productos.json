@@ -1,0 +1,274 @@
+[
+  {
+    "codigo": "ROT-VIN-001",
+    "nombre": "Rótulo vinil adhesivo personalizado",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "M2",
+    "precioBase": 1650,
+    "descripcion": "Rótulo comercial con vinil adhesivo, corte a medida e instalación básica"
+  },
+  {
+    "codigo": "ROT-LON-001",
+    "nombre": "Lona frontlit impresa",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "M2",
+    "precioBase": 2290,
+    "descripcion": "Lona frontlit 440 gr, impresión digital y ojales"
+  },
+  {
+    "codigo": "ROT-ACM-001",
+    "nombre": "Panel ACM con vinil",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 4600,
+    "descripcion": "Placa ACM 3mm con vinil adhesivo, ensamble profesional"
+  },
+  {
+    "codigo": "ROT-EST-001",
+    "nombre": "Estructura stand modular",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 16500,
+    "descripcion": "Base de aluminio para rótulos, altura personalizable"
+  },
+  {
+    "codigo": "IMP-TAR-001",
+    "nombre": "Tarjetas de presentación, millar",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 1320,
+    "descripcion": "Tarjetas de presentación en papel couché 300 gr, ambas caras"
+  },
+  {
+    "codigo": "IMP-FOL-001",
+    "nombre": "Folletos A4 full color, millar",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 3100,
+    "descripcion": "Folleto cuadrícroma sobre papel couché 240 gr"
+  },
+  {
+    "codigo": "IMP-CAT-001",
+    "nombre": "Catálogo A4 (250 unidades)",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 6600,
+    "descripcion": "Catálogo grapado, 12 páginas, laminado mate"
+  },
+  {
+    "codigo": "IMP-EST-001",
+    "nombre": "Etiqueta autoadhesiva (500 unidades)",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 1550,
+    "descripcion": "Etiquetas impresas y troqueladas, pegue permanente"
+  },
+  {
+    "codigo": "DIS-LOG-001",
+    "nombre": "Diseño de logo",
+    "categoria": "Diseño y branding",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 7300,
+    "descripcion": "Diseño conceptual, 3 propuestas, archivos entregables"
+  },
+  {
+    "codigo": "DIS-IDE-001",
+    "nombre": "Identidad corporativa completa",
+    "categoria": "Diseño y branding",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 23800,
+    "descripcion": "Logo, tipografía, paleta, manual de uso y archivos vectoriales"
+  },
+  {
+    "codigo": "DIS-PAQ-001",
+    "nombre": "Diseño de empaque",
+    "categoria": "Diseño y branding",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 14650,
+    "descripcion": "Diseño dieline, maqueta y archivos para impresión"
+  },
+  {
+    "codigo": "PUB-VID-001",
+    "nombre": "Video promocional 30 segundos",
+    "categoria": "Publicidad digital y medios",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 12800,
+    "descripcion": "Grabación, edición y composición digital, entrega en MP4"
+  },
+  {
+    "codigo": "PUB-RED-001",
+    "nombre": "Gestión de redes sociales (1 mes)",
+    "categoria": "Publicidad digital y medios",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 6600,
+    "descripcion": "Planificación, diseño de gráficas, publicación y moderación"
+  },
+  {
+    "codigo": "PUB-AUN-001",
+    "nombre": "Anuncio digital (10 días)",
+    "categoria": "Publicidad digital y medios",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 4400,
+    "descripcion": "Diseño, configuración y seguimiento de campaña en redes"
+  },
+  {
+    "codigo": "ART-CAM-001",
+    "nombre": "Camiseta personalizada",
+    "categoria": "Artículos promocionales",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 460,
+    "descripcion": "Camiseta blanca, impresión de logo o diseño personalizado"
+  },
+  {
+    "codigo": "ART-TAZ-001",
+    "nombre": "Taza personalizada",
+    "categoria": "Artículos promocionales",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 290,
+    "descripcion": "Taza cerámica con impresión a color, embalaje incluido"
+  },
+  {
+    "codigo": "ART-GAF-001",
+    "nombre": "Gafete personalizado con cordón",
+    "categoria": "Artículos promocionales",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 92,
+    "descripcion": "Gafete plástico con impresión, incluye cordón y cierre"
+  },
+  {
+    "codigo": "ART-LAV-001",
+    "nombre": "Llavero personalizado",
+    "categoria": "Artículos promocionales",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 64,
+    "descripcion": "Llavero acrílico con impresión de logo, anilla metálica"
+  },
+  {
+    "codigo": "LET-COR-001",
+    "nombre": "Letras corpóreas 3D por metro lineal",
+    "categoria": "Letras corpóreas y rótulos luminosos",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 3100,
+    "descripcion": "Letras de acrílico o aluminio 3D, altura personalizable"
+  },
+  {
+    "codigo": "LET-LUM-001",
+    "nombre": "Letras luminosas LED por metro lineal",
+    "categoria": "Letras corpóreas y rótulos luminosos",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 6800,
+    "descripcion": "Letras 3D con iluminación LED integrada, blanco o RGB"
+  },
+  {
+    "codigo": "LET-NEO-001",
+    "nombre": "Tubo neón personalizado por metro",
+    "categoria": "Letras corpóreas y rótulos luminosos",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 3500,
+    "descripcion": "Tubo neón doblado a medida, colores disponibles"
+  },
+  {
+    "codigo": "LET-MOD-001",
+    "nombre": "Letrero modular iluminado",
+    "categoria": "Letras corpóreas y rótulos luminosos",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 16500,
+    "descripcion": "Letrero 1m x 0.5m con módulos LED configurables"
+  },
+  {
+    "codigo": "COR-ACR-001",
+    "nombre": "Corte de acrílico personalizado",
+    "categoria": "Corte y grabado láser",
+    "unidadCobro": "M2",
+    "precioBase": 1025,
+    "descripcion": "Corte láser de acrílico, formas personalizadas, pulido en aristas"
+  },
+  {
+    "codigo": "COR-MAD-001",
+    "nombre": "Grabado en madera",
+    "categoria": "Corte y grabado láser",
+    "unidadCobro": "M2",
+    "precioBase": 1280,
+    "descripcion": "Grabado láser en madera, profundidad personalizable"
+  },
+  {
+    "codigo": "COR-CUE-001",
+    "nombre": "Grabado en cuero",
+    "categoria": "Corte y grabado láser",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 805,
+    "descripcion": "Grabado láser en artículos de cuero personalizado"
+  },
+  {
+    "codigo": "COR-VID-001",
+    "nombre": "Corte y grabado de vidrio",
+    "categoria": "Corte y grabado láser",
+    "unidadCobro": "M2",
+    "precioBase": 1650,
+    "descripcion": "Corte y grabado de vidrio templado, acabado profesional"
+  },
+  {
+    "codigo": "MOB-MES-001",
+    "nombre": "Mostrador modular personalizado",
+    "categoria": "Mobiliario",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 43900,
+    "descripcion": "Mostrador con estructura de aluminio y resina, diseño a medida"
+  },
+  {
+    "codigo": "MOB-EST-001",
+    "nombre": "Estantería comercial",
+    "categoria": "Mobiliario",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 16500,
+    "descripcion": "Estantería metal con recubrimiento, altura y ancho personalizables"
+  },
+  {
+    "codigo": "MOB-SIT-001",
+    "nombre": "Sillería corporativa",
+    "categoria": "Mobiliario",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 10250,
+    "descripcion": "Asientos modulares, tapicería personalizable"
+  },
+  {
+    "codigo": "ROT-VIN-002",
+    "nombre": "Vinil decorativo para vidrios",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "M2",
+    "precioBase": 1280,
+    "descripcion": "Vinil decorativo con efectos frosted o grabado"
+  },
+  {
+    "codigo": "IMP-BOL-001",
+    "nombre": "Bolsas personalizadas, millar",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 2380,
+    "descripcion": "Bolsa kraft o plástica con impresión, asas y acabados"
+  },
+  {
+    "codigo": "IMP-CJA-001",
+    "nombre": "Cajas corrugadas personalizadas, 500 unidades",
+    "categoria": "Impresión y artes gráficas",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 4400,
+    "descripcion": "Caja corrugada impresa, troquelada y armada"
+  },
+  {
+    "codigo": "DIS-SOC-001",
+    "nombre": "Diseño de pieza para redes",
+    "categoria": "Diseño y branding",
+    "unidadCobro": "UNIDAD",
+    "precioBase": 1650,
+    "descripcion": "Diseño único para publicación en Instagram, Facebook o LinkedIn"
+  },
+  {
+    "codigo": "ROT-LON-002",
+    "nombre": "Lona backlit instalada",
+    "categoria": "Rotulación y gran formato",
+    "unidadCobro": "M2",
+    "precioBase": 3020,
+    "descripcion": "Lona backlit 510 gr, impresión e instalación en estructura"
+  }
+]

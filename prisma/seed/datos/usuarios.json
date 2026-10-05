@@ -1,0 +1,66 @@
+[
+  {
+    "nombre": "Gerardo Jiménez",
+    "correo": "gerardo.jimenez@solucionescreativas.test",
+    "perfil": "GERENCIA",
+    "cargo": "Gerente General",
+    "area": null,
+    "clave": "gerente"
+  },
+  {
+    "nombre": "Valentina Castro",
+    "correo": "valentina.castro@solucionescreativas.test",
+    "perfil": "VENTAS",
+    "cargo": "Atención al cliente y ventas",
+    "area": null,
+    "clave": "ventas"
+  },
+  {
+    "nombre": "Roberto Díaz",
+    "correo": "roberto.diaz@solucionescreativas.test",
+    "perfil": "ADMIN",
+    "cargo": "Administrador del sistema",
+    "area": null,
+    "clave": "admin"
+  },
+  {
+    "nombre": "Marco López",
+    "correo": "marco.lopez@solucionescreativas.test",
+    "perfil": "PRODUCCION",
+    "cargo": "Jefe de producción",
+    "area": "Diseño y artes gráficas",
+    "clave": "jefe-prod"
+  },
+  {
+    "nombre": "Gabriel Cortez",
+    "correo": "gabriel.cortez@solucionescreativas.test",
+    "perfil": "PRODUCCION",
+    "cargo": "Operario de impresión",
+    "area": "Impresión",
+    "clave": "op-impresion"
+  },
+  {
+    "nombre": "Alfonso Mejía",
+    "correo": "alfonso.mejia@solucionescreativas.test",
+    "perfil": "PRODUCCION",
+    "cargo": "Operario de corte y láser",
+    "area": "Corte y láser",
+    "clave": "op-laser"
+  },
+  {
+    "nombre": "Humberto Silva",
+    "correo": "humberto.silva@solucionescreativas.test",
+    "perfil": "PRODUCCION",
+    "cargo": "Operario de carpintería y metalmecánica",
+    "area": "Carpintería y metalmecánica",
+    "clave": "op-carpinteria"
+  },
+  {
+    "nombre": "Daniel Ortiz",
+    "correo": "daniel.ortiz@solucionescreativas.test",
+    "perfil": "PRODUCCION",
+    "cargo": "Operario de instalación",
+    "area": "Instalación",
+    "clave": "op-instalacion"
+  }
+]

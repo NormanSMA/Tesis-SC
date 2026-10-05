@@ -1,1 +1,170 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* Tokens del sistema de diseño. Fuente única: ver docs/diseno.md */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-foreground: #ffffff;
+  --primary-soft: #f0fdfa;
+  --primary-soft-border: #99f6e4;
+
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+
+  --border: #e2e8f0;
+  /* Borde de controles: 4.76:1 sobre blanco (WCAG 1.4.11 exige 3:1) */
+  --input: #64748b;
+  --ring: #0f766e;
+
+  --success: #15803d;
+  --success-soft: #f0fdf4;
+  --success-soft-border: #bbf7d0;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-soft-border: #fde68a;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --danger-soft-border: #fecaca;
+  --info: #1d4ed8;
+  --info-soft: #eff6ff;
+  --info-soft-border: #bfdbfe;
+  --neutral-strong: #334155;
+
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+
+  --radius: 6px;
+  --altura-barra-superior: 3.5rem;
+  --ancho-menu: 16rem;
+  --ancho-riel: 4rem;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-border: var(--primary-soft-border);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-border: var(--success-soft-border);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-border: var(--warning-soft-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-border: var(--danger-soft-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-border: var(--info-soft-border);
+  --color-neutral-strong: var(--neutral-strong);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+
+  /* Escala tipográfica: 12 / 14 / 16 / 20 / 24 / 30 */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
+
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    /* Evita que la barra superior fija oculte el elemento enfocado (WCAG 2.4.11) */
+    scroll-padding-top: calc(var(--altura-barra-superior) + 1rem);
+    scroll-padding-bottom: 1rem;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-slot="button"]:hover {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

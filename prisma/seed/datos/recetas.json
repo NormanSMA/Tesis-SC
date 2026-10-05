@@ -1,0 +1,131 @@
+[
+  {
+    "producto": "ROT-VIN-001",
+    "materiales": [
+      {"material": "VIN-BLA-01", "cantidad": 0.5},
+      {"material": "LAM-MAT-01", "cantidad": 0.5}
+    ]
+  },
+  {
+    "producto": "ROT-LON-001",
+    "materiales": [
+      {"material": "LNA-FRT-01", "cantidad": 1.0},
+      {"material": "LAM-BRI-01", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "ROT-ACM-001",
+    "materiales": [
+      {"material": "ACM-BLA-01", "cantidad": 0.25},
+      {"material": "VIN-BLA-01", "cantidad": 0.2},
+      {"material": "ADH-AER-01", "cantidad": 0.05}
+    ]
+  },
+  {
+    "producto": "ROT-EST-001",
+    "materiales": [
+      {"material": "TUB-ALU-01", "cantidad": 8.0},
+      {"material": "PER-ALU-01", "cantidad": 4.0}
+    ]
+  },
+  {
+    "producto": "IMP-TAR-001",
+    "materiales": [
+      {"material": "PAP-COU-01", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "IMP-FOL-001",
+    "materiales": [
+      {"material": "PAP-COU-01", "cantidad": 0.5}
+    ]
+  },
+  {
+    "producto": "IMP-CAT-001",
+    "materiales": [
+      {"material": "PAP-COU-01", "cantidad": 1.5},
+      {"material": "LAM-MAT-01", "cantidad": 0.5}
+    ]
+  },
+  {
+    "producto": "IMP-EST-001",
+    "materiales": [
+      {"material": "CAR-BLA-01", "cantidad": 0.2}
+    ]
+  },
+  {
+    "producto": "ART-CAM-001",
+    "materiales": [
+      {"material": "CAM-LIS-01", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "ART-TAZ-001",
+    "materiales": [
+      {"material": "TAZ-BLA-01", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "ART-GAF-001",
+    "materiales": [
+      {"material": "PVC-ESP-01", "cantidad": 0.02}
+    ]
+  },
+  {
+    "producto": "ART-LAV-001",
+    "materiales": [
+      {"material": "ACR-TRA-01", "cantidad": 0.015}
+    ]
+  },
+  {
+    "producto": "LET-COR-001",
+    "materiales": [
+      {"material": "ACR-OPA-01", "cantidad": 1.0},
+      {"material": "ADH-HOT-01", "cantidad": 0.2}
+    ]
+  },
+  {
+    "producto": "LET-LUM-001",
+    "materiales": [
+      {"material": "ACR-OPA-01", "cantidad": 1.0},
+      {"material": "MOD-LED-01", "cantidad": 10.0},
+      {"material": "FTE-PWR-01", "cantidad": 0.5}
+    ]
+  },
+  {
+    "producto": "COR-ACR-001",
+    "materiales": [
+      {"material": "ACR-TRA-01", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "COR-MAD-001",
+    "materiales": [
+      {"material": "TUB-ALU-01", "cantidad": 0.1}
+    ]
+  },
+  {
+    "producto": "COR-VID-001",
+    "materiales": [
+      {"material": "ACR-TRA-02", "cantidad": 1.0}
+    ]
+  },
+  {
+    "producto": "ROT-VIN-002",
+    "materiales": [
+      {"material": "VIN-BLA-01", "cantidad": 0.3}
+    ]
+  },
+  {
+    "producto": "IMP-BOL-001",
+    "materiales": [
+      {"material": "PAP-COU-01", "cantidad": 0.2}
+    ]
+  },
+  {
+    "producto": "IMP-CJA-001",
+    "materiales": [
+      {"material": "CAR-BLA-01", "cantidad": 1.0}
+    ]
+  }
+]

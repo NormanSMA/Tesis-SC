@@ -1,0 +1,279 @@
+[
+  {
+    "nombre": "Distribuidora Los Pinos",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000123",
+    "contactoPrincipal": "Pedro Rodríguez",
+    "telefono": "+505 8765-4321",
+    "correo": "pedror@lospinos.test",
+    "direccion": "Barrio Jalteva, Managua",
+    "notas": "Cliente frecuente, pagos puntuales"
+  },
+  {
+    "nombre": "Clínica Dental Sonrisa Plena",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000124",
+    "contactoPrincipal": "Dra. Carmen López",
+    "telefono": "+505 8734-5678",
+    "correo": "info@sonrisaplena.test",
+    "direccion": "Barrio Martha Quezada, Managua",
+    "notas": "Requiere señalización profesional"
+  },
+  {
+    "nombre": "Restaurante La Ceiba",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000125",
+    "contactoPrincipal": "Roberto García",
+    "telefono": "+505 8723-1234",
+    "correo": "roberto@laceiba.test",
+    "direccion": "Barrio San Juan, Managua",
+    "notas": "Menús impresos, rótulos interiores"
+  },
+  {
+    "nombre": "Constructora Horizonte",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000126",
+    "contactoPrincipal": "Carlos Martínez",
+    "telefono": "+505 8712-9876",
+    "correo": "admin@horizonte.test",
+    "direccion": "Las Colinas, Managua",
+    "notas": "Proyectos grandes, requiere stand de feria"
+  },
+  {
+    "nombre": "Colegio San Ignacio",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000127",
+    "contactoPrincipal": "Dirección Académica",
+    "telefono": "+505 8745-6789",
+    "correo": "direccion@sanignacio.test",
+    "direccion": "Barrio Altamira, Managua",
+    "notas": "Proyectos escolares, certificados y diplomas"
+  },
+  {
+    "nombre": "ONG Visión Comunitaria",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000128",
+    "contactoPrincipal": "Geovanna Hernández",
+    "telefono": "+505 8756-3421",
+    "correo": "geovanna@visioncomunitaria.test",
+    "direccion": "Barrio Monseñor Lezcano, Managua",
+    "notas": "Presupuesto limitado, campañas sociales"
+  },
+  {
+    "nombre": "Farmacia del Centro",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000129",
+    "contactoPrincipal": "Mariana Flores",
+    "telefono": "+505 8734-2109",
+    "correo": "mariana@farmacentro.test",
+    "direccion": "Barrio Barrio Viejo, Managua",
+    "notas": "Etiquetado de productos, vinil puerta"
+  },
+  {
+    "nombre": "Panadería Los Andes",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000130",
+    "contactoPrincipal": "David Chávez",
+    "telefono": "+505 8745-7654",
+    "correo": "info@losandes.test",
+    "direccion": "Barrio Jalteva, Managua",
+    "notas": "Bolsas impresas, rótulo exterior"
+  },
+  {
+    "nombre": "Estudio Fotográfico Luz Perfecta",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000131",
+    "contactoPrincipal": "Sofía Guzmán",
+    "telefono": "+505 8723-5678",
+    "correo": "sofia@luzperfecta.test",
+    "direccion": "Barrio Martha Quezada, Managua",
+    "notas": "Tarjetas, portafolios, eventos corporativos"
+  },
+  {
+    "nombre": "Agencia Viajes Tropical",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000132",
+    "contactoPrincipal": "Juan Rodríguez",
+    "telefono": "+505 8756-8901",
+    "correo": "juan@tropical.test",
+    "direccion": "Barrio Laureles, Managua",
+    "notas": "Folletos, banners, publicidad digital"
+  },
+  {
+    "nombre": "Hotel Gran Centrómera",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000133",
+    "contactoPrincipal": "Gerente General",
+    "telefono": "+505 8734-3456",
+    "correo": "gestion@grancentromera.test",
+    "direccion": "Barrio San Juan, Managua",
+    "notas": "Señalética hotel, rótulos, placas"
+  },
+  {
+    "nombre": "Juan Pérez García",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "Juan Pérez",
+    "telefono": "+505 8723-4567",
+    "correo": "juan.perez@example.com",
+    "direccion": "Barrio Altamira, Managua",
+    "notas": "Cotizaciones personales ocasionales"
+  },
+  {
+    "nombre": "María López Morales",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "María López",
+    "telefono": "+505 8745-1234",
+    "correo": "maria.lopez@example.com",
+    "direccion": "Barrio Las Colinas, Managua",
+    "notas": "Piezas de arte personalizadas"
+  },
+  {
+    "nombre": "Escuela Técnica Vocacional",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000134",
+    "contactoPrincipal": "Director",
+    "telefono": "+505 8712-5678",
+    "correo": "director@etv.test",
+    "direccion": "Barrio San Juan, Managua",
+    "notas": "Materiales educativos, certificados"
+  },
+  {
+    "nombre": "Tienda de Ropa Elegancia",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000135",
+    "contactoPrincipal": "Directora",
+    "telefono": "+505 8756-9012",
+    "correo": "info@elegancia.test",
+    "direccion": "Centro Comercial Las Américas, Managua",
+    "notas": "Bolsas, etiquetas, rótulos tienda"
+  },
+  {
+    "nombre": "Taller de Carpintería Maestro",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000136",
+    "contactoPrincipal": "Maestro Pérez",
+    "telefono": "+505 8723-7890",
+    "correo": "maestro@carpinteria.test",
+    "direccion": "Barrio El Retiro, Managua",
+    "notas": "Rótulo taller, señalética"
+  },
+  {
+    "nombre": "Óptica Visión 20/20",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000137",
+    "contactoPrincipal": "Carlos Flores",
+    "telefono": "+505 8745-2345",
+    "correo": "carlos@vision2020.test",
+    "direccion": "Barrio Barrio Viejo, Managua",
+    "notas": "Vitrinas, rótulos luminosos"
+  },
+  {
+    "nombre": "Centro de Belleza Iris",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000138",
+    "contactoPrincipal": "Gerente",
+    "telefono": "+505 8734-6789",
+    "correo": "info@irisbeauty.test",
+    "direccion": "Barrio Martha Quezada, Managua",
+    "notas": "Rótulos, tarjetas, uniforme estampado"
+  },
+  {
+    "nombre": "Deportes Extremo",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000139",
+    "contactoPrincipal": "Gerente Tienda",
+    "telefono": "+505 8756-4567",
+    "correo": "gerente@extremo.test",
+    "direccion": "Barrio San Juan, Managua",
+    "notas": "Ropa deportiva personalizada, mochilas"
+  },
+  {
+    "nombre": "Cafetería Aroma",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000140",
+    "contactoPrincipal": "Propietario",
+    "telefono": "+505 8723-9876",
+    "correo": "aroma@cafe.test",
+    "direccion": "Barrio Jalteva, Managua",
+    "notas": "Menú impresos, rotulación interior"
+  },
+  {
+    "nombre": "Policlínica San Carlos",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000141",
+    "contactoPrincipal": "Administrador",
+    "telefono": "+505 8745-5678",
+    "correo": "admin@sancarlos.test",
+    "direccion": "Barrio Altamira, Managua",
+    "notas": "Señalética clínica, cartelería médica"
+  },
+  {
+    "nombre": "Agencia Publicidad Sierra",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000142",
+    "contactoPrincipal": "Director Creativo",
+    "telefono": "+505 8734-7890",
+    "correo": "creativo@sierra.test",
+    "direccion": "Barrio Las Colinas, Managua",
+    "notas": "Cliente referenciador, comisiones"
+  },
+  {
+    "nombre": "Carlos Mendoza Reyes",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "Carlos Mendoza",
+    "telefono": "+505 8723-2345",
+    "correo": "carlos.mendoza@example.com",
+    "direccion": "Barrio El Retiro, Managua",
+    "notas": "Proyectos personales diversos"
+  },
+  {
+    "nombre": "Supermercado La Frontera",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000143",
+    "contactoPrincipal": "Gerencia",
+    "telefono": "+505 8756-7890",
+    "correo": "gerencia@lafrontera.test",
+    "direccion": "Barrio San Juan, Managua",
+    "notas": "Rótulos, vitrinas, cartelería promocional"
+  },
+  {
+    "nombre": "Consultorio Veterinario Mascotas Felices",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000144",
+    "contactoPrincipal": "Dr. Fernando",
+    "telefono": "+505 8745-8901",
+    "correo": "fernando@mascotasfelices.test",
+    "direccion": "Barrio Martha Quezada, Managua",
+    "notas": "Rótulo clínica, tarjetas profesionales"
+  },
+  {
+    "nombre": "Academia de Danza Ritmo",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000145",
+    "contactoPrincipal": "Directora",
+    "telefono": "+505 8723-6789",
+    "correo": "directora@ritmo.test",
+    "direccion": "Barrio Altamira, Managua",
+    "notas": "Camisetas grupo, banners eventos"
+  },
+  {
+    "nombre": "Taller Textil Fiesta",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000146",
+    "contactoPrincipal": "Rocío Jiménez",
+    "telefono": "+505 8734-5612",
+    "correo": "rocio@fiesta.test",
+    "direccion": "Barrio El Retiro, Managua",
+    "notas": "Personalización de textiles y uniformes"
+  },
+  {
+    "nombre": "Librería El Conocimiento",
+    "tipo": "EMPRESA",
+    "ruc": "J0310000000147",
+    "contactoPrincipal": "Luis Mendoza",
+    "telefono": "+505 8723-4567",
+    "correo": "luis@conocimiento.test",
+    "direccion": "Barrio Barrio Viejo, Managua",
+    "notas": "Impresión de libros y material educativo"
+  }
+]

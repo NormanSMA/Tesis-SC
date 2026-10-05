@@ -1,0 +1,34 @@
+[
+  {
+    "nombre": "Rotulación y gran formato",
+    "descripcion": "Rótulos comerciales, lonas, vinilos adhesivos y proyectos de gran formato para fachadas y espacios públicos"
+  },
+  {
+    "nombre": "Impresión y artes gráficas",
+    "descripcion": "Impresión offset, digital, tarjetas, folletos, catálogos y otros materiales gráficos impresos"
+  },
+  {
+    "nombre": "Diseño y branding",
+    "descripcion": "Identidad visual, diseño de logos, materiales corporativos y asesoría en imagen de marca"
+  },
+  {
+    "nombre": "Publicidad digital y medios",
+    "descripcion": "Contenido digital, diseño web, multimedia, gestión de redes sociales"
+  },
+  {
+    "nombre": "Artículos promocionales",
+    "descripcion": "Personalización de camisetas, tazas, gafetes, llaveros y otros artículos con logo de cliente"
+  },
+  {
+    "nombre": "Letras corpóreas y rótulos luminosos",
+    "descripcion": "Letras 3D, señalización luminosa, módulos LED y rótulos de neón o acrílicoiluminado"
+  },
+  {
+    "nombre": "Corte y grabado láser",
+    "descripcion": "Corte y grabado de vidrio, acrílico, madera, cuero con tecnología láser de precisión"
+  },
+  {
+    "nombre": "Mobiliario",
+    "descripcion": "Muebles personalizados, stands de feria, estructuras modulares y soluciones de mobiliario corporativo"
+  }
+]

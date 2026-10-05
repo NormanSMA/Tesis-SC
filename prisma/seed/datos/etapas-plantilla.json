@@ -1,0 +1,74 @@
+[
+  {
+    "categoria": "Rotulación y gran formato",
+    "etapas": [
+      {"nombre": "Diseño y aprobación de arte", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Impresión", "area": "Impresión", "secuencia": 2},
+      {"nombre": "Laminado y corte", "area": "Corte y láser", "secuencia": 3},
+      {"nombre": "Armado de estructura", "area": "Carpintería y metalmecánica", "secuencia": 4},
+      {"nombre": "Instalación", "area": "Instalación", "secuencia": 5}
+    ]
+  },
+  {
+    "categoria": "Impresión y artes gráficas",
+    "etapas": [
+      {"nombre": "Preparación de archivos", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Impresión", "area": "Impresión", "secuencia": 2},
+      {"nombre": "Acabados", "area": "Acabados", "secuencia": 3},
+      {"nombre": "Empaque y despacho", "area": "Despacho", "secuencia": 4}
+    ]
+  },
+  {
+    "categoria": "Diseño y branding",
+    "etapas": [
+      {"nombre": "Concepto y propuesta creativa", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Revisión y ajustes", "area": "Diseño y artes gráficas", "secuencia": 2},
+      {"nombre": "Finalización y entrega", "area": "Despacho", "secuencia": 3}
+    ]
+  },
+  {
+    "categoria": "Publicidad digital y medios",
+    "etapas": [
+      {"nombre": "Concepto y guión", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Producción y edición", "area": "Diseño y artes gráficas", "secuencia": 2},
+      {"nombre": "Entrega digital", "area": "Despacho", "secuencia": 3}
+    ]
+  },
+  {
+    "categoria": "Artículos promocionales",
+    "etapas": [
+      {"nombre": "Recepción y preparación", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Impresión o grabado", "area": "Impresión", "secuencia": 2},
+      {"nombre": "Control de calidad", "area": "Acabados", "secuencia": 3},
+      {"nombre": "Empaque y despacho", "area": "Despacho", "secuencia": 4}
+    ]
+  },
+  {
+    "categoria": "Letras corpóreas y rótulos luminosos",
+    "etapas": [
+      {"nombre": "Diseño e ingeniería", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Fabricación de estructura", "area": "Carpintería y metalmecánica", "secuencia": 2},
+      {"nombre": "Acabado y pintura", "area": "Acabados", "secuencia": 3},
+      {"nombre": "Instalación eléctrica y LED", "area": "Electricidad y LED", "secuencia": 4},
+      {"nombre": "Instalación", "area": "Instalación", "secuencia": 5}
+    ]
+  },
+  {
+    "categoria": "Corte y grabado láser",
+    "etapas": [
+      {"nombre": "Preparación de archivo", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Corte o grabado láser", "area": "Corte y láser", "secuencia": 2},
+      {"nombre": "Acabados finales", "area": "Acabados", "secuencia": 3},
+      {"nombre": "Control y empaque", "area": "Despacho", "secuencia": 4}
+    ]
+  },
+  {
+    "categoria": "Mobiliario",
+    "etapas": [
+      {"nombre": "Diseño y planos", "area": "Diseño y artes gráficas", "secuencia": 1},
+      {"nombre": "Fabricación", "area": "Carpintería y metalmecánica", "secuencia": 2},
+      {"nombre": "Acabado", "area": "Acabados", "secuencia": 3},
+      {"nombre": "Instalación", "area": "Instalación", "secuencia": 4}
+    ]
+  }
+]
