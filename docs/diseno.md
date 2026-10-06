@@ -100,7 +100,7 @@ Cambios sobre shadcn:
 | `filtrarNavegacion(grupos, permisos)` | Oculta ítems sin permiso |
 | `Migas` | Migas de pan derivadas de la ruta |
 | `MenuUsuario` | Nombre, perfil y "Cerrar sesión" |
-| `Marca` y `Monograma` | Monograma SC en SVG y nombre |
+| `Marca` e `Isotipo` | Isotipo oficial de Soluciones Creativas (public/brand/isotipo.png) y nombre. El logo con texto queda guardado en public/brand/logo-completo.png |
 
 Cierre de sesión: hace `POST /api/v1/auth/logout` y luego `router.replace("/login")`.
 Ese endpoint es un supuesto. El agente de autenticación debe crearlo.

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Iniciar sesión" };
 export default function PaginaLogin() {
   return (
     <main id="contenido" tabIndex={-1} className="flex min-h-dvh flex-col items-center justify-center gap-8 px-4 py-10 outline-none">
-      <Marca />
+      <Marca grande />
       <Card className="w-full max-w-md gap-6 py-8">
         <CardHeader className="px-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Iniciar sesión</h1>
