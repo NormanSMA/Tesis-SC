@@ -57,3 +57,4 @@ Donde un SD detalla o corrige un S, manda el SD.
 | SD-25 | La cotización enviada no se edita. Se corrige con un duplicado | Detalla S-12 |
 
 Desviaciones a aprobar (P-04): fechas de calendario en date (SD-22) y costo unitario con cuatro decimales.
+| SD-26 | Los documentos asociados muestran los datos actuales del cliente, sin copia histórica | Nuevo. Decisión ADR-011. Jev: supuesto 0.95 |

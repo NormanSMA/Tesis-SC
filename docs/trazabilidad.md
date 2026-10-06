@@ -86,3 +86,4 @@
 | SD-23 Categoría principal de la orden | Modelo de datos 05, sección (b) | Producción | supuesto | por definir | - |
 | SD-24 Matriz de permisos por defecto | Modelo de datos 05, sección (b) | Acceso | supuesto | por definir | - |
 | SD-25 Cotización enviada inmutable | Modelo de datos 05, sección (b) | Cotizaciones | supuesto | por definir | - |
+| SD-26 Datos actuales del cliente | Modelo de datos 05, ADR-011 | Clientes, Cotizaciones | supuesto | por definir | - |

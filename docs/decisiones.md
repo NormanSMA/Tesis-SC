@@ -15,3 +15,6 @@ Material para el Capítulo IV.
 | ADR-008 | 2026-10-05 | OmniRoute omitido en este proyecto | Exige API key ausente del entorno. Haiku cubre las tareas masivas | Configurar la clave |
 | ADR-009 | 2026-10-05 | La aplicación se conecta con un rol que no es dueño de las tablas | Los triggers no protegen contra el dueño | Un solo rol |
 | ADR-010 | 2026-10-05 | Node 24 en Docker | Prisma 7.10 no soporta Node 26 | Node 26 |
+| ADR-011 | 2026-10-06 | Los documentos asociados muestran siempre los datos actuales del cliente, sin copia histórica | Sistema no fiscal. Las cotizaciones ya congelan montos. Costo: una proforma impresa más tarde muestra el nombre vigente | Copia de nombre y RUC en cada cotización |
+| ADR-012 | 2026-10-06 | Migración cliente_checks: teléfono y correo no vacíos y correo en minúsculas | La base aceptaba teléfono vacío y correo en mayúsculas. Hallazgo de Codex y Gemini | Validar solo en el servicio |
+| ADR-013 | 2026-10-06 | Auditoría de diseño con dos proveedores distintos antes de programar cada módulo | Regla del usuario. Cada hallazgo se verifica en el código. Se rechazan los que sobreingenian | Un solo auditor |
