@@ -13,3 +13,5 @@ tsconfig.tsbuildinfo
 audit/
 respaldos/
 docs/capturas/_wip/
+output/
+.claude/
