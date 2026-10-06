@@ -275,6 +275,16 @@ CREATE TRIGGER trg_consumo_sin_truncate
   BEFORE TRUNCATE ON consumo_orden
   FOR EACH STATEMENT EXECUTE FUNCTION fn_solo_insercion();
 
+DROP TRIGGER IF EXISTS trg_solicitud_solo_insercion ON solicitud_idempotente;
+CREATE TRIGGER trg_solicitud_solo_insercion
+  BEFORE UPDATE OR DELETE ON solicitud_idempotente
+  FOR EACH ROW EXECUTE FUNCTION fn_solo_insercion();
+
+DROP TRIGGER IF EXISTS trg_solicitud_sin_truncate ON solicitud_idempotente;
+CREATE TRIGGER trg_solicitud_sin_truncate
+  BEFORE TRUNCATE ON solicitud_idempotente
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_solo_insercion();
+
 -- ===========================================================================
 -- 3. Libro de inventario: el movimiento actualiza el saldo del material
 -- ===========================================================================

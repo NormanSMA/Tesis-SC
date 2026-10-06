@@ -43,7 +43,7 @@ BEGIN
 
   -- Defensa en profundidad: ademas de los triggers SC001, el rol no puede modificar el libro ni la bitacora.
   EXECUTE format(
-    'REVOKE UPDATE, DELETE, TRUNCATE ON bitacora, movimiento_inventario, consumo_orden FROM %I',
+    'REVOKE UPDATE, DELETE, TRUNCATE ON bitacora, movimiento_inventario, consumo_orden, solicitud_idempotente FROM %I',
     v_rol
   );
   -- La tabla de migraciones es del dueno. La aplicacion no la toca.

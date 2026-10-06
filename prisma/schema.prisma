@@ -235,6 +235,7 @@ model Usuario {
   etapasResponsable    EtapaOrden[]           @relation("EtapaResponsable")
   movimientos          MovimientoInventario[]
   eventosBitacora      Bitacora[]
+  solicitudes          SolicitudIdempotente[]
   configuracionesEdit  Configuracion[]
 
   @@index([perfilId, activo])
@@ -664,6 +665,22 @@ model Configuracion {
 
   @@index([actualizadoPorId])
   @@map("configuracion")
+}
+
+// Reintentos seguros de las escrituras del libro de inventario. Solo insercion: guarda la respuesta
+// de la primera ejecucion para devolverla sin repetir el movimiento.
+model SolicitudIdempotente {
+  clave     String   @id @db.Uuid
+  usuarioId String   @map("usuario_id") @db.Uuid
+  operacion String   @db.VarChar(40)
+  huella    String   @db.Char(64)
+  respuesta Json
+  creadoEn  DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@index([usuarioId, creadoEn])
+  @@map("solicitud_idempotente")
 }
 
 // Numeracion legible sin huecos. Se incrementa con siguiente_numero() dentro de la transaccion del alta.
