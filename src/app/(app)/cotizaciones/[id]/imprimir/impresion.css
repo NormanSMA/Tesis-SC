@@ -1,0 +1,20 @@
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body:has(#proforma) { background: white; color: black; }
+  body:has(#proforma) aside,
+  body:has(#proforma) main > .controles-impresion,
+  body:has(#proforma) .controles-impresion,
+  body:has(#proforma) header,
+  body:has(#proforma) [data-sonner-toaster],
+  body:has(#proforma) a[href="#contenido"] { display: none !important; }
+  body:has(#proforma) div:has(> #contenido) { padding-left: 0 !important; }
+  body:has(#proforma) #contenido { padding: 0; }
+  #proforma { width: 100%; max-width: none; border: 0; padding: 0; box-shadow: none; }
+  #proforma [data-slot="card"] { box-shadow: none; break-inside: avoid; }
+  #proforma [data-slot="table-container"] { overflow: visible; max-height: none; }
+  #proforma th { position: static; }
+  #proforma td { position: static; white-space: normal; }
+  #proforma tr { break-inside: avoid; }
+  #proforma thead { display: table-header-group; }
+  #proforma section { break-inside: avoid; }
+}
