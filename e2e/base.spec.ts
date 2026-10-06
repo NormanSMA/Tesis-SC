@@ -129,7 +129,7 @@ for (const perfil of PERFILES) {
         expect(respuesta.status()).toBe(200);
 
         const datos = await respuesta.json();
-        expect(datos.datos.perfil).toBe(perfil.codigo);
+        expect(datos.datos.usuario.perfil).toBe(perfil.codigo);
       });
 
       test("POST /api/v1/auth/logout cierra sesión", async ({ page }) => {

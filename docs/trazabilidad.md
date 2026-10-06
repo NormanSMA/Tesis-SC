@@ -1,4 +1,4 @@
-# implementado | prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
+# implementado | prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
 | CF-01 | Anexo D A1; R-04 | Órdenes | pendiente | por definir | - |
 | CF-02 | Anexo D A2; R-06 | Órdenes, Producción | pendiente | por definir | - |
@@ -6,8 +6,8 @@
 | CF-04 | Anexo D A4; R-05 | Inventario | pendiente | por definir | - |
 | CF-05 | Anexo D A5; R-07 | Trazabilidad | pendiente | por definir | - |
 | CF-06 | Anexo D A6; R-08, R-11 | Panel | pendiente | por definir | - |
-| CF-07 | Anexo D A7; R-09 | Acceso | pendiente | por definir | - |
-| CF-08 | Anexo D A8; R-10 | Layout | pendiente | por definir | - |
+| CF-07 | Anexo D A7; R-09 | Acceso | parcial | tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png y sin-acceso.png |
+| CF-08 | Anexo D A8; R-10 | Layout | parcial | e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png |
 | CF-09 | Anexo D A9; R-01 | Transversal | pendiente | por definir | - |
 | CF-10 | Anexo D A10; R-03 | Cotizaciones | pendiente | por definir | - |
 | CF-11 | Anexo D A11; R-13 | Clientes | pendiente | por definir | - |
@@ -24,25 +24,25 @@
 | R-06 Producción por etapas | Anexo C Tabla C3 | Producción | pendiente | por definir | - |
 | R-07 Bitácora de trazabilidad | Anexo C Tabla C3 | Trazabilidad | pendiente | por definir | - |
 | R-08 Cotizaciones pendientes, materiales, carga | Anexo C Tabla C3 | Panel | pendiente | por definir | - |
-| R-09 Roles | Anexo C Tabla C3 | Acceso | pendiente | por definir | - |
-| R-10 Escritorio, portátil y tableta | Anexo C Tabla C3 | Layout | pendiente | por definir | - |
+| R-09 Roles | Anexo C Tabla C3 | Acceso | parcial | tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png |
+| R-10 Escritorio, portátil y tableta | Anexo C Tabla C3 | Layout | parcial | e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png |
 | R-11 Reportes e indicadores | Anexo C Tabla C3 | Panel | pendiente | por definir | - |
-| R-12 Arquitectura modular | Anexo C Tabla C3 | Arquitectura | pendiente | por definir | - |
+| R-12 Arquitectura modular | Anexo C Tabla C3 | Arquitectura | parcial | Estructura src/core y src/modules; docs/diseno.md | - |
 | R-13 Gestión de clientes | Anexo C Tabla C3 | Clientes | pendiente | por definir | - |
 
 ## Requisitos no funcionales
 
 | CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
-| Accesibilidad WCAG 2.2 | 2.4.1, 2.7 | Layout | pendiente | axe en Playwright | - |
-| API REST con recursos de negocio | 2.4.2, 2.5.3 | Todos | pendiente | Pruebas de API | - |
-| Reglas, permisos y trazabilidad en servidor | 2.4.4, 2.7 | Todos | pendiente | Pruebas de API por perfil | - |
-| Integridad referencial y transacciones | 2.4.3, 2.7 | Datos | pendiente | Pruebas contra Postgres | - |
-| Calidad de datos ISO/IEC 25012 | 2.3.3, 2.4.3 | Datos | pendiente | Validación zod y restricciones | - |
-| Despliegue reproducible | 2.7 | Despliegue | pendiente | docker compose up en limpio | - |
+| Accesibilidad WCAG 2.2 | 2.4.1, 2.7 | Layout | parcial | axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - |
+| API REST con recursos de negocio | 2.4.2, 2.5.3 | Todos | parcial | tests/integration/auth-http.test.ts; salud.test.ts | - |
+| Reglas, permisos y trazabilidad en servidor | 2.4.4, 2.7 | Todos | parcial | tests/integration/auth-*.test.ts | - |
+| Integridad referencial y transacciones | 2.4.3, 2.7 | Datos | implementado | tests/integration/roles.test.ts; 05-modelo-datos.md, sección Verificación (30 pruebas SQL) | - |
+| Calidad de datos ISO/IEC 25012 | 2.3.3, 2.4.3 | Datos | parcial | Restricciones CHECK y triggers; seed-datos.test.ts | - |
+| Despliegue reproducible | 2.7 | Despliegue | implementado | docker compose up desde cero verificado tres veces; README.md | - |
 | Calidad ISO/IEC 25010 | 2.5.4, 2.7 | Todos | pendiente | calidad-iso25010.md | - |
 | Pruebas de rendimiento | 2.5.4 | API | pendiente | Prueba de carga corta | - |
-| Datos ficticios y secretos fuera del repositorio | 3.8 | Despliegue | pendiente | Revisión de .env.example | - |
+| Datos ficticios y secretos fuera del repositorio | 3.8 | Despliegue | implementado | prisma/seed; .env.example; docs/seed.md | - |
 
 ## Supuestos de diseño (docs/supuestos.md)
 

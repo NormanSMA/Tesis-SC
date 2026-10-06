@@ -35,6 +35,22 @@ Todos los puertos escuchan solo en 127.0.0.1.
 | db | 5442 | `DB_PORT` |
 | db_test (perfil test) | 5443 | fijo |
 
+## Usuarios de prueba
+
+La siembra crea un usuario por perfil y cuatro operarios de producción.
+Las claves están en `.env.example`. Aquí solo se indica la variable de cada una.
+
+| Usuario | Perfil | Correo | Variable de la clave |
+|---|---|---|---|
+| Gerardo Jiménez | Gerencia | gerardo.jimenez@solucionescreativas.test | SEED_PASSWORD_GERENCIA |
+| Valentina Castro | Atención al cliente y ventas | valentina.castro@solucionescreativas.test | SEED_PASSWORD_VENTAS |
+| Roberto Díaz | Administración del sistema | roberto.diaz@solucionescreativas.test | SEED_PASSWORD_ADMIN |
+| Marco López | Producción | marco.lopez@solucionescreativas.test | SEED_PASSWORD_PRODUCCION |
+| Gabriel Cortez | Producción | gabriel.cortez@solucionescreativas.test | SEED_PASSWORD_PRODUCCION |
+| Alfonso Mejía | Producción | alfonso.mejia@solucionescreativas.test | SEED_PASSWORD_PRODUCCION |
+| Humberto Silva | Producción | humberto.silva@solucionescreativas.test | SEED_PASSWORD_PRODUCCION |
+| Daniel Ortiz | Producción | daniel.ortiz@solucionescreativas.test | SEED_PASSWORD_PRODUCCION |
+
 ## Parar y limpiar
 
 ```sh
