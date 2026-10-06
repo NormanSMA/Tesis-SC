@@ -10,7 +10,9 @@
       {
         "tipo": "CATALOGO",
         "producto": "ROT-VIN-001",
-        "cantidad": 10
+        "cantidad": 10,
+        "ancho": 1,
+        "alto": 1
       }
     ]
   },
@@ -344,7 +346,9 @@
       {
         "tipo": "CATALOGO",
         "producto": "ROT-VIN-001",
-        "cantidad": 5
+        "cantidad": 5,
+        "ancho": 1,
+        "alto": 1
       },
       {
         "tipo": "PERSONALIZADO",
@@ -725,7 +729,9 @@
       {
         "tipo": "CATALOGO",
         "producto": "ROT-VIN-001",
-        "cantidad": 3
+        "cantidad": 3,
+        "ancho": 1,
+        "alto": 1
       },
       {
         "tipo": "PERSONALIZADO",
