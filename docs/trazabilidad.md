@@ -10,7 +10,7 @@
 | CF-08 | Anexo D A8; R-10 | Layout | parcial | e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png |
 | CF-09 | Anexo D A9; R-01 | Transversal | pendiente | por definir | - |
 | CF-10 | Anexo D A10; R-03 | Cotizaciones | pendiente | por definir | - |
-| CF-11 | Anexo D A11; R-13 | Clientes | pendiente | por definir | - |
+| CF-11 | Anexo D A11; R-13 | Clientes | parcial | tests/integration/clientes-*.test.ts (servicio, concurrencia, historial, lista, API por perfil); tests/unit/clientes-*.test.ts; e2e/clientes.spec.ts | docs/capturas/clientes/CF-11-{gerencia,ventas}-{escritorio,portatil,tableta-horizontal,tableta}.png |
 
 ## Requerimientos R-01 a R-13 (Tabla C3)
 
@@ -28,7 +28,7 @@
 | R-10 Escritorio, portátil y tableta | Anexo C Tabla C3 | Layout | parcial | e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png |
 | R-11 Reportes e indicadores | Anexo C Tabla C3 | Panel | pendiente | por definir | - |
 | R-12 Arquitectura modular | Anexo C Tabla C3 | Arquitectura | parcial | Estructura src/core y src/modules; docs/diseno.md | - |
-| R-13 Gestión de clientes | Anexo C Tabla C3 | Clientes | pendiente | por definir | - |
+| R-13 Gestión de clientes | Anexo C Tabla C3 | Clientes | parcial | Mismas pruebas del módulo 1. Enlaces de la ficha a cotizaciones y órdenes se validan al cerrar los módulos 2 y 3 | docs/capturas/clientes/ |
 
 ## Requisitos no funcionales
 
