@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
+import { MaterialesOrden } from "@/modules/inventario/componentes/MaterialesOrden";
 import { AccionesOrden } from "@/modules/ordenes/componentes/AccionesOrden";
 import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
 import { DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
@@ -25,6 +26,7 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
       <DatosOrden orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />
       <ItemsOrden items={orden.items} /><EtapasOrden etapas={orden.etapas} />
       <ConsumoEstimadoOrden orden={orden} /><LineaTiempoOrden eventos={orden.eventos} />
+      {can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : null}
     </div>
   </>;
 }

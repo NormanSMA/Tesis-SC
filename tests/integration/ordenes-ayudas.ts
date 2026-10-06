@@ -1,13 +1,6 @@
-import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { Client } from "pg";
-import type { TestProject } from "vitest/node";
 import type { EstadoOrden, PrismaClient } from "@/generated/prisma/client";
 import type { EntradaItem } from "@/modules/cotizaciones/schema";
 import type { EntradaCrearOrden } from "@/modules/ordenes/schema";
-import { crearCliente } from "@/lib/db";
-import { sembrar } from "../../prisma/seed/sembrar";
 
 export type EntornoOrdenes = Awaited<ReturnType<typeof prepararOrdenes>>;
 
@@ -17,34 +10,6 @@ export async function invocar<T = unknown>(manejador: Manejador, solicitud: Requ
   const cuerpo = await respuesta.json() as Record<string, unknown>;
   return { status: respuesta.status, datos: cuerpo.datos as T, cuerpo,
     error: cuerpo.error as { codigo: string; mensaje: string; campos?: Record<string, string> } | undefined };
-}
-
-// El setup de órdenes usa Node y conserva las filas: el setup general depende de pnpm y borra el esquema.
-export default async function prepararBaseOrdenes(project: TestProject) {
-  const texto = process.env.TEST_DATABASE_URL;
-  if (!texto) throw new Error("Falta TEST_DATABASE_URL.");
-  const url = new URL(texto);
-  if (url.pathname !== "/ord_test" || url.hostname !== "127.0.0.1" || url.port !== "5443") {
-    throw new Error("Las pruebas de órdenes requieren ord_test en 127.0.0.1:5443.");
-  }
-  const raiz = path.resolve(import.meta.dirname, "..", "..");
-  const migracion = spawnSync(process.execPath, ["node_modules/prisma/build/index.js", "migrate", "deploy"], {
-    cwd: raiz, env: { ...process.env, DATABASE_URL_MIGRACION: texto }, encoding: "utf8",
-  });
-  if (migracion.status !== 0) throw new Error(`Falló la migración de ord_test: ${migracion.stdout}\n${migracion.stderr}`);
-  url.searchParams.delete("schema");
-  const cliente = new Client({ connectionString: url.toString(), connectionTimeoutMillis: 3000 });
-  try {
-    await cliente.connect();
-    if (!process.env.APP_DB_PASSWORD) throw new Error("Falta APP_DB_PASSWORD.");
-    await cliente.query("SELECT set_config('sc.rol', $1, false), set_config('sc.clave', $2, false)", [
-      process.env.APP_DB_USER ?? "sc_app", process.env.APP_DB_PASSWORD,
-    ]);
-    await cliente.query(readFileSync(path.join(raiz, "scripts/db/roles.sql"), "utf8"));
-  } finally { await cliente.end(); }
-  const db = crearCliente(texto);
-  try { await sembrar(db, { env: process.env, silenciosa: true }); } finally { await db.$disconnect(); }
-  project.provide("baseDisponible", true);
 }
 
 export async function prepararOrdenes(db: PrismaClient) {
