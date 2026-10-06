@@ -135,6 +135,7 @@ enum TipoValorConfig {
 
 enum EntidadBitacora {
   CLIENTE
+  CATEGORIA
   PRODUCTO
   MATERIAL
   COTIZACION
@@ -287,6 +288,8 @@ model Categoria {
   nombre      String  @unique @db.VarChar(80)
   descripcion String?
   activo      Boolean @default(true)
+  // Versión optimista de la edición concurrente, igual que en cliente y producto.
+  actualizadoEn DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
   productos       Producto[]
   etapasPlantilla EtapaPlantilla[]
