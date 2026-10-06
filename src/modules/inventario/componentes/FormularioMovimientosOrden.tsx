@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ETIQUETA_ESTADO_ORDEN, etiquetar } from "../etiquetas";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { enfocarError, erroresEsquema } from "@/modules/cotizaciones/useSolicitudCotizacion";
@@ -33,7 +34,7 @@ function EditorMovimientos({ resumen, tipo, recargar }: { resumen: ResumenOrdenI
   }
   return <form id="formulario-movimientos-orden" className="max-w-3xl space-y-5" onSubmit={guardar} noValidate
     aria-label={tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante"}>
-    <p>Estado de la orden: {resumen.estadoOrden}</p><AvisoSolicitud {...solicitud} />
+    <p>Estado de la orden: {etiquetar(ETIQUETA_ESTADO_ORDEN, resumen.estadoOrden)}</p><AvisoSolicitud {...solicitud} />
     {!admite ? <p role="alert">El estado de la orden no admite esta operación.</p> : null}
     <fieldset className="min-w-0 space-y-5" disabled={solicitud.enviando || !admite}>
       <legend className="sr-only">Líneas de materiales</legend>

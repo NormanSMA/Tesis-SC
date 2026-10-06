@@ -24,7 +24,7 @@ export async function consultarMateriales(consulta: ConsultaMateriales) {
   const [filas, total, materiales, enAlerta, sinExistencia] = await Promise.all([
     prisma.material.findMany({ where, orderBy: [{ nombre: "asc" }, { id: "asc" }],
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
-    prisma.material.count({ where }), prisma.material.count(), prisma.material.count({ where: filtroAlerta() }),
+    prisma.material.count({ where }), prisma.material.count({ where: { activo: true } }), prisma.material.count({ where: filtroAlerta() }),
     prisma.material.count({ where: { activo: true, existencia: 0 } }),
   ]);
   return { filas, total, resumen: { materiales, enAlerta, sinExistencia } };

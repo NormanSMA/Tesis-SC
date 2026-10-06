@@ -1,4 +1,5 @@
 import { FormField } from "@/components/comunes/FormField";
+import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TIPOS_MOVIMIENTO, type ConsultaMateriales, type ConsultaMovimientos } from "../schema";
@@ -20,7 +21,7 @@ export function FiltrosMovimientos({ consulta, materialId, opciones }: { consult
   return <form className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Filtrar movimientos">
     <input type="hidden" name="pestana" value="movimientos" />
     <FormField id="tipo" etiqueta="Tipo">{(atributos) => <select {...atributos} name="tipo" defaultValue={consulta.tipo ?? ""} className={ESTILO_SELECT}>
-      <option value="">Todos</option>{TIPOS_MOVIMIENTO.map((tipo) => <option key={tipo}>{tipo}</option>)}</select>}</FormField>
+      <option value="">Todos</option>{TIPOS_MOVIMIENTO.map((tipo) => <option key={tipo} value={tipo}>{etiquetar(ETIQUETA_MOVIMIENTO, tipo)}</option>)}</select>}</FormField>
     {!materialId ? <FormField id="material" etiqueta="Material">{(atributos) => <select {...atributos} name="material"
       defaultValue={consulta.material ?? ""} className={ESTILO_SELECT}><option value="">Todos</option>
       {opciones.materiales.map((material) => <option key={material.id} value={material.id}>{material.codigo} · {material.nombre}</option>)}

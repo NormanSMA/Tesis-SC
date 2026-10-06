@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { formatearCantidad, formatearFechaHora } from "@/lib/formato";
@@ -23,7 +24,7 @@ const columnasLibro: ColumnaTabla<MovimientoDto>[] = [
   { id: "fecha", encabezado: "Fecha (Managua)", principal: true, celda: (fila) => <div>{formatearFechaHora(fila.creadoEn)}
     <span className="block text-xs">{fila.usuario.nombre}</span></div> },
   { id: "material", encabezado: "Material", celda: (fila) => <Link className="text-primary underline" href={`/inventario/${fila.material.id}`}>{fila.material.nombre}</Link> },
-  { id: "tipo", encabezado: "Movimiento", celda: (fila) => <div><Badge variant="neutro">{fila.tipo}</Badge>
+  { id: "tipo", encabezado: "Movimiento", celda: (fila) => <div><Badge variant="neutro">{etiquetar(ETIQUETA_MOVIMIENTO, fila.tipo)}</Badge>
     {fila.orden ? <Link className="block text-primary underline" href={`/ordenes/${fila.orden.id}`}>{fila.orden.numero}</Link> : null}
     <span className="block text-xs">{fila.referencia ?? fila.motivo}</span></div> },
   { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidad(fila.cantidad, 3) },

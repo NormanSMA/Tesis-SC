@@ -36,7 +36,11 @@ export function useSolicitudInventario(idFormulario: string) {
       if (datos.datos?.material?.id && typeof datos.datos.existenciaResultante === "string") {
         setExistencias((actuales) => ({ ...actuales, [datos.datos.material.id]: datos.datos.existenciaResultante }));
       }
-      setExito(true); toast.success("Registro guardado.");
+      // Tras un éxito la siguiente pulsación con el mismo contenido es otro registro: clave nueva.
+      clave.current = null;
+      setExito(true);
+      if (datos.datos?.repetida === true) toast.info("Este registro ya se había guardado. No se duplicó.");
+      else toast.success("Registro guardado.");
       if (datos.datos?.resumen?.some((material: { excedeEstimado: boolean }) => material.excedeEstimado)) {
         toast.warning("El consumo neto supera el estimado de la orden.");
       }

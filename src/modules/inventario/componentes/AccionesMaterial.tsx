@@ -14,7 +14,9 @@ export function AccionesMaterial({ material, permisos }: { material: MaterialDto
   const solicitud = useSolicitudInventario("acciones-material");
   const accion = material.activo ? "archivar" : "reactivar";
   async function confirmar() {
-    if (await solicitud.enviar({ url: `/api/v1/materiales/${material.id}/${accion}`, cuerpo: { version: material.actualizadoEn } })) setAbierto(false);
+    // El aviso de error vive fuera del diálogo: se cierra siempre para que el motivo del rechazo se vea y se anuncie.
+    await solicitud.enviar({ url: `/api/v1/materiales/${material.id}/${accion}`, cuerpo: { version: material.actualizadoEn } });
+    setAbierto(false);
   }
   return <div id="acciones-material" className="space-y-3"><AvisoSolicitud {...solicitud} />
     <div className="flex flex-wrap gap-3">

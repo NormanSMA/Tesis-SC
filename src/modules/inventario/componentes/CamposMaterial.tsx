@@ -1,6 +1,7 @@
 "use client";
 
 import { FormField } from "@/components/comunes/FormField";
+import { ETIQUETA_UNIDAD, etiquetar } from "../etiquetas";
 import { Input } from "@/components/ui/input";
 import { UNIDADES } from "../schema";
 
@@ -15,7 +16,7 @@ export function CamposMaterial({ valores, errores, editar, conExistencia, cambia
       <Input {...atributos} value={valores.nombre} maxLength={160} onChange={(e) => cambiar("nombre", e.target.value)} />}</FormField>
     <FormField id="unidad" etiqueta="Unidad" requerido error={errores.unidad} ayuda="La unidad permanece fija después del alta.">{(atributos) =>
       <select {...atributos} className="h-11 w-full rounded-md border bg-background px-3" value={valores.unidad} disabled={editar}
-        onChange={(e) => cambiar("unidad", e.target.value)}>{UNIDADES.map((unidad) => <option key={unidad}>{unidad}</option>)}</select>}</FormField>
+        onChange={(e) => cambiar("unidad", e.target.value)}>{UNIDADES.map((unidad) => <option key={unidad} value={unidad}>{etiquetar(ETIQUETA_UNIDAD, unidad)}</option>)}</select>}</FormField>
     <FormField id="stockMinimo" etiqueta="Stock mínimo" requerido error={errores.stockMinimo}>{(atributos) =>
       <Input {...atributos} inputMode="decimal" value={valores.stockMinimo} onChange={(e) => cambiar("stockMinimo", e.target.value)} />}</FormField>
     <FormField id="costoPromedio" etiqueta="Costo promedio (C$)" requerido error={errores.costoPromedio}
