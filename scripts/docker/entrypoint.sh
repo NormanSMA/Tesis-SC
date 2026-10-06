@@ -23,7 +23,7 @@ else
   # La aplicacion no necesita las credenciales del dueno de las tablas (ADR-009).
   unset POSTGRES_PASSWORD DATABASE_URL_MIGRACION TEST_DATABASE_URL
   # Las claves de la siembra solo las usa el servicio migrate.
-  for nombre in $(env | sed -n "s/^(SEED_PASSWORD_[A-Z_]*)=.*//p"); do
+  for nombre in $(env | cut -d= -f1 | grep '^SEED_PASSWORD_'); do
     unset "$nombre"
   done
 fi

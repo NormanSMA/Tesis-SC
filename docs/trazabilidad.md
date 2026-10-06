@@ -1,12 +1,4 @@
-# Trazabilidad entre la tesis y el piloto
-
-Actualizado: 2026-10-05. Fase 1 (análisis). Ninguna fila está implementada.
-Estados: implementado, parcial, supuesto, pendiente.
-Captura: ruta en docs/capturas. Prueba: archivo y caso.
-
-## Criterios de aceptación (Anexo D)
-
-| CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
+# implementado | prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
 | CF-01 | Anexo D A1; R-04 | Órdenes | pendiente | por definir | - |
 | CF-02 | Anexo D A2; R-06 | Órdenes, Producción | pendiente | por definir | - |
