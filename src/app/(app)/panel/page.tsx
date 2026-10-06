@@ -5,10 +5,12 @@ import { EmptyState } from "@/components/comunes/EmptyState";
 import { KpiCard } from "@/components/comunes/KpiCard";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { exigirPermisoPagina } from "@/lib/auth/guardia";
 
 export const metadata: Metadata = { title: "Panel" };
 
-export default function PaginaPanel() {
+export default async function PaginaPanel() {
+  await exigirPermisoPagina("panel:ver");
   return (
     <>
       <PageHeader titulo="Panel" descripcion="Resumen de la operación de Soluciones Creativas." />

@@ -1,4 +1,11 @@
-export type PerfilCodigo = "GERENCIA" | "VENTAS" | "PRODUCCION" | "ADMIN";
+import { cookies } from "next/headers";
+
+import type { PerfilCodigo } from "@/core/permisos";
+import { resolverSesion } from "@/modules/auth/service";
+
+import { leerTokenDeCookies, nombreCookieSesion } from "./cookies";
+
+export type { PerfilCodigo };
 
 export type UsuarioSesion = {
   id: string;
@@ -8,29 +15,14 @@ export type UsuarioSesion = {
   permisos: string[];
 };
 
-// Stub del agente de diseño. El agente de autenticación reemplaza esta implementación y conserva las firmas.
-const USUARIO_DEMOSTRACION: UsuarioSesion = {
-  id: "00000000-0000-4000-8000-000000000001",
-  nombre: "Usuario Demo",
-  correo: "demo@solucionescreativas.test",
-  perfil: "ADMIN",
-  permisos: [
-    "panel:ver",
-    "cliente:ver",
-    "cotizacion:ver",
-    "orden:ver",
-    "produccion:ver",
-    "inventario:ver",
-    "catalogo:ver",
-    "bitacora:ver",
-    "reporte:ver",
-    "usuario:gestionar",
-    "permiso:gestionar",
-    "configuracion:gestionar",
-  ],
-};
-
+// Para páginas y layouts de servidor. Valida contra la base en cada llamada.
 export async function obtenerSesion(): Promise<UsuarioSesion | null> {
-  if (process.env.SC_DEMO_SESION === "1") return USUARIO_DEMOSTRACION;
-  return null;
+  const token = (await cookies()).get(nombreCookieSesion())?.value;
+  return token ? resolverSesion(token) : null;
+}
+
+// Para rutas API: lee la cookie del encabezado, sin depender del contexto de Next.
+export async function obtenerSesionDeRequest(req: Request): Promise<UsuarioSesion | null> {
+  const token = leerTokenDeCookies(req.headers.get("cookie"));
+  return token ? resolverSesion(token) : null;
 }

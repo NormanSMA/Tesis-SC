@@ -11,7 +11,8 @@ export const esquemaLogin = z.object({
 
 export type ValoresLogin = z.infer<typeof esquemaLogin>;
 
-type CuerpoError = {
+type CuerpoRespuesta = {
+  datos?: { destino?: string };
   error?: { codigo?: string; mensaje?: string; campos?: Record<string, string | string[]> };
 };
 
@@ -41,9 +42,9 @@ export function useFormularioLogin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(valores),
       });
-      const cuerpo = (await respuesta.json().catch(() => ({}))) as CuerpoError;
+      const cuerpo = (await respuesta.json().catch(() => ({}))) as CuerpoRespuesta;
       if (respuesta.ok) {
-        router.replace("/panel");
+        router.replace(cuerpo.datos?.destino ?? "/panel");
         return;
       }
       const campos = cuerpo.error?.campos ?? {};
