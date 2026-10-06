@@ -1,6 +1,6 @@
 # SC Plataforma
 
-Plataforma web para Soluciones Creativas (Managua). Es el piloto de la tesis PCE de la UAM.
+Plataforma web para Soluciones Creativas (Estelí). Es el piloto de la tesis PCE de la UAM.
 Integra clientes, cotización, orden de trabajo, inventario, producción y trazabilidad.
 
 Stack: Next.js 16, TypeScript, Prisma 7.10.0, PostgreSQL 17 y Docker Compose.

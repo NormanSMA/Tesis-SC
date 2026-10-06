@@ -22,7 +22,7 @@ export default function PaginaLogin() {
           <FormularioLogin />
         </CardContent>
       </Card>
-      <p className="text-xs text-muted-foreground">Soluciones Creativas, Managua</p>
+      <p className="text-xs text-muted-foreground">Soluciones Creativas, Estelí</p>
     </main>
   );
 }

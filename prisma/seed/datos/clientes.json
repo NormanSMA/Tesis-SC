@@ -6,7 +6,7 @@
     "contactoPrincipal": "Pedro Rodríguez",
     "telefono": "+505 8765-4321",
     "correo": "pedror@lospinos.test",
-    "direccion": "Barrio Jalteva, Managua",
+    "direccion": "Del parque central 1 c. al norte, Estelí",
     "notas": "Cliente frecuente, pagos puntuales"
   },
   {
@@ -16,7 +16,7 @@
     "contactoPrincipal": "Dra. Carmen López",
     "telefono": "+505 8734-5678",
     "correo": "info@sonrisaplena.test",
-    "direccion": "Barrio Martha Quezada, Managua",
+    "direccion": "Del parque central 2 c. al sur, Estelí",
     "notas": "Requiere señalización profesional"
   },
   {
@@ -26,7 +26,7 @@
     "contactoPrincipal": "Roberto García",
     "telefono": "+505 8723-1234",
     "correo": "roberto@laceiba.test",
-    "direccion": "Barrio San Juan, Managua",
+    "direccion": "De la Catedral 3 c. al este, Estelí",
     "notas": "Menús impresos, rótulos interiores"
   },
   {
@@ -36,7 +36,7 @@
     "contactoPrincipal": "Carlos Martínez",
     "telefono": "+505 8712-9876",
     "correo": "admin@horizonte.test",
-    "direccion": "Las Colinas, Managua",
+    "direccion": "De la Catedral 4 c. al oeste, Estelí",
     "notas": "Proyectos grandes, requiere stand de feria"
   },
   {
@@ -46,7 +46,7 @@
     "contactoPrincipal": "Dirección Académica",
     "telefono": "+505 8745-6789",
     "correo": "direccion@sanignacio.test",
-    "direccion": "Barrio Altamira, Managua",
+    "direccion": "Costado oeste de la Panamericana, 5 c. arriba, Estelí",
     "notas": "Proyectos escolares, certificados y diplomas"
   },
   {
@@ -56,7 +56,7 @@
     "contactoPrincipal": "Geovanna Hernández",
     "telefono": "+505 8756-3421",
     "correo": "geovanna@visioncomunitaria.test",
-    "direccion": "Barrio Monseñor Lezcano, Managua",
+    "direccion": "Frente al mercado, 1 c. al sur, Estelí",
     "notas": "Presupuesto limitado, campañas sociales"
   },
   {
@@ -66,7 +66,7 @@
     "contactoPrincipal": "Mariana Flores",
     "telefono": "+505 8734-2109",
     "correo": "mariana@farmacentro.test",
-    "direccion": "Barrio Barrio Viejo, Managua",
+    "direccion": "Contiguo a la gasolinera, 2 c. al este, Estelí",
     "notas": "Etiquetado de productos, vinil puerta"
   },
   {
@@ -76,7 +76,7 @@
     "contactoPrincipal": "David Chávez",
     "telefono": "+505 8745-7654",
     "correo": "info@losandes.test",
-    "direccion": "Barrio Jalteva, Managua",
+    "direccion": "Del Banpro 3 c. al oeste, Estelí",
     "notas": "Bolsas impresas, rótulo exterior"
   },
   {
@@ -86,7 +86,7 @@
     "contactoPrincipal": "Sofía Guzmán",
     "telefono": "+505 8723-5678",
     "correo": "sofia@luzperfecta.test",
-    "direccion": "Barrio Martha Quezada, Managua",
+    "direccion": "Del parque central 4 c. al norte, Estelí",
     "notas": "Tarjetas, portafolios, eventos corporativos"
   },
   {
@@ -96,7 +96,7 @@
     "contactoPrincipal": "Juan Rodríguez",
     "telefono": "+505 8756-8901",
     "correo": "juan@tropical.test",
-    "direccion": "Barrio Laureles, Managua",
+    "direccion": "Del parque central 5 c. al sur, Estelí",
     "notas": "Folletos, banners, publicidad digital"
   },
   {
@@ -106,7 +106,7 @@
     "contactoPrincipal": "Gerente General",
     "telefono": "+505 8734-3456",
     "correo": "gestion@grancentromera.test",
-    "direccion": "Barrio San Juan, Managua",
+    "direccion": "De la Catedral 1 c. al este, Estelí",
     "notas": "Señalética hotel, rótulos, placas"
   },
   {
@@ -115,7 +115,7 @@
     "contactoPrincipal": "Juan Pérez",
     "telefono": "+505 8723-4567",
     "correo": "juan.perez@example.com",
-    "direccion": "Barrio Altamira, Managua",
+    "direccion": "De la Catedral 2 c. al oeste, Estelí",
     "notas": "Cotizaciones personales ocasionales"
   },
   {
@@ -124,7 +124,7 @@
     "contactoPrincipal": "María López",
     "telefono": "+505 8745-1234",
     "correo": "maria.lopez@example.com",
-    "direccion": "Barrio Las Colinas, Managua",
+    "direccion": "Costado oeste de la Panamericana, 3 c. arriba, Estelí",
     "notas": "Piezas de arte personalizadas"
   },
   {
@@ -134,7 +134,7 @@
     "contactoPrincipal": "Director",
     "telefono": "+505 8712-5678",
     "correo": "director@etv.test",
-    "direccion": "Barrio San Juan, Managua",
+    "direccion": "Frente al mercado, 4 c. al sur, Estelí",
     "notas": "Materiales educativos, certificados"
   },
   {
@@ -144,7 +144,7 @@
     "contactoPrincipal": "Directora",
     "telefono": "+505 8756-9012",
     "correo": "info@elegancia.test",
-    "direccion": "Centro Comercial Las Américas, Managua",
+    "direccion": "Contiguo a la gasolinera, 5 c. al este, Estelí",
     "notas": "Bolsas, etiquetas, rótulos tienda"
   },
   {
@@ -154,7 +154,7 @@
     "contactoPrincipal": "Maestro Pérez",
     "telefono": "+505 8723-7890",
     "correo": "maestro@carpinteria.test",
-    "direccion": "Barrio El Retiro, Managua",
+    "direccion": "Del Banpro 1 c. al oeste, Estelí",
     "notas": "Rótulo taller, señalética"
   },
   {
@@ -164,7 +164,7 @@
     "contactoPrincipal": "Carlos Flores",
     "telefono": "+505 8745-2345",
     "correo": "carlos@vision2020.test",
-    "direccion": "Barrio Barrio Viejo, Managua",
+    "direccion": "Del parque central 2 c. al norte, Estelí",
     "notas": "Vitrinas, rótulos luminosos"
   },
   {
@@ -174,7 +174,7 @@
     "contactoPrincipal": "Gerente",
     "telefono": "+505 8734-6789",
     "correo": "info@irisbeauty.test",
-    "direccion": "Barrio Martha Quezada, Managua",
+    "direccion": "Del parque central 3 c. al sur, Estelí",
     "notas": "Rótulos, tarjetas, uniforme estampado"
   },
   {
@@ -184,7 +184,7 @@
     "contactoPrincipal": "Gerente Tienda",
     "telefono": "+505 8756-4567",
     "correo": "gerente@extremo.test",
-    "direccion": "Barrio San Juan, Managua",
+    "direccion": "De la Catedral 4 c. al este, Estelí",
     "notas": "Ropa deportiva personalizada, mochilas"
   },
   {
@@ -194,7 +194,7 @@
     "contactoPrincipal": "Propietario",
     "telefono": "+505 8723-9876",
     "correo": "aroma@cafe.test",
-    "direccion": "Barrio Jalteva, Managua",
+    "direccion": "De la Catedral 5 c. al oeste, Estelí",
     "notas": "Menú impresos, rotulación interior"
   },
   {
@@ -204,7 +204,7 @@
     "contactoPrincipal": "Administrador",
     "telefono": "+505 8745-5678",
     "correo": "admin@sancarlos.test",
-    "direccion": "Barrio Altamira, Managua",
+    "direccion": "Costado oeste de la Panamericana, 1 c. arriba, Estelí",
     "notas": "Señalética clínica, cartelería médica"
   },
   {
@@ -214,7 +214,7 @@
     "contactoPrincipal": "Director Creativo",
     "telefono": "+505 8734-7890",
     "correo": "creativo@sierra.test",
-    "direccion": "Barrio Las Colinas, Managua",
+    "direccion": "Frente al mercado, 2 c. al sur, Estelí",
     "notas": "Cliente referenciador, comisiones"
   },
   {
@@ -223,7 +223,7 @@
     "contactoPrincipal": "Carlos Mendoza",
     "telefono": "+505 8723-2345",
     "correo": "carlos.mendoza@example.com",
-    "direccion": "Barrio El Retiro, Managua",
+    "direccion": "Contiguo a la gasolinera, 3 c. al este, Estelí",
     "notas": "Proyectos personales diversos"
   },
   {
@@ -233,7 +233,7 @@
     "contactoPrincipal": "Gerencia",
     "telefono": "+505 8756-7890",
     "correo": "gerencia@lafrontera.test",
-    "direccion": "Barrio San Juan, Managua",
+    "direccion": "Del Banpro 4 c. al oeste, Estelí",
     "notas": "Rótulos, vitrinas, cartelería promocional"
   },
   {
@@ -243,7 +243,7 @@
     "contactoPrincipal": "Dr. Fernando",
     "telefono": "+505 8745-8901",
     "correo": "fernando@mascotasfelices.test",
-    "direccion": "Barrio Martha Quezada, Managua",
+    "direccion": "Del parque central 5 c. al norte, Estelí",
     "notas": "Rótulo clínica, tarjetas profesionales"
   },
   {
@@ -253,7 +253,7 @@
     "contactoPrincipal": "Directora",
     "telefono": "+505 8723-6789",
     "correo": "directora@ritmo.test",
-    "direccion": "Barrio Altamira, Managua",
+    "direccion": "Del parque central 1 c. al sur, Estelí",
     "notas": "Camisetas grupo, banners eventos"
   },
   {
@@ -263,7 +263,7 @@
     "contactoPrincipal": "Rocío Jiménez",
     "telefono": "+505 8734-5612",
     "correo": "rocio@fiesta.test",
-    "direccion": "Barrio El Retiro, Managua",
+    "direccion": "De la Catedral 2 c. al este, Estelí",
     "notas": "Personalización de textiles y uniformes"
   },
   {
@@ -273,7 +273,7 @@
     "contactoPrincipal": "Luis Mendoza",
     "telefono": "+505 8723-4567",
     "correo": "luis@conocimiento.test",
-    "direccion": "Barrio Barrio Viejo, Managua",
+    "direccion": "De la Catedral 3 c. al oeste, Estelí",
     "notas": "Impresión de libros y material educativo"
   }
 ]

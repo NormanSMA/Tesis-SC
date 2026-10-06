@@ -1,7 +1,7 @@
 # SC Plataforma: guía para agentes
 
 Piloto de la tesis PCE de Norman Smith Martínez Acevedo y Jorge Alí Rodríguez (UAM).
-Caso de estudio: Soluciones Creativas, Managua.
+Caso de estudio: Soluciones Creativas, Estelí.
 Plataforma web que integra clientes, cotización, orden de trabajo, inventario, producción y trazabilidad.
 Criterios de aceptación: CF-01 a CF-11 (docs/trazabilidad.md).
 
