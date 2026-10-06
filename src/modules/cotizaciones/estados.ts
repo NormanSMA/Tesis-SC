@@ -14,6 +14,7 @@ export async function enviarCotizacion(id: string, version: string, actor: Actor
   exigir(actor, "cotizacion:enviar");
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, version);
+    if (actual.estado !== "BORRADOR") throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
     exigirBorrador(actual);
     if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un ítem antes de enviar la cotización.");
     const totales = totalizarCotizacion({ items: actual.items.map(aItemDto),

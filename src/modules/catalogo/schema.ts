@@ -38,7 +38,7 @@ export const esquemaEditarProducto = z.strictObject({
 export const esquemaCambioEstado = z.strictObject({ version });
 export const esquemaReceta = z.strictObject({
   version,
-  materiales: z.array(z.strictObject({ materialId: identificador, cantidad })).superRefine((materiales, contexto) => {
+  materiales: z.array(z.strictObject({ materialId: identificador, cantidad })).max(100).superRefine((materiales, contexto) => {
     const vistos = new Set<string>();
     materiales.forEach((material, indice) => {
       if (vistos.has(material.materialId)) contexto.addIssue({

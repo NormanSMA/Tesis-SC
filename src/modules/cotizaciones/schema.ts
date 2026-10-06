@@ -44,7 +44,7 @@ const baseItem = { itemId: id.optional(), actualizarPrecio: z.boolean().optional
 export const esquemaItem = z.discriminatedUnion("tipo", [
   z.object({ ...baseItem, tipo: z.literal("CATALOGO"), productoId: id }),
   z.object({ ...baseItem, tipo: z.literal("PERSONALIZADO"), categoriaId: id, descripcion: texto,
-    unidadCobro: z.enum(["UNIDAD", "M2"]), margenPct: decimal, lineas: z.array(esquemaLinea).min(1) }),
+    unidadCobro: z.enum(["UNIDAD", "M2"]), margenPct: decimal, lineas: z.array(esquemaLinea).min(1).max(100) }),
 ]);
 export const esquemaReemplazarItems = z.object({ version, items: z.array(esquemaItem).max(200) })
   .superRefine((entrada, contexto) => {

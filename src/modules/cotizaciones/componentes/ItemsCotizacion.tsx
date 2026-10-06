@@ -16,9 +16,9 @@ const columnas: ColumnaTabla<ItemDto>[] = [
 ];
 const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Tercero" };
 const columnasLineas: ColumnaTabla<LineaDto>[] = [
-  { id: "descripcion", encabezado: "Descripción", principal: true, celda: (linea) => <span className="block max-w-56 whitespace-normal">{linea.descripcion}</span> },
+  { id: "descripcion", encabezado: "Descripción", principal: true, celda: (linea) => <span className="block max-w-36 whitespace-normal">{linea.descripcion}</span> },
   { id: "tipo", encabezado: "Tipo", celda: (linea) => ETIQUETA[linea.tipo] },
-  { id: "cantidad", encabezado: "Consumo total", alinear: "derecha", celda: (linea) => `${linea.cantidad} ${linea.unidad}` },
+  { id: "cantidad", encabezado: "Consumo", alinear: "derecha", celda: (linea) => `${linea.cantidad} ${linea.unidad}` },
   { id: "costo", encabezado: "Costo unitario", alinear: "derecha", celda: (linea) => <Money valor={linea.costoUnitario} /> },
   { id: "merma", encabezado: "Merma", alinear: "derecha", celda: (linea) => `${linea.mermaPct} %` },
   { id: "importe", encabezado: "Importe", alinear: "derecha", celda: (linea) => <Money valor={linea.importe} /> },

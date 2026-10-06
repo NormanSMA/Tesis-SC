@@ -1,4 +1,8 @@
-# implementado | prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || prisma/seed; .env.example; docs/seed.md | - || docker compose up desde cero verificado tres veces; README.md | - || Restricciones CHECK y triggers; seed-datos.test.ts | - || tests/integration/roles.test.ts; docs/analisis/05-modelo-datos.md sección Verificación (30 pruebas SQL) | - || tests/integration/auth-*.test.ts | - || tests/integration/auth-http.test.ts; salud.test.ts | - || axe wcag22aa en login, panel y galería; e2e/base.spec.ts | - || Estructura src/core y src/modules; docs/diseno.md | - || e2e/base.spec.ts (4 viewports) | docs/capturas/fase2/*.png || tests/unit/permisos.test.ts; e2e/base.spec.ts | docs/capturas/fase2/*.png || e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png || tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png, sin-acceso.png || CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
+# Matriz de trazabilidad
+
+## Criterios funcionales CF-01 a CF-11 (Anexo D)
+
+| CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
 | CF-01 | Anexo D A1; R-04 | Órdenes | pendiente | por definir | - |
 | CF-02 | Anexo D A2; R-06 | Órdenes, Producción | pendiente | por definir | - |
@@ -9,7 +13,7 @@
 | CF-07 | Anexo D A7; R-09 | Acceso | parcial | tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png y sin-acceso.png |
 | CF-08 | Anexo D A8; R-10 | Layout | parcial | e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png |
 | CF-09 | Anexo D A9; R-01 | Transversal | pendiente | por definir | - |
-| CF-10 | Anexo D A10; R-03 | Cotizaciones | pendiente | por definir | - |
+| CF-10 | Anexo D A10; R-03 | Cotizaciones | parcial | tests/unit/costeo.test.ts; tests/unit/cotizaciones-calculo.test.ts; tests/integration/costeo-paridad-bd.test.ts; tests/integration/cotizaciones-*.test.ts; e2e/catalogo.spec.ts; e2e/cotizaciones.spec.ts (cotización mixta: catálogo por m², por unidad y personalizado con material, mano de obra y tercero; totales, envío y aprobación). Parcial hasta existir la conversión a orden (módulo 3) | docs/capturas/cotizaciones/CF-10-{ventas,gerencia}-{escritorio,portatil,tableta-horizontal,tableta}.png; docs/capturas/catalogo/ |
 | CF-11 | Anexo D A11; R-13 | Clientes | parcial | tests/integration/clientes-*.test.ts (servicio, concurrencia, historial, lista, API por perfil); tests/unit/clientes-*.test.ts; e2e/clientes.spec.ts | docs/capturas/clientes/CF-11-{gerencia,ventas}-{escritorio,portatil,tableta-horizontal,tableta}.png |
 
 ## Requerimientos R-01 a R-13 (Tabla C3)
@@ -17,8 +21,8 @@
 | CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
 | R-01 Centralizar la información | Anexo C Tabla C3 | Transversal | pendiente | por definir | - |
-| R-02 Cotizaciones con plantillas, historial y reutilización | Anexo C Tabla C3 | Cotizaciones | pendiente | por definir | - |
-| R-03 Costos variables | Anexo C Tabla C3 | Cotizaciones | pendiente | por definir | - |
+| R-02 Cotizaciones con plantillas, historial y reutilización | Anexo C Tabla C3 | Cotizaciones | parcial | tests/integration/cotizaciones-instantaneas.test.ts; cotizaciones-bitacora.test.ts; cotizaciones-estados.test.ts; e2e/cotizaciones.spec.ts (duplicar borrador). La plantilla se resuelve duplicando (S-12); falta confirmación del cliente | docs/capturas/cotizaciones/ |
+| R-03 Costos variables | Anexo C Tabla C3 | Cotizaciones | implementado | tests/unit/costeo.test.ts; tests/integration/costeo-paridad-bd.test.ts; e2e/cotizaciones.spec.ts | docs/capturas/cotizaciones/CF-10-editor-ventas-portatil.png |
 | R-04 Cotización a orden | Anexo C Tabla C3 | Órdenes | pendiente | por definir | - |
 | R-05 Existencias y consumo por orden | Anexo C Tabla C3 | Inventario | pendiente | por definir | - |
 | R-06 Producción por etapas | Anexo C Tabla C3 | Producción | pendiente | por definir | - |

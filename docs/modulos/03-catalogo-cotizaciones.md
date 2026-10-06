@@ -130,3 +130,20 @@ Auditores de proveedores distintos: Codex arquitecto y Gemini Pro. Cada hallazgo
 | Flag de tipo de registro para plantillas | Gemini, baja | Rechazado por la misma razón |
 
 Cobertura de la tesis según Gemini: CF-10 y R-03 cubiertos; R-02 parcial. Codex: dictamen "reconsiderar antes de programar" por dos altos, resueltos en este diseño.
+
+## Cierre del módulo (2026-10-06)
+
+Revisión cruzada del código de Codex por Sonnet (solo lectura). Ningún hallazgo alto ni medio. Hallazgos verificados en el código:
+
+| Hallazgo | Decisión |
+|---|---|
+| `lineas` de un ítem personalizado y `materiales` de la receta sin máximo | Corregido: máximo 100 en cada lista |
+| Enviar una cotización fuera de BORRADOR respondía COTIZACION_CONGELADA con mensaje de edición | Corregido: responde TRANSICION_INVALIDA con mensaje de envío |
+| Tabla de líneas de costo cortada a 820 px (hallada en las capturas E2E) | Corregido: columna Descripción más angosta y encabezado Consumo |
+| Guardar la cabecera lleva al detalle y descarta ediciones de ítems sin guardar | Aceptado: guardar equivale a salir. Queda como mejora futura (baja) |
+| PATCH sin cambios y receta idéntica avanzan la versión y escriben bitácora | Aceptado (baja) |
+| Ítem personalizado existente sin `actualizarPrecio` ignora `lineas` y `margenPct` enviados por API | Aceptado: cumple la regla 10 de la especificación |
+| Costo promedio de materiales visible con solo `catalogo:ver` y datos de cliente con solo `cotizacion:ver` | Aceptado: sin fuga con la matriz por defecto; coherente con ADR-011 |
+| Ítem de catálogo por unidad guarda `ancho` y `alto` si llegan | Aceptado (baja) |
+
+Cobertura contra la tesis (Gemini Pro): CF-10, R-03 y Tabla C2 cubiertos; R-02 cubierto mediante el supuesto S-12 (duplicar como plantilla), pendiente de confirmación del cliente. Jev clasifica CF-10 como parcial (0.79) por la conversión a orden del módulo 3 y la proforma sin PDF de servidor.
