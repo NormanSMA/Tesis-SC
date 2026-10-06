@@ -66,6 +66,10 @@ export function traducirErrorLibro(error: unknown, operacion: OperacionLibro): u
     return new AppError({ codigo: "DEVOLUCION_EXCEDE_CONSUMO", status: 409,
       mensaje: "La devolución supera lo consumido por la orden. Recargue los datos y vuelva a intentar." });
   }
+  if (causa.codigo === "22003") {
+    return new AppError({ codigo: "EXISTENCIA_EXCEDE_MAXIMO", status: 409,
+      mensaje: "La existencia resultante superaría el máximo que admite el sistema. No se registró nada." });
+  }
   // El orden fijo de bloqueos evita el interbloqueo; si aun así ocurre, la solicitud completa se revirtió y es segura de repetir.
   if (causa.codigo === "40P01" || causa.codigo === "40001") {
     return new AppError({ codigo: "CONFLICTO_CONCURRENCIA", status: 409,

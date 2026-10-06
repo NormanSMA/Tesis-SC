@@ -80,13 +80,14 @@ describe("validarLineas", () => {
       campos: { "lineas.0.cantidad": expect.stringContaining("solicitado 1.501, disponible 1.500") } });
   });
 
-  it("acepta la existencia exacta y limita la devolución al neto, incluso si el material está archivado", () => {
+  it("acepta la existencia exacta, limita la devolución al neto y rechaza materiales archivados", () => {
     const exacta = normalizarLineas({ lineas: [{ materialId: B, cantidad: "1.5" }] });
     expect(validarLineas({ operacion: "consumo", lineas: exacta, materiales, netos: new Map() })).toEqual([]);
     const devolucion = normalizarLineas({ lineas: [{ materialId: A, cantidad: "2" }, { materialId: B, cantidad: "0.001" }] });
     const errores = validarLineas({ operacion: "devolucion", lineas: devolucion, materiales, netos: new Map([[A, "2.000"]]) });
-    expect(errores).toMatchObject([{ indice: 1, tipo: "excede", limite: "0.000" }]);
-    expect(errorDeLineas(errores)).toMatchObject({ codigo: "DEVOLUCION_EXCEDE_CONSUMO", status: 409 });
+    expect(errores).toMatchObject([{ indice: 0, tipo: "archivado" }, { indice: 1, tipo: "excede", limite: "0.000" }]);
+    expect(errorDeLineas(errores)).toMatchObject({ codigo: "MATERIAL_ARCHIVADO", status: 409 });
+    expect(errorDeLineas(errores.slice(1))).toMatchObject({ codigo: "DEVOLUCION_EXCEDE_CONSUMO", status: 409 });
   });
 });
 

@@ -29,8 +29,21 @@ export function registrarDevolucion(solicitud: SolicitudMovimientosOrden): Promi
   return registrar(solicitud, "devolucion");
 }
 
+const CAMPOS_DE_COSTO = ["costoUnitario", "costoPromedioResultante"];
+
+// La respuesta guardada para un reintento puede traer costos: el permiso se aplica siempre con el actor actual.
+function proyectarCostos(respuesta: RespuestaMovimientosOrden, verCostos: boolean): RespuestaMovimientosOrden {
+  if (verCostos) return respuesta;
+  const movimientos = respuesta.movimientos.map((movimiento) => Object.fromEntries(
+    Object.entries(movimiento).filter(([campo]) => !CAMPOS_DE_COSTO.includes(campo)),
+  ) as MovimientoOrdenDto);
+  return { ...respuesta, movimientos };
+}
+
 async function registrar(solicitud: SolicitudMovimientosOrden, operacion: OperacionLibro): Promise<RespuestaMovimientosOrden> {
-  const { actor, ordenId, clave } = solicitud;
+  const { actor, clave } = solicitud;
+  // En minúsculas para que el mismo UUID en mayúsculas no cambie la huella de idempotencia.
+  const ordenId = solicitud.ordenId.toLowerCase();
   exigir(actor, "inventario:consumir");
   const lineas = normalizarLineas(solicitud.entrada);
   // La huella usa las líneas normalizadas: "2" y "2.000", o las mismas líneas en otro orden, son la misma solicitud.
@@ -39,7 +52,7 @@ async function registrar(solicitud: SolicitudMovimientosOrden, operacion: Operac
     return await prisma.$transaction(async (tx) => {
       const { resultado, repetida } = await ejecutarIdempotente(tx, { clave, usuarioId: actor.id, operacion, cuerpo },
         () => aplicar(tx, { ordenId, actor, operacion, lineas }));
-      return { ...resultado, repetida };
+      return { ...proyectarCostos(resultado, can(actor, "cotizacion:ver")), repetida };
     });
   } catch (error) {
     throw traducirErrorLibro(error, operacion);

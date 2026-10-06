@@ -61,7 +61,7 @@ Algoritmo, en una transacción:
 1. Inserta la clave de idempotencia (ver arriba).
 2. Bloquea la fila de la orden con `FOR SHARE` y relee su estado (contrato de bloqueo del módulo 3). Solo PENDIENTE, EN_PRODUCCION y LISTA admiten consumo (I-22). Otro estado: 409 ORDEN_NO_ADMITE_CONSUMO.
 3. Ordena las líneas por `materialId` ascendente y bloquea cada material con su propio `SELECT ... FOR UPDATE`, en ese orden (I-24). No usa un solo SELECT con ORDER BY: PostgreSQL no garantiza el orden de los bloqueos en ese caso. Ninguna operación toma un material antes que la orden, y ninguna que actualice la orden retiene materiales.
-4. Con todos los materiales ya bloqueados valida con valores exactos: material inexistente 422; archivado 409 MATERIAL_ARCHIVADO; existencia insuficiente 409 EXISTENCIA_INSUFICIENTE con la lista completa de líneas (material, solicitado, disponible). Esos valores son exactos porque nadie más puede mover esos materiales hasta el fin de la transacción. El CHECK de la base queda como respaldo; si aun así dispara (23514), el servicio lo traduce al mismo código.
+4. Con todos los materiales ya bloqueados valida con valores exactos: material inexistente 422; archivado 409 MATERIAL_ARCHIVADO (en consumo y en devolución: devolver a un material archivado dejaría existencia fuera de las listas; se reactiva primero); existencia insuficiente 409 EXISTENCIA_INSUFICIENTE con la lista completa de líneas (material, solicitado, disponible). Esos valores son exactos porque nadie más puede mover esos materiales hasta el fin de la transacción. El CHECK de la base queda como respaldo; si aun así dispara (23514), el servicio lo traduce al mismo código.
 5. Inserta los movimientos y sus enlaces en el mismo orden ascendente y escribe la bitácora.
 6. Advertencia `excedeEstimado`: si el consumo neto (consumido menos devuelto) de un material supera el estimado de la orden, o el material no está en el estimado, el consumo se acepta y la respuesta lo marca. No bloquea: la merma real puede diferir de la prevista. Se compara el neto, no el bruto, porque retirar, devolver y volver a retirar no es un exceso.
 7. Respuesta: movimientos creados y estado por material (estimado, consumido, devuelto, neto, existencia).
@@ -123,3 +123,14 @@ Adoptado:
 - Regla para los módulos 5 en adelante: una operación que actualice la fila de la orden toma `FOR UPDATE` desde el inicio y no retiene bloqueos de materiales. Promover `FOR SHARE` a `UPDATE` después de tomar un material podría cerrar un ciclo (Codex).
 Respuestas a las preguntas: devolución en PENDIENTE, EN_PRODUCCION, LISTA, ENTREGADA y CANCELADA y no en CERRADA (ambos); exceso solo con advertencia (ambos); Producción ve entradas, ajustes y costo promedio del material, no costos ligados a órdenes (Codex; Gemini permitía todo el costo, se adopta lo más restrictivo); idempotencia sí (ambos); sin ciclos con los flujos descritos (ambos).
 Aislamiento: Prisma usa READ COMMITTED (src/lib/db.ts no fija nivel). Las lecturas previas sin bloqueo pueden quedar obsoletas; por eso se valida bajo bloqueo.
+
+## Revisión cruzada de la implementación (2026-10-06)
+Núcleo de consumo y devolución (Opus), revisado por Gemini Pro y por Codex (revisar). Hallazgos verificados en el código:
+| Hallazgo | Decisión |
+|---|---|
+| La respuesta guardada para un reintento podía traer costos tras perder `cotizacion:ver` (Codex, alta) | Corregido: el permiso actual se aplica siempre a la respuesta, inicial o repetida. Prueba nueva |
+| Devolución sobre un material archivado dejaba existencia en un material fuera de las listas (Codex) | Corregido: 409 MATERIAL_ARCHIVADO también en devolución. Prueba cambiada |
+| Huella distinta si el UUID de la orden llega en mayúsculas (Codex) | Corregido: se normaliza a minúsculas |
+| Desborde decimal (22003) respondía 500 (Codex) | Corregido: 409 EXISTENCIA_EXCEDE_MAXIMO |
+| Interbloqueo o fallo de serialización (40P01, 40001) sin traducir (Gemini) | Corregido: 409 CONFLICTO_CONCURRENCIA, seguro de repetir |
+| Las pruebas de concurrencia usan retardos y no barreras con `pg_blocking_pids` (Codex) | Aceptado como limitación: la corrección la garantizan los bloqueos de la base; hay dos pruebas deterministas con bloqueos retenidos y 5 a 20 rondas por escenario |

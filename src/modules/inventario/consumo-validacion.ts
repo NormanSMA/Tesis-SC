@@ -34,6 +34,11 @@ function errorConsumo(linea: LineaNormalizada, material: MaterialBloqueado): Err
 }
 
 function errorDevolucion(linea: LineaNormalizada, material: MaterialBloqueado, neto: string): ErrorLinea | null {
+  // Devolver a un material archivado dejaría existencia en un material fuera de las listas: se reactiva primero.
+  if (!material.activo) {
+    return { indice: linea.indice, tipo: "archivado", campo: `lineas.${linea.indice}.materialId`,
+      mensaje: `El material ${etiqueta(material)} está archivado. Reactívelo para registrar la devolución.` };
+  }
   if (comparar(leerCantidad(linea.cantidad), leerCantidad(neto)) <= 0) return null;
   const maximo = cantidad3(neto);
   return { indice: linea.indice, tipo: "excede", campo: `lineas.${linea.indice}.cantidad`,

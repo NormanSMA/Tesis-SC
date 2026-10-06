@@ -134,15 +134,30 @@ describeConBase("inventario: consumo y devolución por orden", () => {
     expect(tope.resumen[0]).toMatchObject({ consumido: "4.000", devuelto: "4.000", neto: "0.000", existencia: "10.000" });
   });
 
-  it("permite devolver un material archivado y no consumirlo", async () => {
+  it("rechaza consumir y devolver un material archivado hasta reactivarlo", async () => {
     const orden = await nuevaOrden(entorno);
     const material = await crearMaterial(entorno, { existencia: "10" });
     await consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "2" }] });
     await db.material.update({ where: { id: material.id }, data: { activo: false } });
-    expect(await capturar(consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "1" }] })))
-      .toMatchObject({ ok: false, error: { codigo: "MATERIAL_ARCHIVADO" } });
+    const linea = { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "1" }] };
+    expect(await capturar(consumir(entorno, linea))).toMatchObject({ ok: false, error: { codigo: "MATERIAL_ARCHIVADO" } });
+    expect(await capturar(devolver(entorno, linea))).toMatchObject({ ok: false, error: { codigo: "MATERIAL_ARCHIVADO" } });
+    await db.material.update({ where: { id: material.id }, data: { activo: true } });
     const devuelto = await devolver(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "2" }] });
     expect(devuelto.movimientos[0]).toMatchObject({ tipo: "DEVOLUCION", existenciaResultante: "10.000" });
+  });
+
+  it("aplica el permiso actual de costos a la respuesta repetida de un reintento", async () => {
+    const orden = await nuevaOrden(entorno);
+    const material = await crearMaterial(entorno, { existencia: "10" });
+    const clave = randomUUID();
+    const solicitud = { ordenId: orden.id, clave, lineas: [{ materialId: material.id, cantidad: "1" }] };
+    const primera = await consumir(entorno, { ...solicitud, actor: conCostos(entorno.produccion) });
+    expect(primera.movimientos[0]).toHaveProperty("costoUnitario");
+    const reintento = await consumir(entorno, solicitud);
+    expect(reintento.repetida).toBe(true);
+    expect(reintento.movimientos[0]).not.toHaveProperty("costoUnitario");
+    expect(reintento.movimientos[0]).not.toHaveProperty("costoPromedioResultante");
   });
 
   it("marca excedeEstimado según el neto contra el estimado de la orden", async () => {
