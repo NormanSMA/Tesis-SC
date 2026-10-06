@@ -1,0 +1,96 @@
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { createElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { chromium, type Browser } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import tailwindcss from "@tailwindcss/postcss";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { PageHeader } from "@/components/comunes/PageHeader";
+import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
+import { DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
+import { FiltrosOrdenes } from "@/modules/ordenes/componentes/FiltrosOrdenes";
+import { FormularioOrden } from "@/modules/ordenes/componentes/FormularioOrden";
+import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
+import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
+import { TablaOrdenes } from "@/modules/ordenes/componentes/TablaOrdenes";
+import { esquemaConsultaOrdenes } from "@/modules/ordenes/schema";
+import type { OpcionesOrden, OrdenDto } from "@/modules/ordenes/tipos";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+
+const id = "11111111-1111-4111-8111-111111111111";
+const categoria = { id, nombre: "Rotulación y gran formato" };
+const responsable = { id, nombre: "Responsable de producción" };
+const opciones: OpcionesOrden = { responsables: [responsable], categorias: [{ ...categoria, etapas: 2 }] };
+const orden: OrdenDto = {
+  id, numero: "OT-2026-0001", estado: "PENDIENTE", categoria, responsable,
+  cliente: { id, nombre: "Cliente de prueba con nombre extenso", tipo: "EMPRESA", telefono: "8888 0000", correo: "prueba@example.com" },
+  cotizacion: { id, numero: "COT-2026-0001", asunto: "Trabajo de prueba" }, fechaEntrega: "2026-10-05", atrasada: true,
+  creadoEn: "2026-10-06T12:00:00Z", actualizadoEn: "2026-10-06T12:00:00Z", fechaInicioReal: null, fechaEntregaReal: null,
+  fechaCierre: null, motivoCancelacion: null, especificaciones: "Especificaciones de prueba. ".repeat(30),
+  items: [{ id, secuencia: 1, tipo: "PERSONALIZADO", descripcion: "Descripción extensa del trabajo solicitado", categoria,
+    unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
+      descripcion: "Material de prueba", unidad: "M2", cantidad: "7.200", mermaPct: "5.00", material: { id, nombre: "Vinil", unidad: "M2" } }] }],
+  etapas: [{ id, secuencia: 1, nombre: "Impresión de gran formato", area: { id, nombre: "Área de impresión" }, estado: "PENDIENTE",
+    responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null }],
+  consumosEstimados: [{ id, material: { id, nombre: "Material de prueba", unidad: "M2" }, cantidad: "7.560", origen: "COTIZACION" }],
+  advertencias: [{ itemSecuencia: 1, lineaSecuencia: 2, mensaje: "Línea 2: unidad distinta del material; no se estimó." }],
+  eventos: [{ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "CONVERTIR_EN_ORDEN", actor: "Ventas",
+    estadoAnterior: null, estadoNuevo: "PENDIENTE", creadoEn: "2026-10-06T12:00:00Z", detalle: {} }],
+};
+
+function contenido(pantalla: "lista" | "ficha" | "nueva" | "editar"): ReactNode[] {
+  const encabezado = createElement(PageHeader, { key: "encabezado", titulo: pantalla === "ficha" ? orden.numero : "Órdenes de trabajo" });
+  if (pantalla === "lista") return [encabezado,
+    createElement(FiltrosOrdenes, { key: "filtros", consulta: esquemaConsultaOrdenes.parse({}), responsables: [responsable] }),
+    createElement(TablaOrdenes, { key: "lista", consulta: esquemaConsultaOrdenes.parse({}),
+      lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20 } })];
+  if (pantalla === "ficha") return [encabezado,
+    createElement(DatosOrden, { key: "datos", orden, verCliente: false, verCotizacion: false }),
+    createElement(ItemsOrden, { key: "items", items: orden.items }), createElement(EtapasOrden, { key: "etapas", etapas: orden.etapas }),
+    createElement(ConsumoEstimadoOrden, { key: "estimado", orden }), createElement(LineaTiempoOrden, { key: "tiempo", eventos: orden.eventos })];
+  return [encabezado, pantalla === "editar" ? createElement(FormularioOrden, { key: "editar", opciones, hoy: "2026-10-06", orden })
+    : createElement(FormularioOrden, { key: "nueva", opciones, hoy: "2026-10-06", propuesta: { cotizacionId: id, numero: "COT-2026-0001",
+      cliente: orden.cliente.nombre, categoriaId: id, especificaciones: "Trabajo de prueba", orden: null } })];
+}
+
+describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
+  let navegador: Browser;
+  let css: string;
+  beforeAll(async () => {
+    const cargar = createRequire(import.meta.resolve("@tailwindcss/postcss"));
+    const postcss = cargar("postcss") as (plugins: unknown[]) => {
+      process(entrada: string, opciones: { from: string }): Promise<{ css: string }>;
+    };
+    const archivo = path.resolve("src/app/globals.css");
+    css = (await postcss([tailwindcss({ base: process.cwd(), optimize: false })]).process(await readFile(archivo, "utf8"), { from: archivo })).css;
+    navegador = await chromium.launch({ channel: "msedge", headless: true });
+  });
+  afterAll(async () => { await navegador?.close(); });
+
+  for (const ancho of [820, 1024, 1366, 1920]) {
+    it(`lista, ficha y formularios sin desborde ni infracciones axe a ${ancho}px`, async () => {
+      const contexto = await navegador.newContext({ viewport: { width: ancho, height: 1000 } });
+      const pagina = await contexto.newPage();
+      try {
+        for (const pantalla of ["lista", "ficha", "nueva", "editar"] as const) {
+          const cuerpo = renderToStaticMarkup(createElement("div", { className: "md:pl-16 xl:pl-64" },
+            createElement("main", { className: "space-y-6 px-4 py-6 xl:px-6" }, contenido(pantalla))));
+          await pagina.setContent(`<!doctype html><html lang="es"><head><title>Órdenes</title><style>${css}</style></head><body>${cuerpo}</body></html>`);
+          const desbordes = await pagina.evaluate(() => ({ pagina: document.documentElement.scrollWidth > window.innerWidth,
+            tablas: [...document.querySelectorAll('[data-slot="table-container"]')].some((tabla) => tabla.scrollWidth > tabla.clientWidth) }));
+          expect(desbordes, `${pantalla} ${ancho}px`).toEqual({ pagina: false, tablas: false });
+          const resultado = await new AxeBuilder({ page: pagina }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+          expect(resultado.violations.map((violacion) => ({ id: violacion.id, nodos: violacion.nodes.map((nodo) => nodo.target) })), pantalla).toEqual([]);
+          if (pantalla === "ficha") {
+            expect(await pagina.getByRole("link", { name: orden.cotizacion.numero }).count()).toBe(0);
+            expect(await pagina.getByText("Atrasada", { exact: true }).count()).toBe(1);
+          }
+        }
+      } finally { await contexto.close(); }
+    });
+  }
+});

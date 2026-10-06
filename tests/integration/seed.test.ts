@@ -13,6 +13,7 @@ import { crearCliente } from "@/lib/db";
 
 import { urlParaPg, urlPropietario } from "../helpers/entorno-bd";
 import { describeConBase } from "../helpers/db";
+import { comprobarParidadEstimado } from "../helpers/paridad-estimado";
 
 // Base propia de la siembra: no toca sc_test, que comparten las demás pruebas.
 const BASE_SIEMBRA = "sc_test_seed";
@@ -220,6 +221,10 @@ describeConBase("siembra de datos de demostración", () => {
       const clave = CLAVES[`SEED_PASSWORD_${usuario.perfil.codigo}` as keyof typeof CLAVES];
       expect(await verificarContrasena(usuario.hashContrasena, clave)).toBe(true);
     }
+  });
+
+  it("el consumo estimado de las órdenes sembradas coincide con el del módulo de órdenes", async () => {
+    await comprobarParidadEstimado(db);
   });
 
   it("una segunda ejecución se omite y no cambia ningún conteo", async () => {

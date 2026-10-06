@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Archive, CircleAlert } from "lucide-react";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AccionesCotizacion } from "@/modules/cotizaciones/componentes/AccionesCotizacion";
@@ -10,12 +12,14 @@ import { ItemsCotizacion } from "@/modules/cotizaciones/componentes/ItemsCotizac
 import { TotalesCotizacion } from "@/modules/cotizaciones/componentes/TotalesCotizacion";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
 import { cargarCotizacion } from "@/modules/cotizaciones/paginas";
+import { ordenDeCotizacion } from "@/modules/ordenes/service";
 
 export const metadata: Metadata = { title: "Detalle de cotización" };
 
 export default async function PaginaDetalleCotizacion({ params }: { params: Promise<{ id: string }> }) {
   const actor = await exigirPermisoPagina("cotizacion:ver");
   const cotizacion = await cargarCotizacion((await params).id);
+  const orden = cotizacion.estado === "APROBADA" ? await ordenDeCotizacion(cotizacion.id, actor) : null;
   const permisos = { gestionar: can(actor, "cotizacion:gestionar"), enviar: can(actor, "cotizacion:enviar"),
     responder: can(actor, "cotizacion:responder") };
   return <>
@@ -26,6 +30,9 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
       {cotizacion.avisos.map((aviso) => <Alert key={aviso} role="status"><CircleAlert aria-hidden="true" />
         <AlertTitle>Información de la cotización</AlertTitle><AlertDescription>{aviso}</AlertDescription></Alert>)}
       <AccionesCotizacion cotizacion={cotizacion} permisos={permisos} hoy={hoyManagua()} />
+      {cotizacion.estado === "APROBADA" ? orden ? <Button asChild variant="outline">
+        <Link href={`/ordenes/${orden.id}`}>Ver orden {orden.numero}</Link></Button> : can(actor, "orden:crear") ?
+        <Button asChild><Link href={`/ordenes/nueva?cotizacionId=${cotizacion.id}`}>Convertir en orden</Link></Button> : null : null}
       <div className="grid gap-5 lg:grid-cols-3"><div className="lg:col-span-2"><DatosCotizacion cotizacion={cotizacion} /></div>
         <TotalesCotizacion totales={cotizacion} /></div>
       <section aria-labelledby="titulo-items"><h2 id="titulo-items" className="mb-4 text-xl font-semibold">Ítems de cotización</h2>

@@ -4,15 +4,15 @@
 
 | CF / requisito | Fuente | Módulo | Estado | Prueba | Captura |
 |---|---|---|---|---|---|
-| CF-01 | Anexo D A1; R-04 | Órdenes | pendiente | por definir | - |
-| CF-02 | Anexo D A2; R-06 | Órdenes, Producción | pendiente | por definir | - |
+| CF-01 | Anexo D A1; R-04 | Órdenes | implementado | tests/integration/ordenes-conversion.test.ts; ordenes-servicio.test.ts; ordenes-api-perfiles.test.ts; tests/unit/consumo-estimado.test.ts; seed.test.ts (paridad del estimado); e2e/ordenes.spec.ts (conversión sin reingreso, doble conversión bloqueada) | docs/capturas/ordenes/CF-01-{ventas,gerencia}-{escritorio,portatil,tableta-horizontal,tableta}.png |
+| CF-02 | Anexo D A2; R-06 | Órdenes, Producción | parcial | Mismas pruebas de CF-01 más ordenes-consulta.test.ts y e2e/ordenes.spec.ts (estado, responsable, fechas, edición, cancelación). Faltan acciones de etapas y estados EN_PRODUCCION y LISTA (módulo 5) | docs/capturas/ordenes/CF-02-gerencia-{escritorio,portatil,tableta-horizontal,tableta}.png |
 | CF-03 | Anexo D A3; R-05 | Inventario | pendiente | por definir | - |
 | CF-04 | Anexo D A4; R-05 | Inventario | pendiente | por definir | - |
 | CF-05 | Anexo D A5; R-07 | Trazabilidad | pendiente | por definir | - |
 | CF-06 | Anexo D A6; R-08, R-11 | Panel | pendiente | por definir | - |
 | CF-07 | Anexo D A7; R-09 | Acceso | parcial | tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png y sin-acceso.png |
 | CF-08 | Anexo D A8; R-10 | Layout | parcial | e2e/base.spec.ts (axe, desbordes, 4 viewports); e2e/diseno.spec.ts | docs/capturas/fase2/{perfil}-{viewport}.png |
-| CF-09 | Anexo D A9; R-01 | Transversal | pendiente | por definir | - |
+| CF-09 | Anexo D A9; R-01 | Transversal | parcial | Ficha de la orden con cliente, cotización, ítems, etapas y consumo estimado (e2e/ordenes.spec.ts; tests/integration/ordenes-conversion.test.ts). Faltan el consumo real (módulo 4) y la producción (módulo 5) | docs/capturas/ordenes/CF-09-gerencia-{escritorio,portatil,tableta-horizontal,tableta}.png |
 | CF-10 | Anexo D A10; R-03 | Cotizaciones | parcial | tests/unit/costeo.test.ts; tests/unit/cotizaciones-calculo.test.ts; tests/integration/costeo-paridad-bd.test.ts; tests/integration/cotizaciones-*.test.ts; e2e/catalogo.spec.ts; e2e/cotizaciones.spec.ts (cotización mixta: catálogo por m², por unidad y personalizado con material, mano de obra y tercero; totales, envío y aprobación). Parcial hasta existir la conversión a orden (módulo 3) | docs/capturas/cotizaciones/CF-10-{ventas,gerencia}-{escritorio,portatil,tableta-horizontal,tableta}.png; docs/capturas/catalogo/ |
 | CF-11 | Anexo D A11; R-13 | Clientes | parcial | tests/integration/clientes-*.test.ts (servicio, concurrencia, historial, lista, API por perfil); tests/unit/clientes-*.test.ts; e2e/clientes.spec.ts | docs/capturas/clientes/CF-11-{gerencia,ventas}-{escritorio,portatil,tableta-horizontal,tableta}.png |
 
@@ -23,7 +23,7 @@
 | R-01 Centralizar la información | Anexo C Tabla C3 | Transversal | pendiente | por definir | - |
 | R-02 Cotizaciones con plantillas, historial y reutilización | Anexo C Tabla C3 | Cotizaciones | parcial | tests/integration/cotizaciones-instantaneas.test.ts; cotizaciones-bitacora.test.ts; cotizaciones-estados.test.ts; e2e/cotizaciones.spec.ts (duplicar borrador). La plantilla se resuelve duplicando (S-12); falta confirmación del cliente | docs/capturas/cotizaciones/ |
 | R-03 Costos variables | Anexo C Tabla C3 | Cotizaciones | implementado | tests/unit/costeo.test.ts; tests/integration/costeo-paridad-bd.test.ts; e2e/cotizaciones.spec.ts | docs/capturas/cotizaciones/CF-10-editor-ventas-portatil.png |
-| R-04 Cotización a orden | Anexo C Tabla C3 | Órdenes | pendiente | por definir | - |
+| R-04 Cotización a orden | Anexo C Tabla C3 | Órdenes | implementado | Mismas pruebas de CF-01 | docs/capturas/ordenes/ |
 | R-05 Existencias y consumo por orden | Anexo C Tabla C3 | Inventario | pendiente | por definir | - |
 | R-06 Producción por etapas | Anexo C Tabla C3 | Producción | pendiente | por definir | - |
 | R-07 Bitácora de trazabilidad | Anexo C Tabla C3 | Trazabilidad | pendiente | por definir | - |

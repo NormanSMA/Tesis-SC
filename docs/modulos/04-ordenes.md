@@ -133,3 +133,15 @@ Divergencias resueltas:
 - Precios para Producción: Codex los muestra, Gemini los oculta. Se ocultan (mínimo privilegio, un solo permiso para el dinero). A confirmar con el usuario.
 - Fecha pasada: se valida solo cuando el campo cambia (Codex). Editar el responsable de una orden vencida no exige reprogramar.
 Pruebas agregadas: cancelar contra consumir y contra iniciar etapa (cuando existan los módulos 4 y 5), entregar contra retrabajar, conversiones simultáneas, bitácora solo del ganador y reversión completa.
+
+## Cierre del módulo (2026-10-06)
+Implementación: Codex (programar). Revisión cruzada por Gemini Pro (proveedor distinto) y lectura directa del orquestador de conversion.ts, dto.ts y estados.ts. Sin defectos de severidad alta ni media.
+Medido: typecheck y lint limpios; 751 pruebas unitarias e integración en 46 archivos; E2E completo 458 verdes, 0 fallos, 178 omitidas por diseño.
+Hallazgos de la revisión:
+| Hallazgo | Decisión |
+|---|---|
+| La prueba de paridad del estimado dependía de datos sembrados y fallaba en una base limpia | Corregido: la comprobación vive en tests/helpers/paridad-estimado.ts y corre dentro de seed.test.ts, que siembra su propia base |
+| Producción solo ve el motivo en el detalle de la línea de tiempo (Gemini lo marcó media) | Aceptado: es la lista blanca que pide la auditoría; el detalle de EDITAR puede traer importes |
+| Quitar la comprobación previa de duplicados y confiar solo en el UNIQUE (Gemini) | Rechazado: contradice la auditoría de Codex; con la comprobación el mensaje trae el número ganador |
+Cobertura (Gemini Pro y Jev): CF-01 y R-04 cubiertos (Jev 1.0); CF-02 parcial (Jev 1.0) y CF-09 parcial, por las acciones de etapas y estados EN_PRODUCCION y LISTA (módulo 5) y el consumo real (módulo 4).
+Pendiente: E2E del enlace desde la ficha del cliente a sus órdenes (CF-11, R-13).
