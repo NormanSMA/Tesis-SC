@@ -1,0 +1,48 @@
+# Módulo 7: Panel y reportes
+
+Estado: diseño aprobado por el orquestador. Fecha: 2026-10-07.
+Criterios de aceptación: CF-06 (desde el panel se consultan cotizaciones pendientes, materiales disponibles y carga de trabajo). Requerimientos: R-08, R-11. Supuesto S-18 (cuatro reportes y exportación CSV). Apoya CF-08 (diseño adaptable) y CF-09.
+Fuentes: tesis V6 secciones 1.7 y 2.6; Anexo C (P6, P7, Tabla C3); Anexo D (A6).
+Este módulo solo lee: no agrega migraciones ni escribe datos de negocio. Reutiliza las consultas de los módulos 2 a 5 (cotizaciones, inventario, órdenes, producción).
+
+## Permisos
+| Permiso | Gerencia | Ventas | Producción | Administración |
+|---|---|---|---|---|
+| panel:ver | sí | sí | sí | no |
+| reporte:ver | sí | no | no | no |
+| reporte:exportar | sí | no | no | no |
+| cotizacion:ver (dinero de cotizaciones) | sí | sí | no | no |
+Cada bloque del panel aparece solo si el perfil tiene el permiso del dato que muestra: cotizaciones con `cotizacion:ver`, materiales con `inventario:ver`, órdenes y carga con `orden:ver` y `produccion:ver`. Sin `cotizacion:ver` no viaja ningún importe en ninguna respuesta del módulo.
+
+## Panel (CF-06, R-08)
+GET /api/v1/panel (panel:ver). Pantalla /panel con el mismo diseño de tarjetas KPI y listas. Bloques:
+1. Cotizaciones pendientes (con `cotizacion:ver`): cuántas están ENVIADA con vigencia vigente, cuántas vencen en los próximos 3 días, y una lista de las 10 más próximas a vencer (número, cliente, vencimiento, total, enlace). Las ENVIADA ya vencidas se cuentan aparte como "por marcar vencidas".
+2. Materiales disponibles (con `inventario:ver`): conteo de materiales activos en alerta y sin existencia, y los 10 en alerta más críticos (existencia contra mínimo, enlace al material). Alerta como en el módulo 4: activo, stock mínimo mayor a 0 y existencia menor o igual al mínimo.
+3. Carga de trabajo (con `orden:ver` y `produccion:ver`): órdenes por estado no terminal, etapas abiertas por responsable y por área con las atrasadas (fecha fin planificada pasada), y entregas próximas (fecha de entrega en los siguientes 7 días, ordenadas), con enlaces a la orden. Usa las mismas reglas del tablero del módulo 5 (excluye órdenes terminales).
+4. Resumen de la operación: órdenes en producción, órdenes atrasadas (fecha de entrega pasada y no terminal) y entregas próximas.
+Fechas con América/Managua. "Hoy" sale del mismo helper que usan órdenes y cotizaciones. El panel se calcula al abrir y tiene un botón "Actualizar" (sin tiempo real).
+Estado vacío, error y carga con texto. Cumple WCAG 2.2 AA y 4 viewports. Los KPI muestran un texto, no solo color.
+
+## Reportes (R-11, S-18)
+Pantalla /reportes y API GET /api/v1/reportes/<nombre> (reporte:ver). Filtros por periodo (desde y hasta, fecha de Managua) donde aplica. Cuatro reportes:
+| Nombre | Contenido | Filtros |
+|---|---|---|
+| cotizaciones-por-estado | Cantidad e importe total por estado (BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA) en el periodo de creación, con tasa de aprobación (aprobadas sobre respondidas) | desde, hasta |
+| existencias | Cada material con existencia, stock mínimo, costo promedio, valor del inventario (existencia por costo promedio) y estado de alerta, más totales | texto, solo alertas |
+| carga-por-operario | Por responsable: etapas pendientes, en curso, completadas en el periodo, atrasadas y órdenes a su cargo | desde, hasta |
+| ordenes-por-etapa | Órdenes no terminales agrupadas por la etapa actual (la primera etapa abierta por secuencia), con cantidad y atraso; más órdenes sin etapa abierta (listas para marcar lista o entregar) | área |
+Todos devuelven JSON con filas y totales y `generadoEn` (instante ISO). Los importes son cadenas decimales con 2 decimales y el valor de inventario se calcula con la aritmética decimal exacta de src/core/decimal.ts, en una consulta SQL.
+Exportación CSV: parámetro `formato=csv` o botón "Exportar CSV" (reporte:exportar). Reglas del CSV: UTF-8 con BOM, separador coma, saltos CRLF, comillas dobles escapadas, encabezados en español con tildes, fechas AAAA-MM-DD y decimales con punto, y protección contra inyección de fórmulas: una celda de texto que empieza con =, +, -, @, tabulador o retorno se antepone con una comilla simple. Nombre de archivo `<reporte>-<AAAAMMDD>.csv`. La exportación no escribe bitácora de negocio pero se registra en el registro de la aplicación (usuario, reporte, filtros).
+
+## API
+| Método y ruta | Permiso | Resultado |
+|---|---|---|
+| GET /api/v1/panel | panel:ver | Bloques permitidos al perfil |
+| GET /api/v1/reportes/cotizaciones-por-estado, /existencias, /carga-por-operario, /ordenes-por-etapa | reporte:ver (csv: reporte:exportar) | JSON o CSV |
+Errores del formato de AGENTS.md: 401, 403, 404 (reporte desconocido), 422 (fechas inválidas, desde posterior a hasta, periodo mayor a 5 años).
+
+## Pruebas
+- Unitarias: serializador CSV (BOM, comillas, saltos, inyección de fórmulas con las cinco cabeceras peligrosas, tildes, decimales), reglas de alerta, cálculo de tasa de aprobación, esquemas zod de periodo.
+- Integración (base propia pan_test): cada reporte contra datos creados por la prueba con totales conocidos (varios estados de cotización, materiales con costo promedio y existencia, etapas por responsable); panel por perfil (Gerencia ve todo; Ventas sin carga de producción de etapas pero con cotizaciones; Producción sin cotizaciones ni importes: recorre el JSON completo buscando claves monetarias); límites de fecha; CSV idéntico al JSON; permisos (reportes solo Gerencia, panel Administración 403); valor del inventario exacto; "hoy" en Managua en el borde de medianoche.
+- API por perfil: 401, 403, 404, 422.
+- E2E: Gerencia, Ventas y Producción ven su panel con enlaces que funcionan; Gerencia abre cada reporte, aplica un periodo y descarga el CSV (se verifica el contenido y el nombre); Ventas y Producción no ven Reportes (403 o sin acceso); Administración sin acceso al panel; axe y desbordes; capturas CF-06 del panel con los tres perfiles y de un reporte con Gerencia en 4 tamaños en docs/capturas/panel.
