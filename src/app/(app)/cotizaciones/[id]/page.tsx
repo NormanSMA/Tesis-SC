@@ -30,6 +30,8 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
       {cotizacion.avisos.map((aviso) => <Alert key={aviso} role="status"><CircleAlert aria-hidden="true" />
         <AlertTitle>Información de la cotización</AlertTitle><AlertDescription>{aviso}</AlertDescription></Alert>)}
       <AccionesCotizacion cotizacion={cotizacion} permisos={permisos} hoy={hoyManagua()} />
+      {orden && can(actor, "orden:ver") ? <Button asChild variant="outline">
+        <Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button> : null}
       {cotizacion.estado === "APROBADA" ? orden ? <Button asChild variant="outline">
         <Link href={`/ordenes/${orden.id}`}>Ver orden {orden.numero}</Link></Button> : can(actor, "orden:crear") ?
         <Button asChild><Link href={`/ordenes/nueva?cotizacionId=${cotizacion.id}`}>Convertir en orden</Link></Button> : null : null}

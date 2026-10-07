@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { can } from "@/core/autorizacion";
@@ -28,6 +30,7 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
     <PageHeader titulo={orden.numero} descripcion={orden.cliente.nombre} acciones={<EstadoBadge tipo="orden" estado={orden.estado} />} />
     <div className="min-w-0 space-y-6" key={orden.actualizadoEn}>
       <AccionesOrden orden={orden} permisos={permisos} />
+      <Button asChild variant="outline"><Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button>
       <DatosOrden orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />
       <ItemsOrden items={orden.items} /><EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
         areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
