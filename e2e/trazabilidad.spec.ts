@@ -166,7 +166,7 @@ test.describe("Trazabilidad de un trabajo E2E propio", () => {
     soloPortatil(info.project.name); await entrarComo(page, GERENCIA); await comprobarFiltrosYEnlace(page);
     await abrirTrabajo(page);
     const traza = await leer<TrazabilidadOrden>(page, `/ordenes/${orden.id}/trazabilidad`);
-    expect(traza.costoRealTotal).toBe("41.1486848");
+    expect(traza.costoRealTotal).toBe("41.1478848");
     await expect(page.getByRole("main")).toContainText("Costo real total");
   });
   test("la búsqueda por número de cotización abre el trabajo", async ({ page }, info) => {

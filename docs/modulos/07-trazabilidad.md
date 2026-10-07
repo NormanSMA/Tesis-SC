@@ -44,3 +44,8 @@ La inmutabilidad de la bitácora la garantiza la base (trigger SC001 y REVOKE al
 - Integración (base propia tra_test): filtros y paginación; permisos por perfil (global: Gerencia y Administración sí, Ventas y Producción 403; trazabilidad de orden: Producción sin dinero, Ventas y Gerencia con dinero, Administración 403); unificación y orden de eventos de cotización, orden, etapas y movimientos; costo real de materiales exacto contra el libro (varios materiales, devolución, costo promedio cambiante); ausencia de dinero en toda la respuesta para perfiles sin `cotizacion:ver` (recorre el JSON completo buscando claves monetarias); RUC y dirección sin `cliente:ver`; inmutabilidad de la bitácora desde el rol de la aplicación.
 - API por perfil: 401, 403, 404, 422.
 - E2E: Gerencia filtra la bitácora global por una orden E2E y abre su trazabilidad completa; Administración ve la bitácora sin dinero; Ventas abre la trazabilidad desde la ficha de la orden; Producción la ve sin dinero; axe y desbordes; capturas CF-05 y CF-09 en docs/capturas/trazabilidad con 4 tamaños.
+
+## Cierre del módulo (2026-10-07)
+Implementación y E2E: Codex (programar). Verificación: orquestador (un solo verificador).
+Medido: typecheck y lint limpios; 132 pruebas del módulo verdes; E2E completo 522 verdes más los 7 de trazabilidad repetidos tras corregir un valor esperado mal calculado en la prueba (3.333 por 12.3456 es 41.1478848; la aplicación devolvía el valor correcto).
+Cobertura (Jev): CF-05 cubierto (0.89), CF-09 cubierto (1.0). R-01 y R-07 implementados.
