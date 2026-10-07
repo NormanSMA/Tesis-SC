@@ -136,6 +136,7 @@ enum TipoValorConfig {
 enum EntidadBitacora {
   CLIENTE
   CATEGORIA
+  AREA
   PRODUCTO
   MATERIAL
   COTIZACION
@@ -305,6 +306,8 @@ model Area {
   id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre String  @unique @db.VarChar(80)
   activo Boolean @default(true)
+  // Versión optimista de la edición concurrente.
+  actualizadoEn DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
   etapasPlantilla EtapaPlantilla[]
   etapasOrden     EtapaOrden[]
@@ -582,6 +585,8 @@ model EtapaPlantilla {
   secuencia   Int
   nombre      String  @db.VarChar(80)
   activo      Boolean @default(true)
+  // Versión optimista de la edición concurrente.
+  actualizadoEn DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
   categoria Categoria    @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
   area      Area         @relation(fields: [areaId], references: [id], onDelete: Restrict)
