@@ -3,7 +3,8 @@ import { ESTADOS } from "@/components/comunes/estados";
 import type { EventoOrden } from "./tipos";
 
 const ACCIONES: Record<string, string> = { CONVERTIR_EN_ORDEN: "convirtió la cotización en orden",
-  CREAR: "creó una etapa", EDITAR: "editó la orden", ASIGNAR_RESPONSABLE: "asignó el responsable", CAMBIAR_ESTADO: "cambió el estado" };
+  CREAR: "creó una etapa", EDITAR: "editó la orden", ASIGNAR_RESPONSABLE: "asignó el responsable", CAMBIAR_ESTADO: "cambió el estado",
+  CONSUMIR_MATERIAL: "registró un consumo de material", DEVOLVER_MATERIAL: "registró una devolución de material" };
 const CAMPOS: Record<string, string> = { responsableId: "Responsable", fechaEntrega: "Fecha de entrega", especificaciones: "Especificaciones" };
 
 function detalleEvento(evento: EventoOrden): string | undefined {
@@ -16,6 +17,7 @@ function detalleEvento(evento: EventoOrden): string | undefined {
   }
   if (typeof detalle.nombre === "string") partes.push(detalle.nombre);
   if (typeof detalle.motivo === "string") partes.push(`Motivo: ${detalle.motivo}`);
+  if (typeof detalle.cantidad === "string") partes.push(`Cantidad: ${detalle.cantidad}`);
   for (const [campo, etiqueta] of Object.entries(CAMPOS)) {
     const cambio = detalle[campo];
     if (cambio && typeof cambio === "object" && !Array.isArray(cambio)) {

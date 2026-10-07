@@ -134,3 +134,10 @@ Núcleo de consumo y devolución (Opus), revisado por Gemini Pro y por Codex (re
 | Desborde decimal (22003) respondía 500 (Codex) | Corregido: 409 EXISTENCIA_EXCEDE_MAXIMO |
 | Interbloqueo o fallo de serialización (40P01, 40001) sin traducir (Gemini) | Corregido: 409 CONFLICTO_CONCURRENCIA, seguro de repetir |
 | Las pruebas de concurrencia usan retardos y no barreras con `pg_blocking_pids` (Codex) | Aceptado como limitación: la corrección la garantizan los bloqueos de la base; hay dos pruebas deterministas con bloqueos retenidos y 5 a 20 rondas por escenario |
+
+## Cierre del módulo (2026-10-06)
+Implementación: Opus (núcleo de consumo y devolución concurrentes), Codex (materiales, libro y pantallas), Sonnet (E2E). Revisión cruzada: Gemini Pro y Codex sobre el núcleo de Opus; Sonnet sobre el código de Codex. Verificación del orquestador.
+Medido: typecheck y lint limpios; 933 pruebas unitarias e integración en 57 archivos antes de las correcciones de la revisión (el subconjunto afectado se repitió después: 377 verdes); E2E completo 486 verdes antes de ajustar las etiquetas, y los dos archivos de inventario repetidos después: 37 verdes, 0 fallos.
+Hallazgos de la revisión de la interfaz (Sonnet sobre Codex), corregidos: segunda pulsación con el mismo contenido descartada sin aviso (ahora la clave se renueva tras un éxito y un reintento repetido se avisa), error de archivar tapado por el diálogo (el diálogo se cierra), KPI de materiales que contaba archivados, textos con valores crudos y sin tilde (etiquetas.ts), nombre del material no mostrado al llegar desde la URL, códigos crudos CONSUMIR_MATERIAL y DEVOLVER_MATERIAL en la línea de tiempo de la orden. Aceptados como bajos: opciones de filtro sin límite en el libro global.
+Cobertura (Gemini Pro y Jev): CF-04 y R-05 implementados (Jev 0.86 para CF-04); CF-03 queda parcial: Jev 0.56 (bajo 0.8) y Gemini lo da por cubierto, pendiente de confirmación del usuario; alertas de stock: lista y ficha listas, el reporte general depende del panel (módulo 7).
+Pendiente conocido: la prueba de concurrencia usa retardos y bloqueos retenidos en lugar de barreras con pg_blocking_pids.

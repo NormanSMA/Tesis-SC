@@ -6,8 +6,8 @@
 |---|---|---|---|---|---|
 | CF-01 | Anexo D A1; R-04 | Órdenes | implementado | tests/integration/ordenes-conversion.test.ts; ordenes-servicio.test.ts; ordenes-api-perfiles.test.ts; tests/unit/consumo-estimado.test.ts; seed.test.ts (paridad del estimado); e2e/ordenes.spec.ts (conversión sin reingreso, doble conversión bloqueada) | docs/capturas/ordenes/CF-01-{ventas,gerencia}-{escritorio,portatil,tableta-horizontal,tableta}.png |
 | CF-02 | Anexo D A2; R-06 | Órdenes, Producción | parcial | Mismas pruebas de CF-01 más ordenes-consulta.test.ts y e2e/ordenes.spec.ts (estado, responsable, fechas, edición, cancelación). Faltan acciones de etapas y estados EN_PRODUCCION y LISTA (módulo 5) | docs/capturas/ordenes/CF-02-gerencia-{escritorio,portatil,tableta-horizontal,tableta}.png |
-| CF-03 | Anexo D A3; R-05 | Inventario | pendiente | por definir | - |
-| CF-04 | Anexo D A4; R-05 | Inventario | pendiente | por definir | - |
+| CF-03 | Anexo D A3; R-05 | Inventario | parcial | tests/integration/inventario-consumo-servicio.test.ts; inventario-consumo-api.test.ts; inventario-concurrencia.test.ts; e2e/inventario-orden.spec.ts (consumo y devolución por orden, estimado contra consumido, costos ocultos). Parcial hasta confirmar con el usuario (Jev 0.56; Gemini lo da por cubierto) y hasta el panel de reportes (módulo 7) | docs/capturas/inventario/CF-03-orden-{escritorio,portatil,tableta-horizontal,tableta}.png |
+| CF-04 | Anexo D A4; R-05 | Inventario | implementado | tests/integration/inventario-concurrencia.test.ts (consumos simultáneos sin sobregiro ni interbloqueo, cancelación, devoluciones, idempotencia); inventario-consumo-servicio.test.ts; inventario-libro.test.ts; inventario-idempotencia.test.ts; inventario-materiales.test.ts; e2e/inventario.spec.ts (entradas, costo promedio, alerta, conciliación, ajuste) | docs/capturas/inventario/CF-04-{lista,ficha}-{escritorio,portatil,tableta-horizontal,tableta}.png |
 | CF-05 | Anexo D A5; R-07 | Trazabilidad | pendiente | por definir | - |
 | CF-06 | Anexo D A6; R-08, R-11 | Panel | pendiente | por definir | - |
 | CF-07 | Anexo D A7; R-09 | Acceso | parcial | tests/unit/permisos.test.ts; tests/integration/auth-*.test.ts; e2e/base.spec.ts (menú exacto, rutas prohibidas, API) | docs/capturas/fase2/{perfil}-{viewport}.png y sin-acceso.png |
@@ -24,7 +24,7 @@
 | R-02 Cotizaciones con plantillas, historial y reutilización | Anexo C Tabla C3 | Cotizaciones | parcial | tests/integration/cotizaciones-instantaneas.test.ts; cotizaciones-bitacora.test.ts; cotizaciones-estados.test.ts; e2e/cotizaciones.spec.ts (duplicar borrador). La plantilla se resuelve duplicando (S-12); falta confirmación del cliente | docs/capturas/cotizaciones/ |
 | R-03 Costos variables | Anexo C Tabla C3 | Cotizaciones | implementado | tests/unit/costeo.test.ts; tests/integration/costeo-paridad-bd.test.ts; e2e/cotizaciones.spec.ts | docs/capturas/cotizaciones/CF-10-editor-ventas-portatil.png |
 | R-04 Cotización a orden | Anexo C Tabla C3 | Órdenes | implementado | Mismas pruebas de CF-01 | docs/capturas/ordenes/ |
-| R-05 Existencias y consumo por orden | Anexo C Tabla C3 | Inventario | pendiente | por definir | - |
+| R-05 Existencias y consumo por orden | Anexo C Tabla C3 | Inventario | implementado | Mismas pruebas de CF-03 y CF-04. Alertas de stock mínimo en lista y ficha (Tabla C2); el reporte general de alertas llega con el panel (módulo 7) | docs/capturas/inventario/ |
 | R-06 Producción por etapas | Anexo C Tabla C3 | Producción | pendiente | por definir | - |
 | R-07 Bitácora de trazabilidad | Anexo C Tabla C3 | Trazabilidad | pendiente | por definir | - |
 | R-08 Cotizaciones pendientes, materiales, carga | Anexo C Tabla C3 | Panel | pendiente | por definir | - |
