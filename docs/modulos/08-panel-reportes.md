@@ -46,3 +46,9 @@ Errores del formato de AGENTS.md: 401, 403, 404 (reporte desconocido), 422 (fech
 - Integración (base propia pan_test): cada reporte contra datos creados por la prueba con totales conocidos (varios estados de cotización, materiales con costo promedio y existencia, etapas por responsable); panel por perfil (Gerencia ve todo; Ventas sin carga de producción de etapas pero con cotizaciones; Producción sin cotizaciones ni importes: recorre el JSON completo buscando claves monetarias); límites de fecha; CSV idéntico al JSON; permisos (reportes solo Gerencia, panel Administración 403); valor del inventario exacto; "hoy" en Managua en el borde de medianoche.
 - API por perfil: 401, 403, 404, 422.
 - E2E: Gerencia, Ventas y Producción ven su panel con enlaces que funcionan; Gerencia abre cada reporte, aplica un periodo y descarga el CSV (se verifica el contenido y el nombre); Ventas y Producción no ven Reportes (403 o sin acceso); Administración sin acceso al panel; axe y desbordes; capturas CF-06 del panel con los tres perfiles y de un reporte con Gerencia en 4 tamaños en docs/capturas/panel.
+
+## Cierre del módulo (2026-10-07)
+Implementación y E2E: Codex (programar), que agotó su cuota al redactar el informe final; el trabajo estaba completo (typecheck y lint limpios, 98 pruebas del módulo verdes). Verificación: orquestador (un solo verificador).
+Medido al cierre de la Fase 3: typecheck y lint limpios; 1417 pruebas unitarias e integración en 79 archivos; E2E completo 544 verdes, 0 fallos, 316 omitidas por diseño.
+Correcciones del orquestador a la E2E de Codex (que no pudo ejecutarla): el primer argumento de `beforeEach` debía desestructurarse (Playwright rechazaba el archivo y detenía toda la corrida) y el selector `getByRole('alert')` chocaba con el anunciador de rutas de Next (se acotó).
+Cobertura: CF-06, R-08 y R-11 implementados. Jev 0.73 (bajo 0.8): a confirmar con el usuario.

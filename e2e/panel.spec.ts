@@ -236,16 +236,16 @@ function registrarAccesoYErrores() {
     await page.route("**/api/v1/panel", (ruta) => ruta.fulfill({ status: 500, contentType: "application/json",
       body: JSON.stringify({ error: { codigo: "ERROR_INTERNO", mensaje: "No se pudo actualizar el panel." } }) }));
     await page.getByRole("button", { name: "Actualizar", exact: true }).click();
-    await expect(page.getByRole("alert")).toHaveAttribute("aria-live", "assertive");
-    await expect(page.getByRole("alert")).toContainText("No se pudo actualizar el panel.");
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveAttribute("aria-live", "assertive");
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toContainText("No se pudo actualizar el panel.");
     await page.unroute("**/api/v1/panel");
     await page.getByRole("button", { name: "Actualizar", exact: true }).click();
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveCount(0);
   });
   test("Gerencia: periodo inválido informa el error sin exportación", async ({ page }) => {
     await entrarComo(page, gerencia);
     await page.goto("/reportes?desde=2034-05-02&hasta=2034-05-01");
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toBeVisible();
     await expect(page.getByLabel("Hasta", { exact: true })).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByRole("link", { name: "Exportar CSV" })).toHaveCount(0);
   });
@@ -253,7 +253,7 @@ function registrarAccesoYErrores() {
 
 test.describe("Panel y reportes CF-06", () => {
   test.setTimeout(120000);
-  test.beforeEach((_, info) => { test.skip(info.project.name !== "portatil", "La suite comprueba los cuatro tamaños desde portatil."); });
+  test.beforeEach(({ browserName }, info) => { void browserName; test.skip(info.project.name !== "portatil", "La suite comprueba los cuatro tamaños desde portatil."); });
   test.beforeAll(async ({ browser }, info) => { if (info.project.name === "portatil") await prepararCotizacion(browser); });
   test.afterAll(async ({ browser }, info) => { if (info.project.name === "portatil") await limpiarCotizacion(browser); });
   registrarPerfilesPanel(); registrarReportes(); registrarAccesoYErrores();
