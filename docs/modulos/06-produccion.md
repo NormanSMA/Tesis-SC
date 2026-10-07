@@ -100,3 +100,10 @@ Adoptado:
 - Escritor de órdenes con `fechaInicioReal` (Codex).
 - Prueba transversal de CF-09 y barreras observables en las pruebas de concurrencia (Codex).
 Descartado: la guarda de LISTA como trigger de base (Gemini); la regla vive en el servicio con la prueba de concurrencia, igual que el resto de los invariantes de servicio. Gemini marcó el valor AREA ausente como alto, pero el diseño ya lo agrega en la migración.
+
+## Cierre del módulo (2026-10-06)
+Implementación y E2E: Codex (programar). Revisión: Gemini Pro (una pasada, sin defectos relevantes) y verificación del orquestador.
+Medido: typecheck y lint limpios; 1187 pruebas unitarias e integración en 66 archivos; E2E completo 521 verdes, 0 fallos, 247 omitidas por diseño.
+Hallazgo corregido: un fixture de órdenes sin `actualizadoEn` en la etapa rompía el typecheck.
+Cobertura: CF-02 y R-06 implementados (Jev 0.99); CF-09 parcial (Jev 0.91) hasta la consulta global de trazabilidad (módulo 6) y el panel (módulo 7).
+Pendiente conocido: las pruebas de concurrencia usan retardos y bloqueos retenidos; no hay barreras con pg_blocking_pids.
