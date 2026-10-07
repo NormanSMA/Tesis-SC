@@ -11,7 +11,7 @@ export async function bloquearMaterial(tx: Tx, id: string) {
   if (!actual) throw noEncontrado();
   return actual;
 }
-function filtroAlerta(): Prisma.MaterialWhereInput {
+export function filtroAlerta(): Prisma.MaterialWhereInput {
   return { activo: true, stockMinimo: { gt: 0 }, existencia: { lte: prisma.material.fields.stockMinimo } };
 }
 export async function consultarMateriales(consulta: ConsultaMateriales) {
