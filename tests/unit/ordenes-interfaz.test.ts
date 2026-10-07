@@ -35,7 +35,7 @@ const orden: OrdenDto = {
     unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
       descripcion: "Material de prueba", unidad: "M2", cantidad: "7.200", mermaPct: "5.00", material: { id, nombre: "Vinil", unidad: "M2" } }] }],
   etapas: [{ id, secuencia: 1, nombre: "Impresión de gran formato", area: { id, nombre: "Área de impresión" }, estado: "PENDIENTE",
-    responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null }],
+    responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null, actualizadoEn: "2026-10-06T12:00:00.000Z" }],
   consumosEstimados: [{ id, material: { id, nombre: "Material de prueba", unidad: "M2" }, cantidad: "7.560", origen: "COTIZACION" }],
   advertencias: [{ itemSecuencia: 1, lineaSecuencia: 2, mensaje: "Línea 2: unidad distinta del material; no se estimó." }],
   eventos: [{ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "CONVERTIR_EN_ORDEN", actor: "Ventas",

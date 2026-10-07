@@ -11,6 +11,7 @@ import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
 import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
 import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
 import { cargarOrden } from "@/modules/ordenes/paginas";
+import { opcionesProduccion } from "@/modules/produccion/service";
 
 export const metadata: Metadata = { title: "Detalle de orden" };
 
@@ -19,12 +20,17 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
   const orden = await cargarOrden((await params).id, actor);
   const permisos = { gestionar: can(actor, "orden:gestionar"), entregar: can(actor, "orden:entregar"),
     cerrar: can(actor, "orden:cerrar"), cancelar: can(actor, "orden:cancelar") };
+  const permisosEtapas = { planificar: can(actor, "produccion:planificar"), ejecutar: can(actor, "produccion:ejecutar"),
+    avanzar: can(actor, "orden:avanzar") };
+  const opciones = can(actor, "produccion:ver") && (permisosEtapas.planificar || permisosEtapas.avanzar)
+    ? await opcionesProduccion(actor) : { areas: [], responsables: [] };
   return <>
     <PageHeader titulo={orden.numero} descripcion={orden.cliente.nombre} acciones={<EstadoBadge tipo="orden" estado={orden.estado} />} />
     <div className="min-w-0 space-y-6" key={orden.actualizadoEn}>
       <AccionesOrden orden={orden} permisos={permisos} />
       <DatosOrden orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />
-      <ItemsOrden items={orden.items} /><EtapasOrden etapas={orden.etapas} />
+      <ItemsOrden items={orden.items} /><EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
+        areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
       <ConsumoEstimadoOrden orden={orden} /><LineaTiempoOrden eventos={orden.eventos} />
       {can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : null}
     </div>

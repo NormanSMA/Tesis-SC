@@ -23,7 +23,7 @@ export type ItemOrden = {
 export type EtapaOrdenDto = {
   id: string; secuencia: number; nombre: string; estado: EstadoEtapa; area: ReferenciaOrden; responsable: ReferenciaOrden | null;
   fechaInicioPlan: string | null; fechaFinPlan: string | null; fechaInicioReal: string | null; fechaFinReal: string | null;
-  observaciones: string | null;
+  observaciones: string | null; actualizadoEn: string;
 };
 export type EventoOrden = {
   id: string; entidad: string; entidadId: string; accion: string; estadoAnterior: string | null; estadoNuevo: string | null;

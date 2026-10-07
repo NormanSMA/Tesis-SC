@@ -23,11 +23,17 @@ async function tomarCotizacion(tx: Tx, cotizacionId: string): Promise<Cotizacion
 }
 
 async function leerPlantillas(tx: Tx, categoriaId: string) {
+  await tx.$queryRaw`SELECT id FROM categoria WHERE id = ${categoriaId}::uuid FOR SHARE`;
   const categoria = await tx.categoria.findUnique({ where: { id: categoriaId } });
   if (!categoria?.activo) throw new AppError({ codigo: "VALIDACION", status: 422, mensaje: "Hay campos con errores.",
     campos: { categoriaId: "Seleccione una categoría activa." } });
   const plantillas = await tx.etapaPlantilla.findMany({ where: { categoriaId, activo: true }, orderBy: { secuencia: "asc" } });
   if (!plantillas.length) throw regla("SIN_PLANTILLA", "La categoría no tiene etapas activas. Configure una plantilla antes de convertir.");
+  await tx.$queryRaw`SELECT a.id FROM area a WHERE a.id IN (
+    SELECT area_id FROM etapa_plantilla WHERE categoria_id = ${categoriaId}::uuid AND activo
+  ) ORDER BY a.id FOR SHARE OF a`;
+  const areas = await tx.area.findMany({ where: { id: { in: plantillas.map((plantilla) => plantilla.areaId) } } });
+  if (areas.some((area) => !area.activo)) throw regla("AREA_ARCHIVADA", "Una plantilla utiliza un área archivada. Actualice la plantilla antes de convertir.");
   return plantillas;
 }
 

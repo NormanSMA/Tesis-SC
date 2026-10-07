@@ -65,15 +65,17 @@ export async function consultarOrdenes(consulta: ConsultaOrdenes) {
 
 export type CambiosOrden = {
   responsableId?: string; fechaEntrega?: Date; especificaciones?: string | null;
-  estado?: string; fechaEntregaReal?: Date; fechaCierre?: Date; motivoCancelacion?: string;
+  estado?: string; fechaInicioReal?: Date; fechaEntregaReal?: Date; fechaCierre?: Date; motivoCancelacion?: string;
 };
 const COLUMNAS = { responsableId: "responsable_id", fechaEntrega: "fecha_entrega", especificaciones: "especificaciones",
-  estado: "estado", fechaEntregaReal: "fecha_entrega_real", fechaCierre: "fecha_cierre", motivoCancelacion: "motivo_cancelacion" };
+  estado: "estado", fechaInicioReal: "fecha_inicio_real", fechaEntregaReal: "fecha_entrega_real", fechaCierre: "fecha_cierre", motivoCancelacion: "motivo_cancelacion" };
 type CondicionEscritura = { id: string; estado: string; version: string };
 
 export async function actualizarCondicionado(tx: Tx, condicion: CondicionEscritura, cambios: CambiosOrden): Promise<boolean> {
+  if (cambios.estado === "EN_PRODUCCION") cambios = { ...cambios, fechaInicioReal: cambios.fechaInicioReal ?? new Date() };
   const asignaciones = Object.entries(cambios).filter(([, valor]) => valor !== undefined).map(([campo, valor]) => {
     const columna = Prisma.raw(COLUMNAS[campo as keyof CambiosOrden]);
+    if (campo === "fechaInicioReal") return Prisma.sql`${columna} = COALESCE(fecha_inicio_real, ${valor})`;
     return campo === "estado" ? Prisma.sql`${columna} = ${valor}::estado_orden` : Prisma.sql`${columna} = ${valor}`;
   });
   const desde = new Date(condicion.version);

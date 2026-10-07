@@ -77,7 +77,7 @@ export function aOrdenDto(ficha: FichaGuardada, actor: Actor): OrdenDto {
 
 function etapaDto(etapa: FichaGuardada["etapas"][number]) {
   return { id: etapa.id, secuencia: etapa.secuencia, nombre: etapa.nombre, area: etapa.area, estado: etapa.estado,
-    responsable: etapa.responsable, observaciones: etapa.observaciones,
+    responsable: etapa.responsable, observaciones: etapa.observaciones, actualizadoEn: etapa.actualizadoEn.toISOString(),
     fechaInicioPlan: etapa.fechaInicioPlan?.toISOString().slice(0, 10) ?? null,
     fechaFinPlan: etapa.fechaFinPlan?.toISOString().slice(0, 10) ?? null,
     fechaInicioReal: etapa.fechaInicioReal?.toISOString() ?? null, fechaFinReal: etapa.fechaFinReal?.toISOString() ?? null };
