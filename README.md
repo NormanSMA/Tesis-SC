@@ -25,9 +25,19 @@ Integra clientes, cotizaciones, órdenes de trabajo, inventario, producción y t
 - Vitest, Playwright y axe-core.
 - pnpm 11 y Node 24.
 
+## Clonar
+
+El repositorio es privado. Inicia sesión en GitHub con tu cuenta antes de clonar.
+
+```sh
+git clone https://github.com/NormanSMA/Tesis-SC.git
+cd Tesis-SC
+```
+
 ## Arranque
 
 Necesitas Docker con Docker Compose v2.
+No hace falta crear `.env`: Compose lee los valores base de `.env.example`.
 
 ```sh
 docker compose up -d --build
