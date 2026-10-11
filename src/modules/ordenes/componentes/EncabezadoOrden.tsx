@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { Fecha } from "@/components/comunes/ValorFormateado";
+import { IconoServicio } from "@/components/comunes/IconoServicio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { servicioDeCategoria } from "@/lib/servicios";
 import { EDITABLES } from "../reglas";
 import type { OrdenDto } from "../tipos";
 import { AccionesOrden, type PermisosProduccionOrden } from "./AccionesOrden";
@@ -25,6 +27,10 @@ export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
       <Dato etiqueta="Fecha de entrega"><Fecha valor={orden.fechaEntrega} />
         {orden.atrasada ? <span className="flex items-center gap-1 font-semibold text-danger">
           <TriangleAlert aria-hidden="true" className="size-4" />Atrasada</span> : null}</Dato>
+      <Dato etiqueta="Servicio"><span className="flex items-center gap-3">
+        {servicioDeCategoria(orden.categoria.nombre) ? <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <IconoServicio categoria={orden.categoria.nombre} tamano={40} decorativo /></span> : null}
+        <span>{orden.categoria.nombre}</span></span></Dato>
       <Dato etiqueta="Responsable">{orden.responsable?.nombre ?? "Sin responsable"}
         {!orden.responsable && puedeAsignar ? <Button asChild variant="outline" size="sm" className="h-10">
           <Link href={`/ordenes/${orden.id}/editar`}>Asignar</Link></Button> : null}</Dato>

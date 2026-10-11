@@ -35,7 +35,7 @@ function AvisoConflicto({ alRecargar }: { alRecargar: () => void }) {
           Mientras usted editaba, alguien guardó cambios. Recargue los datos para ver la versión vigente y vuelva a
           intentar. Los cambios que no guardó se perderán.
         </p>
-        <Button type="button" variant="outline" size="sm" onClick={alRecargar}>
+        <Button type="button" variant="outline" onClick={alRecargar}>
           <RefreshCw aria-hidden="true" />
           Recargar datos
         </Button>

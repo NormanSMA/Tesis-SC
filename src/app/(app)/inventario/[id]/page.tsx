@@ -17,12 +17,12 @@ export default async function PaginaMaterial({ params, searchParams }: { params:
   const actor = await exigirPermisoPagina("inventario:ver");
   const material = await cargarMaterial((await params).id, actor);
   const { consulta, error } = consultaPagina(await searchParams, esquemaConsultaMovimientos);
-  const [libro, opciones] = await Promise.all([listarMovimientosMaterial(material.id, consulta, actor), opcionesLibro(actor)]);
+  const [libro, opciones] = await Promise.all([listarMovimientosMaterial(material.id, consulta, actor), opcionesLibro(actor, { ...consulta, material: material.id })]);
   return <><PageHeader className="[&_h1]:break-words" titulo={material.nombre} descripcion={`${material.codigo} · ${material.unidad}`} acciones={<EstadoMaterial material={material} />} />
     <div className="min-w-0 space-y-6">
       <AccionesMaterial key={material.actualizadoEn} material={material} permisos={{ gestionar: can(actor, "material:gestionar"),
         entrada: can(actor, "inventario:entrada"), ajustar: can(actor, "inventario:ajustar") }} />
-      <Card className="min-w-0"><CardHeader><CardTitle>Existencias y conciliación</CardTitle></CardHeader>
+      <Card className="min-w-0"><CardHeader><CardTitle><h2>Existencias y conciliación</h2></CardTitle></CardHeader>
         <CardContent className="space-y-4"><dl className="grid gap-4 sm:grid-cols-3">
           <div><dt className="text-sm text-muted-foreground">Existencia</dt><dd className="text-2xl font-semibold">{formatearCantidad(material.existencia, 3)} {material.unidad}</dd></div>
           <div><dt className="text-sm text-muted-foreground">Stock mínimo</dt><dd>{formatearCantidad(material.stockMinimo, 3)}</dd></div>

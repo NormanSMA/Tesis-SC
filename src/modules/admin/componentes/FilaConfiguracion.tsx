@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { listarConfiguracion } from "@/modules/admin/configuracion-service";
 import { useHidratado } from "@/modules/clientes/useHidratado";
 
@@ -31,7 +31,7 @@ function useParametro(inicial: ParametroDto) {
     const resultado = esquemaValorConfiguracion(parametro).safeParse(valor);
     if (!resultado.success) {
       setError(resultado.error.issues[0].message);
-      evento.currentTarget.querySelector<HTMLTextAreaElement | HTMLInputElement>("[name=valor]")?.focus();
+      evento.currentTarget.querySelector<HTMLInputElement>("[name=valor]")?.focus();
       return;
     }
     setEnviando(true);
@@ -65,18 +65,15 @@ const ETIQUETAS: Record<string, string> = {
 function CampoParametro({ fila }: { fila: ReturnType<typeof useParametro> }) {
   const { parametro, valor, setValor, error } = fila;
   const id = `config-${parametro.clave}`;
-  const propiedades = {
-    id, name: "valor", value: valor, onChange: (evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setValor(evento.target.value),
-    readOnly: parametro.clave === "zona_horaria", disabled: fila.enviando || fila.conflicto,
-    "aria-invalid": Boolean(error), "aria-describedby": `${id}-descripcion${error ? ` ${id}-error` : ""}`,
-  };
+  const soloLectura = parametro.clave === "zona_horaria";
   return (
-    <div className="min-w-0 flex-1 space-y-2">
-      <Label htmlFor={id}>{ETIQUETAS[parametro.clave] ?? parametro.clave}</Label>
-      {parametro.tipo === "TEXTO" && parametro.clave !== "zona_horaria"
-        ? <Textarea {...propiedades} className="min-h-20" />
-        : <Input {...propiedades} className="min-h-10" inputMode={parametro.tipo === "DECIMAL" ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />}
-      <p id={`${id}-descripcion`} className="text-sm text-muted-foreground">{parametro.descripcion}</p>
+    <div className="min-w-0 space-y-1">
+      <Label htmlFor={id} className="sr-only">{ETIQUETAS[parametro.clave] ?? parametro.clave}</Label>
+      <Input id={id} name="valor" value={valor} onChange={(evento: ChangeEvent<HTMLInputElement>) => setValor(evento.target.value)}
+        readOnly={soloLectura} disabled={fila.enviando || fila.conflicto} aria-invalid={Boolean(error)}
+        aria-describedby={`${id}-descripcion${error ? ` ${id}-error` : ""}`}
+        className={cn("min-h-10 w-full", soloLectura && "cursor-not-allowed bg-muted text-muted-foreground")}
+        inputMode={parametro.tipo === "DECIMAL" ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />
       {error ? <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
@@ -86,21 +83,23 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
   const fila = useParametro(inicial);
   const hidratado = useHidratado();
   const soloLectura = inicial.clave === "zona_horaria";
+  const nombre = ETIQUETAS[inicial.clave] ?? inicial.clave;
+  const id = `config-${inicial.clave}`;
   return (
-    <Card className="min-w-0 p-5">
-      <form onSubmit={fila.guardar} noValidate aria-label={`Parámetro ${ETIQUETAS[inicial.clave] ?? inicial.clave}`} className="space-y-4">
-        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div className="min-w-0 basis-full"><dt className="text-muted-foreground">Valor actual</dt><dd className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{fila.parametro.valor || "Sin valor"}</dd></div>
-          <div><dt className="text-muted-foreground">Tipo</dt><dd>{fila.parametro.tipo}</dd></div>
-          <div><dt className="text-muted-foreground">Última edición</dt><dd>{fechaAdministracion(fila.parametro.actualizadoEn)}</dd></div>
-        </dl>
-        <fieldset disabled={!hidratado} className="min-w-0 space-y-4">
-        <legend className="sr-only">Editar parámetro</legend>
-        <CampoParametro fila={fila} />
-        {fila.conflicto ? <AvisoAdmin mensaje="Otra persona modificó este parámetro." alRecargar={fila.recargar} /> : null}
-        {soloLectura ? <p className="text-sm text-muted-foreground">La zona horaria es de solo lectura.</p>
-          : <Button type="submit" className="min-h-10" disabled={fila.enviando || fila.conflicto}>{fila.enviando ? "Guardando…" : "Guardar"}</Button>}
+    <Card className="min-w-0 p-4">
+      <form onSubmit={fila.guardar} noValidate aria-label={`Parámetro ${nombre}`} className="space-y-2">
+        <fieldset disabled={!hidratado} className="grid min-w-0 items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_6rem]">
+          <legend className="sr-only">Editar parámetro</legend>
+          <div className="min-w-0">
+            <p className="font-medium">{nombre}</p>
+            <p id={`${id}-descripcion`} className="text-sm text-muted-foreground">{fila.parametro.descripcion}</p>
+            <p className="text-xs text-muted-foreground">Última edición: {fechaAdministracion(fila.parametro.actualizadoEn)}</p>
+          </div>
+          <CampoParametro fila={fila} />
+          {soloLectura ? <p className="text-sm text-muted-foreground md:col-span-3">La zona horaria es de solo lectura.</p>
+            : <Button type="submit" className="min-h-10" disabled={fila.enviando || fila.conflicto}>{fila.enviando ? "Guardando…" : "Guardar"}</Button>}
         </fieldset>
+        {fila.conflicto ? <AvisoAdmin mensaje="Otra persona modificó este parámetro." alRecargar={fila.recargar} /> : null}
         <p role="status" className="text-sm">{fila.mensaje}</p>
       </form>
     </Card>

@@ -13,6 +13,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="light"
+      containerAriaLabel="Notificaciones"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/comunes/ConfirmDialog";
 import type { OrdenDto, ReferenciaOrden } from "@/modules/ordenes/tipos";
+import { puedeMarcarseLista } from "../reglas";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
 import type { PermisosEtapas } from "./AccionesEtapa";
 import { AgregarEtapa } from "./AgregarEtapa";
@@ -14,15 +15,13 @@ export function AccionesProduccionOrden({ orden, areas, permisos }: {
 }) {
   const [confirmarLista, setConfirmarLista] = useState(false);
   const solicitud = useSolicitudProduccion();
-  const todasCerradas = orden.etapas.every((etapa) => ["COMPLETADA", "OMITIDA"].includes(etapa.estado));
-  const tieneTrabajo = orden.etapas.some((etapa) => etapa.estado === "COMPLETADA");
-  const puedeMarcar = orden.estado === "EN_PRODUCCION" && todasCerradas && tieneTrabajo;
+  const puedeMarcar = puedeMarcarseLista(orden.estado, orden.etapas.map((etapa) => etapa.estado), permisos.avanzar);
   async function marcarLista() {
     await solicitud.enviar({ url: `/api/v1/ordenes/${orden.id}/lista`, metodo: "POST", cuerpo: { version: orden.actualizadoEn } });
     setConfirmarLista(false);
   }
   return <div className="space-y-3"><AvisoProduccion {...solicitud} />
-    {permisos.avanzar && puedeMarcar ? <p className="text-sm">Todas las etapas están cerradas. Puede marcar la orden lista.</p> : null}
+    {puedeMarcar ? <p className="text-sm">Todas las etapas están cerradas. Puede marcar la orden lista.</p> : null}
     <div className="flex flex-wrap gap-3">
       {permisos.planificar && ["PENDIENTE", "EN_PRODUCCION"].includes(orden.estado)
         ? <AgregarEtapa orden={orden} areas={areas} /> : null}

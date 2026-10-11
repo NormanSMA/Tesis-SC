@@ -7,14 +7,19 @@ export function ordenarPorGravedad(atencion: readonly AtencionPanel[]): Atencion
   return [...atencion].sort((primero, segundo) => prioridad[primero.gravedad] - prioridad[segundo.gravedad]);
 }
 
-export function ListaAtencion({ atencion }: { atencion: readonly AtencionPanel[] }) {
+type MensajeVacio = { texto: string; enlace: string; destino: string };
+
+export function ListaAtencion({ atencion, vacio }: { atencion: readonly AtencionPanel[]; vacio?: MensajeVacio }) {
   return (
-    <aside aria-label="Requiere atención" className="min-w-0">
-      <Card className="gap-0 rounded-2xl px-5 shadow-none">
+    <aside aria-label="Requiere atención" className="h-full min-w-0">
+      <Card className="h-full gap-0 rounded-2xl px-5 shadow-none">
         <h2 className="text-base font-semibold">Requiere atención</h2>
         <p className="mt-0.5 mb-4 text-sm text-muted-foreground">Lo más urgente, en orden</p>
         {atencion.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nada requiere atención ahora</p>
+          <p className="text-sm text-muted-foreground">
+            {vacio?.texto ?? "Nada requiere atención ahora"}
+            {vacio ? <Link href={vacio.destino} className="ml-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">{vacio.enlace}</Link> : null}
+          </p>
         ) : (
           <ul>
             {ordenarPorGravedad(atencion).map((elemento) => (

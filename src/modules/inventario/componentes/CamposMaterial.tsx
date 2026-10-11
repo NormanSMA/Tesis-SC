@@ -15,7 +15,7 @@ export function CamposMaterial({ valores, errores, editar, conExistencia, cambia
     <FormField id="nombre" etiqueta="Nombre" requerido error={errores.nombre}>{(atributos) =>
       <Input {...atributos} value={valores.nombre} maxLength={160} onChange={(e) => cambiar("nombre", e.target.value)} />}</FormField>
     <FormField id="unidad" etiqueta="Unidad" requerido error={errores.unidad} ayuda="La unidad permanece fija después del alta.">{(atributos) =>
-      <select {...atributos} className="h-11 w-full rounded-md border bg-background px-3" value={valores.unidad} disabled={editar}
+      <select {...atributos} className="h-11 w-full rounded-md border border-input bg-background px-3" value={valores.unidad} disabled={editar}
         onChange={(e) => cambiar("unidad", e.target.value)}>{UNIDADES.map((unidad) => <option key={unidad} value={unidad}>{etiquetar(ETIQUETA_UNIDAD, unidad)}</option>)}</select>}</FormField>
     <FormField id="stockMinimo" etiqueta="Stock mínimo" requerido error={errores.stockMinimo}>{(atributos) =>
       <Input {...atributos} inputMode="decimal" value={valores.stockMinimo} onChange={(e) => cambiar("stockMinimo", e.target.value)} />}</FormField>
@@ -24,7 +24,7 @@ export function CamposMaterial({ valores, errores, editar, conExistencia, cambia
       <Input {...atributos} inputMode="decimal" value={valores.costoPromedio} disabled={conExistencia}
         onChange={(e) => cambiar("costoPromedio", e.target.value)} />}</FormField>
     <FormField id="descripcion" etiqueta="Descripción" error={errores.descripcion} className="sm:col-span-2">{(atributos) =>
-      <textarea {...atributos} className="min-h-24 w-full rounded-md border bg-background p-3" maxLength={10000}
+      <textarea {...atributos} className="min-h-24 w-full rounded-md border border-input bg-background p-3" maxLength={10000}
         value={valores.descripcion} onChange={(e) => cambiar("descripcion", e.target.value)} />}</FormField>
   </div>;
 }

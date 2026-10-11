@@ -43,8 +43,8 @@ function AccionesArea({ area, editar }: { area: AreaDto; editar: () => void }) {
     setConfirmar(false);
   }
   return <div className="space-y-2 text-left"><AvisoProduccion {...solicitud} /><div className="flex flex-wrap gap-2">
-    <Button size="sm" variant="outline" disabled={solicitud.enviando} aria-label={`Editar área: ${area.nombre}`} onClick={editar}>Editar</Button>
-    <Button size="sm" variant="outline" disabled={solicitud.enviando} aria-label={`${area.activo ? "Archivar" : "Reactivar"} área: ${area.nombre}`}
+    <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando} aria-label={`Editar área: ${area.nombre}`} onClick={editar}>Editar</Button>
+    <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando} aria-label={`${area.activo ? "Archivar" : "Reactivar"} área: ${area.nombre}`}
       onClick={() => setConfirmar(true)}>{area.activo ? "Archivar" : "Reactivar"}</Button>
   </div>{confirmar ? <ConfirmDialog abierto alCambiarAbierto={setConfirmar}
     titulo={`${area.activo ? "Archivar" : "Reactivar"} área`} descripcion={area.activo

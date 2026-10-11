@@ -27,7 +27,7 @@ async function Materiales({ parametros, actor }: { parametros: Parametros; actor
 }
 async function Movimientos({ parametros, actor }: { parametros: Parametros; actor: Actor }) {
   const { consulta, error } = consultaPagina(parametros, esquemaConsultaMovimientos);
-  const [lista, opciones] = await Promise.all([listarMovimientos(consulta, actor), opcionesLibro(actor)]);
+  const [lista, opciones] = await Promise.all([listarMovimientos(consulta, actor), opcionesLibro(actor, consulta)]);
   return <>{error ? <p role="alert">{error}</p> : null}<FiltrosMovimientos consulta={consulta} opciones={opciones} />
     <TablaMovimientos lista={lista} consulta={consulta} /></>;
 }

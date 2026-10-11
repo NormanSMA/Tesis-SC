@@ -36,7 +36,7 @@ export function SelectorMaterial({ id, valor, error, cambiar }: {
     <FormField id={`${id}-buscar`} etiqueta="Buscar material">{(atributos) => <Input {...atributos} value={q}
       onChange={(e) => { setQ(e.target.value); setPagina(1); }} placeholder="Nombre o código" />}</FormField>
     <FormField id={id} etiqueta="Material" requerido error={error}>{(atributos) => <select {...atributos} value={valor}
-      className="h-11 w-full min-w-0 rounded-md border bg-background px-3"
+      className="h-11 w-full min-w-0 rounded-md border border-input bg-background px-3"
       onChange={(e) => cambiar(respuesta.datos.find((material) => material.id === e.target.value) ?? null)}>
       <option value="">Seleccione un material</option>
       {valor && !respuesta.datos.some((material) => material.id === valor) ? <option value={valor}>{externo?.id === valor ? externo.texto : "Material seleccionado"}</option> : null}

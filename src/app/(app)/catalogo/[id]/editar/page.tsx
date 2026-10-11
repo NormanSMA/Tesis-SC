@@ -21,7 +21,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   return <>
     <PageHeader titulo="Editar producto" descripcion={producto.nombre} />
     <div className="flex flex-col gap-8">
-      <FormularioProducto key={`producto-${producto.actualizadoEn}`} producto={producto} categorias={categorias} puedeVerCosto={can(actor, "cotizacion:ver")} />
+      <FormularioProducto key={`producto-${producto.id}`} producto={producto} categorias={categorias} puedeVerCosto={can(actor, "cotizacion:ver")} />
       <EditorReceta key={`receta-${producto.actualizadoEn}`} producto={producto} materiales={materiales} puedeVerMateriales={puedeVerMateriales} />
     </div>
   </>;

@@ -35,6 +35,11 @@ export function construirMigas(ruta: string): Miga[] {
   return migas;
 }
 
+export function esPaginaDeModulo(ruta: string): boolean {
+  const item = itemActivo(gruposNavegacion, ruta);
+  return Boolean(item) && ruta.replace(/\/$/, "") === item?.href;
+}
+
 function MigaIntermedia({ miga }: { miga: Miga }) {
   if (miga.href) {
     return (
@@ -48,6 +53,9 @@ function MigaIntermedia({ miga }: { miga: Miga }) {
 
 export function Migas({ ruta }: { ruta: string }) {
   const migas = construirMigas(ruta);
+  if (esPaginaDeModulo(ruta) && migas.length > 0) {
+    return <p className="truncate text-sm font-medium text-muted-foreground">{migas[migas.length - 1].etiqueta}</p>;
+  }
   return (
     <Breadcrumb className="min-w-0">
       <BreadcrumbList className="flex-nowrap text-sm">

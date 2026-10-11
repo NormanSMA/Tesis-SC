@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
+import { EmptyState } from "@/components/comunes/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { formatearCantidad, formatearFechaHora } from "@/lib/formato";
 import type { ListaMateriales, ListaMovimientos, MaterialDto, MovimientoDto } from "../dto";
 
-const ESTILO_TABLA = "min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2";
+const ESTILO_TABLA = "min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed[&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2";
 export function EstadoMaterial({ material }: { material: Pick<MaterialDto, "activo" | "alerta"> }) {
   return <div className="flex flex-wrap gap-1"><Badge variant="neutro">{material.activo ? "Activo" : "Archivado"}</Badge>
     {material.alerta ? <Badge variant="advertencia">{material.alerta}</Badge> : null}</div>;
@@ -46,14 +47,16 @@ export function hrefInventario(entrada: { ruta: string; consulta: object; pagina
   return `${entrada.ruta}?${parametros}`;
 }
 export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: object }) {
-  return <DataTable titulo="Materiales del inventario" filas={lista.datos} columnas={columnasMaterial}
+  return <DataTable apilarEnMovil titulo="Materiales del inventario" filas={lista.datos} columnas={columnasMaterial}
+    vacio={<EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="No hay registros que mostrar." />}
     idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
       tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta: "/inventario", consulta, pagina }) }} />;
 }
 export function TablaMovimientos({ lista, consulta, ruta = "/inventario", sinMaterial = false }: {
   lista: ListaMovimientos; consulta: object; ruta?: string; sinMaterial?: boolean }) {
-  return <DataTable titulo="Libro de movimientos del inventario" filas={lista.datos}
+  return <DataTable apilarEnMovil titulo="Libro de movimientos del inventario" filas={lista.datos}
     columnas={sinMaterial ? columnasLibro.filter((columna) => columna.id !== "material") : columnasLibro}
+    vacio={<EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="No hay registros que mostrar." />}
     idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
       tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta, consulta: { ...consulta, pestana: "movimientos" }, pagina }) }} />;
 }

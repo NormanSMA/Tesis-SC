@@ -3,15 +3,19 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+import { IconoServicio } from "./IconoServicio";
+
 type PropiedadesVacio = {
   titulo: string;
   descripcion?: string;
   icono?: LucideIcon;
+  /** Ilustración de servicio (por ejemplo "rotulacion"). Sustituye al icono. Ver src/lib/servicios.ts. */
+  ilustracion?: string;
   accion?: ReactNode;
   className?: string;
 };
 
-export function EmptyState({ titulo, descripcion, icono: Icono = Inbox, accion, className }: PropiedadesVacio) {
+export function EmptyState({ titulo, descripcion, icono: Icono = Inbox, ilustracion, accion, className }: PropiedadesVacio) {
   return (
     <div
       className={cn(
@@ -19,9 +23,13 @@ export function EmptyState({ titulo, descripcion, icono: Icono = Inbox, accion, 
         className,
       )}
     >
-      <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-        <Icono aria-hidden="true" className="size-6" />
-      </span>
+      {ilustracion ? (
+        <IconoServicio slug={ilustracion} tamano={96} className="opacity-90" />
+      ) : (
+        <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+          <Icono aria-hidden="true" className="size-6" />
+        </span>
+      )}
       <div className="space-y-1">
         <p className="text-base font-semibold text-foreground">{titulo}</p>
         {descripcion ? <p className="mx-auto max-w-md text-sm text-muted-foreground">{descripcion}</p> : null}

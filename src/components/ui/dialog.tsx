@@ -55,6 +55,8 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Un botón con estado no es un Trigger de Radix: sin esto el foco cae al cuerpo al cerrar.
+  const disparador = React.useRef<HTMLElement | null>(null)
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -65,15 +67,26 @@ function DialogContent({
           className
         )}
         {...props}
+        onOpenAutoFocus={(evento) => {
+          disparador.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          props.onOpenAutoFocus?.(evento)
+        }}
+        onCloseAutoFocus={(evento) => {
+          props.onCloseAutoFocus?.(evento)
+          if (!evento.defaultPrevented && disparador.current?.isConnected) {
+            evento.preventDefault()
+            disparador.current.focus()
+          }
+        }}
       >
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="absolute top-1.5 right-1.5 flex size-11items-center justify-center rounded-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Cerrar</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -111,7 +124,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">Cerrar</Button>
         </DialogPrimitive.Close>
       )}
     </div>

@@ -26,9 +26,11 @@ export default function PaginaLogin() {
                 Ingrese con su cuenta para acceder a la plataforma de gestión.
               </p>
               <FormularioLogin />
+              <p className="mt-10 border-t border-border pt-4 text-sm text-muted-foreground">
+                © {new Date().getFullYear()} Soluciones Creativas
+              </p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Soluciones Creativas, Estelí</p>
         </div>
         <PanelInformativo />
       </div>

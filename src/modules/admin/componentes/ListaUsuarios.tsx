@@ -1,14 +1,17 @@
+import { CircleCheck, CircleMinus, Lock, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ETIQUETA_PERFIL, PERFILES } from "@/core/permisos";
 import type { cargarUsuarios } from "@/modules/admin/paginas";
+import type { UsuarioDto } from "@/modules/admin/tipos";
 import { SelectNativo } from "@/modules/clientes/componentes/SelectNativo";
 
-import { estadoUsuario, hrefUsuarios, type FiltrosUsuarios } from "./interfaz";
+import { estadoUsuario, hrefUsuarios, type EstadoUsuario, type FiltrosUsuarios } from "./interfaz";
 
 export function FiltrosListaUsuarios({ filtros }: { filtros: FiltrosUsuarios }) {
   return (
@@ -27,8 +30,8 @@ export function FiltrosListaUsuarios({ filtros }: { filtros: FiltrosUsuarios }) 
       <div className="min-w-0 basis-40 space-y-2">
         <Label htmlFor="usuarios-estado">Estado</Label>
         <SelectNativo id="usuarios-estado" name="estado" defaultValue={filtros.estado}>
-          <option value="">Todos los estados</option><option value="ACTIVO">Activo</option>
-          <option value="BLOQUEADO">Bloqueado</option><option value="INACTIVO">Inactivo</option>
+          <option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option>
+          <option value="TODOS">Todos</option>
         </SelectNativo>
       </div>
       <Button type="submit" className="min-h-10">Buscar</Button>
@@ -47,21 +50,50 @@ export function TablaUsuarios({ lista, filtros }: { lista: Lista; filtros: Filtr
   );
   return (
     <div className="min-w-0 space-y-4">
-      <div className="max-w-full overflow-x-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0} role="region" aria-label="Lista de usuarios">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <caption className="sr-only">Usuarios y perfiles asignados</caption>
-          <thead className="bg-muted"><tr>{["Nombre", "Correo", "Perfiles", "Estado"].map((texto) => <th key={texto} scope="col" className="p-3 font-medium">{texto}</th>)}</tr></thead>
-          <tbody>{lista.datos.map((usuario) => <tr key={usuario.id} className="border-t">
-            <th scope="row" className="max-w-64 p-3 font-medium"><Link className="inline-flex min-h-10 items-center break-words text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring" href={`/admin/usuarios/${usuario.id}`}>{usuario.nombre}</Link></th>
-            <td className="max-w-64 break-all p-3">{usuario.correo}</td>
-            <td className="max-w-72 p-3"><div className="flex flex-wrap gap-2">{usuario.perfiles.map((perfil) => <Badge key={perfil} variant="neutro" className="whitespace-normal">{ETIQUETA_PERFIL[perfil]}</Badge>)}</div></td>
-            <td className="p-3">{estadoUsuario(usuario, lista.ahora)}</td>
-          </tr>)}</tbody>
-        </table>
+      <div role="region" aria-label="Lista de usuarios" className="min-w-0">
+        <div className="overflow-hidden rounded-lg border bg-card max-md:hidden">
+          <Table>
+            <caption className="sr-only">Usuarios y perfiles asignados</caption>
+            <TableHeader><TableRow>{["Nombre", "Correo", "Perfiles", "Estado"].map((texto) => <TableHead key={texto} scope="col">{texto}</TableHead>)}</TableRow></TableHeader>
+            <TableBody>{lista.datos.map((usuario) => <TableRow key={usuario.id} className="h-auto">
+              <TableCell className="max-w-64 font-medium whitespace-normal"><EnlaceUsuario usuario={usuario} /></TableCell>
+              <TableCell className="max-w-64 break-all whitespace-normal">{usuario.correo}</TableCell>
+              <TableCell className="max-w-72 whitespace-normal"><PerfilesUsuario perfiles={usuario.perfiles} /></TableCell>
+              <TableCell><EstadoUsuarioBadge estado={estadoUsuario(usuario, lista.ahora)} /></TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+        <ul className="space-y-3 md:hidden">{lista.datos.map((usuario) => <li key={usuario.id} className="space-y-2 rounded-lg border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="min-w-0 font-medium"><EnlaceUsuario usuario={usuario} /></p>
+            <EstadoUsuarioBadge estado={estadoUsuario(usuario, lista.ahora)} />
+          </div>
+          <p className="break-all text-sm text-muted-foreground">{usuario.correo}</p>
+          <PerfilesUsuario perfiles={usuario.perfiles} />
+        </li>)}</ul>
       </div>
       <PaginacionUsuarios lista={lista} filtros={filtros} />
     </div>
   );
+}
+
+const ESTADOS_USUARIO: Record<EstadoUsuario, { etiqueta: string; tono: "exito" | "advertencia" | "neutro"; icono: LucideIcon }> = {
+  ACTIVO: { etiqueta: "Activo", tono: "exito", icono: CircleCheck },
+  BLOQUEADO: { etiqueta: "Bloqueado", tono: "advertencia", icono: Lock },
+  INACTIVO: { etiqueta: "Inactivo", tono: "neutro", icono: CircleMinus },
+};
+
+function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
+  const { etiqueta, tono, icono: Icono } = ESTADOS_USUARIO[estado];
+  return <Badge variant={tono}><Icono aria-hidden="true" />{etiqueta}</Badge>;
+}
+
+function EnlaceUsuario({ usuario }: { usuario: UsuarioDto }) {
+  return <Link className="inline-flex min-h-10 items-center break-words text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring" href={`/admin/usuarios/${usuario.id}`}>{usuario.nombre}</Link>;
+}
+
+function PerfilesUsuario({ perfiles }: { perfiles: UsuarioDto["perfiles"] }) {
+  return <div className="flex flex-wrap gap-2">{perfiles.map((perfil) => <Badge key={perfil} variant="neutro" className="whitespace-normal">{ETIQUETA_PERFIL[perfil]}</Badge>)}</div>;
 }
 
 function PaginacionUsuarios({ lista, filtros }: { lista: Lista; filtros: FiltrosUsuarios }) {

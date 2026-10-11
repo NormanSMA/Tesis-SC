@@ -39,7 +39,7 @@ export function MotivoProduccion(campo: Campo) {
 export function AvisoProduccion({ error, conflicto, recargar }: {
   error: string | null; conflicto: boolean; recargar: () => void;
 }) {
-  return <div aria-live="assertive" aria-atomic="true">{error ? <div role="alert" className="space-y-2 rounded-md border border-danger p-3 text-sm text-danger">
+  return <div>{error ? <div role="alert" className="space-y-2 rounded-md border border-danger p-3 text-sm text-danger">
     <p>{error}</p>{conflicto ? <><p>Recargue los datos para consultar los cambios recientes.</p>
       <Button type="button" variant="outline" onClick={recargar}>Recargar datos</Button></> : null}
   </div> : null}</div>;

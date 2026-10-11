@@ -14,7 +14,7 @@ const DISPARADOR = "h-10 flex-none px-4 text-foreground data-[state=active]:font
 /** Datos secundarios de la ficha en pestañas. */
 export function FichaOrden({ cliente, especificaciones, consumo, historial, materiales }: Propiedades) {
   return <Tabs defaultValue="especificaciones" className="min-w-0 gap-4">
-    <TabsList aria-label="Secciones de la orden" className="h-auto w-full flex-wrap justify-start">
+    <TabsList tabIndex={0} aria-label="Secciones de la orden" className="w-full justify-start overflow-x-auto group-data-[orientation=horizontal]/tabs:h-auto">
       <TabsTrigger value="especificaciones" className={DISPARADOR}>Especificaciones</TabsTrigger>
       <TabsTrigger value="cliente" className={DISPARADOR}>Cliente y cotización</TabsTrigger>
       <TabsTrigger value="consumo" className={DISPARADOR}>Consumo estimado</TabsTrigger>

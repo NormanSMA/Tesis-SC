@@ -99,6 +99,18 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   )
 }
 
+/** Celda de encabezado de fila: primera columna de cada fila, con aspecto de celda de datos. */
+function TableRowHeader({ className, ...props }: React.ComponentProps<"th">) {
+  return (
+    <th
+      data-slot="table-cell"
+      scope="row"
+      className={cn("px-4 py-3 text-left align-middle text-sm font-normal whitespace-nowrap", className)}
+      {...props}
+    />
+  )
+}
+
 function TableCaption({
   className,
   ...props
@@ -120,5 +132,6 @@ export {
   TableHead,
   TableRow,
   TableCell,
+  TableRowHeader,
   TableCaption,
 }

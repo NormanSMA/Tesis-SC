@@ -25,7 +25,7 @@ export default async function PaginaCotizaciones({ searchParams }: {
 }) {
   const actor = await exigirPermisoPagina("cotizacion:ver");
   const consulta = leerConsulta(await searchParams);
-  const [lista, clientes] = await Promise.all([listarCotizaciones(consulta), consultarClientesSelector()]);
+  const [lista, clientes] = await Promise.all([listarCotizaciones(consulta), consultarClientesSelector(consulta.cliente)]);
   const puedeGestionar = can(actor, "cotizacion:gestionar");
   return <>
     <PageHeader titulo="Cotizaciones" descripcion="Proformas con catálogo y trabajos personalizados."

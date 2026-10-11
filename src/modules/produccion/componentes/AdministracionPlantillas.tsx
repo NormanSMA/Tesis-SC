@@ -63,8 +63,8 @@ function AccionesPlantilla({ plantilla, editar }: { plantilla: PlantillaDto; edi
     setConfirmar(false);
   }
   return <div className="space-y-2 text-left"><AvisoProduccion {...solicitud} /><div className="flex flex-wrap gap-2">
-    <Button size="sm" variant="outline" disabled={solicitud.enviando} aria-label={`Editar plantilla: ${plantilla.nombre}`} onClick={editar}>Editar</Button>
-    {plantilla.activo ? <Button size="sm" variant="outline" disabled={solicitud.enviando}
+    <Button variant="outline" disabled={solicitud.enviando} aria-label={`Editar plantilla: ${plantilla.nombre}`} onClick={editar}>Editar</Button>
+    {plantilla.activo ? <Button variant="outline" disabled={solicitud.enviando}
       aria-label={`Archivar plantilla: ${plantilla.nombre}`} onClick={() => setConfirmar(true)}>Archivar</Button> : null}
   </div>{confirmar ? <ConfirmDialog abierto alCambiarAbierto={setConfirmar} titulo="Archivar plantilla"
     descripcion={`Archive ${plantilla.nombre}. Las etapas existentes se conservan.`} etiquetaConfirmar="Archivar"

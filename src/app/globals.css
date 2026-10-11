@@ -10,11 +10,13 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  --primary: #0f766e;
-  --primary-hover: #115e59;
+  --primary: #1f2a6b;
+  --primary-hover: #161f52;
   --primary-foreground: #ffffff;
-  --primary-soft: #f0fdfa;
-  --primary-soft-border: #99f6e4;
+  --primary-soft: #eef1fb;
+  --primary-soft-border: #cbd5e1;
+  /* Dorado de la marca: acento puntual (indicador del menú). No sustituye al color principal. */
+  --brand-gold: #c9962f;
 
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -26,7 +28,7 @@
   --border: #e2e8f0;
   /* Borde de controles: 4.76:1 sobre blanco (WCAG 1.4.11 exige 3:1) */
   --input: #64748b;
-  --ring: #0f766e;
+  --ring: #1f2a6b;
 
   --success: #15803d;
   --success-soft: #f0fdf4;
@@ -69,6 +71,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-border: var(--primary-soft-border);
+  --color-brand-gold: var(--brand-gold);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -167,4 +170,114 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Secciones plegables: la flecha indica que el contenido se puede abrir y cerrar. */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details > summary::after {
+  content: "";
+  margin-left: auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-20%) rotate(45deg);
+  transition: transform 0.15s ease;
+}
+details[open] > summary::after {
+  transform: translateY(20%) rotate(-135deg);
+}
+
+/* Cascada del panel del login: los puntos y las estelas bajan hacia la esquina inferior izquierda. */
+@keyframes cascada-puntos {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -20px 20px;
+  }
+}
+@keyframes cascada-puntos-grandes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -48px 48px;
+  }
+}
+@keyframes cascada-estela {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(45deg);
+  }
+  15% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-360px, 360px) rotate(45deg);
+  }
+}
+.cascada-puntos {
+  background-image: radial-gradient(circle, rgb(148 163 184 / 0.55) 1px, transparent 1.5px);
+  background-size: 20px 20px;
+  animation: cascada-puntos 2.4s linear infinite;
+}
+.cascada-puntos-grandes {
+  background-image: radial-gradient(circle, rgb(201 150 47 / 0.8) 1.5px, transparent 2.5px);
+  background-size: 48px 48px;
+  background-position: 10px 14px;
+  animation: cascada-puntos-grandes 5s linear infinite;
+}
+.cascada-estela {
+  position: absolute;
+  width: 2px;
+  height: 64px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.75));
+  opacity: 0;
+  animation: cascada-estela 4.5s ease-in infinite;
+}
+
+/* Movimiento de la interfaz: entrada suave de las pantallas, tarjetas escalonadas y barras que crecen. */
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes crecer-barra {
+  from {
+    height: 0;
+  }
+}
+.entrada {
+  animation: entrada-suave 0.35s ease-out both;
+}
+.entrada-escalonada > * {
+  animation: entrada-suave 0.45s ease-out both;
+}
+.entrada-escalonada > :nth-child(2) {
+  animation-delay: 0.05s;
+}
+.entrada-escalonada > :nth-child(3) {
+  animation-delay: 0.1s;
+}
+.entrada-escalonada > :nth-child(4) {
+  animation-delay: 0.15s;
+}
+.entrada-escalonada > :nth-child(5) {
+  animation-delay: 0.2s;
+}
+.entrada-escalonada > :nth-child(n + 6) {
+  animation-delay: 0.25s;
+}
+.barra-crece {
+  animation: crecer-barra 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

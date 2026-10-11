@@ -12,6 +12,7 @@ import type { EntradaItem, EntradaLineaEditor } from "../schema";
 import type { ItemDto, SelectoresEditor } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
 import { EditorLinea } from "./EditorLinea";
+import { GrupoCampo } from "./GrupoCampo";
 
 export type PropiedadesItem = { item: EntradaItem; indice: number; original?: ItemDto; selectores: SelectoresEditor;
   calculado: ItemCalculado | null; errores: CamposError; alCambiar: (item: EntradaItem) => void; alQuitar: () => void };
@@ -86,15 +87,14 @@ function LineasItem({ item, indice, original, selectores, calculado, errores, al
   };
   return <div className="space-y-4">
     <h3 className="text-base font-semibold">Líneas de costo</h3>
-    <FormField id={`items.${indice}.lineas`} etiqueta="Consumos del ítem" error={errores[`items.${indice}.lineas`]}>
-      {(atributos) => <div {...atributos} tabIndex={-1} className="space-y-4">
-        {item.lineas.map((linea, posicion) => <EditorLinea key={linea.lineaId ?? posicion}
-          linea={linea} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
-          errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
-          alCambiar={(entrada) => cambiarLinea(posicion, entrada)}
-          alQuitar={() => alCambiar({ ...item, lineas: item.lineas.filter((_, actual) => actual !== posicion) })} />)}
-      </div>}
-    </FormField>
+    <GrupoCampo id={`items.${indice}.lineas`} etiqueta="Consumos del ítem" className="space-y-4"
+      error={errores[`items.${indice}.lineas`]}>
+      {item.lineas.map((linea, posicion) => <EditorLinea key={linea.lineaId ?? posicion}
+        linea={linea} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
+        errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
+        alCambiar={(entrada) => cambiarLinea(posicion, entrada)}
+        alQuitar={() => alCambiar({ ...item, lineas: item.lineas.filter((_, actual) => actual !== posicion) })} />)}
+    </GrupoCampo>
     <div className="flex flex-wrap gap-2">
       {(["MATERIAL", "MANO_OBRA", "TERCERO"] as const).map((tipo) => <Button key={tipo} type="button" variant="outline"
         disabled={bloqueada} onClick={() => alCambiar({ ...item, lineas: [...item.lineas, nuevaLinea(tipo)] })}>

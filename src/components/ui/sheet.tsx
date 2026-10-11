@@ -53,6 +53,8 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  // Un botón con estado no es un Trigger de Radix: sin esto el foco cae al cuerpo al cerrar.
+  const disparador = React.useRef<HTMLElement | null>(null)
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -71,12 +73,23 @@ function SheetContent({
           className
         )}
         {...props}
+        onOpenAutoFocus={(evento) => {
+          disparador.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          props.onOpenAutoFocus?.(evento)
+        }}
+        onCloseAutoFocus={(evento) => {
+          props.onCloseAutoFocus?.(evento)
+          if (!evento.defaultPrevented && disparador.current?.isConnected) {
+            evento.preventDefault()
+            disparador.current.focus()
+          }
+        }}
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <SheetPrimitive.Close className="absolute top-1.5 right-1.5 flex size-11items-center justify-center rounded-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
             <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Cerrar</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

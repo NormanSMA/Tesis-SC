@@ -2,6 +2,7 @@
 
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { ValoresLibro } from "./FormularioLibro";
 
 export function CamposLibro({ tipo, valores, errores, cambiar }: { tipo: "entrada" | "ajuste"; valores: ValoresLibro;
@@ -14,10 +15,10 @@ export function CamposLibro({ tipo, valores, errores, cambiar }: { tipo: "entrad
   </>;
   return <>
     <FormField id="direccion" etiqueta="Dirección" requerido error={errores.direccion}>{(atributos) =>
-      <select {...atributos} className="h-11 w-full rounded-md border bg-background px-3" value={valores.direccion} onChange={(e) => cambiar("direccion", e.target.value)}>
+      <select {...atributos} className="h-11 w-full rounded-md border border-input bg-background px-3" value={valores.direccion} onChange={(e) => cambiar("direccion", e.target.value)}>
         <option value="AUMENTAR">Aumentar existencia</option><option value="DISMINUIR">Disminuir existencia</option></select>}</FormField>
     <FormField id="motivo" etiqueta="Motivo" requerido error={errores.motivo} ayuda="Indique al menos 5 caracteres.">{(atributos) =>
-      <textarea {...atributos} className="min-h-24 w-full rounded-md border bg-background p-3" maxLength={10000}
+      <Textarea {...atributos} className="min-h-24 border-input bg-background p-3" maxLength={10000}
         value={valores.motivo} onChange={(e) => cambiar("motivo", e.target.value)} />}</FormField>
   </>;
 }

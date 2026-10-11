@@ -4,6 +4,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Timeline } from "@/components/comunes/Timeline";
 import { formatearCantidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
+import { textoCambioEstado } from "../etiquetas";
 import type { TrazabilidadOrden } from "../tipos";
 
 type Etapa = TrazabilidadOrden["cadena"]["etapas"][number];
@@ -26,14 +27,14 @@ function columnasMateriales(dinero: boolean): ColumnaTabla<Material>[] {
 export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrden }) {
   const eventos = trazabilidad.eventos.map((evento) => ({ id: evento.id, instante: evento.creadoEn,
     actor: evento.usuario.nombre, accion: `${evento.accion}: ${evento.entidad.toLowerCase()}`,
-    detalle: [evento.registro.nombre, evento.estadoNuevo ? `${evento.estadoAnterior ?? "Creación"} → ${evento.estadoNuevo}` : "", evento.resumen].filter(Boolean).join(". ") }));
+    detalle: [evento.registro.nombre, textoCambioEstado(evento.estadoAnterior, evento.estadoNuevo), evento.resumen].filter(Boolean).join(". ") }));
   return <div className="min-w-0 space-y-6">
     <section aria-labelledby="titulo-etapas"><h2 id="titulo-etapas" className="mb-3 text-xl font-semibold">Etapas</h2>
       <DataTable titulo="Etapas del trabajo" filas={trazabilidad.cadena.etapas} columnas={columnasEtapas} idFila={(fila) => fila.id} className={claseTabla} /></section>
     <section aria-labelledby="titulo-materiales"><h2 id="titulo-materiales" className="mb-3 text-xl font-semibold">Materiales</h2>
       <DataTable titulo="Materiales del trabajo" filas={trazabilidad.materiales} columnas={columnasMateriales("costoRealTotal" in trazabilidad)}
         idFila={(fila) => fila.material.id} className={claseTabla}
-        vacio={<EmptyState titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." />} />
+        vacio={<EmptyState ilustracion="uv-dtf" titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." />} />
       {"costoRealTotal" in trazabilidad ? <div className="mt-3 space-y-1"><p className="font-semibold">Costo real total: {formatearMoneda(trazabilidad.costoRealTotal)}</p>
         <p className="text-sm text-muted-foreground">Valor exacto: C$ {trazabilidad.costoRealTotal}. Incluye consumos menos devoluciones.</p></div> : null}
     </section>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FormField } from "@/components/comunes/FormField";
+import { AccionesFiltros, CampoFiltro, FiltrosLista } from "@/components/comunes/FiltrosLista";
 import { ESTADOS as DEFINICIONES } from "@/components/comunes/estados";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,12 @@ import type { ReferenciaOrden } from "../tipos";
 function FiltroSeleccion({ nombre, etiqueta, valor, opciones }: {
   nombre: string; etiqueta: string; valor?: string; opciones: ReferenciaOrden[];
 }) {
-  return <FormField id={`filtro-${nombre}`} etiqueta={etiqueta} className="min-w-40 flex-1">
+  return <CampoFiltro id={`filtro-${nombre}`} etiqueta={etiqueta} className="sm:min-w-48">
     {(atributos) => <Select name={nombre} defaultValue={valor ?? "__todos__"}>
       <SelectTrigger {...atributos}><SelectValue /></SelectTrigger>
       <SelectContent>{opciones.map((opcion) => <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>)}</SelectContent>
     </Select>}
-  </FormField>;
+  </CampoFiltro>;
 }
 
 function hrefSinResponsable(consulta: ConsultaOrdenes, activo: boolean) {
@@ -28,11 +28,11 @@ function hrefSinResponsable(consulta: ConsultaOrdenes, activo: boolean) {
 
 export function FiltrosOrdenes({ consulta, responsables }: { consulta: ConsultaOrdenes; responsables: ReferenciaOrden[] }) {
   const sinResponsable = consulta.responsable === "sin-responsable";
-  return <form action="/ordenes" method="get" role="search" aria-label="Buscar órdenes" className="mb-5 flex flex-wrap items-end gap-3">
+  return <FiltrosLista action="/ordenes" role="search" etiqueta="Buscar órdenes">
     {consulta.cliente ? <input type="hidden" name="cliente" value={consulta.cliente} /> : null}
-    <FormField id="filtro-q" etiqueta="Buscar" className="min-w-48 flex-[2]">
+    <CampoFiltro id="filtro-q" etiqueta="Buscar" className="sm:min-w-48 sm:flex-[2]">
       {(atributos) => <Input {...atributos} name="q" type="search" defaultValue={consulta.q ?? ""} placeholder="Número, cliente o asunto" />}
-    </FormField>
+    </CampoFiltro>
     <FiltroSeleccion nombre="estado" etiqueta="Estado" valor={consulta.estado}
       opciones={[{ id: "__todos__", nombre: "Todos" }, ...ESTADOS.map((id) => ({ id, nombre: DEFINICIONES.orden[id].etiqueta }))]} />
     <FiltroSeleccion nombre="responsable" etiqueta="Responsable" valor={consulta.responsable}
@@ -41,8 +41,11 @@ export function FiltrosOrdenes({ consulta, responsables }: { consulta: ConsultaO
       opciones={[{ id: "false", nombre: "En proceso" }, { id: "true", nombre: "Terminales" }, { id: "todas", nombre: "Todas" }]} />
     <FiltroSeleccion nombre="vencidas" etiqueta="Atraso" valor={consulta.vencidas}
       opciones={[{ id: "false", nombre: "Todas las fechas" }, { id: "true", nombre: "Atrasadas" }]} />
-    <Button type="submit">Buscar</Button><Button asChild variant="outline"><Link href="/ordenes">Limpiar filtros</Link></Button>
-    <Button asChild variant={sinResponsable ? "default" : "outline"}>
-      <Link href={hrefSinResponsable(consulta, sinResponsable)} aria-current={sinResponsable ? "true" : undefined}>Sin responsable</Link></Button>
-  </form>;
+    <AccionesFiltros>
+      <Button type="submit">Buscar</Button>
+      <Button asChild variant="outline"><Link href="/ordenes">Limpiar filtros</Link></Button>
+      <Button asChild variant={sinResponsable ? "default" : "outline"}>
+        <Link href={hrefSinResponsable(consulta, sinResponsable)} aria-current={sinResponsable ? "true" : undefined}>Sin responsable</Link></Button>
+    </AccionesFiltros>
+  </FiltrosLista>;
 }

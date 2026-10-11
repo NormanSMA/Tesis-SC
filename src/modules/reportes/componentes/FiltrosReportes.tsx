@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatearFecha } from "@/lib/formato";
 import { TITULOS_REPORTES } from "../columnas";
 import { NOMBRES_REPORTES, type ConsultaReporte, type NombreReporte } from "../schema";
 
@@ -11,8 +12,12 @@ const SELECTOR = "h-11 w-full min-w-0 rounded-md border border-input bg-backgrou
 type Propiedades = { nombre: NombreReporte; consulta: ConsultaReporte; areas: { id: string; nombre: string }[]; campos?: Record<string, string> };
 function FechaFiltro({ nombre, valor, error }: { nombre: "desde" | "hasta"; valor?: string; error?: string }) {
   return <div className="space-y-2"><Label htmlFor={nombre}>{nombre === "desde" ? "Desde" : "Hasta"}</Label>
-    <Input id={nombre} name={nombre} type="date" defaultValue={valor} aria-invalid={Boolean(error)} aria-describedby={error ? `${nombre}-error` : undefined} />
+    <Input id={nombre} name={nombre} type="date" lang="es" defaultValue={valor} aria-invalid={Boolean(error)} aria-describedby={error ? `${nombre}-error` : undefined} />
     {error ? <p id={`${nombre}-error`} className="text-sm text-danger">{error}</p> : null}</div>;
+}
+function rotuloPeriodo(consulta: ConsultaReporte): string {
+  if (!consulta.desde || !consulta.hasta) return "";
+  return `Periodo consultado: del ${formatearFecha(consulta.desde)} al ${formatearFecha(consulta.hasta)}. `;
 }
 export function FiltrosReportes({ nombre, consulta, areas, campos }: Propiedades) {
   const [seleccionado, setSeleccionado] = useState(nombre);
@@ -31,6 +36,6 @@ export function FiltrosReportes({ nombre, consulta, areas, campos }: Propiedades
       <select id="area" name="area" className={SELECTOR} defaultValue={consulta.area ?? ""}><option value="">Todas las áreas</option>
         {areas.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}</select></div> : null}
     <Button type="submit">Aplicar filtros</Button>
-    {periodo ? <p className="text-sm text-muted-foreground sm:col-span-2 xl:col-span-4">Fechas inclusivas de Managua. Periodo máximo: cinco años. Las completadas usan su fecha de finalización.</p> : null}
+    {periodo ? <p className="text-sm text-muted-foreground sm:col-span-2 xl:col-span-4">{rotuloPeriodo(consulta)}Fechas inclusivas de Managua. Periodo máximo: cinco años. Las completadas usan su fecha de finalización.</p> : null}
   </form>;
 }

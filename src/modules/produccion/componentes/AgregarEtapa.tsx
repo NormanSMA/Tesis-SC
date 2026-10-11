@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { ReferenciaOrden } from "@/modules/ordenes/tipos";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
 import { AvisoProduccion, MotivoProduccion, SeleccionProduccion, TextoProduccion } from "./CamposProduccion";
@@ -24,7 +24,9 @@ export function AgregarEtapa({ orden, areas, retrabajo = false }: Propiedades) {
   }
   const titulo = retrabajo ? "Reabrir por retrabajo" : "Agregar etapa";
   return <Dialog open={abierto} onOpenChange={(valor) => !solicitud.enviando && setAbierto(valor)}>
-    <Button type="button" variant="outline" disabled={solicitud.enviando} onClick={() => setAbierto(true)}>{titulo}</Button>
+    <DialogTrigger asChild>
+      <Button type="button" variant="outline" disabled={solicitud.enviando}>{titulo}</Button>
+    </DialogTrigger>
     <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{titulo}</DialogTitle>
       <DialogDescription>{retrabajo ? "Reabra la orden y agregue una etapa pendiente." : "Agregue una etapa pendiente al final de la orden."}</DialogDescription>
     </DialogHeader><form id={idFormulario} onSubmit={guardar} className="space-y-4">

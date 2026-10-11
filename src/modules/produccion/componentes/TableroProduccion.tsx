@@ -12,7 +12,7 @@ import type { EtapaTablero, GrupoEtapas } from "../tipos";
 import { AccionesEtapa, type PermisosEtapas } from "./AccionesEtapa";
 
 const APILADO = "max-md:[&_table]:block max-md:[&_thead]:sr-only max-md:[&_tbody]:block max-md:[&_tr]:block max-md:[&_td]:block "
-  + "max-md:[&_td]:static max-md:[&_td]:!text-left max-md:[&_tr]:border-b max-md:[&_tr]:py-2";
+  + "max-md:[&_td]:static max-md:[&_td]:!text-left max-md:[&_tr]:h-auto max-md:[&_tr]:border-b max-md:[&_tr]:py-2";
 
 const columnas: ColumnaTabla<EtapaTablero>[] = [
   { id: "orden", encabezado: "Orden y etapa", principal: true, celda: (etapa) => <div className="space-y-1">
@@ -56,6 +56,6 @@ export function TableroProduccion({ porArea, porResponsable, permisos, vistaInic
       acciones={permisos.ejecutar ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa}
         estadoOrden={etapa.orden.estado} permisos={permisos} soloEjecucion /> : undefined}
       className={`min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2 ${APILADO}`} />
-  </section>) : <EmptyState titulo="Sin etapas abiertas" descripcion="No hay etapas pendientes ni en curso con estos filtros." />}
+  </section>) : <EmptyState ilustracion="corte-grabado-laser" titulo="Sin etapas abiertas" descripcion="No hay etapas pendientes ni en curso con estos filtros." />}
   </div>;
 }

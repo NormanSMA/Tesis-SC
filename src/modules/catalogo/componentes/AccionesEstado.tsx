@@ -15,12 +15,14 @@ export function AccionesEstado({ producto, principal = false }: { producto: Prod
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
   const accion = producto.activo ? "Archivar" : "Reactivar";
   async function confirmar() {
     if (cargando) return;
     setCargando(true);
+    setFallo(null);
     const respuesta = await enviarApi(`/api/v1/productos/${producto.id}/${producto.activo ? "archivar" : "reactivar"}`, "POST", { version: producto.actualizadoEn });
-    if ("error" in respuesta) toast.error(respuesta.error.mensaje);
+    if ("error" in respuesta) setFallo(respuesta.error.mensaje);
     else toast.success(producto.activo ? "Producto archivado." : "Producto reactivado.");
     setCargando(false);
     setAbierto(false);
@@ -30,6 +32,7 @@ export function AccionesEstado({ producto, principal = false }: { producto: Prod
     <Button variant={principal ? "default" : "outline"} onClick={() => setAbierto(true)}>
       {producto.activo ? <Archive aria-hidden="true" /> : <ArchiveRestore aria-hidden="true" />}{accion}
     </Button>
+    {fallo ? <p role="alert" className="w-full text-sm text-danger [overflow-wrap:anywhere]">{fallo}</p> : null}
     <ConfirmDialog abierto={abierto} alCambiarAbierto={setAbierto} titulo={`${accion} producto`}
       descripcion={producto.activo ? `«${producto.nombre}» conserva sus cotizaciones existentes y dejará de ofrecerse en cotizaciones nuevas.` : `«${producto.nombre}» volverá a ofrecerse en cotizaciones nuevas.`}
       etiquetaConfirmar={accion} tono={producto.activo ? "peligro" : "normal"} cargando={cargando} alConfirmar={confirmar} />

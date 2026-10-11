@@ -32,6 +32,6 @@ function FichaItem({ item }: { item: ItemOrden }) {
 
 export function ItemsOrden({ items }: { items: ItemOrden[] }) {
   return <section aria-labelledby="titulo-items-orden"><h2 id="titulo-items-orden" className="mb-4 text-xl font-semibold">Ítems</h2>
-    <div className="grid min-w-0 gap-5 lg:grid-cols-2">{items.map((item) => <FichaItem key={item.id} item={item} />)}</div>
+    <div className="grid min-w-0 items-start gap-5 lg:grid-cols-2">{items.map((item) => <FichaItem key={item.id} item={item} />)}</div>
   </section>;
 }

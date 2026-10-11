@@ -33,6 +33,7 @@ export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables 
     <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
       acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
         permisos={permisos} responsables={responsables} /> : undefined}
-      className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2" />
+      apilarEnMovil
+      className="min-w-0 md:[&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] md:[&_th]:px-2 md:[&_td]:px-2" />
   </section>;
 }

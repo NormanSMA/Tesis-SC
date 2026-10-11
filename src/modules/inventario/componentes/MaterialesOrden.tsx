@@ -16,7 +16,7 @@ const columnas: ColumnaTabla<ResumenMaterialOrden>[] = [
 ];
 export function MaterialesOrden({ ordenId, consumir }: { ordenId: string; consumir: boolean }) {
   const { resumen, error, recargar } = useResumenOrden(ordenId);
-  return <Card className="min-w-0"><CardHeader><CardTitle>Materiales</CardTitle></CardHeader><CardContent className="min-w-0 space-y-4">
+  return <Card className="min-w-0"><CardHeader><CardTitle><h2>Materiales</h2></CardTitle></CardHeader><CardContent className="min-w-0 space-y-4">
     <div aria-live="polite">{error ? <div role="alert"><p>{error}</p><Button type="button" variant="outline" onClick={recargar}>Reintentar</Button></div>
       : !resumen ? <p>Cargando materiales…</p> : null}</div>
     {resumen ? <>

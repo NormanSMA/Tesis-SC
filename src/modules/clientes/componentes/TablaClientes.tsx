@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Paginacion } from "@/components/comunes/Paginacion";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableRowHeader } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 import { ETIQUETA_TIPO, type ConsultaClientes } from "../schema";
@@ -63,7 +63,7 @@ function columnas(conCotizaciones: boolean): ColumnaLista[] {
       id: "estado",
       encabezado: "Estado",
       movil: "max-md:col-start-2 max-md:row-start-1 max-md:justify-self-end",
-      celda: (cliente) => <EstadoCliente activo={cliente.activo} />,
+      celda: (cliente) => (cliente.activo ? null : <EstadoCliente activo={false} />),
     },
   ];
   if (conCotizaciones) {
@@ -84,6 +84,7 @@ function SinResultados({ consulta, puedeGestionar, totalGeneral }: PropiedadesSi
   if (totalGeneral > 0) {
     return (
       <EmptyState
+        ilustracion="reconocimientos"
         titulo="Esa página no existe"
         descripcion={`La búsqueda tiene ${totalGeneral} resultados en menos páginas.`}
         accion={
@@ -97,6 +98,7 @@ function SinResultados({ consulta, puedeGestionar, totalGeneral }: PropiedadesSi
   if (hayFiltrosActivos(consulta)) {
     return (
       <EmptyState
+        ilustracion="reconocimientos"
         titulo="Sin resultados"
         descripcion="Ningún cliente coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
         accion={
@@ -109,6 +111,7 @@ function SinResultados({ consulta, puedeGestionar, totalGeneral }: PropiedadesSi
   }
   return (
     <EmptyState
+      ilustracion="reconocimientos"
       titulo="Aún no hay clientes"
       descripcion="Registre el primer cliente para empezar a cotizar."
       accion={
@@ -134,9 +137,11 @@ type PropiedadesTabla = {
 
 function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: ColumnaLista[] }) {
   return (
-    <TableRow className="relative h-12 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-y-1 max-md:px-4 max-md:py-3">
-      {visibles.map((columna) => (
-        <TableCell
+    <TableRow className="relative h-12 max-md:grid max-md:h-auto max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-y-1 max-md:px-4 max-md:py-3">
+      {visibles.map((columna, indice) => {
+        const Celda = indice === 0 ? TableRowHeader : TableCell;
+        return (
+        <Celda
           key={columna.id}
           data-etiqueta={columna.encabezado}
           className={cn(
@@ -148,8 +153,9 @@ function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: Co
           )}
         >
           {columna.celda(cliente)}
-        </TableCell>
-      ))}
+        </Celda>
+        );
+      })}
     </TableRow>
   );
 }

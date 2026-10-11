@@ -1,6 +1,7 @@
 import { Archive, FilePlus2, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,15 @@ import { cargarFicha } from "@/modules/clientes/paginas";
 import { ETIQUETA_TIPO } from "@/modules/clientes/schema";
 import type { FichaCliente } from "@/modules/clientes/tipos";
 
-export const metadata: Metadata = { title: "Ficha de cliente" };
+const cargarPagina = cache(async (id: string) => {
+  const actor = await exigirPermisoPagina("cliente:ver");
+  return { actor, ficha: await cargarFicha(id, actor) };
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { ficha } = await cargarPagina((await params).id);
+  return { title: `Cliente ${ficha.nombre}` };
+}
 
 type PropiedadesAcciones = { ficha: FichaCliente; puedeCotizar: boolean };
 
@@ -78,8 +87,7 @@ const LISTA_PESTANAS = "h-auto w-full flex-wrap justify-start group-data-[orient
 const PESTANA = "h-10 min-h-10 flex-none px-4";
 
 export default async function PaginaFichaCliente({ params }: { params: Promise<{ id: string }> }) {
-  const actor = await exigirPermisoPagina("cliente:ver");
-  const ficha = await cargarFicha((await params).id, actor);
+  const { actor, ficha } = await cargarPagina((await params).id);
   const puedeGestionar = can(actor, "cliente:gestionar");
   return (
     <>

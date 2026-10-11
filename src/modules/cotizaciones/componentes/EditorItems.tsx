@@ -3,7 +3,6 @@
 import { CircleAlert } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { FormField } from "@/components/comunes/FormField";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import type { CotizacionDto, SelectoresEditor } from "../tipos";
 import { enfocarError, erroresEsquema, useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
 import { EditorItem } from "./EditorItem";
+import { GrupoCampo } from "./GrupoCampo";
 import { TotalesCotizacion } from "./TotalesCotizacion";
 
 function nuevoItem(tipo: EntradaItem["tipo"]): EntradaItem {
@@ -40,14 +40,12 @@ export function EditorItems({ cotizacion, selectores }: { cotizacion: Cotizacion
     <AvisoGuardado {...solicitud} />
     <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
       <legend className="mb-4 text-xl font-semibold">Ítems de cotización</legend>
-      <FormField id="items" etiqueta="Productos y trabajos" error={campos.items}>
-        {(atributos) => <div {...atributos} tabIndex={-1} className="space-y-5">
-          {items.map((item, indice) => <EditorItem key={item.itemId ?? indice} item={item} indice={indice}
-            original={cotizacion.items.find((original) => original.id === item.itemId)} selectores={selectores}
-            calculado={vista.items[indice]} errores={campos} alCambiar={(entrada) => cambiarItem(indice, entrada)}
-            alQuitar={() => setItems(items.filter((_, posicion) => posicion !== indice))} />)}
-        </div>}
-      </FormField>
+      <GrupoCampo id="items" etiqueta="Productos y trabajos" error={campos.items}>
+        {items.map((item, indice) => <EditorItem key={item.itemId ?? indice} item={item} indice={indice}
+          original={cotizacion.items.find((original) => original.id === item.itemId)} selectores={selectores}
+          calculado={vista.items[indice]} errores={campos} alCambiar={(entrada) => cambiarItem(indice, entrada)}
+          alQuitar={() => setItems(items.filter((_, posicion) => posicion !== indice))} />)}
+      </GrupoCampo>
       {!items.length ? <EmptyState titulo="Agregue el primer ítem" descripcion="Seleccione catálogo o capture un trabajo personalizado." /> : null}
       <div className="flex flex-wrap gap-3">
         <Button type="button" variant="outline" disabled={items.length >= 200 || !selectores.productos.length}
@@ -55,7 +53,7 @@ export function EditorItems({ cotizacion, selectores }: { cotizacion: Cotizacion
         <Button type="button" variant="outline" disabled={items.length >= 200 || !selectores.categorias.length}
           onClick={() => setItems([...items, nuevoItem("PERSONALIZADO")])}>Agregar personalizado</Button>
       </div>
-      {vista.totales ? <div aria-live="polite"><TotalesCotizacion totales={vista.totales} /></div> : <Alert>
+      {vista.totales ? <div><TotalesCotizacion totales={vista.totales} /></div> : <Alert>
         <CircleAlert aria-hidden="true" /><AlertTitle>Revise los campos para calcular los totales</AlertTitle>
         <AlertDescription>{campos.descuento ?? "Complete productos, cantidades y líneas de costo."}</AlertDescription>
       </Alert>}

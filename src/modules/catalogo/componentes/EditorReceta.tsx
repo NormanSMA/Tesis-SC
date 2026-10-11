@@ -36,6 +36,8 @@ function FilaReceta({ formulario, indice, materiales, quitar }: {
 export function EditorReceta({ producto, materiales, puedeVerMateriales }: { producto: FichaProducto; materiales: MaterialDto[]; puedeVerMateriales: boolean }) {
   const { formulario, filas, enviando, error, conflicto, enviar, recargar } = useEditorReceta(producto);
   const hidratado = useHidratado();
+  const errores = formulario.formState.errors;
+  const errorGlobal = errores.version?.message ?? errores.materiales?.root?.message ?? errores.materiales?.message;
   const disponibles = [...materiales, ...producto.receta.map((fila) => fila.material).filter((material) => !materiales.some((otro) => otro.id === material.id))];
   return <form noValidate onSubmit={enviar} aria-label="Editar receta" className="max-w-3xl">
     <Card><CardHeader><CardTitle><h2>Receta de materiales</h2></CardTitle>
@@ -44,12 +46,15 @@ export function EditorReceta({ producto, materiales, puedeVerMateriales }: { pro
       {error ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>No se pudo guardar la receta</AlertTitle>
         <AlertDescription>{error}{conflicto ? <Button type="button" variant="outline" onClick={recargar}>Recargar datos</Button> : null}</AlertDescription>
       </Alert> : null}
+      {errorGlobal ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>Revise la receta</AlertTitle>
+        <AlertDescription>{errorGlobal}</AlertDescription>
+      </Alert> : null}
       {!puedeVerMateriales ? <p>Necesita inventario:ver para consultar materiales nuevos.</p> : null}
       <fieldset disabled={!hidratado || enviando} className="flex min-w-0 flex-col gap-4">
         {filas.fields.map((fila, indice) => <FilaReceta key={fila.id} formulario={formulario} indice={indice} materiales={disponibles} quitar={() => filas.remove(indice)} />)}
         {!filas.fields.length ? <p className="text-sm text-muted-foreground">Sin materiales. La receta es opcional.</p> : null}
         <div className="flex flex-wrap gap-3">
-          {puedeVerMateriales ? <Button type="button" variant="outline" onClick={() => filas.append({ materialId: "", cantidad: "1" })}><Plus aria-hidden="true" />Agregar material</Button> : null}
+          {puedeVerMateriales ? <Button type="button" variant="outline" disabled={filas.fields.length >= 100} onClick={() => filas.append({ materialId: "", cantidad: "1" })}><Plus aria-hidden="true" />Agregar material</Button> : null}
           <Button type="submit">Guardar receta</Button>
         </div>
       </fieldset>

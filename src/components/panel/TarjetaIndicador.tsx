@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { IndicadorPanel } from "@/modules/panel/tipos";
 
@@ -14,12 +15,18 @@ export function TarjetaIndicador({ indicador }: { indicador: IndicadorPanel }) {
   return (
     <Link
       href={destino}
-      className="flex min-h-10 min-w-0 flex-col gap-1 rounded-2xl border bg-card p-5 text-card-foreground hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="flex h-full min-h-10 min-w-0 flex-col gap-1 rounded-2xl border bg-card p-5 text-card-foreground transition duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <span className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{etiqueta}</span>
       <span className={`text-3xl font-semibold tracking-tight tabular-nums [overflow-wrap:anywhere] ${alerta ? "text-danger" : "text-card-foreground"}`}>
         {valor}
       </span>
+      {alerta && (
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-danger">
+          <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+          Requiere atención
+        </span>
+      )}
       <span className="flex flex-wrap items-center gap-1.5 text-sm [overflow-wrap:anywhere]">
         {tendencia && (
           <span className={`inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${alerta ? "bg-danger-soft text-danger" : coloresTendencia[tendencia.direccion]}`}>

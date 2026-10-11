@@ -35,7 +35,7 @@ export function AppShell({ usuario, children }: { usuario: UsuarioSesion; childr
       {rielExpandido ? (
         <div
           aria-hidden="true"
-          onClick={cerrarRiel}
+          onClick={cerrarRielConFoco}
           className="fixed inset-0 z-30 hidden bg-foreground/20 md:block xl:hidden"
         />
       ) : null}

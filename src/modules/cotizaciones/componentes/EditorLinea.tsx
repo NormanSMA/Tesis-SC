@@ -63,7 +63,7 @@ export function EditorLinea(propiedades: PropiedadesLinea) {
     </div>
     <CamposMaterial {...propiedades} /><CamposTrabajo {...propiedades} />
     <FormField id={`${prefijo}.importe`} etiqueta="Importe de línea" error={errores[`${prefijo}.importe`]}>
-      {(atributos) => <output {...atributos}><Money valor={propiedades.importe} /></output>}
+      {(atributos) => <output {...atributos} aria-live="off"><Money valor={propiedades.importe} /></output>}
     </FormField>
     <Button type="button" variant="outline" onClick={propiedades.alQuitar}
       aria-label={`Quitar línea ${indice + 1}: ${ETIQUETA[linea.tipo]}`}>Quitar línea</Button>

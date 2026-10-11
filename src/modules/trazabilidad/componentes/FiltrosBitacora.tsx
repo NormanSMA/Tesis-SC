@@ -17,20 +17,34 @@ function Seleccion({ nombre, etiqueta, valor, opciones }: {
       </SelectContent></Select>}
   </FormField>;
 }
+const REJILLA = "grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4";
+function CampoFiltro({ campo, etiqueta, consulta }: { campo: "orden" | "cotizacion" | "desde" | "hasta" | "texto"; etiqueta: string; consulta: ConsultaBitacora }) {
+  const fecha = campo === "desde" || campo === "hasta";
+  return <FormField id={`filtro-${campo}`} etiqueta={etiqueta}>
+    {(atributos) => <Input {...atributos} name={campo} type={fecha ? "date" : "search"} lang={fecha ? "es" : undefined}
+      defaultValue={consulta[campo]} />}</FormField>;
+}
 export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBitacora; usuarios: { id: string; nombre: string }[] }) {
-  return <form action="/trazabilidad" method="get" role="search" aria-label="Filtrar bitácora"
-    className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <Seleccion nombre="entidad" etiqueta="Entidad" valor={consulta.entidad}
-      opciones={ENTIDADES.map((id) => ({ id, nombre: ENTIDAD_TEXTO[id] }))} />
-    <Seleccion nombre="accion" etiqueta="Acción" valor={consulta.accion}
-      opciones={ACCIONES.map((id) => ({ id, nombre: ACCION_TEXTO[id] }))} />
-    <Seleccion nombre="usuario" etiqueta="Usuario" valor={consulta.usuario} opciones={usuarios} />
-    <FormField id="filtro-texto" etiqueta="Texto">{(atributos) => <Input {...atributos} name="texto" type="search" defaultValue={consulta.texto} placeholder="Números o nombres" />}</FormField>
-    {([['orden', 'Número de orden'], ['cotizacion', 'Número de cotización'], ['desde', 'Desde'], ['hasta', 'Hasta']] as const)
-      .map(([campo, etiqueta]) => <FormField key={campo} id={`filtro-${campo}`} etiqueta={etiqueta}>
-        {(atributos) => <Input {...atributos} name={campo} type={campo === "desde" || campo === "hasta" ? "date" : "search"}
-          defaultValue={consulta[campo]} />}</FormField>)}
-    <div className="flex flex-wrap gap-3 sm:col-span-2 xl:col-span-4">
+  const hayFiltroAvanzado = Boolean(consulta.entidad || consulta.accion || consulta.usuario || consulta.texto || consulta.cotizacion);
+  return <form action="/trazabilidad" method="get" role="search" aria-label="Filtrar bitácora" className="mb-5 min-w-0 space-y-3">
+    <div className={REJILLA}>
+      <CampoFiltro campo="orden" etiqueta="Número de orden" consulta={consulta} />
+      <CampoFiltro campo="desde" etiqueta="Desde" consulta={consulta} />
+      <CampoFiltro campo="hasta" etiqueta="Hasta" consulta={consulta} />
+    </div>
+    <details open={hayFiltroAvanzado} className="rounded-lg border bg-card px-4 py-2">
+      <summary className="min-h-10 cursor-pointer text-sm font-medium">Más filtros</summary>
+      <div className={`${REJILLA} pt-3 pb-2`}>
+        <Seleccion nombre="entidad" etiqueta="Entidad" valor={consulta.entidad}
+          opciones={ENTIDADES.map((id) => ({ id, nombre: ENTIDAD_TEXTO[id] }))} />
+        <Seleccion nombre="accion" etiqueta="Acción" valor={consulta.accion}
+          opciones={ACCIONES.map((id) => ({ id, nombre: ACCION_TEXTO[id] }))} />
+        <Seleccion nombre="usuario" etiqueta="Usuario" valor={consulta.usuario} opciones={usuarios} />
+        <CampoFiltro campo="cotizacion" etiqueta="Número de cotización" consulta={consulta} />
+        <CampoFiltro campo="texto" etiqueta="Texto" consulta={consulta} />
+      </div>
+    </details>
+    <div className="flex flex-wrap gap-3">
       <Button type="submit">Filtrar</Button><Button asChild variant="outline"><Link href="/trazabilidad">Limpiar filtros</Link></Button>
     </div>
   </form>;

@@ -30,7 +30,7 @@ export function CamposCobro({ formulario, categorias, puedeVerCosto }: { formula
     <FormField id="categoriaId" etiqueta="Categoría" requerido error={errors.categoriaId?.message} className="sm:col-span-2">
       {(atributos) => <Controller name="categoriaId" control={control} render={({ field }) =>
         <SelectorCatalogo {...atributos} valor={field.value} alCambiar={field.onChange}
-          opciones={categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre }))} />} />}
+          opciones={categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre, categoria: categoria.nombre }))} />} />}
     </FormField>
     <FormField id="unidadCobro" etiqueta="Unidad de cobro" requerido error={errors.unidadCobro?.message}>
       {(atributos) => <Controller name="unidadCobro" control={control} render={({ field }) =>

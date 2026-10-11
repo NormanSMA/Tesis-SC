@@ -1,10 +1,13 @@
 import { z } from "zod";
 
 import { PERFILES, type PerfilCodigo } from "@/core/permisos";
+import { esquemaValorPorClaveConfiguracion } from "@/modules/admin/configuracion-schema";
 import type { UsuarioDto } from "@/modules/admin/tipos";
 
 export type EstadoUsuario = "ACTIVO" | "BLOQUEADO" | "INACTIVO";
-export type FiltrosUsuarios = { q: string; perfil: PerfilCodigo | ""; estado: EstadoUsuario | ""; pagina: number };
+export type FiltroEstadoUsuario = EstadoUsuario | "TODOS";
+export type FiltrosUsuarios = { q: string; perfil: PerfilCodigo | ""; estado: FiltroEstadoUsuario; pagina: number };
+export const FILTRO_ESTADO_PREDETERMINADO: FiltroEstadoUsuario = "ACTIVO";
 export const PERMISOS_PROTEGIDOS = ["usuario:gestionar", "permiso:gestionar", "configuracion:gestionar"];
 
 export function estadoUsuario(usuario: UsuarioDto, ahora: number): EstadoUsuario {
@@ -15,10 +18,10 @@ export function estadoUsuario(usuario: UsuarioDto, ahora: number): EstadoUsuario
 export function leerFiltrosUsuarios(parametros: Record<string, string | string[] | undefined>): FiltrosUsuarios {
   const texto = (clave: string) => typeof parametros[clave] === "string" ? parametros[clave] : "";
   const perfil = PERFILES.find(({ codigo }) => codigo === texto("perfil"))?.codigo ?? "";
-  const estado = ["ACTIVO", "BLOQUEADO", "INACTIVO"].find((valor) => valor === texto("estado")) ?? "";
+  const estado = ["ACTIVO", "BLOQUEADO", "INACTIVO", "TODOS"].find((valor) => valor === texto("estado")) ?? FILTRO_ESTADO_PREDETERMINADO;
   const pagina = Number(texto("pagina"));
   return {
-    q: texto("q").trim().slice(0, 200), perfil, estado: estado as FiltrosUsuarios["estado"],
+    q: texto("q").trim().slice(0, 200), perfil, estado: estado as FiltroEstadoUsuario,
     pagina: Number.isInteger(pagina) && pagina > 0 ? Math.min(pagina, 100_000) : 1,
   };
 }
@@ -28,14 +31,20 @@ export function filtrarUsuarios(datos: UsuarioDto[], filtros: FiltrosUsuarios, a
   return datos.filter((usuario) =>
     (!q || `${usuario.nombre} ${usuario.correo}`.toLocaleLowerCase("es").includes(q)) &&
     (!filtros.perfil || usuario.perfiles.includes(filtros.perfil)) &&
-    (!filtros.estado || estadoUsuario(usuario, ahora) === filtros.estado));
+    coincideEstado(usuario, filtros.estado, ahora));
+}
+
+function coincideEstado(usuario: UsuarioDto, filtro: FiltroEstadoUsuario, ahora: number): boolean {
+  if (filtro === "TODOS") return true;
+  if (filtro === "ACTIVO") return usuario.activo;
+  return estadoUsuario(usuario, ahora) === filtro;
 }
 
 export function hrefUsuarios(filtros: FiltrosUsuarios, pagina: number): string {
   const parametros = new URLSearchParams();
   if (filtros.q) parametros.set("q", filtros.q);
   if (filtros.perfil) parametros.set("perfil", filtros.perfil);
-  if (filtros.estado) parametros.set("estado", filtros.estado);
+  if (filtros.estado !== FILTRO_ESTADO_PREDETERMINADO) parametros.set("estado", filtros.estado);
   if (pagina > 1) parametros.set("pagina", String(pagina));
   const texto = parametros.toString();
   return `/admin/usuarios${texto ? `?${texto}` : ""}`;
@@ -60,13 +69,8 @@ export function esquemaValorConfiguracion({ clave, tipo }: { clave: string; tipo
     TEXTO: z.string(),
   };
   const tipoValor = tipos[tipo] ?? z.string().refine(() => false, "El tipo no es editable.");
-  if (clave === "iva_porcentaje") return tipoValor.refine((valor) => Number(valor) >= 0 && Number(valor) <= 100,
-    "Indique un IVA entre 0 y 100.");
-  if (clave === "cotizacion_vigencia_dias") return tipoValor.refine((valor) => Number(valor) >= 1 && Number(valor) <= 365,
-    "Indique una vigencia entre 1 y 365 días.");
-  if (clave === "moneda") return tipoValor.pipe(z.string().regex(/^[A-Z]{3}$/, "Indique tres letras mayúsculas."));
-  if (clave === "empresa_nombre") return tipoValor.pipe(z.string().trim().min(1, "Ingrese el nombre de empresa.").max(120));
-  return tipoValor;
+  const esquemaClave = esquemaValorPorClaveConfiguracion(clave);
+  return esquemaClave ? tipoValor.pipe(esquemaClave) : tipoValor;
 }
 
 export function fechaAdministracion(valor: string | null): string {

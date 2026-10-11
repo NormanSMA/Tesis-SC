@@ -8,19 +8,28 @@ import { Label } from "@/components/ui/label";
 import { PERFILES } from "@/core/permisos";
 import type { EntradaCrearUsuario } from "@/modules/admin/schema";
 
+function MarcaObligatorio() {
+  return (
+    <>
+      <span aria-hidden="true" className="text-danger">*</span>
+      <span className="sr-only">(obligatorio)</span>
+    </>
+  );
+}
+
 export function CamposUsuario({ formulario }: { formulario: UseFormReturn<EntradaCrearUsuario> }) {
   const errores = formulario.formState.errors;
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <div className="space-y-2">
-        <Label htmlFor="usuario-nombre">Nombre</Label>
+        <Label htmlFor="usuario-nombre">Nombre<MarcaObligatorio /></Label>
         <Input id="usuario-nombre" className="min-h-10" autoComplete="name" maxLength={120} required
           {...formulario.register("nombre")} aria-invalid={Boolean(errores.nombre)}
           aria-describedby={errores.nombre ? "usuario-nombre-error" : undefined} />
         {errores.nombre ? <p id="usuario-nombre-error" role="alert" className="text-sm text-destructive">{errores.nombre.message}</p> : null}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="usuario-correo">Correo</Label>
+        <Label htmlFor="usuario-correo">Correo<MarcaObligatorio /></Label>
         <Input id="usuario-correo" className="min-h-10" type="email" autoComplete="email" maxLength={254} required
           {...formulario.register("correo")} aria-invalid={Boolean(errores.correo)}
           aria-describedby={errores.correo ? "usuario-correo-error" : undefined} />
@@ -36,7 +45,7 @@ export function PerfilesUsuario({ formulario }: { formulario: UseFormReturn<Entr
   const registro = formulario.register("perfiles");
   return (
     <fieldset className="min-w-0 space-y-3" aria-describedby={error ? "perfiles-ayuda perfiles-error" : "perfiles-ayuda"}>
-      <legend className="font-medium">Perfiles</legend>
+      <legend className="font-medium">Perfiles<MarcaObligatorio /></legend>
       <p id="perfiles-ayuda" className="text-sm text-muted-foreground">Asigne al menos un perfil.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {PERFILES.map(({ codigo, nombre, descripcion }, indice) => (

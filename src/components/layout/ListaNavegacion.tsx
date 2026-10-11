@@ -35,12 +35,12 @@ function EnlaceItem({
       aria-current={activo ? "page" : undefined}
       className={cn(
         "relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent",
-        activo && "bg-primary-soft text-primary hover:bg-primary-soft",
+        activo && "bg-primary-soft font-semibold text-primary hover:bg-primary-soft",
         !expandido && "justify-center px-0 xl:justify-start xl:px-3",
       )}
     >
       {activo ? (
-        <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" />
+        <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-full bg-brand-gold" />
       ) : null}
       <Icono aria-hidden="true" className="size-5 shrink-0" />
       <span className={cn("truncate", !expandido && "sr-only xl:not-sr-only")}>{item.etiqueta}</span>

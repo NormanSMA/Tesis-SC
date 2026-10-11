@@ -1,19 +1,29 @@
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
+import { IconoServicio } from "@/components/comunes/IconoServicio";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
 import { formatearCantidad } from "@/lib/formato";
 import type { ItemDto, LineaDto } from "../tipos";
 
-const columnas: ColumnaTabla<ItemDto>[] = [
-  { id: "descripcion", encabezado: "Descripción", principal: true, celda: (item) => <div className="max-w-72 whitespace-normal">
-    <p className="font-medium">{item.descripcion}</p>
-    {item.ancho && item.alto ? <p className="text-xs text-muted-foreground">{item.ancho} × {item.alto} m</p> : null}
-  </div> },
+type Categorias = ReadonlyMap<string, string>;
+
+function columnasItems(categorias: Categorias): ColumnaTabla<ItemDto>[] {
+  return [
+  { id: "descripcion", encabezado: "Descripción", principal: true, celda: (item) => {
+    const categoria = categorias.get(item.categoriaId);
+    return <div className="max-w-72 whitespace-normal">
+      <p className="font-medium">{item.descripcion}</p>
+      {categoria ? <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <IconoServicio categoria={categoria} tamano={20} decorativo /><span>{categoria}</span></p> : null}
+      {item.ancho && item.alto ? <p className="text-xs text-muted-foreground">{item.ancho} × {item.alto} m</p> : null}
+    </div>;
+  } },
   { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (item) => formatearCantidad(item.cantidad, 3) },
   { id: "unidad", encabezado: "Cobro", celda: (item) => item.unidadCobro === "M2" ? "m²" : "Unidad" },
   { id: "precio", encabezado: "Precio unitario", alinear: "derecha", celda: (item) => <Money valor={item.precioUnitario} /> },
   { id: "importe", encabezado: "Importe", alinear: "derecha", celda: (item) => <Money valor={item.importe} /> },
-];
+  ];
+}
 const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Tercero" };
 const columnasLineas: ColumnaTabla<LineaDto>[] = [
   { id: "descripcion", encabezado: "Descripción", principal: true, celda: (linea) => <span className="block max-w-36 whitespace-normal">{linea.descripcion}</span> },
@@ -52,9 +62,13 @@ export function CostosInternosCotizacion({ items, margenPct }: { items: ItemDto[
   </details></Card>;
 }
 
-export function ItemsCotizacion({ items, mostrarCostos = true }: { items: ItemDto[]; mostrarCostos?: boolean }) {
+/** `categorias` traduce categoriaId a nombre para mostrar la ilustración del servicio. Sin ella, no hay ilustración. */
+export function ItemsCotizacion({ items, mostrarCostos = true, categorias = [] }: {
+  items: ItemDto[]; mostrarCostos?: boolean; categorias?: { id: string; nombre: string }[];
+}) {
+  const nombres = new Map(categorias.map((categoria) => [categoria.id, categoria.nombre]));
   return <div className="space-y-4">
-    <DataTable titulo="Ítems de cotización" columnas={columnas} filas={items} idFila={(item) => item.id} />
+    <DataTable titulo="Ítems de cotización" columnas={columnasItems(nombres)} filas={items} idFila={(item) => item.id} />
     {mostrarCostos ? items.filter((item) => item.tipo === "PERSONALIZADO").map((item) => <CostosItem key={item.id} item={item} />) : null}
   </div>;
 }

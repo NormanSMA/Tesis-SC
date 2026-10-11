@@ -4,11 +4,13 @@ import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { formatearFechaHora } from "@/lib/formato";
+import { textoCambioEstado } from "../etiquetas";
 import type { ConsultaBitacora } from "../schema";
 import type { EventoTrazabilidad, ListaBitacora } from "../tipos";
 
 export function EstadoEvento({ evento }: { evento: EventoTrazabilidad }) {
-  return evento.estadoNuevo ? <p className="mt-1 text-sm">{evento.estadoAnterior ?? "Creación"} → {evento.estadoNuevo}</p> : null;
+  const cambio = textoCambioEstado(evento.estadoAnterior, evento.estadoNuevo);
+  return cambio ? <p className="mt-1 text-sm">{cambio}</p> : null;
 }
 const columnas: ColumnaTabla<EventoTrazabilidad>[] = [
   { id: "fecha", encabezado: "Fecha y usuario", principal: true, celda: (fila) => <>
@@ -25,8 +27,8 @@ export function TablaBitacora({ lista, consulta }: { lista: ListaBitacora; consu
     parametros.set("pagina", String(pagina));
     return `/trazabilidad?${parametros}`;
   };
-  return <DataTable titulo="Bitácora global" filas={lista.datos} columnas={columnas} idFila={(fila) => fila.id}
-    vacio={<EmptyState titulo="Sin eventos" descripcion="No hay eventos con estos filtros." />}
+  return <DataTable apilarEnMovil titulo="Bitácora global" filas={lista.datos} columnas={columnas} idFila={(fila) => fila.id}
+    vacio={<EmptyState ilustracion="uv-dtf" titulo="Sin eventos" descripcion="No hay eventos con estos filtros." />}
     paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina, hrefPagina }}
-    className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_td]:px-2 [&_th]:px-2" />;
+    className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed[&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_td]:px-2 [&_th]:px-2" />;
 }

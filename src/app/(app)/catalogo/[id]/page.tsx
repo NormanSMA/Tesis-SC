@@ -16,7 +16,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   const actor = await exigirPermisoPagina("catalogo:ver");
   const producto = await cargarProducto((await params).id, actor);
   return <>
-    <EncabezadoFicha titulo={producto.nombre} codigo={producto.codigo} detalle={producto.categoria.nombre}
+    <EncabezadoFicha titulo={producto.nombre} codigo={producto.codigo} detalle={producto.categoria.nombre} categoria={producto.categoria.nombre}
       estado={<EstadoProducto activo={producto.activo} />}
       acciones={can(actor, "catalogo:gestionar") ? <>
         {producto.activo ? <Button asChild><Link href={`/catalogo/${producto.id}/editar`}>Editar</Link></Button> : null}

@@ -3,7 +3,7 @@ import { Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
 
 export function TotalesCotizacion({ totales, mostrarMargen = true }: { totales: Totales; mostrarMargen?: boolean }) {
-  return <Card className="px-5" aria-label="Totales de cotización">
+  return <Card className="w-full px-5 md:ml-auto md:max-w-sm lg:max-w-none" aria-label="Totales de cotización">
     <dl className="space-y-3 text-sm">
       <div className="flex justify-between gap-4"><dt>Subtotal</dt><dd><Money valor={totales.subtotal} /></dd></div>
       <div className="flex justify-between gap-4"><dt>Descuento</dt><dd><Money valor={totales.descuento} /></dd></div>

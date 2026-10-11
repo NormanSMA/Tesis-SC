@@ -40,11 +40,13 @@ export function AccionesEstado({ id, nombre, activo, version, principal = false 
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
 
   async function confirmar(): Promise<void> {
     setCargando(true);
-    const fallo = await enviarCambio(`/api/v1/clientes/${id}/${activo ? "archivar" : "reactivar"}`, version);
-    if (fallo) toast.error(fallo);
+    setFallo(null);
+    const resultado = await enviarCambio(`/api/v1/clientes/${id}/${activo ? "archivar" : "reactivar"}`, version);
+    if (resultado) setFallo(resultado);
     else toast.success(activo ? "Cliente archivado." : "Cliente reactivado.");
     setCargando(false);
     setAbierto(false);
@@ -57,6 +59,7 @@ export function AccionesEstado({ id, nombre, activo, version, principal = false 
         {activo ? <Archive aria-hidden="true" /> : <ArchiveRestore aria-hidden="true" />}
         {activo ? "Archivar" : "Reactivar"}
       </Button>
+      {fallo ? <p role="alert" className="w-full text-sm text-danger [overflow-wrap:anywhere]">{fallo}</p> : null}
       <ConfirmDialog
         abierto={abierto}
         alCambiarAbierto={setAbierto}

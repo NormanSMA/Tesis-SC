@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Money } from "@/components/comunes/ValorFormateado";
+import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
-import { formatearFechaHora } from "@/lib/formato";
 import type { OrdenDto } from "../tipos";
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
@@ -33,11 +32,10 @@ export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: Orde
 export function DatosOrden({ orden }: { orden: OrdenDto }) {
   return <Card className="min-w-0 px-5"><h2 className="text-lg font-semibold">Datos de la orden</h2>
     <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
-      <Dato etiqueta="Categoría">{orden.categoria.nombre}</Dato>
-      <Dato etiqueta="Inicio real">{formatearFechaHora(orden.fechaInicioReal)}</Dato>
-      <Dato etiqueta="Entrega real">{formatearFechaHora(orden.fechaEntregaReal)}</Dato>
-      <Dato etiqueta="Cierre">{formatearFechaHora(orden.fechaCierre)}</Dato>
-      <Dato etiqueta="Creación">{formatearFechaHora(orden.creadoEn)}</Dato>
+      <Dato etiqueta="Inicio real"><Fecha valor={orden.fechaInicioReal} /></Dato>
+      <Dato etiqueta="Entrega real"><Fecha valor={orden.fechaEntregaReal} /></Dato>
+      <Dato etiqueta="Cierre"><Fecha valor={orden.fechaCierre} /></Dato>
+      <Dato etiqueta="Creación"><Fecha valor={orden.creadoEn} /></Dato>
     </dl>
     <div><h3 className="font-medium">Especificaciones</h3><p className="mt-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
       {orden.especificaciones || "Sin especificaciones."}</p></div>

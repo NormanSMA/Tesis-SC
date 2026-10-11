@@ -32,7 +32,7 @@ function Muestras({ muestras }: { muestras: Muestra[] }) {
 
 export function SeccionTokens() {
   return (
-    <Seccion id="tokens" titulo="Tokens de color" descripcion="Un solo acento teal. Neutros slate. Radio de 6 px. Espaciado base de 4 px.">
+    <Seccion id="tokens" titulo="Tokens de color" descripcion="Un acento azul marino y un dorado puntual. Neutros slate. Radio de 6 px. Espaciado base de 4 px.">
       <Muestras muestras={COLORES_BASE} />
       <Muestras muestras={COLORES_ESTADO} />
     </Seccion>

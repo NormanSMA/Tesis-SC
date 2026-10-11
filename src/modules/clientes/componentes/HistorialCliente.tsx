@@ -74,7 +74,7 @@ export function CotizacionesCliente({ seccion }: { seccion: SeccionLimitada<Coti
         columnas={COLUMNAS_COTIZACIONES}
         filas={seccion.items}
         idFila={(cotizacion) => cotizacion.id}
-        vacio={<EmptyState icono={FileText} titulo="Sin cotizaciones" descripcion="Este cliente aún no tiene cotizaciones." />}
+        vacio={<EmptyState ilustracion="reconocimientos" icono={FileText} titulo="Sin cotizaciones" descripcion="Este cliente aún no tiene cotizaciones." />}
       />
     </SeccionFicha>
   );
@@ -88,7 +88,7 @@ export function TrabajosCliente({ seccion }: { seccion: SeccionLimitada<TrabajoD
         columnas={COLUMNAS_TRABAJOS}
         filas={seccion.items}
         idFila={(trabajo) => trabajo.id}
-        vacio={<EmptyState icono={Hammer} titulo="Sin trabajos" descripcion="Este cliente aún no tiene órdenes de trabajo." />}
+        vacio={<EmptyState ilustracion="reconocimientos" icono={Hammer} titulo="Sin trabajos" descripcion="Este cliente aún no tiene órdenes de trabajo." />}
       />
     </SeccionFicha>
   );

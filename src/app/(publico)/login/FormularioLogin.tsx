@@ -26,9 +26,9 @@ function CampoContrasena({ error, registro }: { error?: string; registro: UseFor
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
-            className="absolute top-1 right-1"
-            aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+            size="icon"
+            className="absolute top-0 right-0"
+            aria-label="Mostrar contraseña"
             aria-pressed={visible}
             onClick={() => setVisible((valor) => !valor)}
           >

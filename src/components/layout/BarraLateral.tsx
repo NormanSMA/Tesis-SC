@@ -30,7 +30,7 @@ export function BarraLateral({ grupos, ruta, rielExpandido, alCerrarRiel, alCerr
       )}
     >
       <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
-        <Link href="/panel" aria-label="Soluciones Creativas, ir al panel" className="rounded-md">
+        <Link href="/panel" aria-label="Soluciones Creativas Plataforma de gestión, ir al panel" className="rounded-md">
           {rielExpandido ? (
             <Marca />
           ) : (
@@ -43,7 +43,7 @@ export function BarraLateral({ grupos, ruta, rielExpandido, alCerrarRiel, alCerr
         {rielExpandido ? (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             className="ml-auto xl:hidden"
             aria-label="Contraer menú de navegación"
             onClick={alCerrarRielConFoco}
