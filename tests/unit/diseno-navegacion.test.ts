@@ -38,7 +38,7 @@ describe("itemActivo y construirMigas", () => {
   });
 
   it("arma migas con grupo y sección", () => {
-    expect(construirMigas("/admin/usuarios").map((miga) => miga.etiqueta)).toEqual(["Administración", "Usuarios"]);
+    expect(construirMigas("/admin/usuarios").map((miga) => miga.etiqueta)).toEqual(["Administración técnica", "Usuarios"]);
   });
 
   it("nombra el detalle con un identificador numérico", () => {

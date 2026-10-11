@@ -44,7 +44,7 @@ export const gruposNavegacion: GrupoNavegacion[] = [
   },
   {
     id: "administracion",
-    etiqueta: "Administración",
+    etiqueta: "Administración técnica",
     items: [
       { href: "/admin/usuarios", etiqueta: "Usuarios", icono: UserCog, permiso: "usuario:gestionar" },
       { href: "/admin/permisos", etiqueta: "Perfiles y permisos", icono: ShieldCheck, permiso: "permiso:gestionar" },

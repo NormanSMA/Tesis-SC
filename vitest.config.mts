@@ -18,6 +18,7 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     globalSetup: ["tests/helpers/global-setup.ts"],
+    setupFiles: ["tests/helpers/forzar-base-prueba.ts"],
     testTimeout: 60000,
     hookTimeout: 60000,
     fileParallelism: false,
