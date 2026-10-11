@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Detalle de orden" };
 export default async function PaginaDetalleOrden({ params }: { params: Promise<{ id: string }> }) {
   const actor = await exigirPermisoPagina("orden:ver");
   const orden = await cargarOrden((await params).id, actor);
-  const permisos = { gestionar: can(actor, "orden:gestionar"), entregar: can(actor, "orden:entregar"),
+  const permisos = { gestionar: can(actor, "orden:gestionar") || can(actor, "produccion:planificar"), entregar: can(actor, "orden:entregar"),
     cerrar: can(actor, "orden:cerrar"), cancelar: can(actor, "orden:cancelar") };
   const permisosEtapas = { planificar: can(actor, "produccion:planificar"), ejecutar: can(actor, "produccion:ejecutar"),
     avanzar: can(actor, "orden:avanzar") };

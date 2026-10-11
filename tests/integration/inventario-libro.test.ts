@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { liberarClienteGlobal } from "../helpers/auth";
+import { abrirSesion } from "./cotizaciones-ayudas";
 import { clienteInventario, crearMaterial, prepararInventario, recibir, type EntornoInventario } from "./inventario-ayudas";
 
 describe("inventario: entradas y ajustes idempotentes", () => {
@@ -10,7 +11,7 @@ describe("inventario: entradas y ajustes idempotentes", () => {
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
   function ajustar(materialId: string, opciones: { direccion?: "AUMENTAR" | "DISMINUIR"; cantidad?: string; clave?: string } = {}) {
     return entorno.modulos.servicio.registrarAjuste({ materialId, direccion: opciones.direccion ?? "AUMENTAR", cantidad: opciones.cantidad ?? "2.001", motivo: "Conteo físico" },
-      entorno.sesiones.GERENCIA.actor, opciones.clave ?? randomUUID());
+      entorno.sesiones.ADMINISTRACION.actor, opciones.clave ?? randomUUID());
   }
   it("calcula costo promedio ponderado exacto con cuatro decimales", async () => {
     const material = await crearMaterial(entorno);
@@ -22,9 +23,9 @@ describe("inventario: entradas y ajustes idempotentes", () => {
   it("entrada registra referencia, usuario y detalle de bitácora", async () => {
     const material = await crearMaterial(entorno);
     const datos = await entorno.modulos.servicio.registrarEntrada({ materialId: material.id, cantidad: "2.001", costoUnitario: "0", referencia: "Factura 01" },
-      entorno.sesiones.PRODUCCION.actor, randomUUID());
+      entorno.sesiones.ADMINISTRACION.actor, randomUUID());
     const evento = await db.bitacora.findFirstOrThrow({ where: { entidadId: datos.id, entidad: "MOVIMIENTO_INVENTARIO" } });
-    expect(evento).toMatchObject({ accion: "REGISTRAR_ENTRADA", usuarioId: entorno.sesiones.PRODUCCION.usuarioId });
+    expect(evento).toMatchObject({ accion: "REGISTRAR_ENTRADA", usuarioId: entorno.sesiones.ADMINISTRACION.usuarioId });
     expect(evento.detalle).toMatchObject({ cantidad: "2.001", costoUnitario: "0.0000", existenciaResultante: "2.001", referencia: "Factura 01" });
   });
   for (const operacion of ["entrada", "ajuste"] as const) {
@@ -50,9 +51,12 @@ describe("inventario: entradas y ajustes idempotentes", () => {
     const material = await crearMaterial(entorno); const clave = randomUUID();
     await recibir(entorno, material.id, { clave });
     await expect(recibir(entorno, material.id, { clave, cantidad: "11" })).rejects.toMatchObject({ codigo: "CLAVE_REUTILIZADA", status: 422 });
-    await expect(ajustar(material.id, { clave })).rejects.toMatchObject({ codigo: "CLAVE_EN_USO", status: 409 });
+    await expect(ajustar(material.id, { clave })).rejects.toMatchObject({ codigo: "CLAVE_REUTILIZADA", status: 422 });
+    const otra = await abrirSesion(db, entorno.cotizaciones.modulos, "ADMINISTRACION");
+    await expect(entorno.modulos.servicio.registrarAjuste({ materialId: material.id, direccion: "AUMENTAR", cantidad: "2.001", motivo: "Conteo físico" },
+      otra.actor, clave)).rejects.toMatchObject({ codigo: "CLAVE_EN_USO", status: 409 });
     await expect(entorno.modulos.servicio.registrarEntrada({ materialId: material.id, cantidad: "10.000", costoUnitario: "10.0000" },
-      entorno.sesiones.PRODUCCION.actor, "no-uuid")).rejects.toMatchObject({ status: 422 });
+      entorno.sesiones.ADMINISTRACION.actor, "no-uuid")).rejects.toMatchObject({ status: 422 });
   });
   it("ajusta en ambas direcciones y usa el costo fijado por la base", async () => {
     const material = await crearMaterial(entorno); await recibir(entorno, material.id);
@@ -80,7 +84,7 @@ describe("inventario: entradas y ajustes idempotentes", () => {
   });
   it("archivado rechaza entradas y ajustes sin movimientos ni claves", async () => {
     const material = await crearMaterial(entorno);
-    await entorno.modulos.servicio.cambiarActivoMaterial({ id: material.id, version: material.actualizadoEn, activo: false }, entorno.sesiones.PRODUCCION.actor);
+    await entorno.modulos.servicio.cambiarActivoMaterial({ id: material.id, version: material.actualizadoEn, activo: false }, entorno.sesiones.ADMINISTRACION.actor);
     await expect(recibir(entorno, material.id)).rejects.toMatchObject({ codigo: "MATERIAL_ARCHIVADO", status: 409 });
     await expect(ajustar(material.id)).rejects.toMatchObject({ codigo: "MATERIAL_ARCHIVADO", status: 409 });
     expect(await db.movimientoInventario.count({ where: { materialId: material.id } })).toBe(0);

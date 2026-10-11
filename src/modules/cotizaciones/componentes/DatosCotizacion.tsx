@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { Fecha } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
 import type { CotizacionDto } from "../tipos";
+import { EstadoCotizacion } from "./EstadoCotizacion";
 
 export function DatosCotizacion({ cotizacion }: { cotizacion: CotizacionDto }) {
   return <Card className="px-5"><dl className="grid gap-4 text-sm sm:grid-cols-2">
     <div><dt className="text-muted-foreground">Cliente</dt><dd className="font-medium">{cotizacion.cliente.nombre}</dd></div>
-    <div><dt className="text-muted-foreground">Estado</dt><dd className="mt-1"><EstadoBadge tipo="cotizacion" estado={cotizacion.estado} /></dd></div>
+    <div><dt className="text-muted-foreground">Estado</dt><dd className="mt-1"><EstadoCotizacion estado={cotizacion.estado} /></dd></div>
+    <div><dt className="text-muted-foreground">Versión</dt><dd>Versión {cotizacion.version}</dd></div>
     <div><dt className="text-muted-foreground">Emisión</dt><dd><Fecha valor={cotizacion.fechaEmision} /></dd></div>
     <div><dt className="text-muted-foreground">Vencimiento</dt><dd><Fecha valor={cotizacion.fechaVencimiento} /></dd></div>
     <div><dt className="text-muted-foreground">Vigencia</dt><dd>{cotizacion.vigenciaDias} días</dd></div>
@@ -16,6 +17,9 @@ export function DatosCotizacion({ cotizacion }: { cotizacion: CotizacionDto }) {
       <Link href={`/cotizaciones/${cotizacion.cotizacionOrigenId}`} className="text-primary underline">Ver cotización original</Link>
     </dd></div> : null}
     {cotizacion.motivoRechazo ? <div className="sm:col-span-2"><dt className="text-muted-foreground">Motivo del rechazo</dt><dd>{cotizacion.motivoRechazo}</dd></div> : null}
+    {cotizacion.usuarioAprobacion ? <div><dt className="text-muted-foreground">Aprobación registrada por</dt><dd>{cotizacion.usuarioAprobacion.nombre}</dd></div> : null}
+    {cotizacion.referenciaAprobacion ? <div><dt className="text-muted-foreground">Referencia de aprobación</dt><dd>{cotizacion.referenciaAprobacion}</dd></div> : null}
+    {cotizacion.motivoAjuste ? <div className="sm:col-span-2"><dt className="text-muted-foreground">Motivo del ajuste</dt><dd>{cotizacion.motivoAjuste}</dd></div> : null}
     <div className="sm:col-span-2"><dt className="text-muted-foreground">Condiciones comerciales</dt>
       <dd className="mt-1 whitespace-pre-wrap">{cotizacion.condiciones || "Sin condiciones adicionales."}</dd></div>
   </dl></Card>;

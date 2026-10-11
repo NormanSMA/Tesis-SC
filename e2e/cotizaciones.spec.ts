@@ -21,7 +21,7 @@ type Totales = { subtotal: number; impuesto: number; total: number };
 type Cotizacion = { id: string; numero: string; asunto: string; actualizadoEn: string };
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
-const VENTAS = PERFILES.find((perfil) => perfil.codigo === "VENTAS") as Perfil;
+const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
 
@@ -102,7 +102,7 @@ async function archivarCotizacionesE2E(browser: Browser): Promise<void> {
   const contexto = await browser.newContext({ baseURL: BASE });
   const page = await contexto.newPage();
   try {
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const lista = await page.request.get("/api/v1/cotizaciones?q=E2E-&archivadas=false&porPagina=100");
     const filas = ((await lista.json()).datos ?? []) as { id: string; asunto: string | null }[];
     for (const fila of filas.filter((cotizacion) => cotizacion.asunto?.startsWith("E2E-"))) await archivarPorApi(page, fila.id);
@@ -192,7 +192,7 @@ test.describe("Ventas cotiza y Gerencia aprueba", () => {
     soloUnaVez(info.project.name);
     test.setTimeout(120_000);
     const asunto = marcaE2E();
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
 
     await crearCabecera(page, asunto);
     await expect(page.getByRole("heading", { level: 1, name: /^Editar COT-/ })).toBeVisible();
@@ -232,7 +232,7 @@ test.describe("Ventas cotiza y Gerencia aprueba", () => {
   test("la vista de impresión muestra el número y el total", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const { id, numero, totales } = datosMixta();
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/cotizaciones/${id}/imprimir`);
     await expect(page.getByRole("heading", { level: 1, name: "Proforma imprimible" })).toBeVisible();
     const proforma = page.locator("#proforma");
@@ -255,7 +255,7 @@ async function crearBorradorPorApi(page: Page): Promise<Cotizacion> {
 test.describe("Borradores: duplicar y permisos", () => {
   test("Ventas duplica un borrador y la copia es otro borrador", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
 
     await page.goto(`/cotizaciones/${borrador.id}`);
@@ -275,7 +275,7 @@ test.describe("Borradores: duplicar y permisos", () => {
 
   test("Gerencia no ve Nueva cotización ni Editar", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
     await page.context().clearCookies();
 
@@ -319,7 +319,7 @@ test.describe("Accesibilidad (axe)", () => {
       soloUnaVez(info.project.name);
       test.setTimeout(90_000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, VENTAS);
+      await entrarComo(page, ATENCION_CLIENTE);
 
       await page.goto("/cotizaciones");
       await expect(page.getByRole("region", { name: "Listado de cotizaciones" })).toBeVisible();
@@ -344,7 +344,7 @@ async function capturar(page: Page, archivo: string): Promise<void> {
 }
 
 test.describe("CF-10: capturas de la cotización mixta aprobada", () => {
-  for (const perfil of [VENTAS, GERENCIA]) {
+  for (const perfil of [ATENCION_CLIENTE, GERENCIA]) {
     test(`detalle visto por ${perfil.codigo} en los 4 tamaños`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       test.setTimeout(120_000);
@@ -366,7 +366,7 @@ test.describe("CF-10: capturas de la cotización mixta aprobada", () => {
   test("editor de la cotización mixta", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     fs.mkdirSync(CARPETA_CAPTURAS, { recursive: true });
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
     await page.goto(`/cotizaciones/${borrador.id}/editar`);
     await expect(page.getByRole("heading", { level: 2, name: "Ítem 3: Personalizado" })).toBeVisible();

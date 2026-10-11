@@ -18,6 +18,8 @@ import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden
 import { TablaOrdenes } from "@/modules/ordenes/componentes/TablaOrdenes";
 import { esquemaConsultaOrdenes } from "@/modules/ordenes/schema";
 import type { OpcionesOrden, OrdenDto } from "@/modules/ordenes/tipos";
+import { CargaPanel } from "@/modules/panel/componentes/BloquesPanel";
+import { CadenaTrabajo } from "@/modules/trazabilidad/componentes/CadenaTrabajo";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
@@ -38,7 +40,7 @@ const orden: OrdenDto = {
     responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null, actualizadoEn: "2026-10-06T12:00:00.000Z" }],
   consumosEstimados: [{ id, material: { id, nombre: "Material de prueba", unidad: "M2" }, cantidad: "7.560", origen: "COTIZACION" }],
   advertencias: [{ itemSecuencia: 1, lineaSecuencia: 2, mensaje: "Línea 2: unidad distinta del material; no se estimó." }],
-  eventos: [{ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "CONVERTIR_EN_ORDEN", actor: "Ventas",
+  eventos: [{ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "CONVERTIR_EN_ORDEN", actor: "Operaciones",
     estadoAnterior: null, estadoNuevo: "PENDIENTE", creadoEn: "2026-10-06T12:00:00Z", detalle: {} }],
 };
 
@@ -56,6 +58,44 @@ function contenido(pantalla: "lista" | "ficha" | "nueva" | "editar"): ReactNode[
     : createElement(FormularioOrden, { key: "nueva", opciones, hoy: "2026-10-06", propuesta: { cotizacionId: id, numero: "COT-2026-0001",
       cliente: orden.cliente.nombre, categoriaId: id, especificaciones: "Trabajo de prueba", orden: null } })];
 }
+
+describe("órdenes: responsable opcional en componentes", () => {
+  const sinResponsable = { ...orden, responsable: null };
+  it("muestra Sin responsable en lista y ficha", () => {
+    const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { consulta: esquemaConsultaOrdenes.parse({}),
+      lista: { datos: [sinResponsable], total: 1, pagina: 1, porPagina: 20 } }));
+    const ficha = renderToStaticMarkup(createElement(DatosOrden, { orden: sinResponsable, verCliente: false, verCotizacion: false }));
+    expect(tabla).toContain("Sin responsable");
+    expect(ficha).toContain("Sin responsable");
+  });
+  it("renderiza edición sin responsable y restringe los campos al planificar", () => {
+    const formulario = renderToStaticMarkup(createElement(FormularioOrden, {
+      opciones, hoy: "2026-10-06", orden: sinResponsable, soloResponsable: true,
+    }));
+    expect(formulario).toContain("Sin responsable");
+    expect(formulario).not.toContain('id="fechaEntrega"');
+    expect(formulario).not.toContain('id="especificaciones"');
+    expect(formulario).not.toContain("aria-required");
+  });
+  it("muestra Sin responsable en la cadena de trabajo y el panel", () => {
+    const cadena = renderToStaticMarkup(createElement(CadenaTrabajo, { cadena: {
+      cliente: { ...orden.cliente, contactoPrincipal: null, href: null },
+      cotizacion: { ...orden.cotizacion, estado: "Aprobada", creadoEn: orden.creadoEn,
+        fechaEmision: null, fechaVencimiento: null, fechaRespuesta: null, href: null },
+      orden: { id, numero: orden.numero, estado: "Pendiente", responsable: null,
+        especificaciones: null, fechaEntrega: orden.fechaEntrega, creadoEn: orden.creadoEn,
+        fechaInicioReal: null, fechaEntregaReal: null, fechaCierre: null }, etapas: [],
+    } }));
+    const panel = renderToStaticMarkup(createElement(CargaPanel, { datos: {
+      porEstado: [], porResponsable: [], porArea: [], entregas: [{ numero: orden.numero,
+        estado: "Pendiente", fechaEntrega: orden.fechaEntrega, responsable: "Sin responsable",
+        href: `/ordenes/${id}`, atrasada: false }],
+    } }));
+    expect(cadena).toContain("Sin responsable");
+    expect(panel).toContain("Sin responsable");
+    expect(panel).toContain(orden.numero);
+  });
+});
 
 describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
   let navegador: Browser;

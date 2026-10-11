@@ -1,4 +1,4 @@
-import type { Actor } from "@/core/autorizacion";
+import { can, type Actor } from "@/core/autorizacion";
 import { costearLinea } from "@/core/costeo";
 import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
@@ -40,6 +40,6 @@ export function reemplazarReceta(id: string, entrada: EntradaReceta, actor: Acto
     if (nuevo.length) await tx.recetaProducto.createMany({ data: nuevo.map((fila) => ({ ...fila, productoId: id })) });
     await registrarEvento(tx, { entidad: "PRODUCTO", entidadId: id, accion: "EDITAR", actorId: actor.id,
       detalle: { cambios: { materiales: { anterior, nuevo } } } });
-    return aFichaProducto(await exigirProducto(tx, id));
+    return aFichaProducto(await exigirProducto(tx, id), can(actor, "cotizacion:ver"));
   });
 }

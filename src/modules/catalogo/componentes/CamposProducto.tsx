@@ -24,7 +24,7 @@ export function CamposIdentificacion({ formulario }: { formulario: FormularioPro
     </FormField>
   </div>;
 }
-export function CamposCobro({ formulario, categorias }: { formulario: FormularioProducto; categorias: CategoriaDto[] }) {
+export function CamposCobro({ formulario, categorias, puedeVerCosto }: { formulario: FormularioProducto; categorias: CategoriaDto[]; puedeVerCosto: boolean }) {
   const { register, control, formState: { errors } } = formulario;
   return <div className="grid gap-5 sm:grid-cols-2">
     <FormField id="categoriaId" etiqueta="Categoría" requerido error={errors.categoriaId?.message} className="sm:col-span-2">
@@ -41,5 +41,8 @@ export function CamposCobro({ formulario, categorias }: { formulario: Formulario
     <FormField id="precioBase" etiqueta="Precio base (C$)" requerido ayuda="Precio por unidad de cobro. Use punto decimal." error={errors.precioBase?.message}>
       {(atributos) => <Input {...atributos} {...register("precioBase")} inputMode="decimal" />}
     </FormField>
+    {puedeVerCosto ? <FormField id="costoUnitario" etiqueta="Costo de referencia (C$)" ayuda="Opcional, por unidad de cobro. Use punto y hasta 4 decimales." error={errors.costoUnitario?.message}>
+      {(atributos) => <Input {...atributos} {...register("costoUnitario")} inputMode="decimal" />}
+    </FormField> : null}
   </div>;
 }

@@ -37,7 +37,29 @@ describe("cotizaciones: esquemas", () => {
   it("rechazar exige motivo y acepta aprobación o vencimiento", () => {
     expect(esquemaResponder.safeParse({ version: VERSION, resultado: "RECHAZADA", motivo: " " }).success).toBe(false);
     expect(esquemaResponder.parse({ version: VERSION, resultado: "RECHAZADA", motivo: " Precio " }).motivo).toBe("Precio");
-    for (const resultado of ["APROBADA", "VENCIDA"]) expect(esquemaResponder.safeParse({ version: VERSION, resultado }).success).toBe(true);
+    expect(esquemaResponder.safeParse({ version: VERSION, resultado: "VENCIDA" }).success).toBe(true);
+    expect(esquemaResponder.safeParse({ version: VERSION, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente" }).success).toBe(true);
+  });
+
+  it("aprobar exige referencia de 3 a 200 caracteres y elimina espacios exteriores", () => {
+    for (const referenciaAprobacion of [undefined, "  ", "ab", "a".repeat(201)]) {
+      expect(esquemaResponder.safeParse({ version: VERSION, resultado: "APROBADA", referenciaAprobacion }).success).toBe(false);
+    }
+    for (const referenciaAprobacion of ["abc", "a".repeat(200)]) {
+      expect(esquemaResponder.parse({ version: VERSION, resultado: "APROBADA", referenciaAprobacion: ` ${referenciaAprobacion} ` })
+        .referenciaAprobacion).toBe(referenciaAprobacion);
+    }
+  });
+
+  it("solicitar ajustes exige motivo de 3 a 500 caracteres y permite filtrar el estado", () => {
+    for (const motivoAjuste of [undefined, "  ", "ab", "a".repeat(501)]) {
+      expect(esquemaResponder.safeParse({ version: VERSION, resultado: "AJUSTE_SOLICITADO", motivoAjuste }).success).toBe(false);
+    }
+    for (const motivoAjuste of ["abc", "a".repeat(500)]) {
+      expect(esquemaResponder.parse({ version: VERSION, resultado: "AJUSTE_SOLICITADO", motivoAjuste: ` ${motivoAjuste} ` })
+        .motivoAjuste).toBe(motivoAjuste);
+    }
+    expect(esquemaConsultaCotizaciones.parse({ estado: "AJUSTE_SOLICITADO" }).estado).toBe("AJUSTE_SOLICITADO");
   });
 
   it("items aceptan catálogo y personalizado e ignoran sus montos enviados", () => {

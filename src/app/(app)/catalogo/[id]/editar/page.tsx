@@ -12,7 +12,7 @@ import { cargarProducto } from "@/modules/catalogo/paginas";
 export const metadata: Metadata = { title: "Editar producto" };
 export default async function Pagina({ params }: { params: Promise<{ id: string }> }) {
   const actor = await exigirPermisoPagina("catalogo:gestionar");
-  const producto = await cargarProducto((await params).id);
+  const producto = await cargarProducto((await params).id, actor);
   if (!producto.activo) redirect(`/catalogo/${producto.id}`);
   const puedeVerMateriales = can(actor, "inventario:ver");
   const [categorias, materiales] = await Promise.all([
@@ -21,7 +21,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   return <>
     <PageHeader titulo="Editar producto" descripcion={producto.nombre} />
     <div className="flex flex-col gap-8">
-      <FormularioProducto key={`producto-${producto.actualizadoEn}`} producto={producto} categorias={categorias} />
+      <FormularioProducto key={`producto-${producto.actualizadoEn}`} producto={producto} categorias={categorias} puedeVerCosto={can(actor, "cotizacion:ver")} />
       <EditorReceta key={`receta-${producto.actualizadoEn}`} producto={producto} materiales={materiales} puedeVerMateriales={puedeVerMateriales} />
     </div>
   </>;

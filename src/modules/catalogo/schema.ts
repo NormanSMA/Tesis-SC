@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { validarItemCatalogo, validarLinea } from "@/core/costeo";
 
-export const CAMPOS_PRODUCTO = ["codigo", "nombre", "descripcion", "categoriaId", "unidadCobro", "precioBase"] as const;
+export const CAMPOS_PRODUCTO = ["codigo", "nombre", "descripcion", "categoriaId", "unidadCobro", "precioBase", "costoUnitario"] as const;
 export const CAMPOS_CATEGORIA = ["nombre", "descripcion", "activo"] as const;
 export const MENSAJE_VERSION = "Falta la versión. Recargue la página.";
 const version = z.iso.datetime({ offset: true, error: MENSAJE_VERSION });
@@ -23,6 +23,15 @@ const cantidad = z.string({ error: "Ingrese la cantidad como cadena decimal." })
   if (errores.cantidad) contexto.addIssue({ code: "custom", message: errores.cantidad });
 });
 
+const costoUnitario = z.string({ error: "Ingrese el costo como cadena decimal." }).nullable()
+  .transform((valor) => valor?.trim() || null)
+  .pipe(z.string().regex(/^\d{1,10}(\.\d{1,4})?$/, "Ingrese un costo mayor o igual a cero, con hasta 4 decimales.").nullable())
+  .transform((valor) => {
+    if (valor === null) return null;
+    const [entero, decimales = ""] = valor.split(".");
+    return `${entero.replace(/^0+(?=\d)/, "")}.${decimales.padEnd(4, "0")}`;
+  }).optional();
+
 const camposProducto = {
   codigo: textoObligatorio(30, "el código"),
   nombre: textoObligatorio(160, "el nombre del producto"),
@@ -30,6 +39,7 @@ const camposProducto = {
   categoriaId: identificador,
   unidadCobro: z.enum(["UNIDAD", "M2"], { error: "Seleccione Unidad o m²." }),
   precioBase,
+  costoUnitario,
 };
 export const esquemaCrearProducto = z.object(camposProducto);
 export const esquemaEditarProducto = z.strictObject({

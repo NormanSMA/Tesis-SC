@@ -13,7 +13,7 @@ type Perfil = typeof PERFILES[number];
 type Cotizacion = { id: string; asunto: string; actualizadoEn: string; archivada: boolean };
 type Reporte = { filas: Record<string, string | number | null>[]; totales: Record<string, string | number | null> };
 const gerencia = PERFILES.find((perfil) => perfil.codigo === "GERENCIA")!;
-const ventas = PERFILES.find((perfil) => perfil.codigo === "VENTAS")!;
+const ventas = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE")!;
 const perfilesPanel = PERFILES.filter((perfil) => perfil.codigo !== "ADMIN");
 const REPORTES = [
   { nombre: "cotizaciones-por-estado", titulo: "Cotizaciones por estado", encabezado: "Estado", campos: ["estado", "cantidad", "importe"] },
@@ -218,7 +218,7 @@ function registrarReportes() {
   });
 }
 function registrarAccesoYErrores() {
-  for (const perfil of PERFILES.filter((perfil) => ["VENTAS", "PRODUCCION"].includes(perfil.codigo))) {
+  for (const perfil of PERFILES.filter((perfil) => ["ATENCION_CLIENTE", "PRODUCCION"].includes(perfil.codigo))) {
     test(`${perfil.codigo}: sin acceso a Reportes`, async ({ page }) => {
       await entrarComo(page, perfil);
       await expect(page.locator("#menu-principal").getByRole("link", { name: "Reportes", exact: true })).toHaveCount(0);

@@ -8,6 +8,23 @@ const version = "2026-10-06T12:00:00.000Z";
 const producto = { codigo: "P-01", nombre: "Lona", categoriaId: id, unidadCobro: "M2", precioBase: "12.50" };
 
 describe("catálogo: esquemas", () => {
+  it("normaliza el costo opcional con cuatro decimales y preserva su omisión", () => {
+    expect(esquemaCrearProducto.parse(producto)).not.toHaveProperty("costoUnitario");
+    expect(esquemaEditarProducto.parse({ version })).not.toHaveProperty("costoUnitario");
+    for (const costoUnitario of [null, "", "   "]) {
+      expect(esquemaCrearProducto.parse({ ...producto, costoUnitario }).costoUnitario).toBeNull();
+      expect(esquemaEditarProducto.parse({ version, costoUnitario }).costoUnitario).toBeNull();
+    }
+    for (const [entrada, esperado] of [["0", "0.0000"], [" 12.3456 ", "12.3456"], ["1.2", "1.2000"], ["9999999999.9999", "9999999999.9999"]]) {
+      expect(esquemaCrearProducto.parse({ ...producto, costoUnitario: entrada }).costoUnitario).toBe(esperado);
+    }
+  });
+  it.each([12, "-1", "0.00001", "1,5", "1e2", "10000000000", "NaN", "Infinity"])("rechaza costo %s en creación y edición", (costoUnitario) => {
+    for (const resultado of [esquemaCrearProducto.safeParse({ ...producto, costoUnitario }), esquemaEditarProducto.safeParse({ version, costoUnitario })]) {
+      expect(resultado.success).toBe(false);
+      if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["costoUnitario"]);
+    }
+  });
   it("normaliza espacios y descripción vacía", () => {
     expect(esquemaCrearProducto.parse({ ...producto, codigo: " P-01 ", nombre: " Lona ", descripcion: " " }))
       .toMatchObject({ codigo: "P-01", nombre: "Lona", descripcion: null });

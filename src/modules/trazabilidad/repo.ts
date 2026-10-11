@@ -9,6 +9,9 @@ export const incluirEventos = {
   cotizacion: { select: { id: true, numero: true, cliente: { select: persona }, orden: { select: { id: true, numero: true } } } },
 } satisfies Prisma.BitacoraInclude;
 export type EventoGuardado = Prisma.BitacoraGetPayload<{ include: typeof incluirEventos }>;
+const incluirHistorialEtapa = { usuario: { select: persona }, responsable: { select: persona },
+  etapa: { select: { id: true, nombre: true } } } satisfies Prisma.HistorialEtapaInclude;
+export type HistorialEtapaGuardado = Prisma.HistorialEtapaGetPayload<{ include: typeof incluirHistorialEtapa }>;
 const incluirCadena = { cotizacion: { include: { cliente: true } }, responsable: { select: persona },
   creadoPor: { select: persona }, etapas: { orderBy: { secuencia: "asc" as const },
     include: { area: { select: persona }, responsable: { select: persona } } } };
@@ -20,6 +23,10 @@ export function buscarCadena(tx: Tx, id: string) {
 export function consultarEventosOrden(tx: Tx, orden: CadenaGuardada) {
   return tx.bitacora.findMany({ where: { OR: [{ ordenId: orden.id }, { cotizacionId: orden.cotizacionId }] },
     include: incluirEventos, orderBy: [{ creadoEn: "asc" }, { id: "asc" }] });
+}
+export function consultarHistorialEtapas(tx: Tx, ordenId: string) {
+  return tx.historialEtapa.findMany({ where: { ordenId }, include: incluirHistorialEtapa,
+    orderBy: [{ creadoEn: "asc" }, { id: "asc" }] });
 }
 
 async function registrosPorTexto(tx: Tx, texto: Prisma.StringFilter) {

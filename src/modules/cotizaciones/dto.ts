@@ -14,13 +14,17 @@ export function aTotalesDto(cotizacion: Cotizacion) {
     total: cotizacion.total.toFixed(2), margenPct: cotizacion.margenPct?.toFixed(2) ?? null };
 }
 
-export function aCotizacionFila(fila: Cotizacion & { cliente: Cliente }): CotizacionFila {
+export function aCotizacionFila(fila: Cotizacion & {
+  cliente: Cliente; usuarioAprobacion: { id: string; nombre: string } | null;
+}): CotizacionFila {
   return { ...aTotalesDto(fila), id: fila.id, numero: fila.numero, clienteId: fila.clienteId,
     cliente: aClienteDto(fila.cliente), estado: fila.estado, asunto: fila.asunto, condiciones: fila.condiciones,
     cotizacionOrigenId: fila.cotizacionOrigenId, moneda: fila.moneda, vigenciaDias: fila.vigenciaDias,
     fechaEmision: fila.fechaEmision?.toISOString().slice(0, 10) ?? null,
     fechaVencimiento: fila.fechaVencimiento?.toISOString().slice(0, 10) ?? null,
     fechaRespuesta: fila.fechaRespuesta?.toISOString() ?? null, motivoRechazo: fila.motivoRechazo,
+    version: fila.version, motivoAjuste: fila.motivoAjuste, referenciaAprobacion: fila.referenciaAprobacion,
+    usuarioAprobacionId: fila.usuarioAprobacionId, usuarioAprobacion: fila.usuarioAprobacion,
     archivada: fila.archivada, creadoEn: fila.creadoEn.toISOString(), actualizadoEn: fila.actualizadoEn.toISOString() };
 }
 

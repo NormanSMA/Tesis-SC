@@ -12,6 +12,7 @@ export type UsuarioSesion = {
   nombre: string;
   correo: string;
   perfil: PerfilCodigo;
+  perfiles: PerfilCodigo[];
   permisos: string[];
 };
 

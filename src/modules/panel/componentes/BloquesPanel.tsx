@@ -63,7 +63,7 @@ export function CargaPanel({ datos }: { datos: NonNullable<PanelDto["carga"]> })
       <GruposCarga titulo="Por área" grupos={datos.porArea} /></div>
     <h3 className="font-semibold">Entregas próximas</h3>{datos.entregas.length ? <ul className="space-y-2">{datos.entregas.map((fila) =>
       <li key={fila.href} className="break-words"><Link href={fila.href} className="inline-flex min-h-11 items-center text-primary underline">{fila.numero}</Link>
-        <span className="ml-2">{formatearFecha(fila.fechaEntrega)}. {fila.estado}.</span></li>)}</ul>
+        <span className="ml-2">{formatearFecha(fila.fechaEntrega)}. {fila.estado}. {fila.responsable}.</span></li>)}</ul>
       : <p className="text-sm text-muted-foreground">Sin entregas en los siguientes 7 días.</p>}
   </Bloque>;
 }

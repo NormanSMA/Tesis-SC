@@ -13,6 +13,7 @@ const incluirCotizacion = {
   } },
 };
 const incluirLista = {
+  cliente: true,
   cotizacion: { include: { cliente: true } }, categoria: { select: { id: true, nombre: true } },
   responsable: { select: { id: true, nombre: true } },
 };
@@ -43,12 +44,12 @@ function filtroLista(consulta: ConsultaOrdenes): Prisma.OrdenTrabajoWhereInput {
   const condiciones: Prisma.OrdenTrabajoWhereInput[] = [];
   if (consulta.terminales !== "todas") condiciones.push({ estado: consulta.terminales === "true" ? { in: TERMINALES } : { notIn: TERMINALES } });
   if (consulta.estado) condiciones.push({ estado: consulta.estado });
-  if (consulta.responsable) condiciones.push({ responsableId: consulta.responsable });
-  if (consulta.cliente) condiciones.push({ cotizacion: { clienteId: consulta.cliente } });
+  if (consulta.responsable) condiciones.push({ responsableId: consulta.responsable === "sin-responsable" ? null : consulta.responsable });
+  if (consulta.cliente) condiciones.push({ clienteId: consulta.cliente });
   if (consulta.vencidas === "true") condiciones.push({ fechaEntrega: { lt: new Date(hoyManagua()) }, estado: { notIn: TERMINALES } });
   if (consulta.q) {
     const texto = { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
-    condiciones.push({ OR: [{ numero: texto }, { cotizacion: { asunto: texto } }, { cotizacion: { cliente: { nombre: texto } } }] });
+    condiciones.push({ OR: [{ numero: texto }, { cotizacion: { asunto: texto } }, { cliente: { nombre: texto } }] });
   }
   return { AND: condiciones };
 }
@@ -64,7 +65,7 @@ export async function consultarOrdenes(consulta: ConsultaOrdenes) {
 }
 
 export type CambiosOrden = {
-  responsableId?: string; fechaEntrega?: Date; especificaciones?: string | null;
+  responsableId?: string | null; fechaEntrega?: Date; especificaciones?: string | null;
   estado?: string; fechaInicioReal?: Date; fechaEntregaReal?: Date; fechaCierre?: Date; motivoCancelacion?: string;
 };
 const COLUMNAS = { responsableId: "responsable_id", fechaEntrega: "fecha_entrega", especificaciones: "especificaciones",
@@ -75,6 +76,7 @@ export async function actualizarCondicionado(tx: Tx, condicion: CondicionEscritu
   if (cambios.estado === "EN_PRODUCCION") cambios = { ...cambios, fechaInicioReal: cambios.fechaInicioReal ?? new Date() };
   const asignaciones = Object.entries(cambios).filter(([, valor]) => valor !== undefined).map(([campo, valor]) => {
     const columna = Prisma.raw(COLUMNAS[campo as keyof CambiosOrden]);
+    if (campo === "responsableId") return Prisma.sql`${columna} = ${valor}::uuid`;
     if (campo === "fechaInicioReal") return Prisma.sql`${columna} = COALESCE(fecha_inicio_real, ${valor})`;
     return campo === "estado" ? Prisma.sql`${columna} = ${valor}::estado_orden` : Prisma.sql`${columna} = ${valor}`;
   });
@@ -95,7 +97,7 @@ export async function siguienteNumero(tx: Tx): Promise<string> {
 }
 
 export function consultarResponsables(tx: Tx = prisma) {
-  return tx.usuario.findMany({ where: { activo: true, perfil: { codigo: "PRODUCCION" } },
+  return tx.usuario.findMany({ where: { activo: true, perfiles: { some: { perfil: { codigo: "PRODUCCION" } } } },
     select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] });
 }
 

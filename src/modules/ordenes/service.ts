@@ -24,12 +24,15 @@ export async function listarOrdenes(consulta: ConsultaOrdenes, actor: Actor): Pr
 }
 
 export async function opcionesOrden(actor: Actor): Promise<OpcionesOrden> {
-  if (!can(actor, "orden:crear")) exigir(actor, "orden:gestionar");
+  if (!can(actor, "orden:crear") && !can(actor, "orden:gestionar")) exigir(actor, "produccion:planificar");
   return consultarOpciones();
 }
 
 export async function editarOrden(id: string, entrada: EntradaEditarOrden, actor: Actor) {
-  exigir(actor, "orden:gestionar");
+  if (!can(actor, "orden:gestionar")) {
+    exigir(actor, "produccion:planificar");
+    if (entrada.fechaEntrega !== undefined || entrada.especificaciones !== undefined) exigir(actor, "orden:gestionar");
+  }
   return transaccionOrden(async (tx) => {
     // El bloqueo permite confirmar un PATCH sin cambios sin adelantar su versión.
     await tx.$queryRaw`SELECT id FROM orden_trabajo WHERE id = ${id}::uuid FOR UPDATE`;
@@ -41,7 +44,7 @@ export async function editarOrden(id: string, entrada: EntradaEditarOrden, actor
     if (cambios.fechaEntrega) validarFechaEntrega(cambios.fechaEntrega);
     if (cambios.responsableId) await validarResponsable(tx, cambios.responsableId);
     await guardarCambios(tx, actual, { ...cambios, fechaEntrega: cambios.fechaEntrega ? new Date(cambios.fechaEntrega) : undefined });
-    if (cambios.responsableId) await registrarCambio(tx, { ordenId: id, actor, accion: "ASIGNAR_RESPONSABLE",
+    if (cambios.responsableId !== undefined) await registrarCambio(tx, { ordenId: id, actor, accion: "ASIGNAR_RESPONSABLE",
       detalle: { responsableId: { anterior: actual.responsableId, nuevo: cambios.responsableId } } });
     const detalle: Record<string, Prisma.InputJsonValue> = {};
     if (cambios.fechaEntrega) detalle.fechaEntrega = { anterior: actual.fechaEntrega.toISOString().slice(0, 10), nuevo: cambios.fechaEntrega };

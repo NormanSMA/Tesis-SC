@@ -6,7 +6,9 @@ export type Actor = {
   id: string;
   nombre: string;
   correo: string;
+  // Perfil principal (primero según PERFILES) y todos los perfiles del usuario.
   perfil: PerfilCodigo;
+  perfiles: readonly PerfilCodigo[];
   permisos: readonly string[];
 };
 

@@ -2,6 +2,7 @@ import type { TipoCliente } from "./schema";
 
 export type ClienteDto = {
   id: string;
+  codigoCliente: string;
   nombre: string;
   tipo: TipoCliente;
   ruc: string | null;
@@ -18,7 +19,7 @@ export type ClienteDto = {
 
 export type ClienteFila = Pick<
   ClienteDto,
-  "id" | "nombre" | "tipo" | "ruc" | "contactoPrincipal" | "telefono" | "correo" | "activo"
+  "id" | "codigoCliente" | "nombre" | "tipo" | "ruc" | "contactoPrincipal" | "telefono" | "correo" | "activo"
 > & {
   /** Solo viaja si el actor tiene cotizacion:ver. */
   cotizaciones?: number;

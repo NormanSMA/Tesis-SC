@@ -17,8 +17,9 @@ export const ENTIDAD_TEXTO: Record<EntidadBitacora, string> = {
   CONFIGURACION: "Configuración",
 };
 const OTROS: Record<string, string> = { ACTIVO: "Activo", ARCHIVADO: "Archivado", INACTIVO: "Inactivo",
-  EMPRESA: "Empresa", PERSONA: "Persona", INSTITUCION: "Institución", GERENCIA: "Gerencia", VENTAS: "Ventas",
-  PRODUCCION: "Producción", ADMIN: "Administración", ENTRADA: "Entrada", CONSUMO: "Consumo",
+  EMPRESA: "Empresa", PERSONA: "Persona", INSTITUCION: "Institución", GERENCIA: "Gerencia", VENTAS: "Ventas", ATENCION_CLIENTE: "Atención al cliente", ADMINISTRACION: "Administración",
+  OPERACIONES: "Operaciones",
+  PRODUCCION: "Producción", ADMIN: "Administración técnica", ENTRADA: "Entrada", CONSUMO: "Consumo",
   DEVOLUCION: "Devolución", AJUSTE: "Ajuste", CATALOGO: "Catálogo", PERSONALIZADO: "Personalizado",
   MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Tercero" };
 

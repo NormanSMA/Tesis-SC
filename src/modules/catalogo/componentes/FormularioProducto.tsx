@@ -11,7 +11,7 @@ import type { CategoriaDto, ProductoDto } from "../tipos";
 import { useFormularioProducto, useHidratado } from "../useFormularioProducto";
 import { CamposCobro, CamposIdentificacion } from "./CamposProducto";
 
-export function FormularioProducto({ producto, categorias }: { producto?: ProductoDto; categorias: CategoriaDto[] }) {
+export function FormularioProducto({ producto, categorias, puedeVerCosto }: { producto?: ProductoDto; categorias: CategoriaDto[]; puedeVerCosto: boolean }) {
   const { formulario, enviar, enviando, error, conflicto, recargar } = useFormularioProducto(producto);
   const hidratado = useHidratado();
   return <form noValidate onSubmit={enviar} aria-label={producto ? "Editar producto" : "Nuevo producto"} className="flex max-w-3xl flex-col gap-5">
@@ -24,7 +24,7 @@ export function FormularioProducto({ producto, categorias }: { producto?: Produc
         <CardContent><CamposIdentificacion formulario={formulario} /></CardContent>
       </Card>
       <Card><CardHeader><CardTitle><h2>Categoría y cobro</h2></CardTitle></CardHeader>
-        <CardContent><CamposCobro formulario={formulario} categorias={categorias} /></CardContent>
+        <CardContent><CamposCobro formulario={formulario} categorias={categorias} puedeVerCosto={puedeVerCosto} /></CardContent>
       </Card>
       <div className="flex flex-wrap gap-3">
         <Button type="submit">{enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}{producto ? "Guardar cambios" : "Guardar producto"}</Button>

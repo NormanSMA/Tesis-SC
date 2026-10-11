@@ -10,12 +10,15 @@ describeConBase("permisos del rol sc_app", () => {
 
   beforeAll(async () => {
     const perfil = await propietario.perfil.upsert({
-      where: { codigo: "VENTAS" },
+      where: { codigo: "ATENCION_CLIENTE" },
       update: {},
-      create: { codigo: "VENTAS", nombre: "Ventas" },
+      create: { codigo: "ATENCION_CLIENTE", nombre: "Atención al cliente" },
     });
     const usuario = await propietario.usuario.create({
-      data: { nombre: "Rol de prueba", correo: `rol-${randomUUID()}@example.com`, hashContrasena: "hash", perfilId: perfil.id },
+      data: {
+        nombre: "Rol de prueba", correo: `rol-${randomUUID()}@example.com`, hashContrasena: "hash",
+        perfiles: { create: { perfilId: perfil.id } },
+      },
     });
     usuarioId = usuario.id;
     eventoId = (

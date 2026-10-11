@@ -1,5 +1,5 @@
 import type { Actor } from "@/core/autorizacion";
-import type { Prisma } from "@/generated/prisma/client";
+import type { EstadoEtapa, Prisma } from "@/generated/prisma/client";
 import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
 import { exigirVersion, noEncontrado, traducirError } from "./errores";
@@ -20,10 +20,15 @@ export async function tomarEtapa(tx: Tx, datos: { id: string; version: string })
   exigirVersion(etapa, datos.version);
   return { orden, etapa };
 }
-type EventoEtapa = { etapa: Pick<EtapaGuardada, "id" | "ordenId">; actor: Actor;
+type EventoEtapa = { etapa: Pick<EtapaGuardada, "id" | "ordenId" | "estado" | "responsableId">; actor: Actor;
   accion: "CREAR" | "CAMBIAR_ESTADO" | "ASIGNAR_RESPONSABLE" | "EDITAR";
-  estadoAnterior?: string; estadoNuevo?: string; detalle?: Prisma.InputJsonObject };
-export function registrarEtapa(tx: Tx, datos: EventoEtapa) {
+  estadoAnterior?: EstadoEtapa; estadoNuevo?: EstadoEtapa; detalle?: Prisma.InputJsonObject };
+export async function registrarEtapa(tx: Tx, datos: EventoEtapa) {
+  if (datos.accion !== "EDITAR") await tx.historialEtapa.create({ data: {
+    ordenId: datos.etapa.ordenId, etapaId: datos.etapa.id, usuarioId: datos.actor.id,
+    estadoAnterior: datos.accion === "CREAR" ? null : datos.estadoAnterior ?? datos.etapa.estado,
+    estadoNuevo: datos.estadoNuevo ?? datos.etapa.estado, responsableId: datos.etapa.responsableId,
+  } });
   return registrarEvento(tx, { entidad: "ETAPA_ORDEN", entidadId: datos.etapa.id, ordenId: datos.etapa.ordenId,
     actorId: datos.actor.id, accion: datos.accion, estadoAnterior: datos.estadoAnterior,
     estadoNuevo: datos.estadoNuevo, detalle: datos.detalle });

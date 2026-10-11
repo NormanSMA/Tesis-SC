@@ -10,9 +10,11 @@ import { crearAprobada, crearOrden, entradaConversion, invocar, leerOrden, poner
 type Operacion = "listar" | "crear" | "ver" | "editar" | "entregar" | "cerrar" | "cancelar" | "opciones";
 const OPERACIONES: Operacion[] = ["listar", "crear", "ver", "editar", "entregar", "cerrar", "cancelar", "opciones"];
 const ESPERADO: Record<PerfilCodigo, Record<Operacion, number>> = {
-  GERENCIA: { listar: 200, crear: 403, ver: 200, editar: 200, entregar: 403, cerrar: 200, cancelar: 200, opciones: 200 },
-  VENTAS: { listar: 200, crear: 201, ver: 200, editar: 200, entregar: 200, cerrar: 200, cancelar: 403, opciones: 200 },
-  PRODUCCION: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 200, cerrar: 403, cancelar: 403, opciones: 403 },
+  GERENCIA: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
+  ADMINISTRACION: { listar: 200, crear: 403, ver: 200, editar: 200, entregar: 403, cerrar: 403, cancelar: 403, opciones: 200 },
+  OPERACIONES: { listar: 200, crear: 201, ver: 200, editar: 200, entregar: 200, cerrar: 200, cancelar: 200, opciones: 200 },
+  ATENCION_CLIENTE: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 200, cerrar: 200, cancelar: 403, opciones: 403 },
+  PRODUCCION: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
   ADMIN: { listar: 403, crear: 403, ver: 403, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
 };
 
@@ -85,28 +87,60 @@ describeConBase("órdenes: API por perfil", () => {
     expect((await ejecutar("ver", entorno.sesiones.PRODUCCION.cookie, orden)).status).toBe(200);
   });
 
-  it("opciones acepta gestionar o crear y rechaza cuando faltan ambos", async () => {
+  it("opciones acepta gestionar, crear o planificar y rechaza cuando faltan los tres", async () => {
     const orden = await destino("ver");
-    await conPermisoRevocado(db, { perfil: "VENTAS", permiso: "orden:gestionar" }, async () => {
-      expect((await ejecutar("opciones", entorno.sesiones.VENTAS.cookie, orden)).status).toBe(200);
-      await conPermisoRevocado(db, { perfil: "VENTAS", permiso: "orden:crear" }, async () => {
-        expect((await ejecutar("opciones", entorno.sesiones.VENTAS.cookie, orden)).status).toBe(403);
+    await conPermisoRevocado(db, { perfil: "OPERACIONES", permiso: "orden:gestionar" }, async () => {
+      expect((await ejecutar("opciones", entorno.sesiones.OPERACIONES.cookie, orden)).status).toBe(200);
+      await conPermisoRevocado(db, { perfil: "OPERACIONES", permiso: "orden:crear" }, async () => {
+        expect((await ejecutar("opciones", entorno.sesiones.OPERACIONES.cookie, orden)).status).toBe(200);
+        await conPermisoRevocado(db, { perfil: "OPERACIONES", permiso: "produccion:planificar" }, async () => {
+          expect((await ejecutar("opciones", entorno.sesiones.OPERACIONES.cookie, orden)).status).toBe(403);
+        });
       });
     });
   });
+
+  for (const perfil of ["OPERACIONES", "ADMINISTRACION"] as const) {
+    it(`${perfil} asigna desde nulo con planificar cuando gestionar está revocado`, async () => {
+      const orden = await crearOrden(entorno, { responsableId: null });
+      const ruta = `/api/v1/ordenes/${orden.id}`;
+      const cookie = entorno.sesiones[perfil].cookie;
+      await conPermisoRevocado(db, { perfil, permiso: "orden:gestionar" }, async () => {
+        const respuesta = await invocar<OrdenDto>(entorno.modulos.ficha.PATCH, peticion("PATCH", ruta, {
+          cookie, cuerpo: { version: orden.actualizadoEn, responsableId: entorno.sesiones.PRODUCCION.usuarioId },
+        }), orden.id);
+        expect(respuesta.status).toBe(200);
+        expect(respuesta.datos.responsable?.id).toBe(entorno.sesiones.PRODUCCION.usuarioId);
+        expect(respuesta.datos.eventos.find((evento) => evento.accion === "ASIGNAR_RESPONSABLE")?.detalle)
+          .toEqual({ responsableId: { anterior: null, nuevo: entorno.sesiones.PRODUCCION.usuarioId } });
+        const cabecera = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", ruta, {
+          cookie, cuerpo: { version: respuesta.datos.actualizadoEn, fechaEntrega: "2099-12-31" },
+        }), orden.id);
+        expect(cabecera.status).toBe(403);
+        await conPermisoRevocado(db, { perfil, permiso: "produccion:planificar" }, async () => {
+          const rechazada = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", ruta, {
+            cookie, cuerpo: { version: respuesta.datos.actualizadoEn, responsableId: null },
+          }), orden.id);
+          expect(rechazada.status).toBe(403);
+        });
+        const lectura = await invocar<OrdenDto>(entorno.modulos.ficha.GET, peticion("GET", ruta, { cookie }), orden.id);
+        expect(lectura.datos).toEqual(respuesta.datos);
+      });
+    });
+  }
 
   it("cada escritura sobre orden exige versión con 422", async () => {
     const orden = await destino("ver");
     const rutas = [entorno.modulos.ficha.PATCH, entorno.modulos.entregar.POST, entorno.modulos.cerrar.POST, entorno.modulos.cancelar.POST];
     for (const ruta of rutas) {
       const respuesta = await invocar(ruta, peticion(ruta === entorno.modulos.ficha.PATCH ? "PATCH" : "POST", `/api/v1/ordenes/${orden.id}`, {
-        cookie: entorno.sesiones.GERENCIA.cookie, cuerpo: { motivo: "Motivo de prueba" },
+        cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { motivo: "Motivo de prueba" },
       }), orden.id);
-      if (ruta === entorno.modulos.entregar.POST) expect(respuesta.status).toBe(403);
-      else { expect(respuesta.status).toBe(422); expect(respuesta.error?.campos?.version).toBeTruthy(); }
+      expect(respuesta.status).toBe(422);
+      expect(respuesta.error?.campos?.version).toBeTruthy();
     }
     const entrega = await invocar(entorno.modulos.entregar.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/entregar`, {
-      cookie: entorno.sesiones.VENTAS.cookie, cuerpo: {},
+      cookie: entorno.sesiones.ATENCION_CLIENTE.cookie, cuerpo: {},
     }), orden.id);
     expect(entrega.status).toBe(422);
     expect(entrega.error?.campos?.version).toBeTruthy();
@@ -122,7 +156,7 @@ describeConBase("órdenes: API por perfil", () => {
 
   it("convertir una cotización inexistente responde 404", async () => {
     const respuesta = await invocar(entorno.modulos.lista.POST, peticion("POST", "/api/v1/ordenes", {
-      cookie: entorno.sesiones.VENTAS.cookie, cuerpo: entradaConversion(entorno, randomUUID()),
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: entradaConversion(entorno, randomUUID()),
     }));
     expect(respuesta.status).toBe(404);
     expect(respuesta.error?.codigo).toBe("NO_ENCONTRADO");
@@ -131,11 +165,11 @@ describeConBase("órdenes: API por perfil", () => {
   it("versión vieja y transición inválida responden 409", async () => {
     const orden = await destino("ver");
     const vieja = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", `/api/v1/ordenes/${orden.id}`, {
-      cookie: entorno.sesiones.VENTAS.cookie, cuerpo: { version: "2000-01-01T00:00:00.000Z", especificaciones: "Cambio viejo" },
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { version: "2000-01-01T00:00:00.000Z", especificaciones: "Cambio viejo" },
     }), orden.id);
     expect(vieja.status).toBe(409);
     expect(vieja.error?.codigo).toBe("CONFLICTO_EDICION");
-    const transicion = await ejecutar("entregar", entorno.sesiones.VENTAS.cookie, orden);
+    const transicion = await ejecutar("entregar", entorno.sesiones.ATENCION_CLIENTE.cookie, orden);
     expect(transicion.status).toBe(409);
     expect(transicion.error?.codigo).toBe("TRANSICION_INVALIDA");
   });
@@ -143,7 +177,7 @@ describeConBase("órdenes: API por perfil", () => {
   it("doble conversión devuelve 409 y el número de orden existente", async () => {
     const orden = await destino("ver");
     const respuesta = await invocar(entorno.modulos.lista.POST, peticion("POST", "/api/v1/ordenes", {
-      cookie: entorno.sesiones.VENTAS.cookie, cuerpo: entradaConversion(entorno, orden.cotizacion.id),
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: entradaConversion(entorno, orden.cotizacion.id),
     }));
     expect(respuesta.status).toBe(409);
     expect(respuesta.error?.codigo).toBe("ORDEN_EXISTENTE");
@@ -153,13 +187,13 @@ describeConBase("órdenes: API por perfil", () => {
   it("rechaza fecha inválida, motivo corto, identificadores y filtros con 422", async () => {
     const orden = await destino("ver");
     const cambio = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", `/api/v1/ordenes/${orden.id}`, {
-      cookie: entorno.sesiones.VENTAS.cookie, cuerpo: { version: orden.actualizadoEn, fechaEntrega: "2026-02-30", responsableId: "inválido" },
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { version: orden.actualizadoEn, fechaEntrega: "2026-02-30", responsableId: "inválido" },
     }), orden.id);
     expect(cambio.status).toBe(422);
     expect(cambio.error?.campos?.fechaEntrega).toBeTruthy();
     expect(cambio.error?.campos?.responsableId).toBeTruthy();
     const motivo = await invocar(entorno.modulos.cancelar.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/cancelar`, {
-      cookie: entorno.sesiones.GERENCIA.cookie, cuerpo: { version: orden.actualizadoEn, motivo: "no" },
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { version: orden.actualizadoEn, motivo: "no" },
     }), orden.id);
     expect(motivo.status).toBe(422);
     const filtro = await invocar(entorno.modulos.lista.GET, peticion("GET", "/api/v1/ordenes?pagina=0&estado=AVANZADA", { cookie: entorno.sesiones.PRODUCCION.cookie }));
@@ -168,12 +202,12 @@ describeConBase("órdenes: API por perfil", () => {
 
   it("JSON inválido responde 400 y origen ajeno responde 403", async () => {
     const req = new Request("http://localhost/api/v1/ordenes", { method: "POST", headers: {
-      origin: "http://localhost", cookie: entorno.sesiones.VENTAS.cookie,
+      origin: "http://localhost", cookie: entorno.sesiones.OPERACIONES.cookie,
     }, body: "{json inválido" });
     expect((await invocar(entorno.modulos.lista.POST, req)).status).toBe(400);
     const cotizacion = await crearAprobada(entorno);
     expect((await invocar(entorno.modulos.lista.POST, peticion("POST", "/api/v1/ordenes", {
-      cookie: entorno.sesiones.VENTAS.cookie, origen: "http://otro.example", cuerpo: entradaConversion(entorno, cotizacion.id),
+      cookie: entorno.sesiones.OPERACIONES.cookie, origen: "http://otro.example", cuerpo: entradaConversion(entorno, cotizacion.id),
     }))).status).toBe(403);
     expect(await db.ordenTrabajo.count({ where: { cotizacionId: cotizacion.id } })).toBe(0);
   });

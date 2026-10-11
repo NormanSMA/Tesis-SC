@@ -25,7 +25,8 @@ export function FiltrosCotizaciones({ consulta, clientes }: {
       {(atributos) => <Input {...atributos} name="q" type="search" defaultValue={consulta.q ?? ""} placeholder="Número, cliente o asunto" />}
     </FormField>
     <FiltroSeleccion nombre="estado" etiqueta="Estado" valor={consulta.estado}
-      opciones={[{ id: "__todos__", nombre: "Todos" }, ...ESTADOS.map((id) => ({ id, nombre: id[0] + id.slice(1).toLowerCase() }))]} />
+      opciones={[{ id: "__todos__", nombre: "Todos" }, ...ESTADOS.map((id) => ({ id,
+        nombre: id === "AJUSTE_SOLICITADO" ? "Ajustes solicitados" : id[0] + id.slice(1).toLowerCase() }))]} />
     <FiltroSeleccion nombre="cliente" etiqueta="Cliente" valor={consulta.cliente}
       opciones={[{ id: "__todos__", nombre: "Todos" }, ...clientes]} />
     <FiltroSeleccion nombre="archivadas" etiqueta="Archivo" valor={consulta.archivadas}

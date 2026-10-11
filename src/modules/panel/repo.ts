@@ -38,8 +38,10 @@ export async function consultarMaterialesPanel() {
 }
 export async function consultarOperacion(hoy: string) {
   const ordenes = await prisma.ordenTrabajo.findMany({ where: { estado: { notIn: TERMINALES } },
-    orderBy: [{ fechaEntrega: "asc" }, { id: "asc" }], select: { id: true, numero: true, estado: true, fechaEntrega: true } });
+    orderBy: [{ fechaEntrega: "asc" }, { id: "asc" }], select: { id: true, numero: true, estado: true, fechaEntrega: true,
+      responsable: { select: { nombre: true } } } });
   const filas = ordenes.map((orden) => ({ numero: orden.numero, estado: textoEstado(orden.estado)!,
+    responsable: orden.responsable?.nombre ?? "Sin responsable",
     fechaEntrega: orden.fechaEntrega.toISOString().slice(0, 10), href: `/ordenes/${orden.id}`,
     atrasada: estaAtrasada({ estado: orden.estado, fechaEntrega: orden.fechaEntrega.toISOString().slice(0, 10) }, hoy) }));
   const limite = sumarDias(hoy, 7).toISOString().slice(0, 10);

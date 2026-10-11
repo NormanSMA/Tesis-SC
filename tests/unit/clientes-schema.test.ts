@@ -155,6 +155,12 @@ describe("esquemaCrearCliente: medio de contacto", () => {
 });
 
 describe("esquemaEditarCliente", () => {
+  it("descarta el código al crear y rechaza modificar el código asignado", () => {
+    const resultado = crear({ codigoCliente: "CLI-9999" });
+    expect(resultado.success).toBe(true);
+    if (resultado.success) expect(resultado.data).not.toHaveProperty("codigoCliente");
+    expect(camposConError(editar({ codigoCliente: "CLI-9999" }))).toEqual(["codigoCliente"]);
+  });
   it("exige la versión", () => {
     const resultado = esquemaEditarCliente.safeParse({ nombre: "Nuevo" });
     expect(camposConError(resultado)).toEqual(["version"]);

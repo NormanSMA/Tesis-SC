@@ -3,6 +3,7 @@ import type { Tx } from "@/lib/db";
 import { esquemaConsultaBitacora } from "@/modules/trazabilidad/schema";
 import { liberarClienteGlobal } from "../helpers/auth";
 import { crearClienteApp, crearClientePropietario, describeConBase } from "../helpers/db";
+import { abrirSesion } from "./cotizaciones-ayudas";
 import { crearTrabajo, comprobarSinCliente, comprobarSinDinero, inyectarDetalle, libroConCostos,
   prepararTrazabilidad, type EntornoTrazabilidad } from "./trazabilidad-ayudas";
 
@@ -11,6 +12,7 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
   const app = crearClienteApp();
   let entorno: EntornoTrazabilidad;
   beforeAll(async () => { entorno = await prepararTrazabilidad(db); });
+  const sesionDe = (perfil: "ADMINISTRACION" | "OPERACIONES") => abrirSesion(db, entorno.produccion.ordenes.cotizaciones.modulos, perfil);
   afterAll(async () => { await liberarClienteGlobal(); await Promise.all([db.$disconnect(), app.$disconnect()]); });
 
   it("concilia varios materiales con devolución y costo promedio cambiante contra SQL numeric", async () => {
@@ -43,7 +45,7 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
     expect(traza.cadena.cotizacion.href).toBeNull(); expect(traza.cadena.cliente.href).toBeNull();
     expect(traza.eventos.some((fila) => fila.resumen.includes("Detalle visible"))).toBe(true);
   });
-  it("Administración consulta la bitácora global sin dinero ni datos del cliente", async () => {
+  it("ADMIN consulta la bitácora global sin dinero ni datos del cliente", async () => {
     const { orden } = await libroConCostos(entorno);
     await inyectarDetalle(entorno, orden.id);
     const lista = await entorno.servicio.listarBitacora(esquemaConsultaBitacora.parse({ orden: orden.numero, porPagina: 100 }), entorno.sesiones.ADMIN.actor);
@@ -52,14 +54,24 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
     expect(JSON.stringify(lista)).not.toMatch(/98765|34567|RUC_PRIVADO|DIRECCION_PRIVADA|NO_MOSTRAR/);
     expect(lista.datos.every((fila) => fila.registro.href === null)).toBe(true);
   });
-  it.each(["VENTAS", "GERENCIA"] as const)("%s recibe costos exactos y datos permitidos del cliente", async (perfil) => {
+  it.each(["ATENCION_CLIENTE", "GERENCIA", "OPERACIONES"] as const)("%s recibe costos exactos y datos permitidos del cliente", async (perfil) => {
     const { orden } = await libroConCostos(entorno);
     await db.cliente.update({ where: { id: orden.cliente.id }, data: { direccion: "Dirección permitida" } });
-    const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones[perfil].actor);
+    const actor = perfil === "OPERACIONES" ? (await sesionDe(perfil)).actor : entorno.sesiones[perfil].actor;
+    const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, actor);
     expect(traza.costoRealTotal).toMatch(/^\d+\.\d{7}$/);
     expect(traza.cadena.cotizacion.total).toBe(orden.cotizacion.total);
     expect(traza.cadena.cliente.direccion).toBe("Dirección permitida");
     expect(traza.eventos.some((evento) => "costoUnitario" in evento.detalle)).toBe(true);
+  });
+  it("ADMINISTRACION recibe costos exactos pero no RUC ni dirección del cliente", async () => {
+    const { orden } = await libroConCostos(entorno);
+    await db.cliente.update({ where: { id: orden.cliente.id }, data: { ruc: `ADM${Date.now()}`, direccion: "DIRECCION_PRIVADA" } });
+    const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, (await sesionDe("ADMINISTRACION")).actor);
+    expect(traza.costoRealTotal).toMatch(/^\d+\.\d{7}$/);
+    expect(traza.cadena.cotizacion.total).toBe(orden.cotizacion.total);
+    comprobarSinCliente(traza); expect(JSON.stringify(traza)).not.toContain("DIRECCION_PRIVADA");
+    expect(traza.cadena.cliente.href).toBeNull();
   });
   it("cliente:ver se controla independientemente de cotizacion:ver", async () => {
     const orden = await crearTrabajo(entorno);

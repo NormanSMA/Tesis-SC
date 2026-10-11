@@ -10,10 +10,26 @@
   {
     "nombre": "Valentina Castro",
     "correo": "valentina.castro@solucionescreativas.test",
-    "perfil": "VENTAS",
-    "cargo": "Atención al cliente y ventas",
+    "perfil": "ATENCION_CLIENTE",
+    "cargo": "Atención al cliente",
     "area": null,
     "clave": "ventas"
+  },
+  {
+    "nombre": "Karla Reyes",
+    "correo": "karla.reyes@solucionescreativas.test",
+    "perfil": "OPERACIONES",
+    "cargo": "Jefa de operaciones",
+    "area": null,
+    "clave": "operaciones"
+  },
+  {
+    "nombre": "Luis Mendoza",
+    "correo": "luis.mendoza@solucionescreativas.test",
+    "perfil": "ADMINISTRACION",
+    "cargo": "Administración y bodega",
+    "area": null,
+    "clave": "administracion"
   },
   {
     "nombre": "Roberto Díaz",

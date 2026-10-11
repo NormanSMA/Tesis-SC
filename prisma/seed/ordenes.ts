@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { Prisma } from "../../src/generated/prisma/client";
+import type { EstadoEtapa, Prisma } from "../../src/generated/prisma/client";
 import { registrar } from "./bitacora";
 import type { CotizacionSembrada } from "./cotizaciones";
 import { calcularConsumoEstimado } from "./estimado";
@@ -39,17 +39,18 @@ function especificaciones(cotizacion: CotizacionSembrada): string {
 async function crearOrden(ctx: Contexto, orden: OrdenSembrada): Promise<void> {
   const { db, catalogos } = ctx;
   const { cotizacion, plan } = orden;
-  const ventas = usuarioPorClave(catalogos, "ventas").id;
+  const operaciones = usuarioPorClave(catalogos, "operaciones").id;
   await db.ordenTrabajo.create({
     data: {
       id: orden.id,
       numero: orden.numero,
       cotizacionId: cotizacion.id,
+      clienteId: catalogos.clientes.get(cotizacion.escenario.cliente) as string,
       categoriaId: plan.categoriaId,
       responsableId: orden.responsableId,
       especificaciones: especificaciones(cotizacion),
       fechaEntrega: plan.fechaEntrega,
-      creadoPorId: ventas,
+      creadoPorId: operaciones,
       creadoEn: plan.creadaEn,
     },
   });
@@ -60,7 +61,7 @@ async function crearOrden(ctx: Contexto, orden: OrdenSembrada): Promise<void> {
     cotizacionId: cotizacion.id,
     accion: "CONVERTIR_EN_ORDEN",
     estadoNuevo: "PENDIENTE",
-    usuarioId: ventas,
+    usuarioId: operaciones,
     creadoEn: plan.creadaEn,
     detalle: {
       numero: orden.numero,
@@ -74,7 +75,7 @@ async function crearOrden(ctx: Contexto, orden: OrdenSembrada): Promise<void> {
     entidadId: orden.id,
     ordenId: orden.id,
     accion: "ASIGNAR_RESPONSABLE",
-    usuarioId: ventas,
+    usuarioId: operaciones,
     creadoEn: desplazarMinutos(ctx.reloj, plan.creadaEn, 1),
     detalle: { antes: null, despues: nombreDeUsuario(ctx, orden.responsableId) },
   });
@@ -105,6 +106,9 @@ async function crearEtapas(ctx: Contexto, orden: OrdenSembrada): Promise<EtapaSe
     })),
   });
   for (const e of etapas) {
+    const creadoEn = desplazarMinutos(ctx.reloj, orden.plan.creadaEn, 2);
+    await ctx.db.historialEtapa.create({ data: { ordenId: orden.id, etapaId: e.id, usuarioId: jefe,
+      estadoAnterior: null, estadoNuevo: "PENDIENTE", responsableId: null, creadoEn } });
     registrar(ctx.bitacora, {
       entidad: "ETAPA_ORDEN",
       entidadId: e.id,
@@ -112,7 +116,7 @@ async function crearEtapas(ctx: Contexto, orden: OrdenSembrada): Promise<EtapaSe
       accion: "CREAR",
       estadoNuevo: "PENDIENTE",
       usuarioId: jefe,
-      creadoEn: desplazarMinutos(ctx.reloj, orden.plan.creadaEn, 2),
+      creadoEn,
       detalle: { orden: orden.numero, etapa: e.nombre, secuencia: e.plantilla.secuencia },
     });
   }
@@ -148,13 +152,16 @@ async function cambiarEstadoOrden(
 
 async function asignarResponsableDeEtapa(ctx: Contexto, orden: OrdenSembrada, etapa: EtapaSembrada): Promise<void> {
   const cuando = desplazarMinutos(ctx.reloj, etapa.inicioReal ?? orden.plan.creadaEn, -10);
+  const usuarioId = usuarioPorClave(ctx.catalogos, "jefe-prod").id;
   await ctx.db.etapaOrden.update({ where: { id: etapa.id }, data: { responsableId: etapa.responsableId } });
+  await ctx.db.historialEtapa.create({ data: { ordenId: orden.id, etapaId: etapa.id, usuarioId,
+    estadoAnterior: "PENDIENTE", estadoNuevo: "PENDIENTE", responsableId: etapa.responsableId, creadoEn: cuando } });
   registrar(ctx.bitacora, {
     entidad: "ETAPA_ORDEN",
     entidadId: etapa.id,
     ordenId: orden.id,
     accion: "ASIGNAR_RESPONSABLE",
-    usuarioId: usuarioPorClave(ctx.catalogos, "jefe-prod").id,
+    usuarioId,
     creadoEn: cuando,
     detalle: { etapa: etapa.nombre, antes: null, despues: nombreDeUsuario(ctx, etapa.responsableId as string) },
   });
@@ -165,7 +172,7 @@ async function cambiarEstadoEtapa(
   orden: OrdenSembrada,
   cambio: {
     etapa: EtapaSembrada;
-    desde: string;
+    desde: EstadoEtapa;
     hacia: "EN_CURSO" | "COMPLETADA" | "OMITIDA";
     cuando: Date;
     datos: Prisma.EtapaOrdenUncheckedUpdateInput;
@@ -173,7 +180,10 @@ async function cambiarEstadoEtapa(
   },
 ): Promise<void> {
   const { etapa } = cambio;
+  const usuarioId = etapa.responsableId ?? usuarioPorClave(ctx.catalogos, "jefe-prod").id;
   await ctx.db.etapaOrden.update({ where: { id: etapa.id }, data: { estado: cambio.hacia, ...cambio.datos } });
+  await ctx.db.historialEtapa.create({ data: { ordenId: orden.id, etapaId: etapa.id, usuarioId,
+    estadoAnterior: cambio.desde, estadoNuevo: cambio.hacia, responsableId: etapa.responsableId, creadoEn: cambio.cuando } });
   registrar(ctx.bitacora, {
     entidad: "ETAPA_ORDEN",
     entidadId: etapa.id,
@@ -181,7 +191,7 @@ async function cambiarEstadoEtapa(
     accion: "CAMBIAR_ESTADO",
     estadoAnterior: cambio.desde,
     estadoNuevo: cambio.hacia,
-    usuarioId: etapa.responsableId ?? usuarioPorClave(ctx.catalogos, "jefe-prod").id,
+    usuarioId,
     creadoEn: cambio.cuando,
     detalle: { etapa: etapa.nombre, ...cambio.detalle },
   });

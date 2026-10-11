@@ -27,7 +27,7 @@ export function FiltrosOrdenes({ consulta, responsables }: { consulta: ConsultaO
     <FiltroSeleccion nombre="estado" etiqueta="Estado" valor={consulta.estado}
       opciones={[{ id: "__todos__", nombre: "Todos" }, ...ESTADOS.map((id) => ({ id, nombre: DEFINICIONES.orden[id].etiqueta }))]} />
     <FiltroSeleccion nombre="responsable" etiqueta="Responsable" valor={consulta.responsable}
-      opciones={[{ id: "__todos__", nombre: "Todos" }, ...responsables]} />
+      opciones={[{ id: "__todos__", nombre: "Todos" }, { id: "sin-responsable", nombre: "Sin responsable" }, ...responsables]} />
     <FiltroSeleccion nombre="terminales" etiqueta="Órdenes" valor={consulta.terminales}
       opciones={[{ id: "false", nombre: "En proceso" }, { id: "true", nombre: "Terminales" }, { id: "todas", nombre: "Todas" }]} />
     <FiltroSeleccion nombre="vencidas" etiqueta="Atraso" valor={consulta.vencidas}

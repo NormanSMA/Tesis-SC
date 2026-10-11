@@ -33,17 +33,26 @@ export async function cargarAuth() {
 
 export type ModulosAuth = Awaited<ReturnType<typeof cargarAuth>>;
 
-type OpcionesUsuario = { perfil?: PerfilCodigo; activo?: boolean; contrasena?: string };
+type OpcionesUsuario = {
+  perfil?: PerfilCodigo;
+  // Perfiles adicionales al principal.
+  perfilesExtra?: PerfilCodigo[];
+  activo?: boolean;
+  contrasena?: string;
+};
 
 export async function crearUsuarioPrueba(db: PrismaClient, opciones: OpcionesUsuario = {}) {
-  const perfil = await db.perfil.findUniqueOrThrow({ where: { codigo: opciones.perfil ?? "VENTAS" } });
+  const codigos = [opciones.perfil ?? "ATENCION_CLIENTE", ...(opciones.perfilesExtra ?? [])];
+  const perfiles = await db.perfil.findMany({ where: { codigo: { in: codigos } } });
+  const principal = perfiles.find((p) => p.codigo === codigos[0]);
+  if (!principal) throw new Error(`Falta el perfil ${codigos[0]} en la base de pruebas.`);
   return db.usuario.create({
     data: {
       nombre: "Usuario de prueba",
       correo: `auth-${randomUUID()}@example.com`,
       hashContrasena: await hashearContrasena(opciones.contrasena ?? CLAVE_PRUEBA),
-      perfilId: perfil.id,
       activo: opciones.activo ?? true,
+      perfiles: { create: perfiles.map((p) => ({ perfilId: p.id })) },
     },
   });
 }

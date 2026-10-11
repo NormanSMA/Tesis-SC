@@ -11,12 +11,12 @@ import { useSolicitudOrden } from "../useSolicitudOrden";
 import { AvisoGuardado } from "./AvisoGuardado";
 import { CamposOrden, type ValoresOrden } from "./CamposOrden";
 
-type DatosFormulario = { opciones: OpcionesOrden; hoy: string } &
+type DatosFormulario = { opciones: OpcionesOrden; hoy: string; soloResponsable?: boolean } &
   ({ orden: OrdenDto; propuesta?: never } | { propuesta: PropuestaOrden; orden?: never });
 
-export function FormularioOrden({ opciones, hoy, orden, propuesta }: DatosFormulario) {
+export function FormularioOrden({ opciones, hoy, orden, propuesta, soloResponsable = false }: DatosFormulario) {
   const [entrada, setEntrada] = useState<ValoresOrden>({ categoriaId: orden?.categoria.id ?? propuesta!.categoriaId,
-    responsableId: orden?.responsable.id ?? "", fechaEntrega: orden?.fechaEntrega ?? hoy,
+    responsableId: orden?.responsable?.id ?? "", fechaEntrega: orden?.fechaEntrega ?? hoy,
     especificaciones: orden?.especificaciones ?? propuesta?.especificaciones ?? "" });
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudOrden("formulario-orden");
@@ -24,20 +24,23 @@ export function FormularioOrden({ opciones, hoy, orden, propuesta }: DatosFormul
   async function guardar(evento: FormEvent) {
     evento.preventDefault();
     const esquema = orden ? esquemaEditarOrden : esquemaCrearOrden;
-    const cuerpo = orden ? { ...entrada, version: orden.actualizadoEn } : { ...entrada, cotizacionId: propuesta!.cotizacionId };
+    const cambios = soloResponsable ? { responsableId: entrada.responsableId || null }
+      : { ...entrada, responsableId: entrada.responsableId || null };
+    const cuerpo = orden ? { ...cambios, version: orden.actualizadoEn } : { ...cambios, cotizacionId: propuesta!.cotizacionId };
     const validacion = erroresEsquema(esquema, cuerpo);
     setErrores(validacion);
     if (Object.keys(validacion).length) { enfocarError("formulario-orden"); return; }
     await solicitud.enviar({ url: orden ? `/api/v1/ordenes/${orden.id}` : "/api/v1/ordenes",
       metodo: orden ? "PATCH" : "POST", cuerpo });
   }
-  const responsables = orden && !opciones.responsables.some((responsable) => responsable.id === orden.responsable.id)
-    ? [...opciones.responsables, { ...orden.responsable, nombre: `${orden.responsable.nombre} (responsable actual)` }] : opciones.responsables;
+  const responsableActual = orden?.responsable;
+  const responsables = responsableActual && !opciones.responsables.some((responsable) => responsable.id === responsableActual.id)
+    ? [...opciones.responsables, { ...responsableActual, nombre: `${responsableActual.nombre} (responsable actual)` }] : opciones.responsables;
   return <form id="formulario-orden" onSubmit={guardar} noValidate aria-label={orden ? "Editar orden" : "Convertir cotización en orden"}
     className="max-w-3xl space-y-5">
     <AvisoGuardado {...solicitud} />
     <Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
-      <CamposOrden entrada={entrada} opciones={{ ...opciones, responsables }} errores={campos} hoy={hoy} convertir={!orden}
+      <CamposOrden entrada={entrada} opciones={{ ...opciones, responsables }} errores={campos} hoy={hoy} convertir={!orden} soloResponsable={soloResponsable}
         alCambiar={(campo, valor) => { setErrores({}); setEntrada({ ...entrada, [campo]: valor }); }} />
     </fieldset></Card>
     <div className="flex flex-wrap gap-3"><Button type="submit" disabled={solicitud.enviando}>

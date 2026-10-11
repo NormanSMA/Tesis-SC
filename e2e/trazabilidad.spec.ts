@@ -17,7 +17,7 @@ type Material = Registro & { codigo: string; activo: boolean; existencia: string
 type Cotizacion = Registro & { numero: string; asunto: string; archivada: boolean };
 type Orden = Registro & { numero: string; estado: string; cotizacion: { asunto: string } };
 const perfil = (codigo: string) => PERFILES.find((fila) => fila.codigo === codigo)!;
-const VENTAS = perfil("VENTAS"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION"), ADMIN = perfil("ADMIN");
+const ATENCION_CLIENTE = perfil("ATENCION_CLIENTE"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION"), ADMIN = perfil("ADMIN");
 let material: Material, cotizacion: Cotizacion, orden: Orden;
 let responsableId: string;
 test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
@@ -60,7 +60,7 @@ async function prepararMaterial(page: Page) {
     cuerpo: { materialId: material.id, cantidad: "10", costoUnitario: "12.3456", referencia: CODIGO } });
 }
 async function prepararCotizacion(page: Page) {
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   const clientes = await leer<{ id: string; nombre: string }[]>(page, `/clientes?q=${encodeURIComponent("Agencia Viajes Tropical")}`);
   const categorias = await leer<{ id: string; nombre: string }[]>(page, "/categorias");
   const cliente = clientes.find((fila) => fila.nombre === "Agencia Viajes Tropical");
@@ -75,7 +75,7 @@ async function prepararCotizacion(page: Page) {
   cotizacion = await escribir(page, `/cotizaciones/${cotizacion.id}/enviar`, { cuerpo: { version: cotizacion.actualizadoEn } });
   await entrarComo(page, GERENCIA);
   cotizacion = await escribir(page, `/cotizaciones/${cotizacion.id}/responder`, { cuerpo: { version: cotizacion.actualizadoEn, resultado: "APROBADA" } });
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   orden = await escribir(page, "/ordenes", { estado: 201, cuerpo: { cotizacionId: cotizacion.id, categoriaId: categoria!.id,
     responsableId, fechaEntrega: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), especificaciones: MARCA } });
 }
@@ -149,7 +149,7 @@ async function limpiar(browser: Browser) {
     await paso(PRODUCCION, async () => { for (const fila of propias) await devolverNeto(page, fila); });
     await paso(GERENCIA, async () => { for (const fila of propias) await cancelarOrden(page, fila); });
     await paso(GERENCIA, () => vaciarMaterial(page));
-    await paso(VENTAS, () => archivarCotizacion(page));
+    await paso(ATENCION_CLIENTE, () => archivarCotizacion(page));
   } finally { await contexto.close(); }
   if (errores.length) throw new AggregateError(errores, `Falló la limpieza de ${MARCA}`);
 }
@@ -185,7 +185,7 @@ test.describe("Trazabilidad de un trabajo E2E propio", () => {
     expect((await page.request.get(`/api/v1/ordenes/${orden.id}/trazabilidad`)).status()).toBe(403);
   });
   test("Ventas abre trazabilidad desde orden y cotización; global responde 403", async ({ page }, info) => {
-    soloPortatil(info.project.name); await entrarComo(page, VENTAS);
+    soloPortatil(info.project.name); await entrarComo(page, ATENCION_CLIENTE);
     for (const ruta of [`/ordenes/${orden.id}`, `/cotizaciones/${cotizacion.id}`]) {
       await page.goto(ruta); await page.getByRole("link", { name: "Trazabilidad completa", exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`/trazabilidad/ordenes/${orden.id}$`));

@@ -23,7 +23,7 @@ type Orden = { id: string; numero: string; estado: string; actualizadoEn: string
 type Fila = { tipo: string; costoUnitario?: string };
 type Consumos = { movimientos: Fila[]; materiales: { neto: string; material: { codigo: string; id: string } }[] };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
-const VENTAS = PERFIL("VENTAS");
+const ATENCION_CLIENTE = PERFIL("ATENCION_CLIENTE");
 const GERENCIA = PERFIL("GERENCIA");
 const PRODUCCION = PERFIL("PRODUCCION");
 let material: Material | undefined;
@@ -347,7 +347,7 @@ async function limpiarCreadas(browser: Browser): Promise<void> {
   await paso(PRODUCCION, async () => { for (const fila of ordenes) await devolverNeto(page, fila.id); });
   await paso(GERENCIA, async () => { for (const fila of ordenes) await cancelarPorApi(page, fila); });
   await paso(GERENCIA, () => archivarYVaciarMaterial(page));
-  await paso(VENTAS, () => archivarCotizaciones(page));
+  await paso(ATENCION_CLIENTE, () => archivarCotizaciones(page));
   await contexto.close();
   if (errores.length) throw new AggregateError(errores, `Falló la limpieza de ${MARCA}`);
 }
@@ -391,10 +391,10 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
     soloPortatil(info.project.name);
     test.setTimeout(180000);
     await prepararMaterial(page);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await crearCotizacion(page);
     await aprobarCotizacion(page);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await convertirEnOrden(page);
     await verResumen(page, ["4.000", "0.000", "0.000", "0.000"]);
   });
@@ -438,7 +438,7 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
 
   test("Ventas ve la sección Materiales de la orden sin acciones de consumo", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await abrirOrden(page);
     await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
     await expect(page.getByRole("link", { name: /^(Registrar consumo|Devolver sobrante)$/ })).toHaveCount(0);

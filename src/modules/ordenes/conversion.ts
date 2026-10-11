@@ -46,10 +46,11 @@ async function guardarEstimado(tx: Tx, ordenId: string, estimado: ResultadoEstim
 async function convertir(tx: Tx, entrada: EntradaCrearOrden, actor: Actor) {
   const cotizacion = await tomarCotizacion(tx, entrada.cotizacionId);
   const plantillas = await leerPlantillas(tx, entrada.categoriaId);
-  await validarResponsable(tx, entrada.responsableId);
+  if (entrada.responsableId) await validarResponsable(tx, entrada.responsableId);
   const estimado = estimarCotizacion(cotizacion);
   const orden = await tx.ordenTrabajo.create({ data: { numero: await siguienteNumero(tx), cotizacionId: cotizacion.id,
-    categoriaId: entrada.categoriaId, responsableId: entrada.responsableId, fechaEntrega: new Date(entrada.fechaEntrega),
+    clienteId: cotizacion.clienteId, categoriaId: entrada.categoriaId, responsableId: entrada.responsableId ?? null,
+    fechaEntrega: new Date(entrada.fechaEntrega),
     especificaciones: entrada.especificaciones === undefined ? cotizacion.asunto : entrada.especificaciones, creadoPorId: actor.id } });
   await guardarEstimado(tx, orden.id, estimado);
   await registrarCambio(tx, { ordenId: orden.id, cotizacionId: cotizacion.id, actor, accion: "CONVERTIR_EN_ORDEN",

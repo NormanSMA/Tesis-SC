@@ -15,13 +15,24 @@ describe("órdenes: esquemas zod", () => {
     expect(esquemaCrearOrden.parse({ ...creacion, especificaciones: "  Texto  " }).especificaciones).toBe("Texto");
     expect(esquemaCrearOrden.parse({ ...creacion, especificaciones: " " }).especificaciones).toBeNull();
   });
-  for (const campo of ["cotizacionId", "categoriaId", "responsableId", "fechaEntrega"] as const) {
+  for (const campo of ["cotizacionId", "categoriaId", "fechaEntrega"] as const) {
     it(`la conversión exige ${campo}`, () => {
       const entrada: Record<string, unknown> = { ...creacion };
       delete entrada[campo];
       expect(esquemaCrearOrden.safeParse(entrada).success).toBe(false);
     });
   }
+  it("crear y editar admiten responsable omitido o nulo y rechazan identificadores inválidos", () => {
+    const { responsableId, ...sinResponsable } = creacion;
+    expect(responsableId).toBe(id);
+    expect(esquemaCrearOrden.parse(sinResponsable)).not.toHaveProperty("responsableId");
+    expect(esquemaCrearOrden.parse({ ...sinResponsable, responsableId: null }).responsableId).toBeNull();
+    expect(esquemaEditarOrden.parse({ version, responsableId: null }).responsableId).toBeNull();
+    for (const responsableId of ["", "inválido"]) {
+      expect(esquemaCrearOrden.safeParse({ ...sinResponsable, responsableId }).success).toBe(false);
+      expect(esquemaEditarOrden.safeParse({ version, responsableId }).success).toBe(false);
+    }
+  });
   for (const fechaEntrega of ["2026-02-30", "2025-02-29", "06-10-2026", "2026-10-06T00:00:00Z"]) {
     it(`rechaza la fecha de calendario ${fechaEntrega}`, () => {
       expect(esquemaCrearOrden.safeParse({ ...creacion, fechaEntrega }).success).toBe(false);
@@ -48,6 +59,7 @@ describe("órdenes: esquemas zod", () => {
     expect(esquemaCancelarOrden.parse({ version, motivo: "  abcde  " }).motivo).toBe("abcde");
   });
   it("consulta aplica límites y filtros tipados", () => {
+    expect(esquemaConsultaOrdenes.parse({ responsable: "sin-responsable" }).responsable).toBe("sin-responsable");
     expect(esquemaConsultaOrdenes.parse({})).toEqual({ pagina: 1, porPagina: 20, vencidas: "false", terminales: "false" });
     expect(esquemaConsultaOrdenes.parse({ pagina: "2", porPagina: "100", estado: "LISTA", responsable: id, cliente: id,
       terminales: "todas", vencidas: "true" }).pagina).toBe(2);
@@ -98,6 +110,13 @@ describe("órdenes: reglas puras", () => {
     expect(() => validarMotivoCancelacion("  abcd  ")).toThrow();
     expect(validarMotivoCancelacion("  abcde  ")).toBe("abcde");
   });
+  it("distingue asignación desde nulo, desasignación y responsable nulo sin cambios", () => {
+    const actual = { responsableId: null, fechaEntrega: "2026-10-06", especificaciones: null };
+    expect(cambiosEdicion(actual, { version })).toEqual({});
+    expect(cambiosEdicion(actual, { version, responsableId: null })).toEqual({});
+    expect(cambiosEdicion(actual, { version, responsableId: id })).toEqual({ responsableId: id });
+    expect(cambiosEdicion({ ...actual, responsableId: id }, { version, responsableId: null })).toEqual({ responsableId: null });
+  });
   it("identifica el UNIQUE de cotización sin confundir otras restricciones", () => {
     expect(esCotizacionDuplicada({ code: "P2002", meta: { target: ["cotizacion_id"] } })).toBe(true);
     expect(esCotizacionDuplicada({ name: "DriverAdapterError", cause: { originalCode: "23505", constraint: { fields: ["cotizacion_id"] } } })).toBe(true);
@@ -113,8 +132,14 @@ describe("órdenes: reglas puras", () => {
   });
   it("línea de tiempo muestra actor, fecha, transición y motivo sin dinero oculto", () => {
     const evento = aEventoTimeline({ id, entidad: "ETAPA_ORDEN", entidadId: id, accion: "CAMBIAR_ESTADO", estadoAnterior: "PENDIENTE",
-      estadoNuevo: "OMITIDA", actor: "Gerencia", creadoEn: version, detalle: { motivo: "Orden cancelada" } });
-    expect(evento).toMatchObject({ actor: "Gerencia", instante: version, accion: "cambió el estado",
+      estadoNuevo: "OMITIDA", actor: "Operaciones", creadoEn: version, detalle: { motivo: "Orden cancelada" } });
+    expect(evento).toMatchObject({ actor: "Operaciones", instante: version, accion: "cambió el estado",
       detalle: "Pendiente → Omitida. Motivo: Orden cancelada" });
+  });
+  it("línea de tiempo identifica la asignación desde responsable nulo", () => {
+    const evento = aEventoTimeline({ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "ASIGNAR_RESPONSABLE",
+      estadoAnterior: null, estadoNuevo: null, actor: "Operaciones", creadoEn: version,
+      detalle: { responsableId: { anterior: null, nuevo: id } } });
+    expect(evento.detalle).toBe(`Responsable: Sin responsable → ${id}`);
   });
 });

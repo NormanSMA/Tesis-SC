@@ -39,7 +39,7 @@ export async function consultarCarga(entrada: { consulta: ConsultaReporte; hoy: 
         AND e.fecha_fin_real < ${hasta})::int AS completadas,
       count(e.id) FILTER (WHERE e.abierta AND e.estado IN ('PENDIENTE', 'EN_CURSO')
         AND e.fecha_fin_plan < ${entrada.hoy}::date)::int AS atrasadas,
-      (SELECT count(*)::int FROM orden_trabajo o WHERE o.responsable_id = r.id
+      (SELECT count(*)::int FROM orden_trabajo o WHERE o.responsable_id IS NOT DISTINCT FROM r.id
         AND o.estado NOT IN ('ENTREGADA', 'CERRADA', 'CANCELADA')) AS ordenes
     FROM responsables r LEFT JOIN usuario u ON u.id = r.id
       LEFT JOIN etapas e ON e.responsable_id IS NOT DISTINCT FROM r.id

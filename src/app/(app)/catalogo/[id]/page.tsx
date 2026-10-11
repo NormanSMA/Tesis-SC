@@ -13,7 +13,7 @@ import { cargarProducto } from "@/modules/catalogo/paginas";
 export const metadata: Metadata = { title: "Ficha de producto" };
 export default async function Pagina({ params }: { params: Promise<{ id: string }> }) {
   const actor = await exigirPermisoPagina("catalogo:ver");
-  const producto = await cargarProducto((await params).id);
+  const producto = await cargarProducto((await params).id, actor);
   return <>
     <PageHeader titulo={producto.nombre} descripcion={`${producto.codigo} · ${producto.categoria.nombre}`}
       acciones={can(actor, "catalogo:gestionar") ? <>

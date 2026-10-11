@@ -17,7 +17,7 @@ type Perfil = (typeof PERFILES)[number];
 type Cotizacion = { id: string; numero: string; asunto: string | null; archivada: boolean; actualizadoEn: string };
 type Orden = { id: string; numero: string; estado: string; actualizadoEn: string; cotizacion: { asunto: string | null } };
 type Conversion = { cotizacionId: string; categoriaId: string; responsableId: string; fechaEntrega: string; especificaciones: string };
-const VENTAS = PERFILES.find((perfil) => perfil.codigo === "VENTAS")!;
+const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE")!;
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA")!;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION")!;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN")!;
@@ -221,7 +221,7 @@ async function limpiarCreadas(browser: Browser): Promise<void> {
     }
   } catch (error) { errores.push(error); }
   try {
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const respuesta = await page.request.get(`/api/v1/cotizaciones?q=${MARCA}&archivadas=false&porPagina=100`);
     expect(respuesta.status()).toBe(200);
     const filas = (await respuesta.json()).datos as Cotizacion[];
@@ -263,7 +263,7 @@ function registrarPruebasAxe(): void {
       soloPortatil(info.project.name);
       test.setTimeout(120000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, VENTAS);
+      await entrarComo(page, ATENCION_CLIENTE);
       await page.goto("/ordenes");
       await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
       expect.soft(await violacionesGraves(page), "lista").toEqual([]);
@@ -277,7 +277,7 @@ function registrarPruebasAxe(): void {
 }
 
 function registrarCapturas(): void {
-  for (const perfil of [VENTAS, GERENCIA]) {
+  for (const perfil of [ATENCION_CLIENTE, GERENCIA]) {
     test(`captura CF-01, CF-02 y CF-09 con ${perfil.codigo}`, async ({ page }, info) => {
       soloPortatil(info.project.name);
       test.setTimeout(120000);
@@ -328,7 +328,7 @@ test.describe("Conversión y gestión de una orden propia", () => {
   test("Ventas crea y envía una cotización mixta; Gerencia la aprueba", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await crearMixta(page);
     await aprobarMixta(page);
   });
@@ -338,14 +338,14 @@ test.describe("Conversión y gestión de una orden propia", () => {
   test("Ventas convierte sin reingresar ítems y ve etapas y consumo estimado", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await convertirMixta(page);
   });
 
   test("la segunda conversión desaparece y la API responde 409", async ({ page }, info) => {
     soloPortatil(info.project.name);
     if (!cotizacion || !orden || !conversion) throw new Error("Falta la conversión.");
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/cotizaciones/${cotizacion.id}`);
     await expect(page.getByRole("link", { name: "Convertir en orden" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Convertir en orden" })).toHaveCount(0);
@@ -382,7 +382,7 @@ test("Administración termina en sin-acceso al abrir órdenes", async ({ page })
   await expect(page).toHaveURL(/\/sin-acceso$/);
 });
 
-for (const perfil of [VENTAS, GERENCIA]) {
+for (const perfil of [ATENCION_CLIENTE, GERENCIA]) {
   test(`${perfil.codigo} ve importes en la ficha sembrada`, async ({ page }) => {
     await entrarComo(page, perfil);
     await abrirSembrada(page);
@@ -391,7 +391,7 @@ for (const perfil of [VENTAS, GERENCIA]) {
   });
 }
 
-for (const perfil of [VENTAS, GERENCIA, PRODUCCION]) {
+for (const perfil of [ATENCION_CLIENTE, GERENCIA, PRODUCCION]) {
   for (const estado of ["LISTA", "ENTREGADA"]) {
     test(`${perfil.codigo} muestra acciones permitidas en una orden ${estado} sin modificarla`, async ({ page }) => {
       await entrarComo(page, perfil);
@@ -410,7 +410,7 @@ for (const perfil of [VENTAS, GERENCIA, PRODUCCION]) {
 test("lista y ficha no desbordan horizontalmente en el tamaño del proyecto", async ({ page }, info) => {
   const vista = VIEWPORTS.find((vista) => vista.nombre === info.project.name)!;
   await page.setViewportSize({ width: vista.width, height: vista.height });
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   await page.goto("/ordenes");
   await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
   await sinDesbordeHorizontal(page);

@@ -28,9 +28,9 @@ export const PERFILES = [
     rutasProhibidas: ["/admin/usuarios"],
   },
   {
-    codigo: "VENTAS",
+    codigo: "ATENCION_CLIENTE",
     correo: "valentina.castro@solucionescreativas.test",
-    claveEnv: "SEED_PASSWORD_VENTAS",
+    claveEnv: "SEED_PASSWORD_ATENCION_CLIENTE",
     destino: "/panel",
     items: ["Panel", "Clientes", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
     rutasProhibidas: ["/reportes", "/admin/permisos"],

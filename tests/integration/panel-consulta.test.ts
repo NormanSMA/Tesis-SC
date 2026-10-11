@@ -3,11 +3,13 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import type { PanelDto } from "@/modules/panel/service";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
+import { abrirSesion } from "./cotizaciones-ayudas";
 import { invocar } from "./ordenes-ayudas";
 import { clavesMonetarias, crearCotizacionPanel, crearMaterialPanel, crearOrdenPanel, prepararPanel, type EntornoPanel } from "./panel-ayudas";
 
 let db: PrismaClient;
 let entorno: EntornoPanel;
+let sesiones: EntornoPanel["sesiones"] & Record<"ADMINISTRACION" | "OPERACIONES", Awaited<ReturnType<typeof abrirSesion>>>;
 const instante = new Date("2034-05-10T12:00:00Z");
 
 async function pendientesConVigencia() {
@@ -78,21 +80,48 @@ async function bloquesPorPermiso() {
 }
 describeConBase("panel: consultas y perfiles", () => {
   db = crearClientePropietario();
-  beforeAll(async () => { entorno = await prepararPanel(db); });
+  beforeAll(async () => {
+    entorno = await prepararPanel(db);
+    const { modulos } = entorno.ordenes.cotizaciones;
+    sesiones = { ...entorno.sesiones, ADMINISTRACION: await abrirSesion(db, modulos, "ADMINISTRACION"),
+      OPERACIONES: await abrirSesion(db, modulos, "OPERACIONES") };
+  });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
   it("cuenta vigentes, próximas y vencidas con límites inclusivos", pendientesConVigencia);
   it("reutiliza alertas y ordena materiales críticos", alertasCriticas);
   it("cuenta carga, atrasos y siete días excluyendo terminales", cargaYEntregas);
+  it("incluye una orden sin responsable en carga y entregas próximas", async () => {
+    const anterior = await entorno.servicio.obtenerPanel(entorno.sesiones.GERENCIA.actor, instante);
+    const orden = await crearOrdenPanel(entorno, { fechaEntrega: "2034-05-10", responsableId: null });
+    const area = await db.area.create({ data: { nombre: `Sin responsable panel ${orden.id}` } });
+    await db.etapaOrden.create({ data: { ordenId: orden.id, areaId: area.id, nombre: "Trabajo pendiente", secuencia: 1 } });
+    const actual = await entorno.servicio.obtenerPanel(entorno.sesiones.GERENCIA.actor, instante);
+    expect(actual.resumen?.entregasProximas).toBe(anterior.resumen!.entregasProximas + 1);
+    expect(actual.carga?.entregas.find((fila) => fila.href === `/ordenes/${orden.id}`)?.responsable).toBe("Sin responsable");
+    const grupo = actual.carga?.porResponsable.find((fila) => fila.nombre === "Sin responsable");
+    expect(grupo?.etapas.map((etapa) => etapa.href)).toContain(`/ordenes/${orden.id}`);
+  });
   it("cambia vigencia en el borde de medianoche de Managua", medianocheManagua);
   it("omite bloques cuando falta el permiso de su dato", bloquesPorPermiso);
-  for (const perfil of ["GERENCIA", "VENTAS", "PRODUCCION", "ADMIN"] as const) {
+  // Bloques según la matriz v9: materiales con inventario:ver, cotizaciones con cotizacion:ver, resumen con orden:ver y produccion:ver.
+  const BLOQUES = {
+    GERENCIA: { materiales: true, cotizaciones: true, resumen: true },
+    ADMINISTRACION: { materiales: true, cotizaciones: true, resumen: true },
+    OPERACIONES: { materiales: true, cotizaciones: true, resumen: true },
+    ATENCION_CLIENTE: { materiales: false, cotizaciones: true, resumen: true },
+    PRODUCCION: { materiales: false, cotizaciones: false, resumen: true },
+  } as const;
+  for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
     it(`${perfil}: contrato de panel y ausencia de dinero`, async () => {
-      const actual = await invocar<PanelDto>(entorno.panel.GET, peticion("GET", "/api/v1/panel", { cookie: entorno.sesiones[perfil].cookie }));
+      const actual = await invocar<PanelDto>(entorno.panel.GET, peticion("GET", "/api/v1/panel", { cookie: sesiones[perfil].cookie }));
       expect(actual.status).toBe(perfil === "ADMIN" ? 403 : 200);
       if (perfil === "ADMIN") { expect(actual.error?.codigo).toBe("SIN_PERMISO"); return; }
-      expect(actual.datos).toHaveProperty("materiales"); expect(actual.datos).toHaveProperty("resumen");
-      if (perfil === "PRODUCCION") { expect(actual.datos).not.toHaveProperty("cotizaciones"); expect(clavesMonetarias(actual.cuerpo)).toEqual([]); }
-      else expect(actual.datos).toHaveProperty("cotizaciones");
+      const esperado = BLOQUES[perfil];
+      for (const [bloque, presente] of Object.entries(esperado)) {
+        if (presente) expect(actual.datos, bloque).toHaveProperty(bloque);
+        else expect(actual.datos, bloque).not.toHaveProperty(bloque);
+      }
+      if (!esperado.cotizaciones) expect(clavesMonetarias(actual.cuerpo)).toEqual([]);
     });
   }
   it("rechaza solicitudes sin sesión con 401", async () => {

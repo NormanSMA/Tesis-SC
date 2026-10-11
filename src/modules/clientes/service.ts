@@ -84,7 +84,7 @@ function sinMedioContacto(): AppError {
   });
 }
 
-// El único índice único de cliente es el RUC: un 23505 siempre apunta a ese campo.
+// El RUC es el único campo único que puede introducir el usuario.
 function traducirDuplicado(error: unknown): unknown {
   if (aErrorHttp(error).cuerpo.error.codigo !== "DUPLICADO") return error;
   return new AppError({ codigo: "DUPLICADO", mensaje: MENSAJE_RUC, status: 409, campos: { ruc: MENSAJE_RUC } });
@@ -127,7 +127,7 @@ export async function crearCliente(entrada: EntradaCrearCliente, actor: Actor): 
         accion: "CREAR",
         actorId: actor.id,
         estadoNuevo: "ACTIVO",
-        detalle: { nombre: cliente.nombre, tipo: cliente.tipo },
+        detalle: { codigoCliente: cliente.codigoCliente, nombre: cliente.nombre, tipo: cliente.tipo },
       });
       return aClienteDto(cliente);
     });

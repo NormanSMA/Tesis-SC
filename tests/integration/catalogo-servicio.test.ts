@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
+import { can } from "@/core/autorizacion";
 import type { CategoriaDto, FichaProducto, MaterialDto, ProductoDto } from "@/modules/catalogo/tipos";
 
 import { sembrarReferencia } from "../../prisma/seed/referencia";
@@ -11,30 +12,68 @@ import { abrirSesion, cargarModuloCatalogo, crearMaterial, cuerpoProducto, invoc
 describeConBase("catálogo: productos, recetas y categorías transaccionales", () => {
   const db = crearClientePropietario();
   let modulos: ModuloCatalogo;
-  let gerencia: Sesion;
+  let operaciones: Sesion;
   let categoriaId: string;
   beforeAll(async () => {
     await sembrarReferencia(db);
     modulos = await cargarModuloCatalogo();
-    gerencia = await abrirSesion(db, modulos, "GERENCIA");
+    operaciones = await abrirSesion(db, modulos, "OPERACIONES");
     categoriaId = (await db.categoria.create({ data: { nombre: unico("Categoría") } })).id;
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
   const crear = (extra: Record<string, unknown> = {}) => invocar(modulos.productos.POST,
-    peticion("POST", "/api/v1/productos", { cookie: gerencia.cookie, cuerpo: cuerpoProducto(categoriaId, extra) }));
+    peticion("POST", "/api/v1/productos", { cookie: operaciones.cookie, cuerpo: cuerpoProducto(categoriaId, extra) }));
   const editar = (producto: ProductoDto, extra: Record<string, unknown>) => invocar(modulos.ficha.PATCH,
-    peticion("PATCH", `/api/v1/productos/${producto.id}`, { cookie: gerencia.cookie, cuerpo: { version: producto.actualizadoEn, ...extra } }), producto.id);
+    peticion("PATCH", `/api/v1/productos/${producto.id}`, { cookie: operaciones.cookie, cuerpo: { version: producto.actualizadoEn, ...extra } }), producto.id);
   const estado = (producto: ProductoDto, accion: "archivar" | "reactivar", cuerpo: object = { version: producto.actualizadoEn }) =>
-    invocar(modulos[accion].POST, peticion("POST", `/api/v1/productos/${producto.id}/${accion}`, { cookie: gerencia.cookie, cuerpo }), producto.id);
+    invocar(modulos[accion].POST, peticion("POST", `/api/v1/productos/${producto.id}/${accion}`, { cookie: operaciones.cookie, cuerpo }), producto.id);
   const receta = (producto: ProductoDto, materiales: { materialId: string; cantidad: string }[]) => invocar<FichaProducto>(modulos.receta.PUT,
-    peticion("PUT", `/api/v1/productos/${producto.id}/receta`, { cookie: gerencia.cookie, cuerpo: { version: producto.actualizadoEn, materiales } }), producto.id);
+    peticion("PUT", `/api/v1/productos/${producto.id}/receta`, { cookie: operaciones.cookie, cuerpo: { version: producto.actualizadoEn, materiales } }), producto.id);
   const eventos = (id: string) => db.bitacora.findMany({ where: { entidad: "PRODUCTO", entidadId: id }, orderBy: [{ creadoEn: "asc" }, { id: "asc" }] });
+  function comprobarCosto(producto: ProductoDto, costo: string | null) {
+    if (can(operaciones.actor, "cotizacion:ver")) expect(producto.costoUnitario).toBe(costo);
+    else expect(producto).not.toHaveProperty("costoUnitario");
+  }
+
+  it("crea, edita, conserva y borra el costo de referencia con bitácora", async () => {
+    const creado = await crear({ costoUnitario: "12.3456" });
+    expect(creado.status).toBe(201);
+    comprobarCosto(creado.datos, "12.3456");
+    expect((await db.producto.findUniqueOrThrow({ where: { id: creado.datos.id } })).costoUnitario?.toFixed(4)).toBe("12.3456");
+    expect((await eventos(creado.datos.id))[0].detalle).toMatchObject({ costoUnitario: "12.3456" });
+    const editado = await editar(creado.datos, { costoUnitario: "0" });
+    expect(editado.status).toBe(200);
+    comprobarCosto(editado.datos, "0.0000");
+    expect((await eventos(creado.datos.id))[1].detalle).toEqual({ cambios: {
+      costoUnitario: { anterior: "12.3456", nuevo: "0.0000" },
+    } });
+    const conservado = await editar(editado.datos, { descripcion: "Conserva costo" });
+    comprobarCosto(conservado.datos, "0.0000");
+    const borrado = await editar(conservado.datos, { costoUnitario: "" });
+    expect(borrado.status).toBe(200);
+    comprobarCosto(borrado.datos, null);
+    expect((await db.producto.findUniqueOrThrow({ where: { id: creado.datos.id } })).costoUnitario).toBeNull();
+    expect((await eventos(creado.datos.id))[3].detalle).toEqual({ cambios: {
+      costoUnitario: { anterior: "0.0000", nuevo: null },
+    } });
+  });
+  it("rechaza costos inválidos en el servidor sin modificar el producto", async () => {
+    const { datos: producto } = await crear({ costoUnitario: "1.2345" });
+    for (const costoUnitario of ["-1", "1.23456"]) {
+      expect((await crear({ costoUnitario })).status).toBe(422);
+      const respuesta = await editar(producto, { costoUnitario });
+      expect(respuesta.status).toBe(422);
+      expect(respuesta.error?.campos?.costoUnitario).toBeTruthy();
+    }
+    expect((await db.producto.findUniqueOrThrow({ where: { id: producto.id } })).costoUnitario?.toFixed(4)).toBe("1.2345");
+    expect(await eventos(producto.id)).toHaveLength(1);
+  });
 
   it("crea con 201, precio decimal y evento CREAR del actor", async () => {
     const respuesta = await crear({ precioBase: "1.50000", descripcion: " " });
     expect(respuesta.status).toBe(201);
     expect(respuesta.datos).toMatchObject({ precioBase: "1.50", descripcion: null, activo: true });
-    expect(await eventos(respuesta.datos.id)).toMatchObject([{ accion: "CREAR", usuarioId: gerencia.actor.id, ordenId: null, cotizacionId: null }]);
+    expect(await eventos(respuesta.datos.id)).toMatchObject([{ accion: "CREAR", usuarioId: operaciones.actor.id, ordenId: null, cotizacionId: null }]);
   });
   it("edita solo campos enviados y registra anterior y nuevo", async () => {
     const { datos: producto } = await crear({ descripcion: "Antes" });
@@ -80,15 +119,15 @@ describeConBase("catálogo: productos, recetas y categorías transaccionales", (
     expect((await editar(producto, { version: undefined })).status).toBe(422);
     for (const accion of ["archivar", "reactivar"] as const) expect((await estado(producto, accion, {})).status).toBe(422);
     expect((await invocar(modulos.receta.PUT, peticion("PUT", "/api/v1/productos/x/receta", {
-      cookie: gerencia.cookie, cuerpo: { materiales: [] },
+      cookie: operaciones.cookie, cuerpo: { materiales: [] },
     }), producto.id)).status).toBe(422);
   });
   it("cuerpo vacío de escritura existente devuelve 422 y JSON inválido devuelve 400", async () => {
     const { datos: producto } = await crear();
     for (const [handler, metodo] of [[modulos.ficha.PATCH, "PATCH"], [modulos.receta.PUT, "PUT"], [modulos.archivar.POST, "POST"]] as const) {
-      expect((await invocar(handler, peticion(metodo, "/", { cookie: gerencia.cookie }), producto.id)).status).toBe(422);
+      expect((await invocar(handler, peticion(metodo, "/", { cookie: operaciones.cookie }), producto.id)).status).toBe(422);
     }
-    const solicitud = new Request("http://localhost/", { method: "PATCH", headers: { origin: "http://localhost", cookie: gerencia.cookie }, body: "{" });
+    const solicitud = new Request("http://localhost/", { method: "PATCH", headers: { origin: "http://localhost", cookie: operaciones.cookie }, body: "{" });
     expect((await invocar(modulos.ficha.PATCH, solicitud, producto.id)).status).toBe(400);
   });
   it("versión vieja devuelve 409 CONFLICTO_EDICION en todas las escrituras del producto", async () => {
@@ -136,13 +175,13 @@ describeConBase("catálogo: productos, recetas y categorías transaccionales", (
     expect((await receta(conReceta, [{ materialId: nuevo.id, cantidad: "1" }])).status).toBe(422);
     const conservado = await receta(conReceta, [{ materialId: existente.id, cantidad: "2" }]);
     expect(conservado.status).toBe(200); expect(conservado.datos.receta[0].material.activo).toBe(false);
-    const activos = await invocar<MaterialDto[]>(modulos.materiales.GET, peticion("GET", "/api/v1/catalogo/materiales", { cookie: gerencia.cookie }));
+    const activos = await invocar<MaterialDto[]>(modulos.materiales.GET, peticion("GET", "/api/v1/catalogo/materiales", { cookie: operaciones.cookie }));
     expect(activos.datos.some((material) => [existente.id, nuevo.id].includes(material.id))).toBe(false);
-    const archivados = await invocar<MaterialDto[]>(modulos.materiales.GET, peticion("GET", `/api/v1/catalogo/materiales?activo=false&q=${nuevo.codigo}`, { cookie: gerencia.cookie }));
+    const archivados = await invocar<MaterialDto[]>(modulos.materiales.GET, peticion("GET", `/api/v1/catalogo/materiales?activo=false&q=${nuevo.codigo}`, { cookie: operaciones.cookie }));
     expect(archivados.datos).toEqual([{ id: nuevo.id, codigo: nuevo.codigo, nombre: nuevo.nombre, unidad: "M2", activo: false, costoPromedio: "12.3456" }]);
   });
   it("revierte crear, editar, archivar, reactivar y receta si falla la bitácora", async () => {
-    const fantasma = { ...gerencia.actor, id: randomUUID() };
+    const fantasma = { ...operaciones.actor, id: randomUUID() };
     const cuerpo = cuerpoProducto(categoriaId);
     await expect(modulos.servicio.crearProducto(cuerpo, fantasma)).rejects.toThrow();
     expect(await db.producto.count({ where: { codigo: cuerpo.codigo } })).toBe(0);
@@ -160,12 +199,12 @@ describeConBase("catálogo: productos, recetas y categorías transaccionales", (
     expect(await eventos(producto.id)).toHaveLength(2);
   });
   it("crea, edita, archiva y reactiva categorías con versión y bitácora", async () => {
-    const crearCategoria = await invocar<CategoriaDto>(modulos.categorias.POST, peticion("POST", "/api/v1/categorias", { cookie: gerencia.cookie, cuerpo: { nombre: unico("Categoría") } }));
+    const crearCategoria = await invocar<CategoriaDto>(modulos.categorias.POST, peticion("POST", "/api/v1/categorias", { cookie: operaciones.cookie, cuerpo: { nombre: unico("Categoría") } }));
     expect(crearCategoria.status).toBe(201);
     let categoria = crearCategoria.datos;
     const primeraVersion = categoria.actualizadoEn;
     for (const cambios of [{ descripcion: "Nueva" }, { activo: false }, { activo: true }]) {
-      const respuesta = await invocar<CategoriaDto>(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: gerencia.cookie, cuerpo: { version: categoria.actualizadoEn, ...cambios } }), categoria.id);
+      const respuesta = await invocar<CategoriaDto>(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: operaciones.cookie, cuerpo: { version: categoria.actualizadoEn, ...cambios } }), categoria.id);
       expect(respuesta.status).toBe(200);
       expect(new Date(respuesta.datos.actualizadoEn).getTime()).toBeGreaterThan(new Date(categoria.actualizadoEn).getTime());
       categoria = respuesta.datos;
@@ -173,14 +212,14 @@ describeConBase("catálogo: productos, recetas y categorías transaccionales", (
     const eventosCategoria = await db.bitacora.findMany({ where: { entidad: "CATEGORIA", entidadId: categoria.id }, orderBy: { creadoEn: "asc" } });
     expect(eventosCategoria.map((fila) => fila.accion)).toEqual(["CREAR", "EDITAR", "ARCHIVAR", "REACTIVAR"]);
     expect(eventosCategoria[1].detalle).toEqual({ cambios: { descripcion: { anterior: null, nuevo: "Nueva" } } });
-    expect((await invocar(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: gerencia.cookie, cuerpo: { version: primeraVersion, nombre: "Ignorado" } }), categoria.id)).error?.codigo).toBe("CONFLICTO_EDICION");
-    expect((await invocar(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: gerencia.cookie, cuerpo: { nombre: "Ignorado" } }), categoria.id)).status).toBe(422);
+    expect((await invocar(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: operaciones.cookie, cuerpo: { version: primeraVersion, nombre: "Ignorado" } }), categoria.id)).error?.codigo).toBe("CONFLICTO_EDICION");
+    expect((await invocar(modulos.categoria.PATCH, peticion("PATCH", "/", { cookie: operaciones.cookie, cuerpo: { nombre: "Ignorado" } }), categoria.id)).status).toBe(422);
   });
   it("rechaza categoría duplicada y revierte la categoría si falla su bitácora", async () => {
     const nombre = unico("Categoría");
-    await modulos.servicioCategorias.crearCategoria({ nombre }, gerencia.actor);
-    await expect(modulos.servicioCategorias.crearCategoria({ nombre }, gerencia.actor)).rejects.toMatchObject({ codigo: "DUPLICADO", status: 409 });
-    const fantasma = { ...gerencia.actor, id: randomUUID() };
+    await modulos.servicioCategorias.crearCategoria({ nombre }, operaciones.actor);
+    await expect(modulos.servicioCategorias.crearCategoria({ nombre }, operaciones.actor)).rejects.toMatchObject({ codigo: "DUPLICADO", status: 409 });
+    const fantasma = { ...operaciones.actor, id: randomUUID() };
     const fallida = unico("Categoría");
     await expect(modulos.servicioCategorias.crearCategoria({ nombre: fallida }, fantasma)).rejects.toThrow();
     expect(await db.categoria.count({ where: { nombre: fallida } })).toBe(0);

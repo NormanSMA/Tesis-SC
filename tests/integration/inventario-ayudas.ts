@@ -8,26 +8,25 @@ export type EntornoInventario = Awaited<ReturnType<typeof prepararInventario>>;
 export async function prepararInventario(db: PrismaClient) {
   const { abrirSesion, prepararCotizaciones } = await import("./cotizaciones-ayudas");
   const cotizaciones = await prepararCotizaciones(db);
-  const PRODUCCION = await abrirSesion(db, cotizaciones.modulos, "PRODUCCION");
-  const GERENCIA = await abrirSesion(db, cotizaciones.modulos, "GERENCIA");
-  const ADMIN = await abrirSesion(db, cotizaciones.modulos, "ADMIN");
+  const [GERENCIA, ADMINISTRACION, OPERACIONES, PRODUCCION, ADMIN] = await Promise.all(
+    (["GERENCIA", "ADMINISTRACION", "OPERACIONES", "PRODUCCION", "ADMIN"] as const).map((perfil) => abrirSesion(db, cotizaciones.modulos, perfil)));
   const modulos = { servicio: await import("@/modules/inventario/service"),
     lista: await import("@/app/api/v1/materiales/route"), ficha: await import("@/app/api/v1/materiales/[id]/route"),
     archivar: await import("@/app/api/v1/materiales/[id]/archivar/route"), reactivar: await import("@/app/api/v1/materiales/[id]/reactivar/route"),
     movimientos: await import("@/app/api/v1/movimientos/route"), libro: await import("@/app/api/v1/materiales/[id]/movimientos/route"),
     entrada: await import("@/app/api/v1/inventario/entradas/route"), ajuste: await import("@/app/api/v1/inventario/ajustes/route") };
-  return { cotizaciones, modulos, sesiones: { PRODUCCION, GERENCIA, ADMIN, VENTAS: cotizaciones.ventas } };
+  return { cotizaciones, modulos, sesiones: { GERENCIA, ADMINISTRACION, OPERACIONES, ATENCION_CLIENTE: cotizaciones.ventas, PRODUCCION, ADMIN } };
 }
 export function entradaMaterial(cambios: Partial<CrearMaterial> = {}): CrearMaterial {
   return { codigo: `INV-${randomUUID().slice(0, 12)}`, nombre: `Material ${randomUUID().slice(0, 8)}`,
     unidad: "METRO", stockMinimo: "2.000", costoPromedio: "5.1234", ...cambios };
 }
 export function crearMaterial(entorno: EntornoInventario, cambios: Partial<CrearMaterial> = {}) {
-  return entorno.modulos.servicio.crearMaterial(entradaMaterial(cambios), entorno.sesiones.PRODUCCION.actor);
+  return entorno.modulos.servicio.crearMaterial(entradaMaterial(cambios), entorno.sesiones.ADMINISTRACION.actor);
 }
 export function recibir(entorno: EntornoInventario, materialId: string, opciones: { cantidad?: string; costo?: string; clave?: string } = {}) {
   return entorno.modulos.servicio.registrarEntrada({ materialId, cantidad: opciones.cantidad ?? "10.000", costoUnitario: opciones.costo ?? "10.0000" },
-    entorno.sesiones.PRODUCCION.actor, opciones.clave ?? randomUUID());
+    entorno.sesiones.ADMINISTRACION.actor, opciones.clave ?? randomUUID());
 }
 export function peticionLibro(entrada: { ruta: string; cookie?: string; cuerpo: object; clave?: string | null }) {
   const solicitud = new Request(`http://localhost${entrada.ruta}`, { method: "POST",

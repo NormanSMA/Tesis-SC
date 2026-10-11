@@ -6,7 +6,9 @@ import type { PerfilCodigo } from "../../src/core/permisos";
 // Las claves de la siembra vienen solo del entorno. No hay valor por defecto en el código.
 export const VARIABLE_CLAVE: Readonly<Record<PerfilCodigo, string>> = {
   GERENCIA: "SEED_PASSWORD_GERENCIA",
-  VENTAS: "SEED_PASSWORD_VENTAS",
+  ATENCION_CLIENTE: "SEED_PASSWORD_ATENCION_CLIENTE",
+  ADMINISTRACION: "SEED_PASSWORD_ADMINISTRACION",
+  OPERACIONES: "SEED_PASSWORD_OPERACIONES",
   PRODUCCION: "SEED_PASSWORD_PRODUCCION",
   ADMIN: "SEED_PASSWORD_ADMIN",
 };

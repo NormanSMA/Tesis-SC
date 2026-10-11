@@ -50,7 +50,7 @@ describeConBase("clientes: historial de la ficha (CF-11) y secciones por permiso
   beforeAll(async () => {
     await sembrarReferencia(db);
     modulos = await cargarModuloClientes();
-    ventas = await abrirSesion(db, modulos, "VENTAS");
+    ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
     gerencia = await abrirSesion(db, modulos, "GERENCIA");
     categoriaId = await crearCategoriaPrueba(db);
     responsableId = (await crearUsuarioPrueba(db, { perfil: "PRODUCCION" })).id;
@@ -129,7 +129,7 @@ describeConBase("clientes: historial de la ficha (CF-11) y secciones por permiso
       const { datos } = await ficha(clienteA.id);
       expect(datos.resumen).toEqual({
         cotizaciones: 27,
-        porEstado: { BORRADOR: 1, ENVIADA: 2, APROBADA: 22, RECHAZADA: 1, VENCIDA: 1 },
+        porEstado: { BORRADOR: 1, ENVIADA: 2, APROBADA: 22, RECHAZADA: 1, VENCIDA: 1, AJUSTE_SOLICITADO: 0 },
         totalAprobado: "225.50",
       });
     });
@@ -203,8 +203,8 @@ describeConBase("clientes: historial de la ficha (CF-11) y secciones por permiso
   });
 
   describe("secciones por permiso", () => {
-    const sinCotizaciones = { perfil: "VENTAS", permiso: "cotizacion:ver" } as const;
-    const sinOrdenes = { perfil: "VENTAS", permiso: "orden:ver" } as const;
+    const sinCotizaciones = { perfil: "ATENCION_CLIENTE", permiso: "cotizacion:ver" } as const;
+    const sinOrdenes = { perfil: "ATENCION_CLIENTE", permiso: "orden:ver" } as const;
 
     it("con la matriz por defecto Ventas y Gerencia ven todas las secciones", async () => {
       for (const sesion of [ventas, gerencia]) {
@@ -245,7 +245,7 @@ describeConBase("clientes: historial de la ficha (CF-11) y secciones por permiso
     });
 
     it("sin cliente:ver la ficha y la lista responden 403 aunque tenga otros permisos", async () => {
-      await conPermisoRevocado(db, { perfil: "VENTAS", permiso: "cliente:ver" }, async () => {
+      await conPermisoRevocado(db, { perfil: "ATENCION_CLIENTE", permiso: "cliente:ver" }, async () => {
         expect((await ficha(clienteA.id)).status).toBe(403);
         expect((await lista("")).status).toBe(403);
       });
@@ -253,11 +253,11 @@ describeConBase("clientes: historial de la ficha (CF-11) y secciones por permiso
 
     it("la matriz queda restaurada después de cada revocación", async () => {
       const perfil = await db.perfil.findUniqueOrThrow({
-        where: { codigo: "VENTAS" },
+        where: { codigo: "ATENCION_CLIENTE" },
         include: { permisos: { include: { permiso: true } } },
       });
       const vigentes = perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`).sort();
-      expect(vigentes).toEqual([...PERMISOS_POR_PERFIL.VENTAS].sort());
+      expect(vigentes).toEqual([...PERMISOS_POR_PERFIL.ATENCION_CLIENTE].sort());
     });
   });
 });

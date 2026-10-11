@@ -33,7 +33,7 @@ export function validarMotivoCancelacion(motivo: string): string {
   return texto;
 }
 
-type CabeceraEditable = { responsableId: string; fechaEntrega: string; especificaciones: string | null };
+type CabeceraEditable = { responsableId: string | null; fechaEntrega: string; especificaciones: string | null };
 export function cambiosEdicion(actual: CabeceraEditable, entrada: EntradaEditarOrden) {
   const cambios: Partial<CabeceraEditable> = {};
   if (entrada.responsableId !== undefined && entrada.responsableId !== actual.responsableId) cambios.responsableId = entrada.responsableId;

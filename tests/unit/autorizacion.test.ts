@@ -7,7 +7,8 @@ const actor: Actor = {
   id: "u1",
   nombre: "Valentina",
   correo: "valentina@example.com",
-  perfil: "VENTAS",
+  perfil: "ATENCION_CLIENTE",
+  perfiles: ["ATENCION_CLIENTE"],
   permisos: ["cliente:ver", "cliente:gestionar"],
 };
 

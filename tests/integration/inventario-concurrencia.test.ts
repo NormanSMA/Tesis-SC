@@ -73,7 +73,7 @@ describeConBase("inventario: concurrencia del consumo y la devolución", () => {
 
   it("consumo contra cancelación: nunca queda un consumo confirmado después de cancelar", async () => {
     const { servicio } = entorno.ordenes.modulos;
-    const gerencia = entorno.ordenes.sesiones.GERENCIA.actor;
+    const operaciones = entorno.sesiones.OPERACIONES.actor;
     for (let ronda = 0; ronda < RONDAS * 4; ronda++) {
       const orden = await nuevaOrden(entorno);
       const material = await crearMaterial(entorno, { existencia: "10" });
@@ -81,7 +81,7 @@ describeConBase("inventario: concurrencia del consumo y la devolución", () => {
       const retraso = (ronda % 10) * 8;
       const [consumo, cancelacion] = await Promise.all([
         demorar(retraso).then(() => capturar(consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "1" }] }))),
-        capturar(servicio.cancelarOrden(orden.id, { version: orden.actualizadoEn, motivo: "Cancelación concurrente" }, gerencia)),
+        capturar(servicio.cancelarOrden(orden.id, { version: orden.actualizadoEn, motivo: "Cancelación concurrente" }, operaciones)),
       ]);
       expect(cancelacion.ok).toBe(true);
       const final = await db.ordenTrabajo.findUniqueOrThrow({ where: { id: orden.id } });
@@ -128,7 +128,7 @@ describeConBase("inventario: concurrencia del consumo y la devolución", () => {
       .finally(() => { pendientes.consumo = false; });
     await demorar(300);
     const cancelacion = capturar(entorno.ordenes.modulos.servicio.cancelarOrden(orden.id,
-      { version: orden.actualizadoEn, motivo: "Cancelación con consumo en curso" }, entorno.ordenes.sesiones.GERENCIA.actor))
+      { version: orden.actualizadoEn, motivo: "Cancelación con consumo en curso" }, entorno.sesiones.OPERACIONES.actor))
       .finally(() => { pendientes.cancelacion = false; });
     await demorar(400);
     expect(pendientes).toEqual({ consumo: true, cancelacion: true });
@@ -146,7 +146,7 @@ describeConBase("inventario: concurrencia del consumo y la devolución", () => {
     await consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "3" }] });
     const actual = await db.ordenTrabajo.findUniqueOrThrow({ where: { id: orden.id } });
     await entorno.ordenes.modulos.servicio.cancelarOrden(orden.id, { version: actual.actualizadoEn.toISOString(),
-      motivo: "Cancelación posterior" }, entorno.ordenes.sesiones.GERENCIA.actor);
+      motivo: "Cancelación posterior" }, entorno.sesiones.OPERACIONES.actor);
     expect(await conciliar(db, material.id)).toEqual({ existencia: "7.000", libro: "7.000" });
     const devolucion = await devolver(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "3" }] });
     expect(devolucion.resumen[0]).toMatchObject({ neto: "0.000", existencia: "10.000" });

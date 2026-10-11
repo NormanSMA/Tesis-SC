@@ -20,13 +20,17 @@ export async function prepararProduccion(db: PrismaClient) {
     plantillas: await import("@/app/api/v1/categorias/[id]/plantillas/route"), plantilla: await import("@/app/api/v1/plantillas/[id]/route"),
     archivarPlantilla: await import("@/app/api/v1/plantillas/[id]/archivar/route"),
     tablero: await import("@/app/api/v1/produccion/tablero/route"), opciones: await import("@/app/api/v1/produccion/opciones/route") };
-  return { db, consumo, ordenes: consumo.ordenes, servicio, rutas, actor: consumo.produccion, gerencia: consumo.ordenes.sesiones.GERENCIA.actor };
+  return { db, consumo, ordenes: consumo.ordenes, servicio, rutas,
+    actor: consumo.ordenes.sesiones.PRODUCCION.actor,
+    planificador: consumo.ordenes.sesiones.OPERACIONES.actor,
+    operaciones: consumo.ordenes.sesiones.OPERACIONES.actor,
+    gerencia: consumo.ordenes.sesiones.GERENCIA.actor };
 }
 export async function nuevaOrden(entorno: EntornoProduccion) {
   return crearOrden(entorno.ordenes);
 }
 export async function asignarEtapa(entorno: EntornoProduccion, etapa: { id: string; actualizadoEn: string }, actor: Actor = entorno.actor) {
-  return entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, responsableId: actor.id }, entorno.actor);
+  return entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, responsableId: actor.id }, entorno.planificador);
 }
 export async function completarPrimera(entorno: EntornoProduccion) {
   const orden = await nuevaOrden(entorno);
@@ -38,12 +42,12 @@ export async function completarPrimera(entorno: EntornoProduccion) {
 export async function prepararLista(entorno: EntornoProduccion) {
   const { orden } = await completarPrimera(entorno);
   for (const etapa of orden.etapas.filter((etapa) => etapa.estado === "PENDIENTE")) {
-    await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "No corresponde" }, entorno.actor);
+    await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
   }
   return leerOrden(entorno.ordenes, orden.id);
 }
 export async function crearAreaLibre(entorno: EntornoProduccion) {
-  return entorno.servicio.crearArea({ nombre: `Área producción ${randomUUID().slice(0, 8)}` }, entorno.gerencia);
+  return entorno.servicio.crearArea({ nombre: `Área producción ${randomUUID().slice(0, 8)}` }, entorno.operaciones);
 }
 async function esperarBloqueados(cliente: Client, pid: number, cantidad: number) {
   const limite = Date.now() + 10000;

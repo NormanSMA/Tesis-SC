@@ -29,7 +29,7 @@ export async function validarArea(tx: Tx, id: string) {
 }
 export async function validarResponsable(tx: Tx, id: string) {
   await tx.$queryRaw`SELECT id FROM usuario WHERE id = ${id}::uuid FOR SHARE`;
-  const usuario = await tx.usuario.findFirst({ where: { id, activo: true, perfil: { codigo: "PRODUCCION" } } });
+  const usuario = await tx.usuario.findFirst({ where: { id, activo: true, perfiles: { some: { perfil: { codigo: "PRODUCCION" } } } } });
   if (!usuario) throw campoInvalido("responsableId", "Seleccione un usuario activo de Producción.");
 }
 export type CambiosEtapa = { responsableId?: string | null; fechaInicioPlan?: Date | null; fechaFinPlan?: Date | null;

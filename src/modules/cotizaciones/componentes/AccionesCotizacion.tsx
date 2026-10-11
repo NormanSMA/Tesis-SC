@@ -9,9 +9,10 @@ import { useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
 import { ResponderCotizacion } from "./ResponderCotizacion";
 
-type Accion = "enviar" | "duplicar" | "archivar";
+type Accion = "enviar" | "duplicar" | "archivar" | "version-corregida";
 type Permisos = { gestionar: boolean; enviar: boolean; responder: boolean };
 const CONFIRMACION = {
+  "version-corregida": { titulo: "Crear versión corregida", descripcion: "Cree la siguiente versión en borrador para atender los ajustes solicitados." },
   enviar: { titulo: "Enviar cotización", descripcion: "Fije los montos y las fechas. Después del envío, corrija mediante un duplicado." },
   duplicar: { titulo: "Duplicar cotización", descripcion: "Cree un borrador con los ítems guardados, el IVA vigente y la vigencia vigente." },
   archivar: { titulo: "Archivar cotización", descripcion: "Oculte la cotización de la lista predeterminada. Conserve los datos y el historial." },
@@ -24,9 +25,10 @@ export function AccionesCotizacion({ cotizacion, permisos, hoy }: {
   const solicitud = useSolicitudCotizacion();
   async function confirmar() {
     if (!accion) return;
+    const creaBorrador = accion === "duplicar" || accion === "version-corregida";
     await solicitud.enviar({ url: `/api/v1/cotizaciones/${cotizacion.id}/${accion}`, metodo: "POST",
-      cuerpo: accion === "duplicar" ? {} : { version: cotizacion.actualizadoEn },
-      destino: accion === "duplicar" ? "editar" : "detalle" });
+      cuerpo: creaBorrador ? {} : { version: cotizacion.actualizadoEn },
+      destino: creaBorrador ? "editar" : "detalle" });
     setAccion(null);
   }
   return <div className="space-y-4">
@@ -38,6 +40,9 @@ export function AccionesCotizacion({ cotizacion, permisos, hoy }: {
         <Button type="button" disabled={!cotizacion.items.length || solicitud.enviando} onClick={() => setAccion("enviar")}>Enviar cotización</Button> : null}
       {permisos.responder && cotizacion.estado === "ENVIADA" && !cotizacion.archivada ?
         <ResponderCotizacion cotizacion={cotizacion} hoy={hoy} /> : null}
+      {permisos.gestionar && cotizacion.estado === "AJUSTE_SOLICITADO" && !cotizacion.archivada ?
+        <Button type="button" disabled={!cotizacion.cliente.activo || solicitud.enviando}
+          onClick={() => setAccion("version-corregida")}>Crear versión corregida</Button> : null}
       {permisos.gestionar ? <Button type="button" variant="outline" disabled={!cotizacion.cliente.activo || solicitud.enviando}
         onClick={() => setAccion("duplicar")}>Duplicar</Button> : null}
       <Button asChild variant="outline"><Link href={`/cotizaciones/${cotizacion.id}/imprimir`}>Ver proforma</Link></Button>
@@ -45,7 +50,7 @@ export function AccionesCotizacion({ cotizacion, permisos, hoy }: {
         onClick={() => setAccion("archivar")}>Archivar</Button> : null}
     </div>
     {accion ? <ConfirmDialog abierto alCambiarAbierto={(abierto) => !abierto && setAccion(null)}
-      {...CONFIRMACION[accion]} etiquetaConfirmar={accion === "enviar" ? "Enviar" : accion === "duplicar" ? "Duplicar" : "Archivar"}
+      {...CONFIRMACION[accion]} etiquetaConfirmar={CONFIRMACION[accion].titulo}
       cargando={solicitud.enviando} alConfirmar={confirmar} /> : null}
   </div>;
 }

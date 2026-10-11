@@ -123,7 +123,21 @@ ALTER TABLE cotizacion
   ),
   DROP CONSTRAINT IF EXISTS cotizacion_respuesta_fechada,
   ADD CONSTRAINT cotizacion_respuesta_fechada CHECK (
-    estado NOT IN ('APROBADA', 'RECHAZADA') OR fecha_respuesta IS NOT NULL
+    estado NOT IN ('APROBADA', 'RECHAZADA', 'AJUSTE_SOLICITADO') OR fecha_respuesta IS NOT NULL
+  ),
+  -- Aprobacion comercial registrada por personal autorizado, con su referencia (RB-10, Tabla 14).
+  DROP CONSTRAINT IF EXISTS cotizacion_aprobacion_registrada,
+  ADD CONSTRAINT cotizacion_aprobacion_registrada CHECK (
+    estado <> 'APROBADA'
+    OR (usuario_aprobacion_id IS NOT NULL AND length(btrim(coalesce(referencia_aprobacion, ''))) > 0)
+  ),
+  DROP CONSTRAINT IF EXISTS cotizacion_ajuste_motivado,
+  ADD CONSTRAINT cotizacion_ajuste_motivado CHECK (
+    estado <> 'AJUSTE_SOLICITADO' OR length(btrim(coalesce(motivo_ajuste, ''))) > 0
+  ),
+  DROP CONSTRAINT IF EXISTS cotizacion_version_valida,
+  ADD CONSTRAINT cotizacion_version_valida CHECK (
+    version >= 1 AND (version = 1 OR cotizacion_origen_id IS NOT NULL)
   );
 
 ALTER TABLE item_cotizacion
@@ -275,6 +289,16 @@ CREATE TRIGGER trg_consumo_sin_truncate
   BEFORE TRUNCATE ON consumo_orden
   FOR EACH STATEMENT EXECUTE FUNCTION fn_solo_insercion();
 
+DROP TRIGGER IF EXISTS trg_historial_etapa_solo_insercion ON historial_etapa;
+CREATE TRIGGER trg_historial_etapa_solo_insercion
+  BEFORE UPDATE OR DELETE ON historial_etapa
+  FOR EACH ROW EXECUTE FUNCTION fn_solo_insercion();
+
+DROP TRIGGER IF EXISTS trg_historial_etapa_sin_truncate ON historial_etapa;
+CREATE TRIGGER trg_historial_etapa_sin_truncate
+  BEFORE TRUNCATE ON historial_etapa
+  FOR EACH STATEMENT EXECUTE FUNCTION fn_solo_insercion();
+
 DROP TRIGGER IF EXISTS trg_solicitud_solo_insercion ON solicitud_idempotente;
 CREATE TRIGGER trg_solicitud_solo_insercion
   BEFORE UPDATE OR DELETE ON solicitud_idempotente
@@ -409,6 +433,21 @@ BEGIN
 END;
 $$;
 
+-- La cantidad y el costo del consumo son copia positiva del movimiento: una sola fuente de verdad.
+CREATE OR REPLACE FUNCTION fn_consumo_copiar_movimiento() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  SELECT abs(m.cantidad), m.costo_unitario INTO NEW.cantidad, NEW.costo_unitario
+    FROM movimiento_inventario m WHERE m.id = NEW.movimiento_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_consumo_copiar_movimiento ON consumo_orden;
+CREATE TRIGGER trg_consumo_copiar_movimiento
+  BEFORE INSERT ON consumo_orden
+  FOR EACH ROW EXECUTE FUNCTION fn_consumo_copiar_movimiento();
+
 DROP TRIGGER IF EXISTS trg_consumo_validar ON consumo_orden;
 CREATE TRIGGER trg_consumo_validar
   AFTER INSERT ON consumo_orden
@@ -431,6 +470,7 @@ LANGUAGE sql IMMUTABLE AS $$
       ('cotizacion', 'ENVIADA',       'APROBADA'),
       ('cotizacion', 'ENVIADA',       'RECHAZADA'),
       ('cotizacion', 'ENVIADA',       'VENCIDA'),
+      ('cotizacion', 'ENVIADA',       'AJUSTE_SOLICITADO'),
       ('orden',      NULL,            'PENDIENTE'),
       ('orden',      'PENDIENTE',     'EN_PRODUCCION'),
       ('orden',      'PENDIENTE',     'CANCELADA'),
@@ -497,7 +537,8 @@ CREATE TRIGGER trg_etapa_transicion
 CREATE OR REPLACE FUNCTION fn_cotizacion_congelar() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
-  c_libres CONSTANT text[] := ARRAY['estado', 'fecha_respuesta', 'motivo_rechazo', 'archivada', 'actualizado_en'];
+  c_libres CONSTANT text[] := ARRAY['estado', 'fecha_respuesta', 'motivo_rechazo', 'archivada', 'actualizado_en',
+    'usuario_aprobacion_id', 'referencia_aprobacion', 'motivo_ajuste'];
   v_items  integer;
   v_suma   numeric;
 BEGIN
@@ -646,7 +687,7 @@ $$;
 DROP TRIGGER IF EXISTS trg_orden_inmutables ON orden_trabajo;
 CREATE TRIGGER trg_orden_inmutables
   BEFORE UPDATE ON orden_trabajo
-  FOR EACH ROW EXECUTE FUNCTION fn_columnas_inmutables('numero', 'cotizacion_id', 'creado_por_id', 'creado_en');
+  FOR EACH ROW EXECUTE FUNCTION fn_columnas_inmutables('numero', 'cotizacion_id', 'cliente_id', 'creado_por_id', 'creado_en');
 
 DROP TRIGGER IF EXISTS trg_cotizacion_inmutables ON cotizacion;
 CREATE TRIGGER trg_cotizacion_inmutables

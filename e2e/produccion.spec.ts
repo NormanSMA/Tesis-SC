@@ -26,7 +26,7 @@ type Material = Registro & { codigo: string; activo: boolean; existencia: string
 type Etapa = Registro & { nombre: string; estado: string; area: { id: string; nombre: string } };
 type Orden = Registro & { numero: string; estado: string; cotizacion: { asunto: string | null }; etapas: Etapa[] };
 const perfil = (codigo: string) => PERFILES.find((fila) => fila.codigo === codigo)!;
-const VENTAS = perfil("VENTAS"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION");
+const ATENCION_CLIENTE = perfil("ATENCION_CLIENTE"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION");
 let material: Material;
 let cotizacion: Cotizacion;
 let orden: Orden;
@@ -125,7 +125,7 @@ async function aprobarYConvertir(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Aprobar", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Aprobar cotización" }).click();
   await expect(page.getByRole("main")).toContainText("Aprobada");
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
@@ -365,7 +365,7 @@ async function limpiar(browser: Browser): Promise<void> {
   await paso(PRODUCCION, async () => { for (const fila of filas) await devolverNeto(page, fila.id); });
   await paso(GERENCIA, async () => { for (const fila of filas) await cancelar(page, fila); });
   await paso(GERENCIA, () => vaciarMaterial(page));
-  await paso(VENTAS, async () => {
+  await paso(ATENCION_CLIENTE, async () => {
     const cotizaciones = await leer<Cotizacion[]>(page, `/cotizaciones?q=${MARCA}&archivadas=false&porPagina=100`);
     for (const fila of cotizaciones.filter((fila) => fila.asunto?.startsWith(MARCA))) {
       const actual = await leer<Cotizacion>(page, `/cotizaciones/${fila.id}`);
@@ -381,7 +381,7 @@ function registrarFlujo(): void {
     soloPortatil(info.project.name);
     test.setTimeout(180000);
     await prepararMaterial(page);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await crearCotizacion(page);
     await aprobarYConvertir(page);
   });
@@ -410,7 +410,7 @@ function registrarConsultaYCancelacion(): void {
   test("Ventas y Gerencia consultan la cadena sin acciones de producción", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
-    for (const actor of [VENTAS, GERENCIA]) await consultarSinAcciones(page, actor);
+    for (const actor of [ATENCION_CLIENTE, GERENCIA]) await consultarSinAcciones(page, actor);
     for (const vista of VIEWPORTS) {
       await page.setViewportSize({ width: vista.width, height: vista.height });
       await abrirOrden(page);

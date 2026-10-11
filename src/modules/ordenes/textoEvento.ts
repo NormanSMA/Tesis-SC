@@ -21,7 +21,8 @@ function detalleEvento(evento: EventoOrden): string | undefined {
   for (const [campo, etiqueta] of Object.entries(CAMPOS)) {
     const cambio = detalle[campo];
     if (cambio && typeof cambio === "object" && !Array.isArray(cambio)) {
-      partes.push(`${etiqueta}: ${cambio.anterior ?? "(vacío)"} → ${cambio.nuevo ?? "(vacío)"}`);
+      const vacio = campo === "responsableId" ? "Sin responsable" : "(vacío)";
+      partes.push(`${etiqueta}: ${cambio.anterior ?? vacio} → ${cambio.nuevo ?? vacio}`);
     }
   }
   return partes.length ? partes.join(". ") : undefined;

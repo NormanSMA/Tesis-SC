@@ -27,6 +27,7 @@ function hrefPagina(consulta: ConsultaClientes, pagina: number): string {
 // van primero y quedan visibles; las secundarias van a la derecha y se alcanzan desplazando la tabla.
 function columnas(conCotizaciones: boolean): ColumnaTabla<ClienteFila>[] {
   const claves: ColumnaTabla<ClienteFila>[] = [
+    { id: "codigoCliente", encabezado: "Código", celda: (cliente) => cliente.codigoCliente },
     {
       id: "nombre",
       encabezado: "Nombre",

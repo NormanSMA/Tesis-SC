@@ -14,9 +14,32 @@ describeConBase("inventario: consumo y devolución por orden", () => {
   beforeAll(async () => { entorno = await prepararConsumo(db); });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 
-  function conCostos(actor: Actor): Actor {
-    return { ...actor, permisos: [...actor.permisos, "cotizacion:ver"] };
+  // ADMINISTRACION ya tiene cotizacion:ver; este actor simula un perfil que no lo tiene.
+  function sinCostos(actor: Actor): Actor {
+    return { ...actor, permisos: actor.permisos.filter((permiso) => permiso !== "cotizacion:ver") };
   }
+
+  it("guarda la clave propia por material y copia cantidad y costo del movimiento", async () => {
+    const orden = await nuevaOrden(entorno);
+    const materiales = [await crearMaterial(entorno, { existencia: "10", costo: "12.3456" }),
+      await crearMaterial(entorno, { existencia: "10", costo: "7.1234" })];
+    const lineas = materiales.map((material) => ({ materialId: material.id, cantidad: "2.125" }));
+    for (const operar of [consumir, devolver]) {
+      const clave = randomUUID();
+      const solicitud = { ordenId: orden.id, clave, lineas };
+      const respuesta = await operar(entorno, solicitud);
+      await operar(entorno, solicitud);
+      const enlaces = await db.consumoOrden.findMany({ where: { idempotencyKey: clave }, include: { movimiento: true } });
+      expect(enlaces).toHaveLength(2);
+      expect(enlaces.map((enlace) => enlace.movimientoId).sort()).toEqual(respuesta.movimientos.map((movimiento) => movimiento.id).sort());
+      for (const enlace of enlaces) {
+        expect(enlace.ordenId).toBe(orden.id);
+        expect(enlace.cantidad.toFixed(3)).toBe("2.125");
+        expect(enlace.costoUnitario.toFixed(4)).toBe(enlace.movimiento.costoUnitario.toFixed(4));
+        expect(enlace.cantidad.toFixed(3)).toBe(enlace.movimiento.cantidad.abs().toFixed(3));
+      }
+    }
+  });
 
   for (const estado of ["PENDIENTE", "EN_PRODUCCION", "LISTA"] as EstadoOrden[]) {
     it(`admite consumo en ${estado}`, async () => {
@@ -152,9 +175,9 @@ describeConBase("inventario: consumo y devolución por orden", () => {
     const material = await crearMaterial(entorno, { existencia: "10" });
     const clave = randomUUID();
     const solicitud = { ordenId: orden.id, clave, lineas: [{ materialId: material.id, cantidad: "1" }] };
-    const primera = await consumir(entorno, { ...solicitud, actor: conCostos(entorno.produccion) });
+    const primera = await consumir(entorno, solicitud);
     expect(primera.movimientos[0]).toHaveProperty("costoUnitario");
-    const reintento = await consumir(entorno, solicitud);
+    const reintento = await consumir(entorno, { ...solicitud, actor: sinCostos(entorno.administracion) });
     expect(reintento.repetida).toBe(true);
     expect(reintento.movimientos[0]).not.toHaveProperty("costoUnitario");
     expect(reintento.movimientos[0]).not.toHaveProperty("costoPromedioResultante");
@@ -170,23 +193,26 @@ describeConBase("inventario: consumo y devolución por orden", () => {
     const sobre = await consumir(entorno, { ordenId: orden.id, lineas: [{ materialId, cantidad: "0.001" }] });
     expect(sobre.resumen[0].excedeEstimado).toBe(true);
     await devolver(entorno, { ordenId: orden.id, lineas: [{ materialId, cantidad: "0.001" }] });
-    const resumen = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.produccion);
+    const resumen = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.administracion);
     expect(resumen.materiales.find((fila) => fila.material.id === materialId)).toMatchObject({ neto: estimado.cantidad.toFixed(3), excedeEstimado: false });
   });
 
   it("oculta los costos sin cotizacion:ver y los muestra con ese permiso", async () => {
     const orden = await nuevaOrden(entorno);
     const material = await crearMaterial(entorno, { existencia: "10", costo: "12.5" });
-    const sinCosto = await consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "1" }] });
+    const sinCosto = await consumir(entorno, { ordenId: orden.id, actor: sinCostos(entorno.administracion),
+      lineas: [{ materialId: material.id, cantidad: "1" }] });
     expect(sinCosto.movimientos[0]).not.toHaveProperty("costoUnitario");
     expect(sinCosto.movimientos[0]).not.toHaveProperty("costoPromedioResultante");
-    const conCosto = await consumir(entorno, { ordenId: orden.id, actor: conCostos(entorno.produccion),
+    const conCosto = await consumir(entorno, { ordenId: orden.id,
       lineas: [{ materialId: material.id, cantidad: "1" }] });
     expect(conCosto.movimientos[0]).toMatchObject({ costoUnitario: "12.5000", costoPromedioResultante: "12.5000" });
-    const gerencia = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.ordenes.sesiones.GERENCIA.actor);
-    expect(gerencia.movimientos.every((fila) => fila.costoUnitario === "12.5000")).toBe(true);
-    const produccion = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.produccion);
-    expect(produccion.movimientos.some((fila) => "costoUnitario" in fila || "costoPromedioResultante" in fila)).toBe(false);
+    for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES"] as const) {
+      const resumen = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.sesiones[perfil].actor);
+      expect(resumen.movimientos.every((fila) => fila.costoUnitario === "12.5000"), perfil).toBe(true);
+    }
+    const sinPermiso = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, sinCostos(entorno.administracion));
+    expect(sinPermiso.movimientos.some((fila) => "costoUnitario" in fila || "costoPromedioResultante" in fila)).toBe(false);
   });
 
   it("escribe un evento de bitácora por movimiento con el detalle del libro", async () => {
@@ -196,7 +222,7 @@ describeConBase("inventario: consumo y devolución por orden", () => {
     const eventos = await db.bitacora.findMany({ where: { ordenId: orden.id, entidad: "MOVIMIENTO_INVENTARIO" } });
     expect(eventos).toHaveLength(2);
     const deB = eventos.find((evento) => evento.entidadId === respuesta.movimientos.find((m) => m.material.id === b.id)?.id);
-    expect(deB).toMatchObject({ accion: "CONSUMIR_MATERIAL", usuarioId: entorno.produccion.id,
+    expect(deB).toMatchObject({ accion: "CONSUMIR_MATERIAL", usuarioId: entorno.administracion.id,
       detalle: { materialId: b.id, cantidad: "2.000", costoUnitario: "4.0000", existenciaResultante: "3.000" } });
     const traza = await trazaOrden(db, orden.id);
     expect(traza.eventos).toEqual(traza.movimientos);
@@ -222,14 +248,14 @@ describeConBase("inventario: consumo y devolución por orden", () => {
     const material = await crearMaterial(entorno, { existencia: "10" });
     const consumo = await consumir(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "3" }] });
     const devolucion = await devolver(entorno, { ordenId: orden.id, lineas: [{ materialId: material.id, cantidad: "1" }] });
-    const resumen = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.produccion);
+    const resumen = await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.administracion);
     expect(resumen).toMatchObject({ ordenId: orden.id, estadoOrden: "PENDIENTE", admiteConsumo: true, admiteDevolucion: true });
     expect(resumen.movimientos.map((m) => m.id)).toEqual([devolucion.movimientos[0].id, consumo.movimientos[0].id]);
     expect(resumen.materiales.find((fila) => fila.material.id === material.id))
       .toMatchObject({ consumido: "3.000", devuelto: "1.000", neto: "2.000", existencia: "8.000", excedeEstimado: true });
     expect(resumen.materiales.some((fila) => fila.material.id === entorno.ordenes.cotizaciones.referencias.material.id)).toBe(true);
     await ponerEstado(db, orden.id, "CANCELADA");
-    expect(await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.produccion))
+    expect(await entorno.modulos.resumen.obtenerResumenOrden(orden.id, entorno.administracion))
       .toMatchObject({ estadoOrden: "CANCELADA", admiteConsumo: false, admiteDevolucion: true });
   });
 });

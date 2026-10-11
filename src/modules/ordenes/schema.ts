@@ -8,11 +8,11 @@ const especificaciones = z.string().trim().max(10000, "Admite hasta 10000 caract
   .transform((texto) => texto || null).nullable();
 
 export const esquemaCrearOrden = z.object({
-  cotizacionId: id, categoriaId: id, responsableId: id, fechaEntrega: fecha,
+  cotizacionId: id, categoriaId: id, responsableId: id.nullable().optional(), fechaEntrega: fecha,
   especificaciones: especificaciones.optional(),
 });
 export const esquemaEditarOrden = z.object({
-  version, responsableId: id.optional(), fechaEntrega: fecha.optional(),
+  version, responsableId: id.nullable().optional(), fechaEntrega: fecha.optional(),
   especificaciones: especificaciones.optional(),
 });
 export const esquemaCambioEstado = z.object({ version });
@@ -21,7 +21,7 @@ export const esquemaCancelarOrden = z.object({
 });
 export const esquemaConsultaOrdenes = z.object({
   q: z.string().trim().max(200).optional(), estado: z.enum(ESTADOS).optional(),
-  responsable: id.optional(), cliente: id.optional(),
+  responsable: z.union([id, z.literal("sin-responsable")]).optional(), cliente: id.optional(),
   vencidas: z.enum(["true", "false"]).default("false"),
   terminales: z.enum(["true", "false", "todas"]).default("false"),
   pagina: z.coerce.number().int().min(1).max(100000).default(1),

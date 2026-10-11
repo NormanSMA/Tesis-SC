@@ -18,7 +18,7 @@ export type SolicitudMovimientosOrden = {
   actor: Actor;
 };
 
-type Aplicacion = { ordenId: string; actor: Actor; operacion: OperacionLibro; lineas: LineaNormalizada[] };
+type Aplicacion = { ordenId: string; actor: Actor; clave: string; operacion: OperacionLibro; lineas: LineaNormalizada[] };
 type Insercion = { aplicacion: Aplicacion; linea: LineaNormalizada; material: MaterialBloqueado };
 
 export function registrarConsumo(solicitud: SolicitudMovimientosOrden): Promise<RespuestaMovimientosOrden> {
@@ -51,7 +51,7 @@ async function registrar(solicitud: SolicitudMovimientosOrden, operacion: Operac
   try {
     return await prisma.$transaction(async (tx) => {
       const { resultado, repetida } = await ejecutarIdempotente(tx, { clave, usuarioId: actor.id, operacion, cuerpo },
-        () => aplicar(tx, { ordenId, actor, operacion, lineas }));
+        () => aplicar(tx, { ordenId, actor, clave, operacion, lineas }));
       return { ...proyectarCostos(resultado, can(actor, "cotizacion:ver")), repetida };
     });
   } catch (error) {
@@ -83,7 +83,8 @@ async function insertarMovimiento(tx: Tx, { aplicacion, linea, material }: Inser
     cantidad: cantidadConSigno(operacion, linea.cantidad), usuarioId: actor.id,
   } });
   // El trigger diferido SC005 exige este enlace antes del COMMIT.
-  await tx.consumoOrden.create({ data: { ordenId, materialId: linea.materialId, movimientoId: movimiento.id } });
+  await tx.consumoOrden.create({ data: { ordenId, materialId: linea.materialId, movimientoId: movimiento.id,
+    idempotencyKey: aplicacion.clave } });
   await registrarEvento(tx, { entidad: "MOVIMIENTO_INVENTARIO", entidadId: movimiento.id, ordenId, actorId: actor.id,
     accion: operacion === "consumo" ? "CONSUMIR_MATERIAL" : "DEVOLVER_MATERIAL",
     detalle: { materialId: linea.materialId, cantidad: linea.cantidad, costoUnitario: movimiento.costoUnitario.toFixed(4),

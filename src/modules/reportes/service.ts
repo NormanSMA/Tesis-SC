@@ -12,10 +12,10 @@ import type { FilaReporte, ReporteDto } from "./tipos";
 
 async function cotizaciones(consulta: ConsultaReporte, dinero: boolean) {
   const grupos = await consultarCotizaciones(consulta);
-  const estados = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA"];
+  const estados = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"];
   const filas = estados.map((estado) => {
     const grupo = grupos.find((fila) => fila.estado === estado);
-    return { estado: textoEstado(estado)!, cantidad: grupo?._count._all ?? 0,
+    return { estado: estado === "AJUSTE_SOLICITADO" ? "Ajustes solicitados" : textoEstado(estado)!, cantidad: grupo?._count._all ?? 0,
       ...(dinero && { importe: grupo?._sum.total?.toFixed(2) ?? "0.00" }) };
   });
   const aprobadas = grupos.find((fila) => fila.estado === "APROBADA")?._count._all ?? 0;

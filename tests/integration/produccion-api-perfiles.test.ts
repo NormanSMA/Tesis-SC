@@ -21,14 +21,23 @@ type Llamada = { manejador: RutaHandler; metodo: "GET" | "POST" | "PATCH"; ruta:
 const PERMISOS: Record<PermisoGrupo, readonly Operacion[]> = { "produccion:ver": LECTURAS,
   "produccion:planificar": PLANIFICACION, "produccion:ejecutar": EJECUCION, "orden:avanzar": AVANCE, "catalogo:gestionar": CATALOGO };
 type PermisoGrupo = "produccion:ver" | "produccion:planificar" | "produccion:ejecutar" | "orden:avanzar" | "catalogo:gestionar";
+const PERFILES_POR_PERMISO: Record<PermisoGrupo, readonly PerfilCodigo[]> = {
+  "produccion:ver": ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION"],
+  "produccion:planificar": ["ADMINISTRACION", "OPERACIONES"],
+  "produccion:ejecutar": ["ADMINISTRACION", "PRODUCCION"],
+  "orden:avanzar": ["ADMINISTRACION", "OPERACIONES", "PRODUCCION"],
+  "catalogo:gestionar": ["OPERACIONES"],
+};
 let entorno: EntornoProduccion;
 let db: PrismaClient;
 
 function cookie(perfil: PerfilCodigo) { return entorno.ordenes.sesiones[perfil].cookie; }
 function autorizado(operacion: Operacion, perfil: PerfilCodigo) {
-  if (perfil === "ADMIN") return false;
-  if ((LECTURAS as readonly Operacion[]).includes(operacion)) return true;
-  return (CATALOGO as readonly Operacion[]).includes(operacion) ? perfil === "GERENCIA" : perfil === "PRODUCCION";
+  return (Object.keys(PERMISOS) as PermisoGrupo[]).some((permiso) =>
+    PERMISOS[permiso].includes(operacion) && PERFILES_POR_PERMISO[permiso].includes(perfil));
+}
+function perfilAutorizado(operacion: Operacion): PerfilCodigo {
+  return ([...PLANIFICACION, ...CATALOGO] as readonly Operacion[]).includes(operacion) ? "OPERACIONES" : "PRODUCCION";
 }
 function statusExito(operacion: Operacion) {
   return ["agregarEtapa", "crearArea", "crearPlantilla"].includes(operacion) ? 201 : 200;
@@ -57,7 +66,7 @@ async function prepararEtapa(operacion: Operacion): Promise<Llamada> {
     ruta: `/api/v1/ordenes/${orden.id}/etapas`, cuerpo: { areaId: etapa.area.id, nombre: "Etapa API" } };
   if (operacion === "iniciar" || operacion === "completar") etapa = await asignarEtapa(entorno, etapa);
   if (operacion === "completar") etapa = await entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor);
-  if (operacion === "restaurar") etapa = await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "Omisión API" }, entorno.actor);
+  if (operacion === "restaurar") etapa = await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "Omisión API" }, entorno.planificador);
   if (operacion === "editarEtapa") return { manejador: entorno.rutas.etapa.PATCH, metodo: "PATCH", id: etapa.id,
     ruta: `/api/v1/etapas/${etapa.id}`, cuerpo: { version: etapa.actualizadoEn, responsableId: entorno.actor.id } };
   const accion = operacion as "iniciar" | "completar" | "omitir" | "restaurar";
@@ -77,7 +86,7 @@ async function prepararArea(operacion: Operacion): Promise<Llamada> {
   if (operacion === "crearArea") return { manejador: entorno.rutas.areas.POST, metodo: "POST", ruta: "/api/v1/areas",
     cuerpo: { nombre: `Área API ${randomUUID().slice(0, 8)}` } };
   let area = await crearAreaLibre(entorno);
-  if (operacion === "reactivarArea") area = await entorno.servicio.archivarArea(area.id, { version: area.actualizadoEn }, entorno.gerencia);
+  if (operacion === "reactivarArea") area = await entorno.servicio.archivarArea(area.id, { version: area.actualizadoEn }, entorno.operaciones);
   if (operacion === "editarArea") return { manejador: entorno.rutas.area.PATCH, metodo: "PATCH", id: area.id,
     ruta: `/api/v1/areas/${area.id}`, cuerpo: { version: area.actualizadoEn, nombre: `Área editada ${randomUUID().slice(0, 8)}` } };
   const accion = operacion as "archivarArea" | "reactivarArea";
@@ -90,7 +99,7 @@ async function prepararPlantilla(operacion: Operacion): Promise<Llamada> {
   const categoria = await db.categoria.create({ data: { nombre: `Categoría API ${randomUUID().slice(0, 8)}` } });
   if (operacion === "crearPlantilla") return { manejador: entorno.rutas.plantillas.POST, metodo: "POST", id: categoria.id,
     ruta: `/api/v1/categorias/${categoria.id}/plantillas`, cuerpo: { areaId: area.id, nombre: "Plantilla API" } };
-  const plantilla = await entorno.servicio.crearPlantilla(categoria.id, { areaId: area.id, nombre: "Plantilla API" }, entorno.gerencia);
+  const plantilla = await entorno.servicio.crearPlantilla(categoria.id, { areaId: area.id, nombre: "Plantilla API" }, entorno.operaciones);
   if (operacion === "editarPlantilla") return { manejador: entorno.rutas.plantilla.PATCH, metodo: "PATCH", id: plantilla.id,
     ruta: `/api/v1/plantillas/${plantilla.id}`, cuerpo: { version: plantilla.actualizadoEn, nombre: "Plantilla editada API" } };
   return { manejador: entorno.rutas.archivarPlantilla.POST, metodo: "POST", id: plantilla.id,
@@ -106,7 +115,7 @@ function preparar(operacion: Operacion) {
 }
 
 function registrarMatriz() {
-  for (const perfil of ["GERENCIA", "VENTAS", "PRODUCCION", "ADMIN"] as const) {
+  for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
     for (const operacion of OPERACIONES) {
       const status = autorizado(operacion, perfil) ? statusExito(operacion) : 403;
       it(`${perfil}: ${operacion} responde ${status}`, async () => {
@@ -127,7 +136,7 @@ function registrarMatriz() {
 function registrarRevocaciones() {
   for (const [permiso, operaciones] of Object.entries(PERMISOS) as [Permiso, readonly Operacion[]][]) {
     it(`revocar ${permiso} afecta las sesiones existentes`, async () => {
-      const perfil = permiso === "catalogo:gestionar" ? "GERENCIA" : "PRODUCCION";
+      const perfil = permiso === "catalogo:gestionar" || permiso === "produccion:planificar" ? "OPERACIONES" : "PRODUCCION";
       const llamadas = await Promise.all(operaciones.map(preparar));
       await conPermisoRevocado(db, { perfil, permiso }, async () => {
         for (const llamada of llamadas) expect(await ejecutar(llamada, cookie(perfil))).toMatchObject({ status: 403, error: { codigo: "SIN_PERMISO" } });
@@ -153,7 +162,7 @@ function registrarIdentificadores() {
   for (const operacion of operaciones) {
     it(`${operacion}: identificadores inexistentes o inválidos responden 404`, async () => {
       const llamada = await preparar(operacion);
-      const sesion = cookie((CATALOGO as readonly Operacion[]).includes(operacion) ? "GERENCIA" : "PRODUCCION");
+      const sesion = cookie(perfilAutorizado(operacion));
       for (const id of [randomUUID(), "id-invalido"]) {
         const destino = { ...llamada, id, ruta: llamada.ruta.replace(`/${llamada.id}`, `/${id}`) };
         expect(await ejecutar(destino, sesion)).toMatchObject({ status: 404, error: { codigo: "NO_ENCONTRADO" } });
@@ -168,7 +177,7 @@ function registrarVersiones() {
   for (const operacion of operaciones) {
     it(`${operacion}: exige versión y rechaza versión antigua`, async () => {
       const llamada = await preparar(operacion);
-      const sesion = cookie((CATALOGO as readonly Operacion[]).includes(operacion) ? "GERENCIA" : "PRODUCCION");
+      const sesion = cookie(perfilAutorizado(operacion));
       const cuerpo = { ...llamada.cuerpo };
       delete cuerpo.version;
       expect(await ejecutar({ ...llamada, cuerpo }, sesion)).toMatchObject({ status: 422, error: { codigo: "VALIDACION", campos: { version: expect.any(String) } } });
@@ -194,13 +203,13 @@ function registrarGuardasEtapas() {
       const etapa = orden.etapas[0];
       for (const accion of ["iniciar", "completar", "omitir", "restaurar"] as const) {
         const respuesta = await invocar(entorno.rutas[accion].POST, peticion("POST", `/api/v1/etapas/${etapa.id}/${accion}`, {
-          cookie: cookie("PRODUCCION"), cuerpo: { version: etapa.actualizadoEn, motivo: "Motivo API" } }), etapa.id);
+          cookie: cookie(perfilAutorizado(accion)), cuerpo: { version: etapa.actualizadoEn, motivo: "Motivo API" } }), etapa.id);
         expect(respuesta).toMatchObject({ status: 409, error: { codigo: "ORDEN_NO_ADMITE_CAMBIOS_DE_ETAPA" } });
       }
       const editar = await invocar(entorno.rutas.etapa.PATCH, peticion("PATCH", `/api/v1/etapas/${etapa.id}`, {
-        cookie: cookie("PRODUCCION"), cuerpo: { version: etapa.actualizadoEn, responsableId: entorno.actor.id } }), etapa.id);
+        cookie: cookie("OPERACIONES"), cuerpo: { version: etapa.actualizadoEn, responsableId: entorno.actor.id } }), etapa.id);
       const agregar = await invocar(entorno.rutas.etapas.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/etapas`, {
-        cookie: cookie("PRODUCCION"), cuerpo: { areaId: etapa.area.id, nombre: "Etapa bloqueada" } }), orden.id);
+        cookie: cookie("OPERACIONES"), cuerpo: { areaId: etapa.area.id, nombre: "Etapa bloqueada" } }), orden.id);
       for (const respuesta of [editar, agregar]) expect(respuesta).toMatchObject({ status: 409, error: { codigo: "ORDEN_NO_ADMITE_CAMBIOS_DE_ETAPA" } });
     });
   }
@@ -209,11 +218,11 @@ function registrarGuardasEtapas() {
 function registrarValidacion() {
   it("rechaza responsable inexistente, otro perfil e inactivo con 422", async () => {
     const llamada = await preparar("editarEtapa");
-    for (const responsableId of [randomUUID(), entorno.ordenes.sesiones.VENTAS.usuarioId, "invalido"]) {
-      const respuesta = await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, responsableId } }, cookie("PRODUCCION"));
+    for (const responsableId of [randomUUID(), entorno.ordenes.sesiones.ATENCION_CLIENTE.usuarioId, "invalido"]) {
+      const respuesta = await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, responsableId } }, cookie("OPERACIONES"));
       expect(respuesta).toMatchObject({ status: 422, error: { codigo: "VALIDACION", campos: { responsableId: expect.any(String) } } });
     }
-    const segunda = await abrirSesion(db, entorno.ordenes.cotizaciones.modulos, "PRODUCCION");
+    const segunda = await abrirSesion(db, entorno.ordenes.cotizaciones.modulos, "OPERACIONES");
     await db.usuario.update({ where: { id: entorno.actor.id }, data: { activo: false } });
     try {
       const respuesta = await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, responsableId: entorno.actor.id } }, segunda.cookie);
@@ -223,11 +232,11 @@ function registrarValidacion() {
   it("rechaza fechas inválidas, fechas invertidas y motivos cortos con 422", async () => {
     const llamada = await preparar("editarEtapa");
     for (const fechas of [{ fechaInicioPlan: "2026-02-30" }, { fechaInicioPlan: "2026-10-10", fechaFinPlan: "2026-10-09" }]) {
-      expect((await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, ...fechas } }, cookie("PRODUCCION"))).status).toBe(422);
+      expect((await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, ...fechas } }, cookie("OPERACIONES"))).status).toBe(422);
     }
     for (const operacion of ["omitir", "retrabajo"] as const) {
       const llamada = await preparar(operacion);
-      expect(await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, motivo: "no" } }, cookie("PRODUCCION")))
+      expect(await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, motivo: "no" } }, cookie(perfilAutorizado(operacion))))
         .toMatchObject({ status: 422, error: { campos: { motivo: expect.any(String) } } });
     }
   });
@@ -235,7 +244,7 @@ function registrarValidacion() {
     for (const operacion of OPERACIONES.filter((operacion) => !(LECTURAS as readonly Operacion[]).includes(operacion))) {
       const llamada = await preparar(operacion);
       const req = new Request(`http://localhost${llamada.ruta}`, { method: llamada.metodo, body: "{json roto",
-        headers: { origin: "http://localhost", cookie: cookie((CATALOGO as readonly Operacion[]).includes(operacion) ? "GERENCIA" : "PRODUCCION") } });
+        headers: { origin: "http://localhost", cookie: cookie(perfilAutorizado(operacion)) } });
       expect(await invocar(llamada.manejador, req, llamada.id)).toMatchObject({ status: 400, error: { codigo: "JSON_INVALIDO" } });
     }
   });
@@ -246,8 +255,12 @@ function registrarTablero() {
     const orden = await nuevaOrden(entorno);
     const etapa = await asignarEtapa(entorno, orden.etapas[0]);
     const consulta = new URLSearchParams({ q: orden.numero, area: etapa.area.id, responsable: entorno.actor.id, estado: "PENDIENTE" });
-    for (const perfil of ["GERENCIA", "VENTAS", "PRODUCCION"] as const) {
+    for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
       const respuesta = await invocar<EtapaTablero[]>(entorno.rutas.tablero.GET, peticion("GET", `/api/v1/produccion/tablero?${consulta}`, { cookie: cookie(perfil) }));
+      if (perfil === "ADMIN") {
+        expect(respuesta).toMatchObject({ status: 403, error: { codigo: "SIN_PERMISO" } });
+        continue;
+      }
       expect(respuesta.status).toBe(200);
       expect(respuesta.datos).toHaveLength(1);
       expect(respuesta.datos[0]).toMatchObject({ id: etapa.id, orden: { id: orden.id }, actualizadoEn: etapa.actualizadoEn });
@@ -275,7 +288,7 @@ function registrarGuardasOrden() {
   });
   it("marcar lista con todas omitidas responde ORDEN_SIN_TRABAJO", async () => {
     const orden = await nuevaOrden(entorno);
-    for (const etapa of orden.etapas) await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "Omisión API" }, entorno.actor);
+    for (const etapa of orden.etapas) await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "Omisión API" }, entorno.planificador);
     await ponerEstado(db, orden.id, "EN_PRODUCCION");
     const actual = await leerOrden(entorno.ordenes, orden.id);
     const respuesta = await invocar(entorno.rutas.lista.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/lista`, {
@@ -286,7 +299,7 @@ function registrarGuardasOrden() {
     const areaId = (await nuevaOrden(entorno)).etapas[0].area.id;
     const area = await db.area.findUniqueOrThrow({ where: { id: areaId } });
     const respuesta = await invocar(entorno.rutas.archivarArea.POST, peticion("POST", `/api/v1/areas/${area.id}/archivar`, {
-      cookie: cookie("GERENCIA"), cuerpo: { version: area.actualizadoEn.toISOString() } }), area.id);
+      cookie: cookie("OPERACIONES"), cuerpo: { version: area.actualizadoEn.toISOString() } }), area.id);
     expect(respuesta).toMatchObject({ status: 409, error: { codigo: "AREA_EN_USO" } });
   });
 }

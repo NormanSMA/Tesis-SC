@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA"] as const;
+export const ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"] as const;
 export const CONDICIONES_PREDETERMINADAS = "Precios en córdobas. La producción inicia después de aprobar la cotización.";
 export const version = z.iso.datetime({ offset: true, error: "Falta la versión de la cotización. Recargue los datos." });
 const id = z.uuid({ error: "Seleccione un registro válido." });
@@ -25,11 +25,19 @@ export const esquemaEditarCotizacion = z.object({
 export const esquemaCambioEstado = z.object({ version });
 export const esquemaResponder = z.object({
   version,
-  resultado: z.enum(["APROBADA", "RECHAZADA", "VENCIDA"]),
+  resultado: z.enum(["APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"]),
   motivo: z.string().trim().optional(),
+  referenciaAprobacion: z.string().trim().min(3, "Ingrese al menos 3 caracteres.").max(200).optional(),
+  motivoAjuste: z.string().trim().min(3, "Ingrese al menos 3 caracteres.").max(500).optional(),
 }).superRefine((entrada, contexto) => {
   if (entrada.resultado === "RECHAZADA" && !entrada.motivo) {
     contexto.addIssue({ code: "custom", path: ["motivo"], message: "Indique el motivo del rechazo." });
+  }
+  if (entrada.resultado === "APROBADA" && !entrada.referenciaAprobacion) {
+    contexto.addIssue({ code: "custom", path: ["referenciaAprobacion"], message: "Indique la referencia de aprobación." });
+  }
+  if (entrada.resultado === "AJUSTE_SOLICITADO" && !entrada.motivoAjuste) {
+    contexto.addIssue({ code: "custom", path: ["motivoAjuste"], message: "Indique el motivo del ajuste." });
   }
 });
 

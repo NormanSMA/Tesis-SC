@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
-import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
 import type { ConsultaCotizaciones } from "../schema";
 import type { CotizacionFila, ListaCotizaciones } from "../tipos";
+import { EstadoCotizacion } from "./EstadoCotizacion";
 
 function hrefPagina(consulta: ConsultaCotizaciones, pagina: number) {
   const parametros = new URLSearchParams();
@@ -17,9 +17,12 @@ function hrefPagina(consulta: ConsultaCotizaciones, pagina: number) {
 
 const columnas: ColumnaTabla<CotizacionFila>[] = [
   { id: "numero", encabezado: "Número", principal: true, celda: (fila) =>
-    <Link href={`/cotizaciones/${fila.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{fila.numero}</Link> },
+    <div><Link href={`/cotizaciones/${fila.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{fila.numero}</Link>
+      <span className="block text-xs text-muted-foreground">Versión {fila.version}</span></div> },
   { id: "cliente", encabezado: "Cliente", celda: (fila) => <span className="block max-w-48 truncate" title={fila.cliente.nombre}>{fila.cliente.nombre}</span> },
-  { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoBadge tipo="cotizacion" estado={fila.estado} /> },
+  { id: "estado", encabezado: "Estado", celda: (fila) => <div><EstadoCotizacion estado={fila.estado} />
+    {fila.usuarioAprobacion ? <span className="mt-1 block text-xs">{fila.usuarioAprobacion.nombre}</span> : null}
+    {fila.referenciaAprobacion ? <span className="block text-xs">{fila.referenciaAprobacion}</span> : null}</div> },
   { id: "total", encabezado: "Total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} /> },
   { id: "asunto", encabezado: "Asunto", celda: (fila) => <span className="block max-w-64 truncate" title={fila.asunto ?? ""}>{fila.asunto ?? "—"}</span> },
   { id: "emision", encabezado: "Emisión", celda: (fila) => <Fecha valor={fila.fechaEmision} /> },

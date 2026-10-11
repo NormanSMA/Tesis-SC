@@ -18,7 +18,7 @@ test.use({ baseURL: BASE });
 type Perfil = (typeof PERFILES)[number];
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
-const VENTAS = PERFILES.find((perfil) => perfil.codigo === "VENTAS") as Perfil;
+const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
 
@@ -170,7 +170,7 @@ async function verificarSoloLectura(page: Page): Promise<void> {
 test.describe("Perfiles de consulta ven el catálogo sin gestión", () => {
   test("Ventas ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await verificarSoloLectura(page);
   });
 
@@ -220,7 +220,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
   }
 
   test("la lista no desborda en horizontal", async ({ page }) => {
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/catalogo");
     await expect(page.getByRole("img", { name: /^Producto: / }).first()).toBeVisible();
     await sinDesbordeHorizontal(page);

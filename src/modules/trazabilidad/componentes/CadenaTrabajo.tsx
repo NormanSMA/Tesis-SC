@@ -29,7 +29,7 @@ export function CadenaTrabajo({ cadena }: { cadena: TrazabilidadOrden["cadena"] 
     </dl></CardContent></Card>
     <Card className="min-w-0"><CardHeader><CardTitle>Orden de trabajo</CardTitle></CardHeader><CardContent><dl className="space-y-3">
       <Dato nombre="Número" valor={<Link href={`/ordenes/${cadena.orden.id}`} className="text-primary underline">{cadena.orden.numero}</Link>} />
-      <Dato nombre="Estado" valor={cadena.orden.estado} /><Dato nombre="Responsable" valor={cadena.orden.responsable.nombre} />
+      <Dato nombre="Estado" valor={cadena.orden.estado} /><Dato nombre="Responsable" valor={cadena.orden.responsable?.nombre ?? "Sin responsable"} />
       <Dato nombre="Especificaciones" valor={cadena.orden.especificaciones} />
       <Dato nombre="Creación" valor={formatearFechaHora(cadena.orden.creadoEn)} />
       <Dato nombre="Entrega planificada" valor={formatearFecha(cadena.orden.fechaEntrega)} />

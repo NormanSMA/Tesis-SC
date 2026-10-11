@@ -17,9 +17,9 @@ describeConBase("sembrarReferencia", () => {
     await db.$disconnect();
   });
 
-  it("crea los cuatro perfiles con sus nombres, sin duplicar al repetir", async () => {
+  it("crea los seis perfiles con sus nombres, sin duplicar al repetir", async () => {
     const perfiles = await db.perfil.findMany();
-    expect(perfiles).toHaveLength(4);
+    expect(perfiles).toHaveLength(6);
     for (const { codigo, nombre } of PERFILES) {
       expect(perfiles.find((p) => p.codigo === codigo)?.nombre).toBe(nombre);
     }

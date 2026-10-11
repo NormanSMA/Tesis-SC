@@ -89,6 +89,7 @@ const CAMINO_ESTADO: Record<EstadoCotizacion, EstadoCotizacion[]> = {
   APROBADA: ["ENVIADA", "APROBADA"],
   RECHAZADA: ["ENVIADA", "RECHAZADA"],
   VENCIDA: ["ENVIADA", "VENCIDA"],
+  AJUSTE_SOLICITADO: ["ENVIADA", "AJUSTE_SOLICITADO"],
 };
 
 function diasDesdeHoy(dias: number): Date {
@@ -139,7 +140,14 @@ export async function crearCotizacionPrueba(db: PrismaClient, datos: DatosCotiza
       data:
         estado === "ENVIADA"
           ? { estado, fechaEmision: diasDesdeHoy(-3), fechaVencimiento: diasDesdeHoy(12) }
-          : { estado, fechaRespuesta: new Date() },
+          : {
+              estado,
+              fechaRespuesta: new Date(),
+              ...(estado === "APROBADA"
+                ? { usuarioAprobacionId: datos.usuarioId, referenciaAprobacion: "Correo del cliente" }
+                : {}),
+              ...(estado === "AJUSTE_SOLICITADO" ? { motivoAjuste: "El cliente pidió cambios" } : {}),
+            },
     });
   }
   return cotizacion;
@@ -148,10 +156,12 @@ export async function crearCotizacionPrueba(db: PrismaClient, datos: DatosCotiza
 type DatosOrden = { cotizacionId: string; categoriaId: string; responsableId: string };
 
 export async function crearOrdenPrueba(db: PrismaClient, datos: DatosOrden) {
+  const { clienteId } = await db.cotizacion.findUniqueOrThrow({ where: { id: datos.cotizacionId }, select: { clienteId: true } });
   return db.ordenTrabajo.create({
     data: {
       numero: await siguienteNumero(db, "ORDEN_TRABAJO"),
       cotizacionId: datos.cotizacionId,
+      clienteId,
       categoriaId: datos.categoriaId,
       responsableId: datos.responsableId,
       creadoPorId: datos.responsableId,

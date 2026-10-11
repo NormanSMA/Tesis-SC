@@ -16,17 +16,18 @@ export function aMaterialDto(material: Pick<Material, "id" | "codigo" | "nombre"
     costoPromedio: material.costoPromedio.toFixed(4), activo: material.activo,
   };
 }
-export function aProductoDto(producto: FilaProducto): ProductoDto {
+export function aProductoDto(producto: FilaProducto, conCosto = false): ProductoDto {
   return {
     id: producto.id, codigo: producto.codigo, nombre: producto.nombre, descripcion: producto.descripcion,
     categoriaId: producto.categoriaId, categoria: aCategoriaDto(producto.categoria),
     unidadCobro: producto.unidadCobro, precioBase: producto.precioBase.toFixed(2), activo: producto.activo,
+    ...(conCosto && { costoUnitario: producto.costoUnitario?.toFixed(4) ?? null }),
     creadoEn: producto.creadoEn.toISOString(), actualizadoEn: producto.actualizadoEn.toISOString(),
   };
 }
-export function aFichaProducto(producto: FilaFicha): FichaProducto {
+export function aFichaProducto(producto: FilaFicha, conCosto = false): FichaProducto {
   return {
-    ...aProductoDto(producto),
+    ...aProductoDto(producto, conCosto),
     receta: producto.receta.map((fila) => ({
       materialId: fila.materialId, cantidad: fila.cantidad.toFixed(3), material: aMaterialDto(fila.material),
     })),

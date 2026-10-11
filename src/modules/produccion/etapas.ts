@@ -52,7 +52,8 @@ async function validarPlanificacion(tx: Tx, actual: EtapaGuardada, cambios: Camb
 }
 async function registrarPlanificacion(tx: Tx, datos: { actual: EtapaGuardada; cambios: CambiosEtapa; actor: Actor }) {
   const { actual, cambios, actor } = datos;
-  if (cambios.responsableId !== undefined) await registrarEtapa(tx, { etapa: actual, actor, accion: "ASIGNAR_RESPONSABLE",
+  if (cambios.responsableId !== undefined) await registrarEtapa(tx, {
+    etapa: { ...actual, responsableId: cambios.responsableId }, actor, accion: "ASIGNAR_RESPONSABLE",
     detalle: { responsableId: { anterior: actual.responsableId, nuevo: cambios.responsableId } } });
   const detalle: Record<string, Prisma.InputJsonValue> = {};
   for (const campo of ["fechaInicioPlan", "fechaFinPlan"] as const) {
@@ -92,7 +93,7 @@ async function ejecutarCambio(datos: CambioEtapa) {
     const guardada = await actualizarEtapa(tx, etapa, { estado,
       ...(datos.accion === "iniciar" && { fechaInicioReal: ahora }), ...(datos.accion === "completar" && { fechaFinReal: ahora }),
       ...(motivo && { observaciones: motivo }), ...(datos.accion === "restaurar" && { observaciones: null }) });
-    await registrarEtapa(tx, { etapa, actor: datos.actor, accion: "CAMBIAR_ESTADO", estadoAnterior: etapa.estado,
+    await registrarEtapa(tx, { etapa: guardada, actor: datos.actor, accion: "CAMBIAR_ESTADO", estadoAnterior: etapa.estado,
       estadoNuevo: estado, detalle: motivo ? { motivo } : {} });
     return aEtapaDto(guardada);
   });

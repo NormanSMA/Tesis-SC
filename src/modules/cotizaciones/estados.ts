@@ -1,20 +1,27 @@
 import { exigir, type Actor } from "@/core/autorizacion";
 import { totalizarCotizacion } from "@/core/costeo";
 import { prisma } from "@/lib/db";
+import { AppError } from "@/lib/errores";
 
 import { aCotizacionDto, aItemDto } from "./dto";
 import { regla } from "./errores";
 import { exigirBorrador, exigirCotizacion, guardarCabecera, registrarCambio, tomarVersion } from "./escritura";
 import { hoyManagua, sumarDias } from "./fechas";
 import type { FichaGuardada } from "./repo";
-import type { EntradaResponder } from "./schema";
+import { esquemaResponder, type EntradaResponder } from "./schema";
 import type { CotizacionDto } from "./tipos";
+
+export function transicionValidaCotizacion(desde: string | null, hacia: string): boolean {
+  if (desde === null) return hacia === "BORRADOR";
+  if (desde === "BORRADOR") return hacia === "ENVIADA";
+  return desde === "ENVIADA" && ["APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"].includes(hacia);
+}
 
 export async function enviarCotizacion(id: string, version: string, actor: Actor): Promise<CotizacionDto> {
   exigir(actor, "cotizacion:enviar");
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, version);
-    if (actual.estado !== "BORRADOR") throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
+    if (!transicionValidaCotizacion(actual.estado, "ENVIADA")) throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
     exigirBorrador(actual);
     if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un ítem antes de enviar la cotización.");
     const totales = totalizarCotizacion({ items: actual.items.map(aItemDto),
@@ -30,7 +37,7 @@ export async function enviarCotizacion(id: string, version: string, actor: Actor
 }
 
 function validarRespuesta(actual: FichaGuardada, entrada: EntradaResponder): void {
-  if (actual.estado !== "ENVIADA") throw regla("TRANSICION_INVALIDA", "Solo se puede responder una cotización enviada.");
+  if (!transicionValidaCotizacion(actual.estado, entrada.resultado)) throw regla("TRANSICION_INVALIDA", "Solo se puede responder una cotización enviada.");
   if (actual.archivada) throw regla("COTIZACION_ARCHIVADA", "La cotización está archivada.");
   const vencimiento = actual.fechaVencimiento!.toISOString().slice(0, 10);
   const hoy = hoyManagua();
@@ -44,11 +51,19 @@ export async function responderCotizacion(id: string, entrada: EntradaResponder,
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, entrada.version);
     validarRespuesta(actual, entrada);
+    const validacion = esquemaResponder.safeParse(entrada);
+    if (!validacion.success) throw new AppError({ codigo: "VALIDACION", status: 422,
+      mensaje: "Hay campos con errores.", campos: Object.fromEntries(validacion.error.issues.map((error) => [error.path.join("."), error.message])) });
     await guardarCabecera(tx, actual, { estado: entrada.resultado, fechaRespuesta: new Date(),
-      motivoRechazo: entrada.resultado === "RECHAZADA" ? entrada.motivo!.trim() : null });
+      motivoRechazo: entrada.resultado === "RECHAZADA" ? entrada.motivo!.trim() : null,
+      usuarioAprobacionId: entrada.resultado === "APROBADA" ? actor.id : null,
+      referenciaAprobacion: entrada.resultado === "APROBADA" ? validacion.data.referenciaAprobacion! : null,
+      motivoAjuste: entrada.resultado === "AJUSTE_SOLICITADO" ? validacion.data.motivoAjuste! : null });
     const nueva = await exigirCotizacion(tx, id);
     await registrarCambio(tx, { ficha: nueva, actor, accion: "CAMBIAR_ESTADO", estadoAnterior: actual.estado,
-      estadoNuevo: nueva.estado, detalle: { motivo: nueva.motivoRechazo } });
+      estadoNuevo: nueva.estado, detalle: { motivo: nueva.motivoRechazo, motivoAjuste: nueva.motivoAjuste,
+        referenciaAprobacion: nueva.referenciaAprobacion, usuarioAprobacionId: nueva.usuarioAprobacionId,
+        fechaRespuesta: nueva.fechaRespuesta!.toISOString() } });
     return aCotizacionDto(nueva);
   });
 }

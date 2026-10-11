@@ -30,7 +30,7 @@ export function comprobarSinCliente(valor: unknown): void {
 export async function crearTrabajo(entorno: EntornoTrazabilidad) {
   const orden = await crearOrden(entorno.produccion.ordenes);
   const asignada = await entorno.produccion.servicio.editarEtapa(orden.etapas[0].id,
-    { version: orden.etapas[0].actualizadoEn, responsableId: entorno.sesiones.PRODUCCION.usuarioId }, entorno.sesiones.PRODUCCION.actor);
+    { version: orden.etapas[0].actualizadoEn, responsableId: entorno.sesiones.PRODUCCION.usuarioId }, entorno.sesiones.OPERACIONES.actor);
   await entorno.produccion.servicio.iniciarEtapa(asignada.id, { version: asignada.actualizadoEn }, entorno.sesiones.PRODUCCION.actor);
   return orden;
 }
@@ -50,7 +50,7 @@ export async function libroConCostos(entorno: EntornoTrazabilidad) {
 }
 export async function inyectarDetalle(entorno: EntornoTrazabilidad, ordenId: string) {
   return entorno.db.bitacora.create({ data: { entidad: "ORDEN_TRABAJO", entidadId: ordenId, ordenId,
-    usuarioId: entorno.sesiones.GERENCIA.usuarioId, accion: "EDITAR", detalle: {
+    usuarioId: entorno.sesiones.OPERACIONES.usuarioId, accion: "EDITAR", detalle: {
       motivo: "Detalle visible", secreto: "NO_MOSTRAR", total: "98765.43", costoTotal: "34567.89",
       cambios: { nombre: { anterior: "A", nuevo: "B", costoUnitario: "222" },
         precioBase: { anterior: "111", nuevo: "333" }, ruc: { anterior: null, nuevo: "RUC_PRIVADO" },

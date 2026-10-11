@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import { z } from "zod";
 
+import type { PerfilCodigo } from "@/core/permisos";
+
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import {
   cargarAuth,
@@ -42,7 +44,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
     await db.$disconnect();
   });
 
-  async function cookieDe(perfil: "GERENCIA" | "VENTAS" | "PRODUCCION" | "ADMIN") {
+  async function cookieDe(perfil: PerfilCodigo) {
     const usuario = await crearUsuarioPrueba(db, { perfil });
     return { usuario, cookie: (await iniciarSesionPrueba(auth, usuario.correo)).cookie };
   }
@@ -60,8 +62,17 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
     expect((await respuesta.json()).error.codigo).toBe("SIN_PERMISO");
   });
 
+  it.each([
+    ["GERENCIA", 200, 403], ["ADMINISTRACION", 403, 403], ["OPERACIONES", 200, 403],
+    ["ATENCION_CLIENTE", 200, 201], ["PRODUCCION", 403, 403], ["ADMIN", 403, 403],
+  ] as const)("%s consulta y gestiona clientes según la matriz", async (perfil, lectura, escritura) => {
+    const { cookie } = await cookieDe(perfil);
+    expect((await leerClientes(peticion("GET", "/api/v1/clientes", { cookie, origen: null }))).status).toBe(lectura);
+    expect((await crearCliente(peticion("POST", "/api/v1/clientes", { cookie, cuerpo: { nombre: "X" } }))).status).toBe(escritura);
+  });
+
   it("responde 200 con el permiso y entrega el actor al handler", async () => {
-    const { usuario, cookie } = await cookieDe("VENTAS");
+    const { usuario, cookie } = await cookieDe("ATENCION_CLIENTE");
     const respuesta = await leerClientes(peticion("GET", "/api/v1/clientes", { cookie, origen: null }));
     expect(respuesta.status).toBe(200);
     expect(await respuesta.json()).toEqual({ datos: { actor: usuario.id } });
@@ -75,7 +86,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it("rechaza con 403 ORIGEN_NO_PERMITIDO un POST con Origin ajeno, aun con sesión y permiso", async () => {
-    const { cookie } = await cookieDe("VENTAS");
+    const { cookie } = await cookieDe("ATENCION_CLIENTE");
     const respuesta = await crearCliente(
       peticion("POST", "/api/v1/clientes", { cookie, cuerpo: { nombre: "X" }, origen: "https://sitio-malicioso.example" }),
     );
@@ -99,7 +110,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it("sin Origin acepta el POST solo cuando NODE_ENV es test", async () => {
-    const { cookie } = await cookieDe("VENTAS");
+    const { cookie } = await cookieDe("ATENCION_CLIENTE");
     const solicitud = () => peticion("POST", "/api/v1/clientes", { cookie, cuerpo: { nombre: "X" }, origen: null });
     expect((await crearCliente(solicitud())).status).toBe(201);
     vi.stubEnv("NODE_ENV", "production");
@@ -109,7 +120,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it("los métodos de lectura no exigen Origin", async () => {
-    const { cookie } = await cookieDe("VENTAS");
+    const { cookie } = await cookieDe("ATENCION_CLIENTE");
     vi.stubEnv("NODE_ENV", "production");
     const respuesta = await leerClientes(peticion("GET", "/api/v1/clientes", { cookie, origen: null }));
     expect(respuesta.status).toBe(200);
@@ -121,7 +132,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it("leerJson responde 422 con un campo por error", async () => {
-    const { cookie } = await cookieDe("VENTAS");
+    const { cookie } = await cookieDe("ATENCION_CLIENTE");
     const respuesta = await crearCliente(peticion("POST", "/api/v1/clientes", { cookie, cuerpo: {} }));
     expect(respuesta.status).toBe(422);
     expect(await respuesta.json()).toEqual({
@@ -130,7 +141,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it("entrega los parámetros de la ruta ya resueltos", async () => {
-    const { cookie } = await cookieDe("VENTAS");
+    const { cookie } = await cookieDe("ATENCION_CLIENTE");
     const respuesta = await conParametro(peticion("GET", "/api/v1/clientes/7", { cookie, origen: null }), {
       params: Promise.resolve({ id: "7" }),
     });

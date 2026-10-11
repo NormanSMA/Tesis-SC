@@ -21,6 +21,8 @@ export type CotizacionDto = TotalesCotizacion & {
   asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string;
   vigenciaDias: number; fechaEmision: string | null; fechaVencimiento: string | null;
   fechaRespuesta: string | null; motivoRechazo: string | null; archivada: boolean;
+  version: number; motivoAjuste: string | null; referenciaAprobacion: string | null;
+  usuarioAprobacionId: string | null; usuarioAprobacion: { id: string; nombre: string } | null;
   creadoEn: string; actualizadoEn: string; items: ItemDto[]; avisos: string[];
 };
 export type CotizacionFila = Omit<CotizacionDto, "items" | "avisos">;

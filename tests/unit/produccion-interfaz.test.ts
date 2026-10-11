@@ -34,6 +34,14 @@ const porArea: GrupoEtapas[] = [{ id, nombre: area.nombre, etapas: [etapa, enCur
 const porResponsable: GrupoEtapas[] = [{ id, nombre: responsable.nombre, etapas: [etapa, enCurso] }];
 const plantilla: PlantillaDto = { id, categoriaId: id, area, secuencia: 1, nombre: etapa.nombre, activo: true, actualizadoEn: version };
 const opciones = { areas: [area], responsables: [responsable] };
+const ESPERADO: Record<PerfilCodigo, PermisosEtapas & { gestionarCatalogo: boolean }> = {
+  GERENCIA: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
+  ADMINISTRACION: { planificar: true, ejecutar: true, avanzar: true, gestionarCatalogo: false },
+  OPERACIONES: { planificar: true, ejecutar: false, avanzar: true, gestionarCatalogo: true },
+  ATENCION_CLIENTE: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
+  PRODUCCION: { planificar: false, ejecutar: true, avanzar: true, gestionarCatalogo: false },
+  ADMIN: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
+};
 
 function permisos(perfil: PerfilCodigo): PermisosEtapas {
   const lista = PERMISOS_POR_PERFIL[perfil];
@@ -42,13 +50,13 @@ function permisos(perfil: PerfilCodigo): PermisosEtapas {
 }
 
 function pantallas(): ReactNode[][] {
-  const gestion = PERMISOS_POR_PERFIL.GERENCIA.includes("catalogo:gestionar");
+  const gestion = PERMISOS_POR_PERFIL.OPERACIONES.includes("catalogo:gestionar");
   return [
     [createElement(PageHeader, { key: "titulo", titulo: "Producción" }),
       createElement(FiltrosProduccion, { key: "filtros", consulta: {}, opciones }),
       createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("PRODUCCION"), vistaInicial: "responsable" })],
     [createElement(PageHeader, { key: "titulo", titulo: "Producción" }),
-      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("VENTAS"), vistaInicial: "area" })],
+      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("ATENCION_CLIENTE"), vistaInicial: "area" })],
     [createElement(PageHeader, { key: "titulo", titulo: "Áreas de producción" }),
       createElement(AdministracionAreas, { key: "areas", areas: [area], gestionar: gestion })],
     [createElement(PageHeader, { key: "titulo", titulo: "Plantillas de producción" }),
@@ -102,18 +110,25 @@ describe("producción: accesibilidad y tamaños de interfaz", () => {
 });
 
 describe("producción: permisos de interfaz", () => {
-  for (const perfil of ["GERENCIA", "VENTAS", "PRODUCCION"] as const) {
+  for (const perfil of Object.keys(ESPERADO) as PerfilCodigo[]) {
     it(`muestra acciones autorizadas para ${perfil}`, () => {
       const tablero = renderToStaticMarkup(createElement(TableroProduccion, { porArea, porResponsable,
         permisos: permisos(perfil), vistaInicial: "responsable" }));
-      expect(tablero.includes('aria-label="Iniciar:')).toBe(perfil === "PRODUCCION");
-      expect(tablero.includes('aria-label="Completar:')).toBe(perfil === "PRODUCCION");
+      expect(tablero.includes('aria-label="Iniciar:')).toBe(ESPERADO[perfil].ejecutar && ESPERADO[perfil].avanzar);
+      expect(tablero.includes('aria-label="Completar:')).toBe(ESPERADO[perfil].ejecutar);
       expect(tablero.includes('aria-label="Asignar responsable:')).toBe(false);
-      const areas = renderToStaticMarkup(createElement(AdministracionAreas, { areas: [area], gestionar: perfil === "GERENCIA" }));
+      const acciones = renderToStaticMarkup(createElement(AccionesEtapa, { etapa, estadoOrden: "PENDIENTE",
+        permisos: permisos(perfil), ...opciones }));
+      expect(acciones.includes('aria-label="Asignar responsable:')).toBe(ESPERADO[perfil].planificar);
+      const accionesOrden = renderToStaticMarkup(createElement(AccionesProduccionOrden, { areas: [area], permisos: permisos(perfil),
+        orden: { id, estado: "EN_PRODUCCION", actualizadoEn: version, etapas: [{ ...etapa, estado: "COMPLETADA" }] } }));
+      expect(accionesOrden.includes("Marcar lista")).toBe(ESPERADO[perfil].avanzar);
+      const gestionar = PERMISOS_POR_PERFIL[perfil].includes("catalogo:gestionar");
+      const areas = renderToStaticMarkup(createElement(AdministracionAreas, { areas: [area], gestionar }));
       const plantillas = renderToStaticMarkup(createElement(AdministracionPlantillas,
-        { categoriaId: id, plantillas: [plantilla], areas: [area], gestionar: perfil === "GERENCIA" }));
-      expect(areas.includes("Crear área")).toBe(perfil === "GERENCIA");
-      expect(plantillas.includes("Agregar plantilla")).toBe(perfil === "GERENCIA");
+        { categoriaId: id, plantillas: [plantilla], areas: [area], gestionar }));
+      expect(areas.includes("Crear área")).toBe(ESPERADO[perfil].gestionarCatalogo);
+      expect(plantillas.includes("Agregar plantilla")).toBe(ESPERADO[perfil].gestionarCatalogo);
     });
   }
 

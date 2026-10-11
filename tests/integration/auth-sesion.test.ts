@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, it } from "vitest";
 
+import { PERMISOS_POR_PERFIL } from "@/core/permisos";
+
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import {
   cargarAuth,
@@ -50,9 +52,35 @@ describeConBase("sesión: /yo, logout, expiración y revocación", () => {
     const respuesta = await yo(await sesionDe(usuario.correo));
     expect(respuesta.status).toBe(200);
     const { datos } = await respuesta.json();
-    expect(datos.usuario).toEqual({ id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, perfil: "PRODUCCION" });
-    expect(datos.permisos).toContain("inventario:consumir");
+    expect(datos.usuario).toEqual({
+      id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
+      perfil: "PRODUCCION", perfiles: ["PRODUCCION"],
+    });
+    expect([...datos.permisos].sort()).toEqual([...PERMISOS_POR_PERFIL.PRODUCCION].sort());
+    expect(datos.permisos).not.toContain("inventario:consumir");
     expect(datos.permisos).not.toContain("inventario:ajustar");
+  });
+
+  it("une dos perfiles y elige el perfil principal y destino según PERFILES", async () => {
+    const usuario = await crearUsuarioPrueba(db, { perfil: "ADMIN", perfilesExtra: ["ADMINISTRACION"] });
+    const { respuesta, cookie } = await iniciarSesionPrueba(auth, usuario.correo);
+    expect(respuesta.status).toBe(200);
+    const { datos } = await respuesta.json();
+    expect(datos.usuario).toEqual({
+      id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
+      perfil: "ADMINISTRACION", perfiles: ["ADMINISTRACION", "ADMIN"],
+    });
+    const permisos = [...new Set([...PERMISOS_POR_PERFIL.ADMINISTRACION, ...PERMISOS_POR_PERFIL.ADMIN])].sort();
+    expect([...datos.permisos].sort()).toEqual(permisos);
+    expect(datos.destino).toBe("/panel");
+    const consulta = await yo(cookie);
+    expect(consulta.status).toBe(200);
+    const sesion = (await consulta.json()).datos;
+    expect(sesion.usuario).toEqual(datos.usuario);
+    expect([...sesion.permisos].sort()).toEqual(permisos);
+    const actor = await auth.sesion.obtenerSesionDeRequest(peticion("GET", "/", { cookie }));
+    expect(actor).toMatchObject({ perfil: "ADMINISTRACION", perfiles: ["ADMINISTRACION", "ADMIN"] });
+    expect([...(actor?.permisos ?? [])].sort()).toEqual(permisos);
   });
 
   it("rechaza una sesión expirada", async () => {
@@ -81,10 +109,10 @@ describeConBase("sesión: /yo, logout, expiración y revocación", () => {
   });
 
   it("los permisos se leen de la base en cada petición, no del token", async () => {
-    const usuario = await crearUsuarioPrueba(db, { perfil: "VENTAS" });
+    const usuario = await crearUsuarioPrueba(db, { perfil: "ATENCION_CLIENTE" });
     const cookie = await sesionDe(usuario.correo);
     const permiso = await db.permiso.findUniqueOrThrow({ where: { recurso_accion: { recurso: "reporte", accion: "ver" } } });
-    const perfil = await db.perfil.findUniqueOrThrow({ where: { codigo: "VENTAS" } });
+    const perfil = await db.perfil.findUniqueOrThrow({ where: { codigo: "ATENCION_CLIENTE" } });
     const clave = { perfilId_permisoId: { perfilId: perfil.id, permisoId: permiso.id } };
 
     await db.perfilPermiso.create({ data: { perfilId: perfil.id, permisoId: permiso.id } });

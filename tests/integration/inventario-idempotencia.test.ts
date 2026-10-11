@@ -11,7 +11,7 @@ describeConBase("inventario: idempotencia de escrituras del libro", () => {
   let otroUsuarioId: string;
   beforeAll(async () => {
     entorno = await prepararCotizaciones(db);
-    otroUsuarioId = (await abrirSesion(db, entorno.modulos, "PRODUCCION")).usuarioId;
+    otroUsuarioId = (await abrirSesion(db, entorno.modulos, "OPERACIONES")).usuarioId;
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 

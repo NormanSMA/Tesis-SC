@@ -33,11 +33,14 @@ describeConBase("POST /api/v1/auth/login", () => {
   }
 
   it("con credenciales correctas devuelve usuario, permisos, destino y cookie de sesión", async () => {
-    const usuario = await crearUsuarioPrueba(db, { perfil: "VENTAS" });
+    const usuario = await crearUsuarioPrueba(db, { perfil: "ATENCION_CLIENTE" });
     const respuesta = await login(usuario.correo, CLAVE_PRUEBA);
     expect(respuesta.status).toBe(200);
     const { datos } = await respuesta.json();
-    expect(datos.usuario).toEqual({ id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, perfil: "VENTAS" });
+    expect(datos.usuario).toEqual({
+      id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
+      perfil: "ATENCION_CLIENTE", perfiles: ["ATENCION_CLIENTE"],
+    });
     expect(datos.destino).toBe("/panel");
     expect(datos.permisos).toContain("cotizacion:gestionar");
     expect(datos.permisos).not.toContain("usuario:gestionar");

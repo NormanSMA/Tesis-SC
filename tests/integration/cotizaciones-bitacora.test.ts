@@ -76,7 +76,7 @@ describeConBase("cotizaciones: bitácora reconstruible y transacciones", () => {
     const borrador = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
     const enviada = await entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
     const aprobada = await entorno.modulos.servicio.responderCotizacion(enviada.id, {
-      version: enviada.actualizadoEn, resultado: "APROBADA",
+      version: enviada.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente del 10/10",
     }, entorno.ventas.actor);
     await entorno.modulos.servicio.archivarCotizacion(aprobada.id, aprobada.actualizadoEn, entorno.ventas.actor);
     const filas = await eventos(borrador.id);

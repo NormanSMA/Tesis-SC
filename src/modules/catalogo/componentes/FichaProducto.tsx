@@ -20,6 +20,9 @@ export function DatosProducto({ ficha }: { ficha: Ficha }) {
         <div><dt className="text-sm text-muted-foreground">Categoría</dt><dd className="break-words">{ficha.categoria.nombre}</dd></div>
         <div><dt className="text-sm text-muted-foreground">Unidad de cobro</dt><dd>{ficha.unidadCobro === "M2" ? "m²" : "Unidad"}</dd></div>
         <div><dt className="text-sm text-muted-foreground">Precio base</dt><dd className="tabular-nums"><Money valor={ficha.precioBase} /></dd></div>
+        {ficha.costoUnitario !== undefined ? <div><dt className="text-sm text-muted-foreground">Costo de referencia</dt>
+          <dd className="tabular-nums">{ficha.costoUnitario === null ? "Sin costo de referencia" : `C$ ${formatearCantidad(ficha.costoUnitario, 4)}`}</dd>
+        </div> : null}
       </dl>
       <p className="whitespace-pre-wrap break-words text-muted-foreground">{ficha.descripcion ?? "Sin descripción."}</p>
     </CardContent>

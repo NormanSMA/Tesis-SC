@@ -26,7 +26,7 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
   beforeAll(async () => {
     await sembrarReferencia(db);
     modulos = await cargarModuloClientes();
-    ventas = await abrirSesion(db, modulos, "VENTAS");
+    ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
   });
 
   afterAll(async () => {
@@ -43,6 +43,16 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
   }
 
   describe("búsqueda", () => {
+    it("busca por código sin distinguir mayúsculas y devuelve el código en lista y ficha", async () => {
+      const cliente = await crearClienteDirecto(db);
+      const lista = await consultar({ q: cliente.codigoCliente.toLowerCase() });
+      expect(lista.status).toBe(200);
+      expect(lista.datos).toMatchObject([{ id: cliente.id, codigoCliente: cliente.codigoCliente }]);
+      const ficha = await invocar(modulos.ficha.GET,
+        peticion("GET", `/api/v1/clientes/${cliente.id}`, { cookie: ventas.cookie }), cliente.id);
+      expect(ficha.status).toBe(200);
+      expect(ficha.datos).toMatchObject({ codigoCliente: cliente.codigoCliente });
+    });
     it("busca por coincidencia parcial sin distinguir mayúsculas en nombre, RUC, contacto y correo", async () => {
       const token = randomUUID().slice(0, 8);
       const porNombre = await crearClienteDirecto(db, { nombre: `Zeta-${token}-Taller` });

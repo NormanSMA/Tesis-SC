@@ -257,9 +257,9 @@ describeConBase("paridad del motor de costeo con la base", () => {
   beforeAll(async () => {
     await sembrarReferencia(propietario);
     const marca = `costeo-${Date.now()}`;
-    const perfil = await propietario.perfil.findUniqueOrThrow({ where: { codigo: "VENTAS" } });
+    const perfil = await propietario.perfil.findUniqueOrThrow({ where: { codigo: "ATENCION_CLIENTE" } });
     const usuario = await propietario.usuario.create({
-      data: { nombre: "Costeo", correo: `${marca}@example.com`, hashContrasena: "no-aplica", perfilId: perfil.id },
+      data: { nombre: "Costeo", correo: `${marca}@example.com`, hashContrasena: "no-aplica", perfiles: { create: { perfilId: perfil.id } } },
     });
     const cliente = await propietario.cliente.create({ data: { nombre: marca, tipo: "EMPRESA", telefono: "88888888" } });
     const categoria = await propietario.categoria.create({ data: { nombre: marca } });

@@ -13,7 +13,7 @@ function clienteDto(cliente: Cliente, actor: Actor): ClienteOrden {
 export function aOrdenFila(fila: FilaGuardada, actor: Actor): OrdenFila {
   const fechaEntrega = fila.fechaEntrega.toISOString().slice(0, 10);
   return { id: fila.id, numero: fila.numero, estado: fila.estado, categoria: fila.categoria, responsable: fila.responsable,
-    cliente: clienteDto(fila.cotizacion.cliente, actor),
+    cliente: clienteDto(fila.cliente, actor),
     cotizacion: { id: fila.cotizacion.id, numero: fila.cotizacion.numero, asunto: fila.cotizacion.asunto },
     fechaEntrega, atrasada: estaAtrasada({ estado: fila.estado, fechaEntrega }),
     actualizadoEn: fila.actualizadoEn.toISOString(), creadoEn: fila.creadoEn.toISOString() };

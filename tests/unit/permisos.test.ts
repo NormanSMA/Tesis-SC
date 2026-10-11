@@ -9,49 +9,48 @@ import {
   type PerfilCodigo,
 } from "@/core/permisos";
 
-// Copia literal de la tabla "Catálogo de permisos por defecto" (sección c de docs/analisis/05-modelo-datos.md).
-// Columnas: Gerencia, Ventas, Producción, Administración. Es la especificación de CF-07.
-const TABLA: [string, boolean, boolean, boolean, boolean][] = [
-  ["cliente:ver", true, true, false, false],
-  ["cliente:gestionar", false, true, false, false],
-  ["catalogo:ver", true, true, true, false],
-  ["catalogo:gestionar", true, false, false, false],
-  ["cotizacion:ver", true, true, false, false],
-  ["cotizacion:gestionar", false, true, false, false],
-  ["cotizacion:enviar", false, true, false, false],
-  ["cotizacion:responder", true, true, false, false],
-  ["orden:ver", true, true, true, false],
-  ["orden:crear", false, true, false, false],
-  ["orden:gestionar", true, true, false, false],
-  ["orden:avanzar", false, false, true, false],
-  ["orden:entregar", false, true, true, false],
-  ["orden:cerrar", true, true, false, false],
-  ["orden:cancelar", true, false, false, false],
-  ["produccion:ver", true, true, true, false],
-  ["produccion:planificar", false, false, true, false],
-  ["produccion:ejecutar", false, false, true, false],
-  ["inventario:ver", true, true, true, false],
-  ["inventario:entrada", false, false, true, false],
-  ["inventario:consumir", false, false, true, false],
-  ["inventario:ajustar", true, false, false, false],
-  ["material:gestionar", true, false, true, false],
-  ["bitacora:ver", true, false, false, true],
-  ["panel:ver", true, true, true, false],
-  ["reporte:ver", true, false, false, false],
-  ["reporte:exportar", true, false, false, false],
-  ["usuario:gestionar", false, false, false, true],
-  ["permiso:gestionar", false, false, false, true],
-  ["configuracion:gestionar", false, false, false, true],
+// Matriz completa de docs/modulos/09-perfiles-v9.md: GER, ADM, OPE, ATC, PRO, ADMIN.
+const TABLA: [string, boolean, boolean, boolean, boolean, boolean, boolean][] = [
+  ["cliente:ver", true, false, true, true, false, false],
+  ["cliente:gestionar", false, false, false, true, false, false],
+  ["catalogo:ver", true, true, true, true, true, false],
+  ["catalogo:gestionar", false, false, true, false, false, false],
+  ["cotizacion:ver", true, true, true, true, false, false],
+  ["cotizacion:gestionar", false, false, false, true, false, false],
+  ["cotizacion:enviar", false, false, false, true, false, false],
+  ["cotizacion:responder", false, false, true, true, false, false],
+  ["orden:ver", true, true, true, true, true, false],
+  ["orden:crear", false, false, true, false, false, false],
+  ["orden:gestionar", false, true, true, false, false, false],
+  ["orden:avanzar", false, true, true, false, true, false],
+  ["orden:entregar", false, false, true, true, false, false],
+  ["orden:cerrar", false, false, true, true, false, false],
+  ["orden:cancelar", false, false, true, false, false, false],
+  ["produccion:ver", true, true, true, true, true, false],
+  ["produccion:planificar", false, true, true, false, false, false],
+  ["produccion:ejecutar", false, true, false, false, true, false],
+  ["inventario:ver", true, true, true, false, false, false],
+  ["inventario:entrada", false, true, false, false, false, false],
+  ["inventario:consumir", false, true, false, false, false, false],
+  ["inventario:ajustar", false, true, false, false, false, false],
+  ["material:gestionar", false, true, false, false, false, false],
+  ["bitacora:ver", true, false, false, false, false, true],
+  ["panel:ver", true, true, true, true, true, false],
+  ["reporte:ver", true, false, false, false, false, false],
+  ["reporte:exportar", true, false, false, false, false, false],
+  ["usuario:gestionar", false, false, false, false, false, true],
+  ["permiso:gestionar", false, false, false, false, false, true],
+  ["configuracion:gestionar", false, false, false, false, false, true],
 ];
 
-const PERFILES_EN_ORDEN: PerfilCodigo[] = ["GERENCIA", "VENTAS", "PRODUCCION", "ADMIN"];
+const PERFILES_EN_ORDEN: PerfilCodigo[] = ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"];
 
 function permisosEsperados(indicePerfil: number): string[] {
   return TABLA.filter((fila) => fila[indicePerfil + 1]).map((fila) => fila[0] as string);
 }
 
 function actorConPerfil(perfil: PerfilCodigo) {
-  return { id: "u1", nombre: "Prueba", correo: "prueba@example.com", perfil, permisos: [...PERMISOS_POR_PERFIL[perfil]] };
+  return { id: "u1", nombre: "Prueba", correo: "prueba@example.com", perfil, perfiles: [perfil], permisos: [...PERMISOS_POR_PERFIL[perfil]] };
 }
 
 describe("matriz de permisos por defecto", () => {
@@ -71,12 +70,14 @@ describe("matriz de permisos por defecto", () => {
     });
   });
 
-  it("define los cuatro perfiles con los nombres del modelo", () => {
+  it("define los seis perfiles con los nombres del modelo", () => {
     expect(PERFILES.map((p) => [p.codigo, p.nombre])).toEqual([
       ["GERENCIA", "Gerencia"],
-      ["VENTAS", "Atención al cliente y ventas"],
+      ["ADMINISTRACION", "Administración"],
+      ["OPERACIONES", "Operaciones"],
+      ["ATENCION_CLIENTE", "Atención al cliente"],
       ["PRODUCCION", "Producción"],
-      ["ADMIN", "Administración del sistema"],
+      ["ADMIN", "Administración técnica"],
     ]);
   });
 
@@ -92,33 +93,39 @@ describe("reglas de negocio de CF-07", () => {
     expect(admin.filter((p) => negocio.includes(p.split(":")[0]))).toEqual([]);
   });
 
-  it("Producción consume inventario pero no lo ajusta", () => {
+  it("Producción no consulta ni consume ni ajusta inventario", () => {
     const produccion = actorConPerfil("PRODUCCION");
-    expect(can(produccion, "inventario:consumir")).toBe(true);
+    expect(can(produccion, "inventario:ver")).toBe(false);
+    expect(can(produccion, "inventario:consumir")).toBe(false);
     expect(can(produccion, "inventario:ajustar")).toBe(false);
   });
 
-  it("Gerencia ajusta inventario", () => {
-    expect(can(actorConPerfil("GERENCIA"), "inventario:ajustar")).toBe(true);
+  it("Administración ajusta inventario y Gerencia solo consulta", () => {
+    expect(can(actorConPerfil("ADMINISTRACION"), "inventario:ajustar")).toBe(true);
+    expect(can(actorConPerfil("GERENCIA"), "inventario:ver")).toBe(true);
+    expect(can(actorConPerfil("GERENCIA"), "inventario:ajustar")).toBe(false);
   });
 
-  it("Ventas no gestiona usuarios ni permisos", () => {
-    const ventas = actorConPerfil("VENTAS");
-    expect(can(ventas, "usuario:gestionar")).toBe(false);
-    expect(can(ventas, "permiso:gestionar")).toBe(false);
+  it("Atención al cliente no gestiona usuarios ni permisos", () => {
+    const atencion = actorConPerfil("ATENCION_CLIENTE");
+    expect(can(atencion, "usuario:gestionar")).toBe(false);
+    expect(can(atencion, "permiso:gestionar")).toBe(false);
   });
 
   it("el destino tras el login de ADMIN es su gestión de usuarios y el de los demás el panel", () => {
     expect(destinoPorPerfil).toEqual({
       GERENCIA: "/panel",
-      VENTAS: "/panel",
+      ADMINISTRACION: "/panel",
+      OPERACIONES: "/panel",
+      ATENCION_CLIENTE: "/panel",
       PRODUCCION: "/panel",
       ADMIN: "/admin/usuarios",
     });
   });
 
   it("el destino de cada perfil es una sección que ese perfil puede ver", () => {
-    expect(PERMISOS_POR_PERFIL.GERENCIA).toContain("panel:ver");
-    expect(PERMISOS_POR_PERFIL.ADMIN).toContain("usuario:gestionar");
+    for (const perfil of PERFILES_EN_ORDEN) {
+      expect(PERMISOS_POR_PERFIL[perfil]).toContain(perfil === "ADMIN" ? "usuario:gestionar" : "panel:ver");
+    }
   });
 });

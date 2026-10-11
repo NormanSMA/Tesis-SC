@@ -166,7 +166,18 @@ function cambiosDeCotizacion(cotizacion: CotizacionSembrada, indice: number): Ca
 }
 
 async function aplicarCambio(ctx: Contexto, cotizacion: CotizacionSembrada, cambio: Cambio): Promise<void> {
-  await ctx.db.cotizacion.update({ where: { id: cotizacion.id }, data: { estado: cambio.hacia, ...cambio.datos } });
+  // La aprobación la registra Operaciones con la referencia del medio en que el cliente la comunicó (RB-10).
+  const aprobada = cambio.hacia === "APROBADA";
+  const aprobacion: Prisma.CotizacionUncheckedUpdateInput = aprobada
+    ? {
+        usuarioAprobacionId: usuarioPorClave(ctx.catalogos, "operaciones").id,
+        referenciaAprobacion: `Aceptación del cliente por ${String(cambio.detalle.medio ?? "medio no indicado")}`,
+      }
+    : {};
+  await ctx.db.cotizacion.update({
+    where: { id: cotizacion.id },
+    data: { estado: cambio.hacia, ...cambio.datos, ...aprobacion },
+  });
   registrar(ctx.bitacora, {
     entidad: "COTIZACION",
     entidadId: cotizacion.id,
@@ -174,7 +185,7 @@ async function aplicarCambio(ctx: Contexto, cotizacion: CotizacionSembrada, camb
     accion: "CAMBIAR_ESTADO",
     estadoAnterior: cambio.desde,
     estadoNuevo: cambio.hacia,
-    usuarioId: usuarioPorClave(ctx.catalogos, "ventas").id,
+    usuarioId: usuarioPorClave(ctx.catalogos, aprobada ? "operaciones" : "ventas").id,
     creadoEn: cambio.cuando,
     detalle: { numero: cotizacion.numero, ...cambio.detalle },
   });

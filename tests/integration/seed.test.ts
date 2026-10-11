@@ -22,7 +22,9 @@ const raiz = path.resolve(import.meta.dirname, "..", "..");
 // Claves ficticias solo para esta prueba. No salen de .env ni se comparan con las de producción.
 const CLAVES = {
   SEED_PASSWORD_GERENCIA: "clave-gerencia-prueba-1",
-  SEED_PASSWORD_VENTAS: "clave-ventas-prueba-1",
+  SEED_PASSWORD_ATENCION_CLIENTE: "clave-atencion-prueba-1",
+  SEED_PASSWORD_ADMINISTRACION: "clave-administracion-prueba-1",
+  SEED_PASSWORD_OPERACIONES: "clave-operaciones-prueba-1",
   SEED_PASSWORD_PRODUCCION: "clave-produccion-prueba-1",
   SEED_PASSWORD_ADMIN: "clave-admin-prueba-1",
 };
@@ -93,7 +95,7 @@ async function contar(db: PrismaClient, tabla: string): Promise<number> {
 describe("claves de la siembra", () => {
   it("falla nombrando cada variable que falta", () => {
     expect(() => leerClaves({})).toThrow(
-      /SEED_PASSWORD_GERENCIA.*SEED_PASSWORD_VENTAS.*SEED_PASSWORD_PRODUCCION.*SEED_PASSWORD_ADMIN/,
+      /SEED_PASSWORD_GERENCIA.*SEED_PASSWORD_ATENCION_CLIENTE.*SEED_PASSWORD_PRODUCCION.*SEED_PASSWORD_ADMIN/,
     );
   });
 
@@ -101,11 +103,11 @@ describe("claves de la siembra", () => {
     const corta = "corta-12345";
     let mensaje = "";
     try {
-      leerClaves({ ...CLAVES, SEED_PASSWORD_VENTAS: corta });
+      leerClaves({ ...CLAVES, SEED_PASSWORD_ATENCION_CLIENTE: corta });
     } catch (error) {
       mensaje = (error as Error).message;
     }
-    expect(mensaje).toContain("SEED_PASSWORD_VENTAS");
+    expect(mensaje).toContain("SEED_PASSWORD_ATENCION_CLIENTE");
     expect(mensaje).toContain("14 caracteres");
     expect(mensaje).not.toContain(corta);
   });
@@ -113,7 +115,7 @@ describe("claves de la siembra", () => {
   it("devuelve una clave por perfil", () => {
     const claves = leerClaves(CLAVES);
     expect(claves.PRODUCCION).toBe(CLAVES.SEED_PASSWORD_PRODUCCION);
-    expect(Object.keys(claves).sort()).toEqual(["ADMIN", "GERENCIA", "PRODUCCION", "VENTAS"]);
+    expect(Object.keys(claves).sort()).toEqual(["ADMIN", "ADMINISTRACION", "ATENCION_CLIENTE", "GERENCIA", "OPERACIONES", "PRODUCCION"]);
   });
 });
 
@@ -213,12 +215,12 @@ describeConBase("siembra de datos de demostración", () => {
   });
 
   it("guarda solo hashes y cada perfil entra con la clave de su variable", async () => {
-    const usuarios = await db.usuario.findMany({ include: { perfil: true } });
-    expect(usuarios).toHaveLength(8);
+    const usuarios = await db.usuario.findMany({ include: { perfiles: { include: { perfil: true } } } });
+    expect(usuarios).toHaveLength(10);
     for (const usuario of usuarios) {
       expect(usuario.correo).toBe(usuario.correo.toLowerCase());
       expect(usuario.hashContrasena.startsWith("$argon2id$")).toBe(true);
-      const clave = CLAVES[`SEED_PASSWORD_${usuario.perfil.codigo}` as keyof typeof CLAVES];
+      const clave = CLAVES[`SEED_PASSWORD_${usuario.perfiles[0].perfil.codigo}` as keyof typeof CLAVES];
       expect(await verificarContrasena(usuario.hashContrasena, clave)).toBe(true);
     }
   });

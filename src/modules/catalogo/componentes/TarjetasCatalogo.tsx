@@ -6,6 +6,7 @@ import { Paginacion } from "@/components/comunes/Paginacion";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatearCantidad } from "@/lib/formato";
 
 import { imagenPorCategoria } from "../imagenes";
 import type { ConsultaProductos } from "../schema";
@@ -26,6 +27,10 @@ function TarjetaProducto({ producto, puedeGestionar }: { producto: ProductoDto; 
     <CardContent className="flex flex-wrap items-center justify-between gap-2">
       <span className="tabular-nums"><Money valor={producto.precioBase} /> / {producto.unidadCobro === "M2" ? "m²" : "unidad"}</span>
       <EstadoProducto activo={producto.activo} />
+      {producto.costoUnitario !== undefined ? <dl className="w-full">
+        <dt className="text-sm text-muted-foreground">Costo de referencia</dt>
+        <dd className="tabular-nums">{producto.costoUnitario === null ? "Sin costo de referencia" : `C$ ${formatearCantidad(producto.costoUnitario, 4)}`}</dd>
+      </dl> : null}
     </CardContent>
     {puedeGestionar && producto.activo ? <CardFooter className="mt-auto">
       <Button asChild variant="outline" className="w-full"><Link href={`/catalogo/${producto.id}/editar`} aria-label={`Editar ${producto.nombre}`}>Editar</Link></Button>

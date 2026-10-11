@@ -6,7 +6,7 @@ export type ReferenciaOrden = { id: string; nombre: string };
 export type ClienteOrden = ReferenciaOrden & { tipo: TipoCliente; telefono: string | null; correo: string | null;
   ruc?: string | null; direccion?: string | null };
 export type OrdenFila = {
-  id: string; numero: string; estado: EstadoOrden; categoria: ReferenciaOrden; responsable: ReferenciaOrden;
+  id: string; numero: string; estado: EstadoOrden; categoria: ReferenciaOrden; responsable: ReferenciaOrden | null;
   cliente: ClienteOrden; cotizacion: { id: string; numero: string; asunto: string | null };
   fechaEntrega: string; atrasada: boolean; actualizadoEn: string; creadoEn: string;
 };

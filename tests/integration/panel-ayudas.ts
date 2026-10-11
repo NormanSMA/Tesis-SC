@@ -29,7 +29,7 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
     const total = entrada.total ?? "0";
     const nueva = await tx.cotizacion.create({ data: {
       numero: numeracion.numero, clienteId: entorno.ordenes.cotizaciones.referencias.cliente.id,
-      creadoPorId: entorno.sesiones.VENTAS.usuarioId, asunto: "Prueba panel", subtotal: total, total,
+      creadoPorId: entorno.sesiones.ATENCION_CLIENTE.usuarioId, asunto: "Prueba panel", subtotal: total, total,
       tasaImpuesto: "0", descuento: "0", impuesto: "0", vigenciaDias: 15,
       fechaEmision: emision, fechaVencimiento: new Date(vence), creadoEn,
     } });
@@ -39,20 +39,25 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
     const destino = entrada.estado ?? "BORRADOR";
     if (destino !== "BORRADOR") await tx.cotizacion.update({ where: { id: nueva.id }, data: { estado: "ENVIADA" } });
     if (destino !== "BORRADOR" && destino !== "ENVIADA") await tx.cotizacion.update({ where: { id: nueva.id },
-      data: { estado: destino, fechaRespuesta: ["APROBADA", "RECHAZADA"].includes(destino) ? emision : null,
-        motivoRechazo: destino === "RECHAZADA" ? "Rechazo de prueba" : null } });
+      data: { estado: destino, fechaRespuesta: ["APROBADA", "RECHAZADA", "AJUSTE_SOLICITADO"].includes(destino) ? emision : null,
+        motivoRechazo: destino === "RECHAZADA" ? "Rechazo de prueba" : null,
+        motivoAjuste: destino === "AJUSTE_SOLICITADO" ? "Ajuste de prueba" : null,
+        ...(destino === "APROBADA" ? { usuarioAprobacionId: entorno.sesiones.OPERACIONES.usuarioId, referenciaAprobacion: "Correo del cliente" } : {}) } });
     if (entrada.archivada) await tx.cotizacion.update({ where: { id: nueva.id }, data: { archivada: true } });
     return tx.cotizacion.findUniqueOrThrow({ where: { id: nueva.id } });
   });
 }
-export async function crearOrdenPanel(entorno: EntornoPanel, opciones: { fechaEntrega?: string; estado?: "PENDIENTE" | "EN_PRODUCCION" | "CANCELADA" } = {}) {
+export async function crearOrdenPanel(entorno: EntornoPanel, opciones: {
+  fechaEntrega?: string; estado?: "PENDIENTE" | "EN_PRODUCCION" | "CANCELADA"; responsableId?: string | null;
+} = {}) {
   const cotizacion = await crearCotizacionPanel(entorno, { estado: "APROBADA" });
   const estado = opciones.estado ?? "PENDIENTE";
   return entorno.db.$transaction(async (tx) => {
     const [numeracion] = await tx.$queryRaw<{ numero: string }[]>`SELECT siguiente_numero('ORDEN_TRABAJO') AS numero`;
-    const nueva = await tx.ordenTrabajo.create({ data: { numero: numeracion.numero, cotizacionId: cotizacion.id,
-      categoriaId: entorno.ordenes.cotizaciones.referencias.categoria.id, responsableId: entorno.sesiones.PRODUCCION.usuarioId,
-      creadoPorId: entorno.sesiones.VENTAS.usuarioId, fechaEntrega: new Date(opciones.fechaEntrega ?? "2034-05-10") } });
+    const nueva = await tx.ordenTrabajo.create({ data: { numero: numeracion.numero, cotizacionId: cotizacion.id, clienteId: cotizacion.clienteId,
+      categoriaId: entorno.ordenes.cotizaciones.referencias.categoria.id,
+      responsableId: opciones.responsableId === undefined ? entorno.sesiones.PRODUCCION.usuarioId : opciones.responsableId,
+      creadoPorId: entorno.sesiones.OPERACIONES.usuarioId, fechaEntrega: new Date(opciones.fechaEntrega ?? "2034-05-10") } });
     return estado === "PENDIENTE" ? nueva : tx.ordenTrabajo.update({ where: { id: nueva.id }, data: {
       estado, fechaInicioReal: estado === "EN_PRODUCCION" ? new Date("2034-05-01T12:00:00Z") : null,
       motivoCancelacion: estado === "CANCELADA" ? "Cancelación de prueba" : null } });
@@ -77,7 +82,7 @@ export async function crearMaterialPanel(entorno: EntornoPanel, entrada: {
     costoPromedio: entrada.costo ?? "1.2345", activo: entrada.activo ?? true } });
   if (entrada.existencia && entrada.existencia !== "0") await entorno.db.movimientoInventario.create({ data: {
     materialId: material.id, tipo: "ENTRADA", cantidad: entrada.existencia, costoUnitario: entrada.costo ?? "1.2345",
-    usuarioId: entorno.sesiones.PRODUCCION.usuarioId, existenciaResultante: "0", costoPromedioResultante: "0" } });
+    usuarioId: entorno.sesiones.ADMINISTRACION.usuarioId, existenciaResultante: "0", costoPromedioResultante: "0" } });
   return material;
 }
 export function clavesMonetarias(valor: unknown): string[] {

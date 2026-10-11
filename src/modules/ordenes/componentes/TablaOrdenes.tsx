@@ -12,10 +12,10 @@ const columnas: ColumnaTabla<OrdenFila>[] = [
     <Link href={`/ordenes/${fila.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{fila.numero}</Link>
     <span className="block text-xs text-muted-foreground xl:hidden">{fila.categoria.nombre}</span></div> },
   { id: "cliente", encabezado: "Cliente", celda: (fila) => <div className="space-y-1"><span>{fila.cliente.nombre}</span>
-    <span className="block text-xs text-muted-foreground xl:hidden">Responsable: {fila.responsable.nombre}</span></div> },
+    <span className="block text-xs text-muted-foreground xl:hidden">Responsable: {fila.responsable?.nombre ?? "Sin responsable"}</span></div> },
   { id: "categoria", encabezado: "Categoría", celda: (fila) => fila.categoria.nombre },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoBadge tipo="orden" estado={fila.estado} /> },
-  { id: "responsable", encabezado: "Responsable", celda: (fila) => fila.responsable.nombre },
+  { id: "responsable", encabezado: "Responsable", celda: (fila) => fila.responsable?.nombre ?? "Sin responsable" },
   { id: "entrega", encabezado: "Entrega", celda: (fila) => <div className="space-y-1"><Fecha valor={fila.fechaEntrega} />
     {fila.atrasada ? <span className="flex items-center gap-1 text-xs font-semibold text-danger"><TriangleAlert aria-hidden="true" className="size-4" />Atrasada</span> : null}</div> },
 ];

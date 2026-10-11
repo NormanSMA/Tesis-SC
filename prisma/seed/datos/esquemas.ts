@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Enums del schema de Prisma
-export const CodigoPerfil = z.enum(['GERENCIA', 'VENTAS', 'PRODUCCION', 'ADMIN']);
+export const CodigoPerfil = z.enum(['GERENCIA', 'ADMINISTRACION', 'OPERACIONES', 'ATENCION_CLIENTE', 'PRODUCCION', 'ADMIN']);
 export const TipoCliente = z.enum(['PERSONA', 'EMPRESA']);
 export const UnidadCobro = z.enum(['UNIDAD', 'M2']);
 export const UnidadMaterial = z.enum([

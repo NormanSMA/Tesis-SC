@@ -13,7 +13,7 @@ function registrarFlujo() {
     const { servicio, actor } = entorno;
     const orden = await nuevaOrden(entorno);
     const primera = await servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
-      responsableId: actor.id, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07" }, actor);
+      responsableId: actor.id, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07" }, entorno.planificador);
     expect((await leerOrden(entorno.ordenes, orden.id)).actualizadoEn).toBe(orden.actualizadoEn);
     const iniciada = await servicio.iniciarEtapa(primera.id, { version: primera.actualizadoEn }, actor);
     const produciendo = await leerOrden(entorno.ordenes, orden.id);
@@ -21,11 +21,11 @@ function registrarFlujo() {
     expect(produciendo.fechaInicioReal).toBe(iniciada.fechaInicioReal);
     const completada = await servicio.completarEtapa(primera.id, { version: iniciada.actualizadoEn }, actor);
     expect(completada.fechaFinReal).not.toBeNull();
-    const omitida = await servicio.omitirEtapa(orden.etapas[1].id, { version: orden.etapas[1].actualizadoEn, motivo: "No corresponde" }, actor);
+    const omitida = await servicio.omitirEtapa(orden.etapas[1].id, { version: orden.etapas[1].actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
     expect(omitida.fechaInicioReal).toBeNull();
-    const restaurada = await servicio.restaurarEtapa(omitida.id, { version: omitida.actualizadoEn }, actor);
+    const restaurada = await servicio.restaurarEtapa(omitida.id, { version: omitida.actualizadoEn }, entorno.planificador);
     expect(restaurada.estado).toBe("PENDIENTE");
-    await servicio.omitirEtapa(restaurada.id, { version: restaurada.actualizadoEn, motivo: "No corresponde" }, actor);
+    await servicio.omitirEtapa(restaurada.id, { version: restaurada.actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
     const lista = await servicio.marcarLista(orden.id, { version: produciendo.actualizadoEn }, actor);
     const retrabajo = await servicio.reabrirPorRetrabajo(lista.id, { version: lista.actualizadoEn, motivo: "Corrección solicitada",
       nombre: "Corrección", areaId: primera.area.id }, actor);
@@ -38,7 +38,7 @@ function registrarFlujo() {
     const reiniciada = await servicio.iniciarEtapa(nueva.id, { version: asignada.actualizadoEn }, actor);
     await servicio.completarEtapa(nueva.id, { version: reiniciada.actualizadoEn }, actor);
     const listaFinal = await servicio.marcarLista(orden.id, { version: retrabajo.actualizadoEn }, actor);
-    const entregada = await entorno.ordenes.modulos.servicio.entregarOrden(listaFinal.id, listaFinal.actualizadoEn, actor);
+    const entregada = await entorno.ordenes.modulos.servicio.entregarOrden(listaFinal.id, listaFinal.actualizadoEn, entorno.operaciones);
     expect(entregada.estado).toBe("ENTREGADA");
     const eventos = await db.bitacora.findMany({ where: { ordenId: orden.id }, orderBy: { creadoEn: "asc" } });
     expect(eventos).toHaveLength(19);
@@ -54,7 +54,7 @@ function registrarSinCambios() {
     const etapa = await asignarEtapa(entorno, orden.etapas[0]);
     const eventos = await db.bitacora.count({ where: { ordenId: orden.id } });
     const igual = await entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn,
-      responsableId: etapa.responsable!.id, fechaInicioPlan: null, fechaFinPlan: null }, entorno.actor);
+      responsableId: etapa.responsable!.id, fechaInicioPlan: null, fechaFinPlan: null }, entorno.planificador);
     expect(igual).toEqual(etapa);
     expect(await db.bitacora.count({ where: { ordenId: orden.id } })).toBe(eventos);
   });
@@ -86,7 +86,7 @@ function registrarResponsableInvalido() {
     const orden = await nuevaOrden(entorno);
     const inactivo = await crearUsuarioPrueba(db, { perfil: "PRODUCCION", activo: false });
     for (const responsableId of [randomUUID(), inactivo.id, entorno.gerencia.id]) {
-      await expect(entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn, responsableId }, entorno.actor))
+      await expect(entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn, responsableId }, entorno.planificador))
         .rejects.toMatchObject({ status: 422, campos: { responsableId: expect.any(String) } });
     }
   });
@@ -96,7 +96,7 @@ function registrarResponsableInactivo() {
   it("revalida responsable inactivo al iniciar", async () => {
     const orden = await nuevaOrden(entorno);
     const usuario = await crearUsuarioPrueba(db, { perfil: "PRODUCCION" });
-    const asignada = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn, responsableId: usuario.id }, entorno.actor);
+    const asignada = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn, responsableId: usuario.id }, entorno.planificador);
     await db.usuario.update({ where: { id: usuario.id }, data: { activo: false } });
     await expect(entorno.servicio.iniciarEtapa(asignada.id, { version: asignada.actualizadoEn }, entorno.actor)).rejects.toMatchObject({ status: 422 });
   });
@@ -106,11 +106,11 @@ function registrarPlanificacion() {
   it("PATCH valida fechas contra valores existentes y no retira responsable en curso", async () => {
     const orden = await nuevaOrden(entorno);
     const etapa = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
-      responsableId: entorno.actor.id, fechaInicioPlan: "2026-10-10" }, entorno.actor);
-    await expect(entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, fechaFinPlan: "2026-10-09" }, entorno.actor))
+      responsableId: entorno.actor.id, fechaInicioPlan: "2026-10-10" }, entorno.planificador);
+    await expect(entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, fechaFinPlan: "2026-10-09" }, entorno.planificador))
       .rejects.toMatchObject({ status: 422 });
     const iniciada = await entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor);
-    await expect(entorno.servicio.editarEtapa(etapa.id, { version: iniciada.actualizadoEn, responsableId: null }, entorno.actor))
+    await expect(entorno.servicio.editarEtapa(etapa.id, { version: iniciada.actualizadoEn, responsableId: null }, entorno.planificador))
       .rejects.toMatchObject({ status: 422 });
   });
 }
@@ -131,12 +131,12 @@ function registrarTransiciones() {
 function registrarEtapasCerradas() {
   it("completadas no se reabren ni reasignan; omitidas no cambian fechas", async () => {
     const { orden, completada } = await completarPrimera(entorno);
-    await expect(entorno.servicio.restaurarEtapa(completada.id, { version: completada.actualizadoEn }, entorno.actor))
+    await expect(entorno.servicio.restaurarEtapa(completada.id, { version: completada.actualizadoEn }, entorno.planificador))
       .rejects.toMatchObject({ codigo: "TRANSICION_INVALIDA" });
-    await expect(entorno.servicio.editarEtapa(completada.id, { version: completada.actualizadoEn, responsableId: null }, entorno.actor))
+    await expect(entorno.servicio.editarEtapa(completada.id, { version: completada.actualizadoEn, responsableId: null }, entorno.planificador))
       .rejects.toMatchObject({ codigo: "ETAPA_NO_EDITABLE" });
-    const omitida = await entorno.servicio.omitirEtapa(orden.etapas[1].id, { version: orden.etapas[1].actualizadoEn, motivo: "No corresponde" }, entorno.actor);
-    await expect(entorno.servicio.editarEtapa(omitida.id, { version: omitida.actualizadoEn, fechaFinPlan: "2026-10-10" }, entorno.actor))
+    const omitida = await entorno.servicio.omitirEtapa(orden.etapas[1].id, { version: orden.etapas[1].actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
+    await expect(entorno.servicio.editarEtapa(omitida.id, { version: omitida.actualizadoEn, fechaFinPlan: "2026-10-10" }, entorno.planificador))
       .rejects.toMatchObject({ codigo: "ETAPA_NO_EDITABLE" });
   });
 }
@@ -148,7 +148,7 @@ function registrarGuardasLista() {
     const vigente = await leerOrden(entorno.ordenes, orden.id);
     await expect(entorno.servicio.marcarLista(orden.id, { version: vigente.actualizadoEn }, entorno.actor))
       .rejects.toMatchObject({ codigo: "ETAPAS_ABIERTAS" });
-    for (const etapa of vigente.etapas) await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "No corresponde" }, entorno.actor);
+    for (const etapa of vigente.etapas) await entorno.servicio.omitirEtapa(etapa.id, { version: etapa.actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
     await expect(entorno.servicio.marcarLista(orden.id, { version: vigente.actualizadoEn }, entorno.actor))
       .rejects.toMatchObject({ codigo: "ORDEN_SIN_TRABAJO" });
   });
@@ -173,11 +173,11 @@ function registrarOrdenesBloqueadas() {
       await ponerEstado(db, orden.id, estado);
       const etapa = orden.etapas[0];
       const version = { version: etapa.actualizadoEn };
-      const operaciones = [() => entorno.servicio.editarEtapa(etapa.id, { ...version, responsableId: entorno.actor.id }, entorno.actor),
+      const operaciones = [() => entorno.servicio.editarEtapa(etapa.id, { ...version, responsableId: entorno.actor.id }, entorno.planificador),
         () => entorno.servicio.iniciarEtapa(etapa.id, version, entorno.actor), () => entorno.servicio.completarEtapa(etapa.id, version, entorno.actor),
-        () => entorno.servicio.omitirEtapa(etapa.id, { ...version, motivo: "No corresponde" }, entorno.actor),
-        () => entorno.servicio.restaurarEtapa(etapa.id, version, entorno.actor),
-        () => entorno.servicio.agregarEtapa(orden.id, { areaId: etapa.area.id, nombre: "Extra" }, entorno.actor)];
+        () => entorno.servicio.omitirEtapa(etapa.id, { ...version, motivo: "No corresponde" }, entorno.planificador),
+        () => entorno.servicio.restaurarEtapa(etapa.id, version, entorno.planificador),
+        () => entorno.servicio.agregarEtapa(orden.id, { areaId: etapa.area.id, nombre: "Extra" }, entorno.planificador)];
       for (const ejecutar of operaciones) await expect(ejecutar()).rejects.toMatchObject({ status: 409, codigo: "ORDEN_NO_ADMITE_CAMBIOS_DE_ETAPA" });
     });
   }
@@ -196,7 +196,7 @@ function registrarRollback() {
 function registrarEtapaManual() {
   it("agregar etapa usa máxima secuencia, sin plantilla y una fila CREAR", async () => {
     const orden = await nuevaOrden(entorno);
-    const etapa = await entorno.servicio.agregarEtapa(orden.id, { nombre: "Acabado", areaId: orden.etapas[0].area.id }, entorno.actor);
+    const etapa = await entorno.servicio.agregarEtapa(orden.id, { nombre: "Acabado", areaId: orden.etapas[0].area.id }, entorno.planificador);
     expect(etapa).toMatchObject({ secuencia: 3, estado: "PENDIENTE", responsable: null });
     expect((await db.etapaOrden.findUniqueOrThrow({ where: { id: etapa.id } })).plantillaId).toBeNull();
     expect(await db.bitacora.count({ where: { entidadId: etapa.id, ordenId: orden.id, accion: "CREAR" } })).toBe(1);

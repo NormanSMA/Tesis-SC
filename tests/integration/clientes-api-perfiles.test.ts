@@ -20,10 +20,12 @@ type Operacion = "listar" | "crear" | "ver" | "editar" | "archivar" | "reactivar
 
 const OPERACIONES: Operacion[] = ["listar", "crear", "ver", "editar", "archivar", "reactivar"];
 
-// Gerencia consulta y no modifica. Producción y Administración no ven el módulo.
+// Matriz v9: solo Atención al cliente gestiona clientes; Gerencia y Operaciones consultan.
 const ESPERADO: Record<PerfilCodigo, Record<Operacion, number>> = {
   GERENCIA: { listar: 200, ver: 200, crear: 403, editar: 403, archivar: 403, reactivar: 403 },
-  VENTAS: { listar: 200, ver: 200, crear: 201, editar: 200, archivar: 200, reactivar: 200 },
+  ADMINISTRACION: { listar: 403, ver: 403, crear: 403, editar: 403, archivar: 403, reactivar: 403 },
+  OPERACIONES: { listar: 200, ver: 200, crear: 403, editar: 403, archivar: 403, reactivar: 403 },
+  ATENCION_CLIENTE: { listar: 200, ver: 200, crear: 201, editar: 200, archivar: 200, reactivar: 200 },
   PRODUCCION: { listar: 403, ver: 403, crear: 403, editar: 403, archivar: 403, reactivar: 403 },
   ADMIN: { listar: 403, ver: 403, crear: 403, editar: 403, archivar: 403, reactivar: 403 },
 };
@@ -93,7 +95,7 @@ describeConBase("clientes: API por perfil", () => {
   it("las escrituras rechazadas con 403 no cambian ningún dato", async () => {
     const destino = await crearClienteDirecto(db);
     const dto = { id: destino.id, actualizadoEn: destino.actualizadoEn.toISOString() } as ClienteDto;
-    for (const perfil of ["GERENCIA", "PRODUCCION", "ADMIN"] as const) {
+    for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "PRODUCCION", "ADMIN"] as const) {
       for (const operacion of ["editar", "archivar"] as const) {
         expect((await ejecutar(operacion, sesiones[perfil].cookie, dto)).status).toBe(403);
       }
@@ -115,11 +117,11 @@ describeConBase("clientes: API por perfil", () => {
     }
   });
 
-  it("un POST con Origin ajeno se rechaza aunque Ventas tenga el permiso", async () => {
+  it("un POST con Origin ajeno se rechaza aunque Atención al cliente tenga el permiso", async () => {
     const respuesta = await invocar(
       modulos.lista.POST,
       peticion("POST", "/api/v1/clientes", {
-        cookie: sesiones.VENTAS.cookie,
+        cookie: sesiones.ATENCION_CLIENTE.cookie,
         cuerpo: cuerpoCliente(),
         origen: "https://sitio-malicioso.example",
       }),
@@ -132,7 +134,7 @@ describeConBase("clientes: API por perfil", () => {
     for (const id of ["00000000-0000-4000-8000-000000000000", "abc"]) {
       const respuesta = await invocar(
         modulos.ficha.GET,
-        peticion("GET", `/api/v1/clientes/${id}`, { cookie: sesiones.VENTAS.cookie, origen: null }),
+        peticion("GET", `/api/v1/clientes/${id}`, { cookie: sesiones.ATENCION_CLIENTE.cookie, origen: null }),
         id,
       );
       expect(respuesta.status).toBe(404);
@@ -143,7 +145,7 @@ describeConBase("clientes: API por perfil", () => {
   it("la respuesta de creación incluye la versión y no incluye campos internos ajenos al contrato", async () => {
     const respuesta = await invocar<ClienteDto>(
       modulos.lista.POST,
-      peticion("POST", "/api/v1/clientes", { cookie: sesiones.VENTAS.cookie, cuerpo: cuerpoCliente({ activo: false }) }),
+      peticion("POST", "/api/v1/clientes", { cookie: sesiones.ATENCION_CLIENTE.cookie, cuerpo: cuerpoCliente({ activo: false }) }),
     );
     expect(respuesta.status).toBe(201);
     expect(respuesta.datos.activo).toBe(true);
@@ -151,6 +153,7 @@ describeConBase("clientes: API por perfil", () => {
       [
         "activo",
         "actualizadoEn",
+        "codigoCliente",
         "contactoPrincipal",
         "correo",
         "creadoEn",

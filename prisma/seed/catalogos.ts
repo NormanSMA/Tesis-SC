@@ -78,11 +78,17 @@ async function sembrarUsuarios({ db, datos, hashes, creadoEn }: Entrada) {
       nombre: u.nombre,
       correo: u.correo.toLowerCase(),
       hashContrasena: hashes.get(u.correo) as string,
-      perfilId: idPerfil.get(u.perfil) as string,
       creadoEn,
     };
   });
   await db.usuario.createMany({ data: filas });
+  await db.usuarioPerfil.createMany({
+    data: datos.usuarios.map((u) => ({
+      usuarioId: usuarios.get(u.clave)!.id,
+      perfilId: idPerfil.get(u.perfil) as string,
+      creadoEn,
+    })),
+  });
   return usuarios;
 }
 

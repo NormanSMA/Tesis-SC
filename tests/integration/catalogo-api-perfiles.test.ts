@@ -2,13 +2,14 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { can } from "@/core/autorizacion";
 import type { PerfilCodigo } from "@/core/permisos";
+import type { ProductoDto } from "@/modules/catalogo/tipos";
 
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
 import { abrirSesion, cargarModuloCatalogo, conPermisoRevocado, crearProductoDirecto, cuerpoProducto, invocar, unico, type ModuloCatalogo, type Sesion } from "./catalogo-ayudas";
 
-const PERFILES: PerfilCodigo[] = ["GERENCIA", "VENTAS", "PRODUCCION", "ADMIN"];
+const PERFILES: PerfilCodigo[] = ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"];
 const OPERACIONES = ["lista", "ficha", "crear", "editar", "archivar", "reactivar", "receta", "categorias", "crearCategoria", "editarCategoria", "materiales"] as const;
 type Operacion = (typeof OPERACIONES)[number];
 const LECTURAS: Operacion[] = ["lista", "ficha", "categorias", "materiales"];
@@ -53,7 +54,9 @@ describeConBase("catálogo: API por perfil y permisos revocados", () => {
   }
   for (const perfil of PERFILES) {
     for (const operacion of OPERACIONES) {
-      const permitido = perfil === "GERENCIA" || (perfil !== "ADMIN" && LECTURAS.includes(operacion));
+      const permitido = LECTURAS.includes(operacion)
+        ? operacion === "materiales" ? ["GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil) : perfil !== "ADMIN"
+        : perfil === "OPERACIONES";
       const esperado = permitido ? ["crear", "crearCategoria"].includes(operacion) ? 201 : 200 : 403;
       it(`${perfil}: ${operacion} responde ${esperado}`, async () => {
         const respuesta = await ejecutar(operacion, sesiones[perfil].cookie);
@@ -65,9 +68,37 @@ describeConBase("catálogo: API por perfil y permisos revocados", () => {
   it("sin sesión todas las rutas responden 401", async () => {
     for (const operacion of OPERACIONES) expect((await ejecutar(operacion)).status).toBe(401);
   });
+  it("expone el costo únicamente con cotizacion:ver en lista y ficha", async () => {
+    const producto = await crearProductoDirecto(db, categoriaId, { costoUnitario: "12.3456" });
+    async function consultar(cookie: string) {
+      const lista = await invocar<ProductoDto[]>(modulos.productos.GET,
+        peticion("GET", `/api/v1/productos?q=${producto.codigo}`, { cookie }));
+      const ficha = await invocar(modulos.ficha.GET,
+        peticion("GET", `/api/v1/productos/${producto.id}`, { cookie }), producto.id);
+      expect(lista.status).toBe(200);
+      expect(ficha.status).toBe(200);
+      expect(lista.datos).toHaveLength(1);
+      return [lista.datos[0], ficha.datos];
+    }
+    for (const fila of await consultar(sesiones.GERENCIA.cookie)) expect(fila.costoUnitario).toBe("12.3456");
+    for (const fila of await consultar(sesiones.PRODUCCION.cookie)) expect(fila).not.toHaveProperty("costoUnitario");
+    await conPermisoRevocado(db, { perfil: "GERENCIA", permiso: "cotizacion:ver" }, async () => {
+      for (const fila of await consultar(sesiones.GERENCIA.cookie)) expect(fila).not.toHaveProperty("costoUnitario");
+    });
+    for (const fila of await consultar(sesiones.GERENCIA.cookie)) expect(fila.costoUnitario).toBe("12.3456");
+  });
+  it("rechaza editar el costo sin catalogo:gestionar", async () => {
+    const producto = await crearProductoDirecto(db, categoriaId, { costoUnitario: "12.3456" });
+    const respuesta = await invocar(modulos.ficha.PATCH, peticion("PATCH", `/api/v1/productos/${producto.id}`, {
+      cookie: sesiones.ATENCION_CLIENTE.cookie, cuerpo: { version: producto.actualizadoEn.toISOString(), costoUnitario: "1" },
+    }), producto.id);
+    expect(respuesta.status).toBe(403);
+    expect((await db.producto.findUniqueOrThrow({ where: { id: producto.id } })).costoUnitario?.toFixed(4)).toBe("12.3456");
+    expect(await db.bitacora.count({ where: { entidad: "PRODUCTO", entidadId: producto.id } })).toBe(0);
+  });
   it("Origin ajeno rechaza cambios autorizados", async () => {
     const respuesta = await invocar(modulos.productos.POST, peticion("POST", "/api/v1/productos", {
-      cookie: sesiones.GERENCIA.cookie, origen: "https://ajeno.example", cuerpo: cuerpoProducto(categoriaId),
+      cookie: sesiones.OPERACIONES.cookie, origen: "https://ajeno.example", cuerpo: cuerpoProducto(categoriaId),
     }));
     expect(respuesta.status).toBe(403); expect(respuesta.error?.codigo).toBe("ORIGEN_NO_PERMITIDO");
   });
@@ -76,7 +107,7 @@ describeConBase("catálogo: API por perfil y permisos revocados", () => {
       expect((await invocar(modulos.ficha.GET, peticion("GET", "/", { cookie: sesiones.PRODUCCION.cookie }), id)).status).toBe(404);
     }
   });
-  it.each(["GERENCIA", "VENTAS", "PRODUCCION"] as const)("revoca catalogo:ver para %s en la matriz y siempre lo restaura", async (perfil) => {
+  it.each(["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION"] as const)("revoca catalogo:ver para %s en la matriz y siempre lo restaura", async (perfil) => {
     await conPermisoRevocado(db, { perfil, permiso: "catalogo:ver" }, async () => {
       for (const operacion of ["lista", "ficha", "categorias"] as const) {
         expect((await ejecutar(operacion, sesiones[perfil].cookie)).status).toBe(403);
@@ -86,15 +117,15 @@ describeConBase("catálogo: API por perfil y permisos revocados", () => {
     });
     expect((await ejecutar("lista", sesiones[perfil].cookie)).status).toBe(200);
   });
-  it("revoca catalogo:gestionar para Gerencia y siempre lo restaura", async () => {
-    await conPermisoRevocado(db, { perfil: "GERENCIA", permiso: "catalogo:gestionar" }, async () => {
+  it("revoca catalogo:gestionar para Operaciones y siempre lo restaura", async () => {
+    await conPermisoRevocado(db, { perfil: "OPERACIONES", permiso: "catalogo:gestionar" }, async () => {
       for (const operacion of OPERACIONES.filter((operacion) => !LECTURAS.includes(operacion))) {
-        expect((await ejecutar(operacion, sesiones.GERENCIA.cookie)).status).toBe(403);
+        expect((await ejecutar(operacion, sesiones.OPERACIONES.cookie)).status).toBe(403);
       }
-      const actor = await modulos.auth.sesion.obtenerSesionDeRequest(peticion("GET", "/", { cookie: sesiones.GERENCIA.cookie }));
+      const actor = await modulos.auth.sesion.obtenerSesionDeRequest(peticion("GET", "/", { cookie: sesiones.OPERACIONES.cookie }));
       expect(actor && can(actor, "catalogo:gestionar")).toBe(false);
     });
-    expect((await ejecutar("crear", sesiones.GERENCIA.cookie)).status).toBe(201);
+    expect((await ejecutar("crear", sesiones.OPERACIONES.cookie)).status).toBe(201);
   });
   it("materiales exige inventario:ver aunque se conserve catalogo:ver", async () => {
     await conPermisoRevocado(db, { perfil: "GERENCIA", permiso: "inventario:ver" }, async () => {

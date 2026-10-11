@@ -38,7 +38,7 @@ function comprobarCsv(entrada: { csv: string; nombre: typeof NOMBRES_REPORTES[nu
 }
 function registrarPerfiles() {
   for (const nombre of NOMBRES_REPORTES) {
-    for (const perfil of ["GERENCIA", "VENTAS", "PRODUCCION", "ADMIN"] as const) {
+    for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
       it(`${nombre}: ${perfil} JSON y CSV`, async () => {
         for (const parametros of ["", "formato=csv"]) {
           const respuesta = await solicitarReporte(entorno, { nombre, parametros, cookie: entorno.sesiones[perfil].cookie });
@@ -66,7 +66,7 @@ function registrarValidaciones() {
     const respuesta = await solicitarReporte(entorno, { nombre: "desconocido", cookie: entorno.sesiones.GERENCIA.cookie });
     expect(respuesta.status).toBe(404); expect((await respuesta.json()).error.codigo).toBe("NO_ENCONTRADO");
     expect((await solicitarReporte(entorno, { nombre: "desconocido" })).status).toBe(401);
-    expect((await solicitarReporte(entorno, { nombre: "desconocido", cookie: entorno.sesiones.VENTAS.cookie })).status).toBe(403);
+    expect((await solicitarReporte(entorno, { nombre: "desconocido", cookie: entorno.sesiones.ATENCION_CLIENTE.cookie })).status).toBe(403);
   });
 }
 function registrarExportaciones() {

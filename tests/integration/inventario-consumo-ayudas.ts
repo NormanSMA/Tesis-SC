@@ -3,8 +3,8 @@ import type { Actor } from "@/core/autorizacion";
 import type { EstadoOrden, PrismaClient } from "@/generated/prisma/client";
 import type { RespuestaMovimientosOrden } from "@/modules/inventario/contrato-orden";
 import { ORIGEN } from "../helpers/auth";
-import { nombreUnico } from "./cotizaciones-ayudas";
-import { crearOrden, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
+import { abrirSesion, nombreUnico } from "./cotizaciones-ayudas";
+import { crearAprobada, entradaConversion, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
 
 export type EntornoConsumo = Awaited<ReturnType<typeof prepararConsumo>>;
 export type Linea = { materialId: string; cantidad: string };
@@ -13,13 +13,18 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: { codigo
 // Importa las rutas después de prepararOrdenes: cargarAuth reinicia los módulos y apunta db.ts a la base de pruebas.
 export async function prepararConsumo(db: PrismaClient) {
   const ordenes = await prepararOrdenes(db);
+  const { modulos: modulosCotizaciones } = ordenes.cotizaciones;
+  const ADMINISTRACION = await abrirSesion(db, modulosCotizaciones, "ADMINISTRACION");
+  const OPERACIONES = await abrirSesion(db, modulosCotizaciones, "OPERACIONES");
+  const sesiones = { ...ordenes.sesiones, ADMINISTRACION, OPERACIONES };
   const modulos = {
     consumos: await import("@/app/api/v1/ordenes/[id]/consumos/route"),
     devoluciones: await import("@/app/api/v1/ordenes/[id]/devoluciones/route"),
     servicio: await import("@/modules/inventario/consumo"),
     resumen: await import("@/modules/inventario/resumen-orden"),
   };
-  return { db, ordenes, modulos, produccion: ordenes.sesiones.PRODUCCION.actor };
+  // administracion consume y registra entradas; produccion queda para etapas de otros módulos.
+  return { db, ordenes, modulos, sesiones, administracion: ADMINISTRACION.actor, produccion: ordenes.sesiones.PRODUCCION.actor };
 }
 
 type OpcionesMaterial = { existencia?: string; costo?: string; activo?: boolean };
@@ -40,11 +45,12 @@ type Entrada = { materialId: string; cantidad: string; costo?: string };
 
 export function registrarEntrada(entorno: EntornoConsumo, { materialId, cantidad, costo = "10" }: Entrada) {
   return entorno.db.movimientoInventario.create({ data: { materialId, tipo: "ENTRADA", cantidad, costoUnitario: costo,
-    usuarioId: entorno.ordenes.sesiones.PRODUCCION.usuarioId, referencia: "Factura prueba" } });
+    usuarioId: entorno.sesiones.ADMINISTRACION.usuarioId, referencia: "Factura prueba" } });
 }
 
 export async function nuevaOrden(entorno: EntornoConsumo, estado: EstadoOrden = "PENDIENTE") {
-  const orden = await crearOrden(entorno.ordenes);
+  const aprobada = await crearAprobada(entorno.ordenes);
+  const orden = await entorno.ordenes.modulos.servicio.crearOrden(entradaConversion(entorno.ordenes, aprobada.id), entorno.sesiones.OPERACIONES.actor);
   await ponerEstado(entorno.db, orden.id, estado);
   return orden;
 }
@@ -53,12 +59,12 @@ type Movimiento = { ordenId: string; lineas: Linea[]; actor?: Actor; clave?: str
 
 export function consumir(entorno: EntornoConsumo, datos: Movimiento): Promise<RespuestaMovimientosOrden> {
   return entorno.modulos.servicio.registrarConsumo({ ordenId: datos.ordenId, entrada: { lineas: datos.lineas },
-    clave: datos.clave ?? randomUUID(), actor: datos.actor ?? entorno.produccion });
+    clave: datos.clave ?? randomUUID(), actor: datos.actor ?? entorno.administracion });
 }
 
 export function devolver(entorno: EntornoConsumo, datos: Movimiento): Promise<RespuestaMovimientosOrden> {
   return entorno.modulos.servicio.registrarDevolucion({ ordenId: datos.ordenId, entrada: { lineas: datos.lineas },
-    clave: datos.clave ?? randomUUID(), actor: datos.actor ?? entorno.produccion });
+    clave: datos.clave ?? randomUUID(), actor: datos.actor ?? entorno.administracion });
 }
 
 export async function capturar<T>(promesa: Promise<T>): Promise<Resultado<T>> {

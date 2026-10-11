@@ -31,7 +31,7 @@ function filtroLista({ q, tipo, activo }: ConsultaClientes): Prisma.ClienteWhere
   if (tipo) where.tipo = tipo;
   if (q) {
     const contiene = { contains: escaparComodines(q), mode: "insensitive" as const };
-    where.OR = [{ nombre: contiene }, { ruc: contiene }, { contactoPrincipal: contiene }, { correo: contiene }];
+    where.OR = [{ codigoCliente: contiene }, { nombre: contiene }, { ruc: contiene }, { contactoPrincipal: contiene }, { correo: contiene }];
   }
   return where;
 }

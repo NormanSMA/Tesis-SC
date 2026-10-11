@@ -1,15 +1,47 @@
-export type PerfilCodigo = "GERENCIA" | "VENTAS" | "PRODUCCION" | "ADMIN";
+export type PerfilCodigo =
+  | "GERENCIA"
+  | "ADMINISTRACION"
+  | "OPERACIONES"
+  | "ATENCION_CLIENTE"
+  | "PRODUCCION"
+  | "ADMIN";
 
+// El orden define el perfil principal de un usuario con varios perfiles.
 export const PERFILES: readonly { codigo: PerfilCodigo; nombre: string; descripcion: string }[] = [
-  { codigo: "GERENCIA", nombre: "Gerencia", descripcion: "Supervisa la operación, aprueba y consulta reportes." },
+  { codigo: "GERENCIA", nombre: "Gerencia", descripcion: "Consulta la operación, los paneles y los reportes." },
   {
-    codigo: "VENTAS",
-    nombre: "Atención al cliente y ventas",
-    descripcion: "Atiende clientes, cotiza y da seguimiento a las órdenes.",
+    codigo: "ADMINISTRACION",
+    nombre: "Administración",
+    descripcion: "Registra consumos y ajustes de inventario, asigna responsables y actualiza etapas.",
   },
-  { codigo: "PRODUCCION", nombre: "Producción", descripcion: "Ejecuta etapas y controla el inventario de materiales." },
-  { codigo: "ADMIN", nombre: "Administración del sistema", descripcion: "Gestiona usuarios, permisos y configuración." },
+  {
+    codigo: "OPERACIONES",
+    nombre: "Operaciones",
+    descripcion: "Genera, asigna, inicia, cierra y cancela órdenes. Registra la aprobación comercial.",
+  },
+  {
+    codigo: "ATENCION_CLIENTE",
+    nombre: "Atención al cliente",
+    descripcion: "Atiende clientes, cotiza, registra la aprobación, entrega y cierra órdenes.",
+  },
+  { codigo: "PRODUCCION", nombre: "Producción", descripcion: "Actualiza las etapas de producción." },
+  {
+    codigo: "ADMIN",
+    nombre: "Administración técnica",
+    descripcion: "Gestiona usuarios, permisos y configuración. No hereda operaciones de negocio.",
+  },
 ];
+
+export const ETIQUETA_PERFIL: Readonly<Record<PerfilCodigo, string>> = Object.fromEntries(
+  PERFILES.map(({ codigo, nombre }) => [codigo, nombre]),
+) as Record<PerfilCodigo, string>;
+
+// Perfil principal: el primero según el orden de PERFILES.
+export function perfilPrincipal(codigos: readonly PerfilCodigo[]): PerfilCodigo {
+  const principal = PERFILES.find(({ codigo }) => codigos.includes(codigo));
+  if (!principal) throw new Error("El usuario no tiene perfiles asignados.");
+  return principal.codigo;
+}
 
 const DEFINICION_PERMISOS = [
   ["cliente:ver", "Ver clientes"],
@@ -19,7 +51,7 @@ const DEFINICION_PERMISOS = [
   ["cotizacion:ver", "Ver cotizaciones"],
   ["cotizacion:gestionar", "Crear, editar borradores, duplicar y archivar cotizaciones"],
   ["cotizacion:enviar", "Enviar cotizaciones al cliente"],
-  ["cotizacion:responder", "Aprobar, rechazar o vencer cotizaciones"],
+  ["cotizacion:responder", "Registrar la aprobación, el rechazo o el vencimiento de cotizaciones"],
   ["orden:ver", "Ver órdenes de trabajo"],
   ["orden:crear", "Convertir una cotización en orden de trabajo"],
   ["orden:gestionar", "Editar fecha de entrega, responsable y especificaciones de la orden"],
@@ -50,28 +82,56 @@ export const CATALOGO_PERMISOS: readonly { permiso: Permiso; descripcion: string
   ([permiso, descripcion]) => ({ permiso, descripcion }),
 );
 
-// Matriz por defecto de la sección (c) del modelo de datos (SD-24). ADMIN puede editarla en la base.
+// Matriz por defecto: Tabla 14 de la tesis v9 (docs/modulos/09-perfiles-v9.md). Reemplaza ADR-006 y SD-24.
+// ADMIN puede editarla en la base.
 export const PERMISOS_POR_PERFIL: Readonly<Record<PerfilCodigo, readonly Permiso[]>> = {
   GERENCIA: [
+    "cliente:ver",
+    "catalogo:ver",
+    "cotizacion:ver",
+    "orden:ver",
+    "produccion:ver",
+    "inventario:ver",
+    "bitacora:ver",
+    "panel:ver",
+    "reporte:ver",
+    "reporte:exportar",
+  ],
+  ADMINISTRACION: [
+    "catalogo:ver",
+    "cotizacion:ver",
+    "orden:ver",
+    "orden:gestionar",
+    "orden:avanzar",
+    "produccion:ver",
+    "produccion:planificar",
+    "produccion:ejecutar",
+    "inventario:ver",
+    "inventario:entrada",
+    "inventario:consumir",
+    "inventario:ajustar",
+    "material:gestionar",
+    "panel:ver",
+  ],
+  OPERACIONES: [
     "cliente:ver",
     "catalogo:ver",
     "catalogo:gestionar",
     "cotizacion:ver",
     "cotizacion:responder",
     "orden:ver",
+    "orden:crear",
     "orden:gestionar",
+    "orden:avanzar",
+    "orden:entregar",
     "orden:cerrar",
     "orden:cancelar",
     "produccion:ver",
+    "produccion:planificar",
     "inventario:ver",
-    "inventario:ajustar",
-    "material:gestionar",
-    "bitacora:ver",
     "panel:ver",
-    "reporte:ver",
-    "reporte:exportar",
   ],
-  VENTAS: [
+  ATENCION_CLIENTE: [
     "cliente:ver",
     "cliente:gestionar",
     "catalogo:ver",
@@ -80,35 +140,21 @@ export const PERMISOS_POR_PERFIL: Readonly<Record<PerfilCodigo, readonly Permiso
     "cotizacion:enviar",
     "cotizacion:responder",
     "orden:ver",
-    "orden:crear",
-    "orden:gestionar",
     "orden:entregar",
     "orden:cerrar",
     "produccion:ver",
-    "inventario:ver",
     "panel:ver",
   ],
-  PRODUCCION: [
-    "catalogo:ver",
-    "orden:ver",
-    "orden:avanzar",
-    "orden:entregar",
-    "produccion:ver",
-    "produccion:planificar",
-    "produccion:ejecutar",
-    "inventario:ver",
-    "inventario:entrada",
-    "inventario:consumir",
-    "material:gestionar",
-    "panel:ver",
-  ],
+  PRODUCCION: ["catalogo:ver", "orden:ver", "orden:avanzar", "produccion:ver", "produccion:ejecutar", "panel:ver"],
   ADMIN: ["bitacora:ver", "usuario:gestionar", "permiso:gestionar", "configuracion:gestionar"],
 };
 
 // ADMIN no tiene panel:ver: su pantalla de inicio es la gestión de usuarios.
 export const destinoPorPerfil: Readonly<Record<PerfilCodigo, string>> = {
   GERENCIA: "/panel",
-  VENTAS: "/panel",
+  ADMINISTRACION: "/panel",
+  OPERACIONES: "/panel",
+  ATENCION_CLIENTE: "/panel",
   PRODUCCION: "/panel",
   ADMIN: "/admin/usuarios",
 };

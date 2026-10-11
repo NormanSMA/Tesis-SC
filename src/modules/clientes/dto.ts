@@ -39,6 +39,7 @@ function calendarioIso(fecha: Date): string {
 export function aClienteDto(cliente: Cliente): ClienteDto {
   return {
     id: cliente.id,
+    codigoCliente: cliente.codigoCliente,
     nombre: cliente.nombre,
     tipo: cliente.tipo,
     ruc: cliente.ruc,
@@ -56,6 +57,7 @@ export function aClienteDto(cliente: Cliente): ClienteDto {
 export function aClienteFila(cliente: Cliente, cotizaciones: number | undefined): ClienteFila {
   const fila: ClienteFila = {
     id: cliente.id,
+    codigoCliente: cliente.codigoCliente,
     nombre: cliente.nombre,
     tipo: cliente.tipo,
     ruc: cliente.ruc,

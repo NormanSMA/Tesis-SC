@@ -18,6 +18,8 @@ export async function prepararOrdenes(db: PrismaClient) {
   const produccion = await abrirSesion(db, cotizaciones.modulos, "PRODUCCION");
   const gerencia = await abrirSesion(db, cotizaciones.modulos, "GERENCIA");
   const admin = await abrirSesion(db, cotizaciones.modulos, "ADMIN");
+  const operaciones = await abrirSesion(db, cotizaciones.modulos, "OPERACIONES");
+  const administracion = await abrirSesion(db, cotizaciones.modulos, "ADMINISTRACION");
   const area = await db.area.create({ data: { nombre: nombreUnico("Área órdenes") } });
   const categoriaId = cotizaciones.referencias.categoria.id;
   await db.etapaPlantilla.createMany({ data: [
@@ -35,7 +37,8 @@ export async function prepararOrdenes(db: PrismaClient) {
     cancelar: await import("@/app/api/v1/ordenes/[id]/cancelar/route"), opciones: await import("@/app/api/v1/ordenes/opciones/route"),
     servicio: await import("@/modules/ordenes/service"),
   };
-  return { cotizaciones, modulos, sesiones: { VENTAS: cotizaciones.ventas, PRODUCCION: produccion, GERENCIA: gerencia, ADMIN: admin } };
+  return { cotizaciones, modulos, sesiones: { ATENCION_CLIENTE: cotizaciones.ventas, PRODUCCION: produccion, GERENCIA: gerencia, ADMIN: admin,
+    OPERACIONES: operaciones, ADMINISTRACION: administracion } };
 }
 
 export async function crearAprobada(entorno: EntornoOrdenes, items?: EntradaItem[]) {
@@ -43,7 +46,7 @@ export async function crearAprobada(entorno: EntornoOrdenes, items?: EntradaItem
   const { cotizaciones } = entorno;
   const borrador = await crearBorrador(cotizaciones, { items: items ?? itemsMixtos(cotizaciones.referencias) });
   const enviada = await cotizaciones.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, cotizaciones.ventas.actor);
-  return cotizaciones.modulos.servicio.responderCotizacion(enviada.id, { version: enviada.actualizadoEn, resultado: "APROBADA" }, cotizaciones.ventas.actor);
+  return cotizaciones.modulos.servicio.responderCotizacion(enviada.id, { version: enviada.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente" }, cotizaciones.ventas.actor);
 }
 
 export function entradaConversion(entorno: EntornoOrdenes, cotizacionId: string): EntradaCrearOrden {
@@ -52,9 +55,9 @@ export function entradaConversion(entorno: EntornoOrdenes, cotizacionId: string)
     especificaciones: "Trabajo de integración" };
 }
 
-export async function crearOrden(entorno: EntornoOrdenes) {
+export async function crearOrden(entorno: EntornoOrdenes, opciones: { responsableId?: string | null } = {}) {
   const cotizacion = await crearAprobada(entorno);
-  return entorno.modulos.servicio.crearOrden(entradaConversion(entorno, cotizacion.id), entorno.sesiones.VENTAS.actor);
+  return entorno.modulos.servicio.crearOrden({ ...entradaConversion(entorno, cotizacion.id), ...opciones }, entorno.sesiones.OPERACIONES.actor);
 }
 
 export async function ponerEstado(db: PrismaClient, id: string, destino: EstadoOrden): Promise<void> {
@@ -73,5 +76,5 @@ export async function ponerEstado(db: PrismaClient, id: string, destino: EstadoO
 }
 
 export async function leerOrden(entorno: EntornoOrdenes, id: string) {
-  return entorno.modulos.servicio.obtenerOrden(id, entorno.sesiones.VENTAS.actor);
+  return entorno.modulos.servicio.obtenerOrden(id, entorno.sesiones.ATENCION_CLIENTE.actor);
 }

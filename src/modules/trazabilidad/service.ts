@@ -6,7 +6,7 @@ import { noEncontrado } from "@/modules/ordenes/errores";
 import { leerCostos } from "./costos";
 import { aCadenaDto, aEventoDto, aMaterialesDto, responsablesTrabajo } from "./dto";
 import { leerReferencias } from "./referencias";
-import { buscarCadena, buscarTrabajo, consultarEventosOrden, consultarGlobal, consultarUsuarios } from "./repo";
+import { buscarCadena, buscarTrabajo, consultarEventosOrden, consultarGlobal, consultarHistorialEtapas, consultarUsuarios } from "./repo";
 import type { ConsultaBitacora } from "./schema";
 
 export async function listarBitacora(consulta: ConsultaBitacora, actor: Actor) {
@@ -25,9 +25,10 @@ export async function obtenerTrazabilidad(id: string, actor: Actor) {
     const orden = await buscarCadena(tx, id);
     if (!orden) throw noEncontrado();
     const eventos = await consultarEventosOrden(tx, orden);
-    const [referencias, materiales, costos] = await Promise.all([leerReferencias(tx, eventos), leerResumenMateriales(tx, id),
-      can(actor, "cotizacion:ver") ? leerCostos(tx, id) : undefined]);
-    return { cadena: aCadenaDto(orden, actor), eventos: eventos.map((evento) => aEventoDto({ evento, actor, referencias })),
+    const [referencias, materiales, costos, historial] = await Promise.all([leerReferencias(tx, eventos), leerResumenMateriales(tx, id),
+      can(actor, "cotizacion:ver") ? leerCostos(tx, id) : undefined, consultarHistorialEtapas(tx, id)]);
+    return { cadena: aCadenaDto(orden, actor, historial),
+      eventos: eventos.map((evento) => aEventoDto({ evento, actor, referencias })),
       materiales: aMaterialesDto(materiales, costos), ...(costos ? { costoRealTotal: costos.total } : {}),
       responsables: responsablesTrabajo({ orden, eventos, referencias }) };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });

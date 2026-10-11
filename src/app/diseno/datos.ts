@@ -35,7 +35,7 @@ export type FilaCotizacion = {
   cliente: string;
   emision: string;
   vence: string;
-  estado: string;
+  estado: "BORRADOR" | "ENVIADA" | "APROBADA" | "RECHAZADA" | "VENCIDA" | "AJUSTE_SOLICITADO";
   total: string;
 };
 

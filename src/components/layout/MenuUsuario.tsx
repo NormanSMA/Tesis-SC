@@ -14,14 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { PerfilCodigo, UsuarioSesion } from "@/lib/auth/sesion";
-
-const ETIQUETA_PERFIL: Record<PerfilCodigo, string> = {
-  GERENCIA: "Gerencia",
-  VENTAS: "Ventas",
-  PRODUCCION: "Producción",
-  ADMIN: "Administración",
-};
+import { ETIQUETA_PERFIL } from "@/core/permisos";
+import type { UsuarioSesion } from "@/lib/auth/sesion";
 
 function iniciales(nombre: string): string {
   const partes = nombre.trim().split(/\s+/).filter(Boolean);
@@ -62,7 +56,8 @@ export function MenuUsuario({ usuario }: { usuario: UsuarioSesion }) {
           <span className="text-sm font-semibold">{usuario.nombre}</span>
           <span className="text-xs font-normal text-muted-foreground">{usuario.correo}</span>
           <span className="text-xs font-normal text-muted-foreground">
-            Perfil: {ETIQUETA_PERFIL[usuario.perfil]}
+            {usuario.perfiles.length > 1 ? "Perfiles" : "Perfil"}:{" "}
+            {usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(", ")}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

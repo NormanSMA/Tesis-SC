@@ -171,7 +171,7 @@ test.describe("Catálogos propios de producción", () => {
   });
 });
 
-for (const codigo of ["PRODUCCION", "VENTAS"]) {
+for (const codigo of ["PRODUCCION", "ATENCION_CLIENTE"]) {
   test(`${codigo === "PRODUCCION" ? "Producción" : "Ventas"} consulta áreas y plantillas sin gestión`, async ({ page }) => {
     await entrarComo(page, PERFILES.find((fila) => fila.codigo === codigo)!);
     await page.goto("/produccion/areas");

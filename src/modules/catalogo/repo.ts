@@ -5,7 +5,7 @@ import type { ConsultaCategorias, ConsultaMateriales, ConsultaProductos, Entrada
 
 const COLUMNAS_PRODUCTO = {
   codigo: "codigo", nombre: "nombre", descripcion: "descripcion", categoriaId: "categoria_id",
-  unidadCobro: "unidad_cobro", precioBase: "precio_base", activo: "activo",
+  unidadCobro: "unidad_cobro", precioBase: "precio_base", costoUnitario: "costo_unitario", activo: "activo",
 } as const;
 const COLUMNAS_CATEGORIA = { nombre: "nombre", descripcion: "descripcion", activo: "activo" } as const;
 type Condicion = { id: string; activo: boolean; version: string };
@@ -37,7 +37,7 @@ function asignacionProducto(campo: keyof typeof COLUMNAS_PRODUCTO, valor: unknow
   const columna = Prisma.raw(COLUMNAS_PRODUCTO[campo]);
   if (campo === "unidadCobro") return Prisma.sql`${columna} = ${valor}::unidad_cobro`;
   if (campo === "categoriaId") return Prisma.sql`${columna} = ${valor}::uuid`;
-  if (campo === "precioBase") return Prisma.sql`${columna} = ${valor}::numeric`;
+  if (campo === "precioBase" || campo === "costoUnitario") return Prisma.sql`${columna} = ${valor}::numeric`;
   return Prisma.sql`${columna} = ${valor}`;
 }
 

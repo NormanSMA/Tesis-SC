@@ -17,7 +17,7 @@ const UNIDAD = "PLIEGO";
 type Perfil = (typeof PERFILES)[number];
 type Material = { id: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
-const VENTAS = PERFIL("VENTAS");
+const ATENCION_CLIENTE = PERFIL("ATENCION_CLIENTE");
 const GERENCIA = PERFIL("GERENCIA");
 const PRODUCCION = PERFIL("PRODUCCION");
 const ADMIN = PERFIL("ADMIN");
@@ -282,7 +282,7 @@ test.describe("Inventario con un material propio", () => {
 });
 
 test("Ventas consulta inventario y una ficha sin botones de gestión", async ({ page }) => {
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   await page.goto("/inventario");
   await expect(listaMateriales(page)).toBeVisible();
   await expect(page.getByRole("link", { name: /^(Nuevo material|Registrar entrada|Ajustar)$/ })).toHaveCount(0);
@@ -321,7 +321,7 @@ test("Administración termina en sin-acceso al abrir inventario", async ({ page 
 test("lista y ficha de inventario no desbordan horizontalmente en el tamaño del proyecto", async ({ page }, info) => {
   const vista = VIEWPORTS.find((candidata) => candidata.nombre === info.project.name)!;
   await page.setViewportSize({ width: vista.width, height: vista.height });
-  await entrarComo(page, VENTAS);
+  await entrarComo(page, ATENCION_CLIENTE);
   await page.goto("/inventario");
   await expect(listaMateriales(page)).toBeVisible();
   await sinDesbordeHorizontal(page);

@@ -17,7 +17,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
   const actor = await exigirPermisoPagina("catalogo:ver");
   const lectura = esquemaConsultaProductos.safeParse(objetoDeParametros(await searchParams));
   const consulta = lectura.success ? lectura.data : esquemaConsultaProductos.parse({});
-  const [lista, categorias] = await Promise.all([listarProductos(consulta), listarCategorias()]);
+  const [lista, categorias] = await Promise.all([listarProductos(consulta, actor), listarCategorias()]);
   const puedeGestionar = can(actor, "catalogo:gestionar");
   return <>
     <PageHeader titulo="Catálogo" descripcion="Productos, precios y recetas de materiales."

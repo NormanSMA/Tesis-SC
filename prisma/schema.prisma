@@ -18,9 +18,11 @@ datasource db {
 
 enum CodigoPerfil {
   GERENCIA
-  VENTAS
+  ATENCION_CLIENTE
   PRODUCCION
   ADMIN
+  ADMINISTRACION
+  OPERACIONES
 
   @@map("codigo_perfil")
 }
@@ -61,6 +63,7 @@ enum EstadoCotizacion {
   APROBADA
   RECHAZADA
   VENCIDA
+  AJUSTE_SOLICITADO
 
   @@map("estado_cotizacion")
 }
@@ -178,10 +181,26 @@ model Perfil {
   nombre      String       @db.VarChar(60)
   descripcion String?
 
-  usuarios Usuario[]
-  permisos PerfilPermiso[]
+  usuarioPerfiles UsuarioPerfil[]
+  permisos        PerfilPermiso[]
 
   @@map("perfil")
+}
+
+// Varios perfiles por usuario (usuario_roles en el ERD v9). Los permisos efectivos son la unión.
+model UsuarioPerfil {
+  usuarioId     String   @map("usuario_id") @db.Uuid
+  perfilId      String   @map("perfil_id") @db.Uuid
+  asignadoPorId String?  @map("asignado_por_id") @db.Uuid
+  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  usuario     Usuario  @relation("UsuarioPerfiles", fields: [usuarioId], references: [id], onDelete: Cascade)
+  perfil      Perfil   @relation(fields: [perfilId], references: [id], onDelete: Restrict)
+  asignadoPor Usuario? @relation("PerfilAsignadoPor", fields: [asignadoPorId], references: [id], onDelete: Restrict)
+
+  @@id([usuarioId, perfilId])
+  @@index([perfilId])
+  @@map("usuario_perfil")
 }
 
 model Permiso {
@@ -218,7 +237,6 @@ model Usuario {
   // Se guarda en minusculas; CHECK en restricciones.sql.
   correo           String    @unique @db.VarChar(254)
   hashContrasena   String    @map("hash_contrasena")
-  perfilId         String    @map("perfil_id") @db.Uuid
   activo           Boolean   @default(true)
   intentosFallidos Int       @default(0) @map("intentos_fallidos")
   bloqueadoHasta   DateTime? @map("bloqueado_hasta") @db.Timestamptz(6)
@@ -226,20 +244,23 @@ model Usuario {
   creadoEn         DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
   actualizadoEn    DateTime  @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
-  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Restrict)
-
+  perfiles             UsuarioPerfil[]        @relation("UsuarioPerfiles")
+  perfilesAsignados    UsuarioPerfil[]        @relation("PerfilAsignadoPor")
   sesiones             Sesion[]
   permisosOtorgados    PerfilPermiso[]        @relation("PermisoOtorgadoPor")
   cotizacionesCreadas  Cotizacion[]           @relation("CotizacionCreadaPor")
+  cotizacionesAprobadas Cotizacion[]          @relation("CotizacionAprobadaPor")
   ordenesResponsable   OrdenTrabajo[]         @relation("OrdenResponsable")
   ordenesCreadas       OrdenTrabajo[]         @relation("OrdenCreadaPor")
   etapasResponsable    EtapaOrden[]           @relation("EtapaResponsable")
+  historialEtapas      HistorialEtapa[]       @relation("HistorialActor")
+  historialResponsable HistorialEtapa[]       @relation("HistorialResponsable")
   movimientos          MovimientoInventario[]
   eventosBitacora      Bitacora[]
   solicitudes          SolicitudIdempotente[]
   configuracionesEdit  Configuracion[]
 
-  @@index([perfilId, activo])
+  @@index([activo])
   @@map("usuario")
 }
 
@@ -265,6 +286,8 @@ model Sesion {
 
 model Cliente {
   id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // CLI-0001: codigo legible asignado por siguiente_codigo_cliente() (RF-01).
+  codigoCliente     String      @unique @default(dbgenerated("siguiente_codigo_cliente()")) @map("codigo_cliente") @db.VarChar(20)
   nombre            String      @db.VarChar(200)
   tipo              TipoCliente
   // UNIQUE admite varios NULL en PostgreSQL: no hace falta indice parcial.
@@ -279,6 +302,7 @@ model Cliente {
   actualizadoEn     DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
   cotizaciones Cotizacion[]
+  ordenes      OrdenTrabajo[]
 
   @@index([activo, nombre])
   @@map("cliente")
@@ -323,6 +347,8 @@ model Producto {
   categoriaId   String      @map("categoria_id") @db.Uuid
   unidadCobro   UnidadCobro @map("unidad_cobro")
   precioBase    Decimal     @map("precio_base") @db.Decimal(14, 2)
+  // Costo de referencia por unidad de cobro. Nulo si el producto no tiene receta.
+  costoUnitario Decimal?    @map("costo_unitario") @db.Decimal(14, 4)
   activo        Boolean     @default(true)
   creadoEn      DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
   actualizadoEn DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
@@ -413,12 +439,17 @@ model ConsumoOrden {
   ordenId      String @map("orden_id") @db.Uuid
   materialId   String @map("material_id") @db.Uuid
   movimientoId String @unique @map("movimiento_id") @db.Uuid
+  // Copia positiva del movimiento (la fija un trigger). idempotency_key la envia el cliente.
+  cantidad       Decimal @default(0) @db.Decimal(14, 3)
+  costoUnitario  Decimal @default(0) @map("costo_unitario") @db.Decimal(14, 4)
+  idempotencyKey String? @map("idempotency_key") @db.Uuid
 
   orden      OrdenTrabajo         @relation(fields: [ordenId], references: [id], onDelete: Restrict)
   material   Material             @relation(fields: [materialId], references: [id], onDelete: Restrict)
   movimiento MovimientoInventario @relation(fields: [movimientoId, materialId], references: [id, materialId], onDelete: Restrict)
 
   @@unique([movimientoId, materialId])
+  @@unique([idempotencyKey, materialId])
   @@index([ordenId, materialId])
   @@index([materialId])
   @@map("consumo_orden")
@@ -468,6 +499,11 @@ model Cotizacion {
   fechaVencimiento   DateTime?        @map("fecha_vencimiento") @db.Date
   fechaRespuesta     DateTime?        @map("fecha_respuesta") @db.Timestamptz(6)
   motivoRechazo      String?          @map("motivo_rechazo")
+  // Aprobacion comercial registrada por personal autorizado (RB-10) y version corregida.
+  usuarioAprobacionId String?         @map("usuario_aprobacion_id") @db.Uuid
+  referenciaAprobacion String?        @map("referencia_aprobacion") @db.VarChar(200)
+  version            Int              @default(1) @db.SmallInt
+  motivoAjuste       String?          @map("motivo_ajuste")
   archivada          Boolean          @default(false)
   creadoPorId        String           @map("creado_por_id") @db.Uuid
   creadoEn           DateTime         @default(now()) @map("creado_en") @db.Timestamptz(6)
@@ -475,6 +511,7 @@ model Cotizacion {
 
   cliente          Cliente          @relation(fields: [clienteId], references: [id], onDelete: Restrict)
   creadoPor        Usuario          @relation("CotizacionCreadaPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
+  usuarioAprobacion Usuario?        @relation("CotizacionAprobadaPor", fields: [usuarioAprobacionId], references: [id], onDelete: Restrict)
   cotizacionOrigen Cotizacion?      @relation("CotizacionDuplicada", fields: [cotizacionOrigenId], references: [id], onDelete: Restrict)
   duplicados       Cotizacion[]     @relation("CotizacionDuplicada")
   items            ItemCotizacion[]
@@ -485,6 +522,9 @@ model Cotizacion {
   @@index([estado, fechaVencimiento])
   @@index([creadoPorId, estado])
   @@index([cotizacionOrigenId])
+  @@index([usuarioAprobacionId])
+  // Destino de la clave compuesta de orden_trabajo: el cliente de la orden es el de su cotizacion.
+  @@unique([id, clienteId])
   @@map("cotizacion")
 }
 
@@ -551,7 +591,9 @@ model OrdenTrabajo {
   cotizacionId      String      @unique @map("cotizacion_id") @db.Uuid
   categoriaId       String      @map("categoria_id") @db.Uuid
   estado            EstadoOrden @default(PENDIENTE)
-  responsableId     String      @map("responsable_id") @db.Uuid
+  // Opcional: la orden puede crearse sin responsable y asignarse despues (secuencia 01 de la tesis v9).
+  responsableId     String?     @map("responsable_id") @db.Uuid
+  clienteId         String      @map("cliente_id") @db.Uuid
   especificaciones  String?
   fechaEntrega      DateTime    @map("fecha_entrega") @db.Date
   fechaInicioReal   DateTime?   @map("fecha_inicio_real") @db.Timestamptz(6)
@@ -562,11 +604,13 @@ model OrdenTrabajo {
   creadoEn          DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
   actualizadoEn     DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
-  cotizacion        Cotizacion        @relation(fields: [cotizacionId], references: [id], onDelete: Restrict)
+  cotizacion        Cotizacion        @relation(fields: [cotizacionId, clienteId], references: [id, clienteId], onDelete: Restrict)
+  cliente           Cliente           @relation(fields: [clienteId], references: [id], onDelete: Restrict)
   categoria         Categoria         @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
-  responsable       Usuario           @relation("OrdenResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  responsable       Usuario?          @relation("OrdenResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
   creadoPor         Usuario           @relation("OrdenCreadaPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
   etapas            EtapaOrden[]
+  historialEtapas   HistorialEtapa[]
   consumos          ConsumoOrden[]
   consumosEstimados ConsumoEstimado[]
   eventosBitacora   Bitacora[]
@@ -575,7 +619,33 @@ model OrdenTrabajo {
   @@index([responsableId, estado])
   @@index([categoriaId])
   @@index([creadoPorId])
+  @@index([clienteId])
+  // Requerido por Prisma para la relacion uno a uno con cotizacion (cotizacion_id ya es unico).
+  @@unique([cotizacionId, clienteId])
   @@map("orden_trabajo")
+}
+
+// Historial de transiciones de etapa (HistorialEtapa, Tabla 16 de la tesis v9, RB-08 y RB-09).
+// Solo insercion: un trigger impide UPDATE, DELETE y TRUNCATE.
+model HistorialEtapa {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ordenId        String       @map("orden_id") @db.Uuid
+  etapaId        String       @map("etapa_id") @db.Uuid
+  usuarioId      String       @map("usuario_id") @db.Uuid
+  estadoAnterior EstadoEtapa? @map("estado_anterior")
+  estadoNuevo    EstadoEtapa  @map("estado_nuevo")
+  responsableId  String?      @map("responsable_id") @db.Uuid
+  creadoEn       DateTime     @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Restrict)
+  etapa       EtapaOrden   @relation(fields: [etapaId], references: [id], onDelete: Restrict)
+  usuario     Usuario      @relation("HistorialActor", fields: [usuarioId], references: [id], onDelete: Restrict)
+  responsable Usuario?     @relation("HistorialResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@index([ordenId, creadoEn])
+  @@index([etapaId, creadoEn])
+  @@index([usuarioId])
+  @@map("historial_etapa")
 }
 
 model EtapaPlantilla {
@@ -619,6 +689,7 @@ model EtapaOrden {
   plantilla   EtapaPlantilla? @relation(fields: [plantillaId], references: [id], onDelete: Restrict)
   area        Area            @relation(fields: [areaId], references: [id], onDelete: Restrict)
   responsable Usuario?        @relation("EtapaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  historial   HistorialEtapa[]
 
   @@unique([ordenId, secuencia])
   @@index([responsableId, estado])

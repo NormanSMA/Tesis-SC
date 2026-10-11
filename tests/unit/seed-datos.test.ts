@@ -78,7 +78,7 @@ describe('Datos de prueba', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const datos = cargarJSON('usuarios.json') as any[];
       expect(Array.isArray(datos)).toBe(true);
-      expect(datos.length).toBe(8);
+      expect(datos.length).toBe(10);
     });
 
     it('debe cargar escenarios.json', () => {
@@ -129,7 +129,7 @@ describe('Datos de prueba', () => {
     it('usuarios deben ser válidos', () => {
       const datos = cargarJSON('usuarios.json');
       const parsed = parseArray(datos, usuarioSchema);
-      expect(parsed.length).toBe(8);
+      expect(parsed.length).toBe(10);
     });
 
     it('escenarios deben ser válidos', () => {
@@ -278,7 +278,9 @@ describe('Datos de prueba', () => {
       const perfiles = new Set(usuarios.map((u: any) => u.perfil));
 
       expect(perfiles.has('GERENCIA')).toBe(true);
-      expect(perfiles.has('VENTAS')).toBe(true);
+      expect(perfiles.has('ADMINISTRACION')).toBe(true);
+      expect(perfiles.has('OPERACIONES')).toBe(true);
+      expect(perfiles.has('ATENCION_CLIENTE')).toBe(true);
       expect(perfiles.has('PRODUCCION')).toBe(true);
       expect(perfiles.has('ADMIN')).toBe(true);
     });

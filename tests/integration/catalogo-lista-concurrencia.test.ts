@@ -10,17 +10,17 @@ import { abrirSesion, cargarModuloCatalogo, crearMaterial, crearProductoDirecto,
 describeConBase("catálogo: listas y concurrencia", () => {
   const db = crearClientePropietario();
   let modulos: ModuloCatalogo;
-  let gerencia: Sesion;
+  let operaciones: Sesion;
   let categoriaId: string;
   beforeAll(async () => {
     await sembrarReferencia(db); modulos = await cargarModuloCatalogo();
-    gerencia = await abrirSesion(db, modulos, "GERENCIA");
+    operaciones = await abrirSesion(db, modulos, "OPERACIONES");
     categoriaId = (await db.categoria.create({ data: { nombre: unico("Categoría") } })).id;
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
-  const lista = (consulta: string) => invocar<ProductoDto[]>(modulos.productos.GET, peticion("GET", `/api/v1/productos?${consulta}`, { cookie: gerencia.cookie }));
+  const lista = (consulta: string) => invocar<ProductoDto[]>(modulos.productos.GET, peticion("GET", `/api/v1/productos?${consulta}`, { cookie: operaciones.cookie }));
   const receta = (producto: { id: string; actualizadoEn: Date }, materialId: string, cantidad: string) => invocar<FichaProducto>(modulos.receta.PUT,
-    peticion("PUT", "/", { cookie: gerencia.cookie, cuerpo: { version: producto.actualizadoEn.toISOString(), materiales: [{ materialId, cantidad }] } }), producto.id);
+    peticion("PUT", "/", { cookie: operaciones.cookie, cuerpo: { version: producto.actualizadoEn.toISOString(), materiales: [{ materialId, cantidad }] } }), producto.id);
 
   it("busca nombre, código y descripción sin distinguir mayúsculas", async () => {
     const producto = await crearProductoDirecto(db, categoriaId, { descripcion: unico("Descripción") });
@@ -70,7 +70,7 @@ describeConBase("catálogo: listas y concurrencia", () => {
     const material = await crearMaterial(db);
     const respuestas = await Promise.all([
       receta(producto, material.id, "1"),
-      invocar(modulos.ficha.PATCH, peticion("PATCH", "/", { cookie: gerencia.cookie,
+      invocar(modulos.ficha.PATCH, peticion("PATCH", "/", { cookie: operaciones.cookie,
         cuerpo: { version: producto.actualizadoEn.toISOString(), nombre: "Edición concurrente" } }), producto.id),
     ]);
     expect(respuestas.map((respuesta) => respuesta.status).sort()).toEqual([200, 409]);
@@ -81,7 +81,7 @@ describeConBase("catálogo: listas y concurrencia", () => {
     const categoria = await db.categoria.findUniqueOrThrow({ where: { id: categoriaId } });
     for (const [handler, registro] of [[modulos.ficha.PATCH, producto], [modulos.categoria.PATCH, categoria]] as const) {
       const respuestas = await Promise.all(["A", "B"].map((descripcion) => invocar(handler,
-        peticion("PATCH", "/", { cookie: gerencia.cookie, cuerpo: { version: registro.actualizadoEn.toISOString(), descripcion } }), registro.id)));
+        peticion("PATCH", "/", { cookie: operaciones.cookie, cuerpo: { version: registro.actualizadoEn.toISOString(), descripcion } }), registro.id)));
       expect(respuestas.map((respuesta) => respuesta.status).sort()).toEqual([200, 409]);
       expect(respuestas.find((respuesta) => respuesta.status === 409)?.error?.codigo).toBe("CONFLICTO_EDICION");
     }

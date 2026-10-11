@@ -15,10 +15,10 @@ function registrarArchivoArea(ronda: number) {
     for (const restaurarPrimero of [true, false]) {
       const area = await crearAreaLibre(entorno);
       const orden = await nuevaOrden(entorno);
-      const extra = await entorno.servicio.agregarEtapa(orden.id, { areaId: area.id, nombre: "Extra" }, entorno.actor);
-      const omitida = await entorno.servicio.omitirEtapa(extra.id, { version: extra.actualizadoEn, motivo: "No corresponde" }, entorno.actor);
-      const restaurar = () => entorno.servicio.restaurarEtapa(extra.id, { version: omitida.actualizadoEn }, entorno.actor);
-      const archivar = () => entorno.servicio.archivarArea(area.id, { version: area.actualizadoEn }, entorno.gerencia);
+      const extra = await entorno.servicio.agregarEtapa(orden.id, { areaId: area.id, nombre: "Extra" }, entorno.planificador);
+      const omitida = await entorno.servicio.omitirEtapa(extra.id, { version: extra.actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
+      const restaurar = () => entorno.servicio.restaurarEtapa(extra.id, { version: omitida.actualizadoEn }, entorno.planificador);
+      const archivar = () => entorno.servicio.archivarArea(area.id, { version: area.actualizadoEn }, entorno.operaciones);
       const resultados = restaurarPrimero
         ? await carrera({ areaId: area.id, primera: restaurar, segunda: archivar })
         : await carrera({ areaId: area.id, primera: archivar, segunda: restaurar });
@@ -67,7 +67,7 @@ function registrarInicioCancelacion(ronda: number) {
       const etapa = await asignarEtapa(entorno, orden.etapas[0]);
       const iniciar = () => entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor);
       const cancelar = () => entorno.ordenes.modulos.servicio.cancelarOrden(orden.id,
-        { version: orden.actualizadoEn, motivo: "Cancelación concurrente" }, entorno.gerencia);
+        { version: orden.actualizadoEn, motivo: "Cancelación concurrente" }, entorno.operaciones);
       const resultados = iniciarPrimero
         ? await carrera({ ordenId: orden.id, primera: iniciar, segunda: cancelar })
         : await carrera({ ordenId: orden.id, primera: cancelar, segunda: iniciar });
@@ -94,7 +94,7 @@ function registrarEjecucionCancelacion(ronda: number) {
           ? entorno.servicio.completarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor)
           : entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor);
         const cancelar = () => entorno.ordenes.modulos.servicio.cancelarOrden(orden.id,
-          { version: actual.actualizadoEn, motivo: "Cancelación concurrente" }, entorno.gerencia);
+          { version: actual.actualizadoEn, motivo: "Cancelación concurrente" }, entorno.operaciones);
         const resultados = etapaPrimero
           ? await carrera({ ordenId: orden.id, primera: ejecutar, segunda: cancelar })
           : await carrera({ ordenId: orden.id, primera: cancelar, segunda: ejecutar });
@@ -138,8 +138,8 @@ function registrarEtapasLista(ronda: number) {
         const orden = await prepararLista(entorno);
         const omitida = orden.etapas.find((etapa) => etapa.estado === "OMITIDA")!;
         const ejecutar = () => accion === "agregar"
-          ? entorno.servicio.agregarEtapa(orden.id, { areaId: omitida.area.id, nombre: "Extra concurrente" }, entorno.actor)
-          : entorno.servicio.restaurarEtapa(omitida.id, { version: omitida.actualizadoEn }, entorno.actor);
+          ? entorno.servicio.agregarEtapa(orden.id, { areaId: omitida.area.id, nombre: "Extra concurrente" }, entorno.planificador)
+          : entorno.servicio.restaurarEtapa(omitida.id, { version: omitida.actualizadoEn }, entorno.planificador);
         const lista = () => entorno.servicio.marcarLista(orden.id, { version: orden.actualizadoEn }, entorno.actor);
         const resultados = etapaPrimero
           ? await carrera({ ordenId: orden.id, primera: ejecutar, segunda: lista })
@@ -159,7 +159,7 @@ function registrarEntregaRetrabajo(ronda: number) {
     for (const entregarPrimero of [true, false]) {
       const orden = await prepararLista(entorno);
       const lista = await entorno.servicio.marcarLista(orden.id, { version: orden.actualizadoEn }, entorno.actor);
-      const entregar = () => entorno.ordenes.modulos.servicio.entregarOrden(lista.id, lista.actualizadoEn, entorno.actor);
+      const entregar = () => entorno.ordenes.modulos.servicio.entregarOrden(lista.id, lista.actualizadoEn, entorno.operaciones);
       const retrabajo = () => entorno.servicio.reabrirPorRetrabajo(lista.id, { version: lista.actualizadoEn,
         motivo: "Corrección concurrente", areaId: orden.etapas[0].area.id, nombre: "Corrección" }, entorno.actor);
       const resultados = entregarPrimero

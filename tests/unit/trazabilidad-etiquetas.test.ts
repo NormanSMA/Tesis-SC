@@ -18,6 +18,10 @@ it("no muestra estados desconocidos ni estados ausentes", () => {
   expect(textoEstado("ENUM_DESCONOCIDO")).toBe("Estado no disponible"); expect(textoEstado(null)).toBeNull();
 });
 it("traduce tipos, perfiles y unidades", () => {
-  expect(textoValor("ADMIN")).toBe("Administración"); expect(textoValor("M2")).toBe("m²");
+  expect(textoValor("M2")).toBe("m²");
   expect(textoValor("EMPRESA")).toBe("Empresa");
 });
+it.each([
+  ["GERENCIA", "Gerencia"], ["ADMINISTRACION", "Administración"], ["OPERACIONES", "Operaciones"],
+  ["ATENCION_CLIENTE", "Atención al cliente"], ["PRODUCCION", "Producción"], ["ADMIN", "Administración técnica"],
+])("traduce el perfil %s", (perfil, texto) => { expect(textoValor(perfil)).toBe(texto); });

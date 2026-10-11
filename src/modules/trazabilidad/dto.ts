@@ -5,7 +5,13 @@ import type { CostosReales } from "./costos";
 import { filtrarDetalle, resumirDetalle } from "./detalle";
 import { ACCION_TEXTO, ENTIDAD_TEXTO, textoEstado, textoValor } from "./etiquetas";
 import type { Referencias } from "./referencias";
-import type { CadenaGuardada, EventoGuardado } from "./repo";
+import type { CadenaGuardada, EventoGuardado, HistorialEtapaGuardado } from "./repo";
+
+export function aHistorialEtapaDto(historial: HistorialEtapaGuardado) {
+  return { id: historial.id, ordenId: historial.ordenId, etapa: historial.etapa, usuario: historial.usuario,
+    estadoAnterior: textoEstado(historial.estadoAnterior), estadoNuevo: textoEstado(historial.estadoNuevo),
+    responsable: historial.responsable, creadoEn: historial.creadoEn.toISOString() };
+}
 
 function registroEvento(evento: EventoGuardado, referencias: Referencias, actor: Actor) {
   const orden = evento.orden ?? evento.cotizacion?.orden;
@@ -29,9 +35,10 @@ export function aEventoDto(datos: { evento: EventoGuardado; actor: Actor; refere
     detalle, resumen: resumirDetalle(detalle), registro: registroEvento(evento, referencias, actor) };
 }
 
-export function aCadenaDto(orden: CadenaGuardada, actor: Actor) {
+export function aCadenaDto(orden: CadenaGuardada, actor: Actor, historial?: HistorialEtapaGuardado[]) {
   const cotizacion = orden.cotizacion, cliente = cotizacion.cliente;
   return {
+    ...(historial ? { historialEtapas: historial.map(aHistorialEtapaDto) } : {}),
     cliente: { id: cliente.id, nombre: cliente.nombre, tipo: textoValor(cliente.tipo), contactoPrincipal: cliente.contactoPrincipal,
       telefono: cliente.telefono, correo: cliente.correo, href: can(actor, "cliente:ver") ? `/clientes/${cliente.id}` : null,
       ...(can(actor, "cliente:ver") ? { ruc: cliente.ruc, direccion: cliente.direccion } : {}) },
@@ -66,7 +73,8 @@ export function responsablesTrabajo(datos: { orden: CadenaGuardada; eventos: Eve
     const fila = personas.get(persona.id) ?? { ...persona, roles: new Set<string>() };
     fila.roles.add(rol); personas.set(persona.id, fila);
   };
-  agregar(datos.orden.responsable, "Responsable de orden"); agregar(datos.orden.creadoPor, "Creó la orden");
+  if (datos.orden.responsable) agregar(datos.orden.responsable, "Responsable de orden");
+  agregar(datos.orden.creadoPor, "Creó la orden");
   for (const etapa of datos.orden.etapas) if (etapa.responsable) agregar(etapa.responsable, `Responsable de ${etapa.nombre}`);
   for (const evento of datos.eventos) {
     agregar(evento.usuario, ACCION_TEXTO[evento.accion]);

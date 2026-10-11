@@ -4,7 +4,7 @@ import { Money } from "@/components/comunes/ValorFormateado";
 
 import type { ResumenCotizaciones } from "../tipos";
 
-const ORDEN_ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA"];
+const ORDEN_ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"];
 
 export function ResumenCliente({ resumen, className }: { resumen: ResumenCotizaciones; className?: string }) {
   return (
@@ -28,7 +28,8 @@ export function ResumenCliente({ resumen, className }: { resumen: ResumenCotizac
         <ul aria-label="Cotizaciones por estado" className="space-y-2 border-t pt-4">
           {ORDEN_ESTADOS.map((estado) => (
             <li key={estado} className="flex items-center justify-between gap-3">
-              <EstadoBadge tipo="cotizacion" estado={estado} />
+              {estado === "AJUSTE_SOLICITADO" ? <span className="text-xs font-medium">Ajustes solicitados</span> :
+                <EstadoBadge tipo="cotizacion" estado={estado} />}
               <span className="text-sm font-medium tabular-nums text-foreground">{resumen.porEstado[estado] ?? 0}</span>
             </li>
           ))}

@@ -29,6 +29,7 @@ export async function cargarModuloCotizaciones() {
     enviar: await import("@/app/api/v1/cotizaciones/[id]/enviar/route"),
     responder: await import("@/app/api/v1/cotizaciones/[id]/responder/route"),
     duplicar: await import("@/app/api/v1/cotizaciones/[id]/duplicar/route"),
+    versionCorregida: await import("@/app/api/v1/cotizaciones/[id]/version-corregida/route"),
     archivar: await import("@/app/api/v1/cotizaciones/[id]/archivar/route"),
     catalogo: await import("@/app/api/v1/productos/route"),
     servicio: await import("@/modules/cotizaciones/service"),
@@ -82,7 +83,7 @@ export async function prepararCotizaciones(db: PrismaClient) {
     create: { clave: "cotizacion_vigencia_dias", tipo: "ENTERO", valor: "15" },
   });
   const modulos = await cargarModuloCotizaciones();
-  const ventas = await abrirSesion(db, modulos, "VENTAS");
+  const ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
   return { modulos, ventas, referencias: await crearReferencias(db) };
 }
 

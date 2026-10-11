@@ -33,7 +33,7 @@ export function DatosOrden({ orden, verCliente, verCotizacion }: { orden: OrdenD
     <Card className="min-w-0 px-5"><h2 className="text-lg font-semibold">Datos de la orden</h2>
       <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
         <Dato etiqueta="Estado"><EstadoBadge tipo="orden" estado={orden.estado} /></Dato>
-        <Dato etiqueta="Categoría">{orden.categoria.nombre}</Dato><Dato etiqueta="Responsable">{orden.responsable.nombre}</Dato>
+        <Dato etiqueta="Categoría">{orden.categoria.nombre}</Dato><Dato etiqueta="Responsable">{orden.responsable?.nombre ?? "Sin responsable"}</Dato>
         <Dato etiqueta="Fecha de entrega"><Fecha valor={orden.fechaEntrega} />{orden.atrasada ? <span className="ml-2 font-semibold text-danger">Atrasada</span> : null}</Dato>
         <Dato etiqueta="Inicio real">{formatearFechaHora(orden.fechaInicioReal)}</Dato>
         <Dato etiqueta="Entrega real">{formatearFechaHora(orden.fechaEntregaReal)}</Dato>

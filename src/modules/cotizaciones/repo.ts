@@ -7,6 +7,7 @@ import type { SelectoresEditor } from "./tipos";
 
 const incluirFicha = {
   cliente: true,
+  usuarioAprobacion: { select: { id: true, nombre: true } },
   items: { orderBy: { secuencia: "asc" as const }, include: {
     producto: { select: { activo: true } },
     lineasCosto: { orderBy: { secuencia: "asc" as const } },
@@ -35,7 +36,7 @@ function filtroLista(consulta: ConsultaCotizaciones): Prisma.CotizacionWhereInpu
 export async function consultarCotizaciones(consulta: ConsultaCotizaciones) {
   const where = filtroLista(consulta);
   const [filas, total] = await Promise.all([
-    prisma.cotizacion.findMany({ where, include: { cliente: true },
+    prisma.cotizacion.findMany({ where, include: { cliente: true, usuarioAprobacion: incluirFicha.usuarioAprobacion },
       orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
     prisma.cotizacion.count({ where }),

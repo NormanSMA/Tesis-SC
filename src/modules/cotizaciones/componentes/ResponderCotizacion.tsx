@@ -10,17 +10,22 @@ import { AvisoGuardado } from "./AvisoGuardado";
 import { CampoArea } from "./CamposEditor";
 
 type Resultado = EntradaResponder["resultado"];
-const TITULO = { APROBADA: "Aprobar cotización", RECHAZADA: "Rechazar cotización", VENCIDA: "Marcar vencida" };
+const TITULO = { APROBADA: "Aprobar cotización", RECHAZADA: "Rechazar cotización", VENCIDA: "Marcar vencida",
+  AJUSTE_SOLICITADO: "Solicitar ajustes" };
 
 export function ResponderCotizacion({ cotizacion, hoy }: { cotizacion: CotizacionDto; hoy: string }) {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [motivo, setMotivo] = useState("");
+  const [referenciaAprobacion, setReferenciaAprobacion] = useState("");
+  const [motivoAjuste, setMotivoAjuste] = useState("");
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("responder-cotizacion");
   const vigente = Boolean(cotizacion.fechaVencimiento && hoy <= cotizacion.fechaVencimiento);
   async function guardar(evento: FormEvent) {
     evento.preventDefault();
-    const cuerpo = { version: cotizacion.actualizadoEn, resultado, motivo };
+    const cuerpo = { version: cotizacion.actualizadoEn, resultado, motivo,
+      referenciaAprobacion: resultado === "APROBADA" ? referenciaAprobacion : undefined,
+      motivoAjuste: resultado === "AJUSTE_SOLICITADO" ? motivoAjuste : undefined };
     const validacion = erroresEsquema(esquemaResponder, cuerpo);
     setErrores(validacion);
     if (Object.keys(validacion).length) { enfocarError("responder-cotizacion"); return; }
@@ -29,6 +34,7 @@ export function ResponderCotizacion({ cotizacion, hoy }: { cotizacion: Cotizacio
   return <>
     <Button type="button" disabled={!vigente} onClick={() => setResultado("APROBADA")}>Aprobar</Button>
     <Button type="button" variant="outline" onClick={() => setResultado("RECHAZADA")}>Rechazar</Button>
+    <Button type="button" variant="outline" onClick={() => setResultado("AJUSTE_SOLICITADO")}>Solicitar ajustes</Button>
     {!vigente ? <Button type="button" variant="outline" onClick={() => setResultado("VENCIDA")}>Marcar vencida</Button> : null}
     <Dialog open={Boolean(resultado)} onOpenChange={(abierto) => !abierto && !solicitud.enviando && setResultado(null)}>
       <DialogContent><DialogHeader>
@@ -37,6 +43,11 @@ export function ResponderCotizacion({ cotizacion, hoy }: { cotizacion: Cotizacio
       </DialogHeader>
         <form id="responder-cotizacion" onSubmit={guardar} noValidate className="space-y-4">
           <AvisoGuardado {...solicitud} />
+          {resultado === "APROBADA" ? <CampoArea id="referenciaAprobacion" etiqueta="Referencia de aprobación" requerido
+            valor={referenciaAprobacion} error={errores.referenciaAprobacion ?? solicitud.campos.referenciaAprobacion}
+            alCambiar={setReferenciaAprobacion} /> : null}
+          {resultado === "AJUSTE_SOLICITADO" ? <CampoArea id="motivoAjuste" etiqueta="Motivo del ajuste" requerido
+            valor={motivoAjuste} error={errores.motivoAjuste ?? solicitud.campos.motivoAjuste} alCambiar={setMotivoAjuste} /> : null}
           {resultado === "RECHAZADA" ? <CampoArea id="motivo" etiqueta="Motivo del rechazo" requerido valor={motivo}
             error={errores.motivo ?? solicitud.campos.motivo} alCambiar={setMotivo} /> : null}
           <DialogFooter><Button type="button" variant="outline" disabled={solicitud.enviando} onClick={() => setResultado(null)}>Cancelar</Button>

@@ -24,7 +24,7 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
   beforeAll(async () => {
     await sembrarReferencia(db);
     modulos = await cargarModuloClientes();
-    ventas = await abrirSesion(db, modulos, "VENTAS");
+    ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
   });
 
   afterAll(async () => {
@@ -56,6 +56,20 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
     db.bitacora.findMany({ where: { entidad: "CLIENTE", entidadId: id }, orderBy: { creadoEn: "asc" } });
 
   describe("crear", () => {
+    it("asigna un código único en la base y lo registra sin permitir editarlo", async () => {
+      const primero = await crear(cuerpoCliente({ codigoCliente: "CLI-IGNORADO" }));
+      const segundo = await crear(cuerpoCliente());
+      expect(primero.status).toBe(201);
+      expect(segundo.status).toBe(201);
+      expect(primero.datos.codigoCliente).toMatch(/^CLI-\d{4,}$/);
+      expect(segundo.datos.codigoCliente).not.toBe(primero.datos.codigoCliente);
+      expect((await db.cliente.findUniqueOrThrow({ where: { id: primero.datos.id } })).codigoCliente)
+        .toBe(primero.datos.codigoCliente);
+      expect((await eventos(primero.datos.id))[0].detalle).toMatchObject({ codigoCliente: primero.datos.codigoCliente });
+      const cambio = await editar(primero.datos.id, { version: primero.datos.actualizadoEn, codigoCliente: segundo.datos.codigoCliente });
+      expect(cambio.status).toBe(422);
+      expect(cambio.error?.campos?.codigoCliente).toBeTruthy();
+    });
     it("crea el cliente con 201, lo normaliza y escribe el evento CREAR del actor", async () => {
       const nombre = nombreUnico();
       const { status, datos } = await crear({

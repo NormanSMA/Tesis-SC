@@ -10,6 +10,7 @@ export type MaterialReceta = { materialId: string; cantidad: string; material: M
 export type ProductoDto = {
   id: string; codigo: string; nombre: string; descripcion: string | null;
   categoriaId: string; categoria: CategoriaDto; unidadCobro: UnidadCobro; precioBase: string;
+  costoUnitario?: string | null;
   activo: boolean; creadoEn: string; actualizadoEn: string;
 };
 export type FichaProducto = ProductoDto & { receta: MaterialReceta[] };

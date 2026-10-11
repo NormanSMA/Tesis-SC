@@ -39,7 +39,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     const cotizacion = await enviada();
     hoy.mockReturnValue("2026-10-16");
     const aprobada = await entorno.modulos.servicio.responderCotizacion(cotizacion.id, {
-      version: cotizacion.actualizadoEn, resultado: "APROBADA",
+      version: cotizacion.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente del 10/10",
     }, entorno.ventas.actor);
     expect(aprobada.estado).toBe("APROBADA");
     expect(aprobada.fechaRespuesta).toMatch(/Z$/);
@@ -51,7 +51,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     const cotizacion = await enviada();
     hoy.mockReturnValue("2026-10-17");
     await expect(entorno.modulos.servicio.responderCotizacion(cotizacion.id, {
-      version: cotizacion.actualizadoEn, resultado: "APROBADA",
+      version: cotizacion.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente del 10/10",
     }, entorno.ventas.actor)).rejects.toMatchObject({ status: 409 });
     const vencida = await entorno.modulos.servicio.responderCotizacion(cotizacion.id, {
       version: cotizacion.actualizadoEn, resultado: "VENCIDA",
@@ -87,7 +87,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
   it("rechaza responder BORRADOR y reenviar ENVIADA", async () => {
     const borrador = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
     await expect(entorno.modulos.servicio.responderCotizacion(borrador.id, {
-      version: borrador.actualizadoEn, resultado: "APROBADA",
+      version: borrador.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente del 10/10",
     }, entorno.ventas.actor)).rejects.toMatchObject({ status: 409 });
     const cotizacion = await entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
     await expect(entorno.modulos.servicio.enviarCotizacion(cotizacion.id, cotizacion.actualizadoEn, entorno.ventas.actor))
@@ -96,18 +96,18 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
 
   it("rechaza modificaciones y respuestas posteriores en estados terminales", async () => {
     const hoy = vi.spyOn(entorno.modulos.fechas, "hoyManagua").mockReturnValue("2026-10-01");
-    for (const resultado of ["APROBADA", "RECHAZADA", "VENCIDA"] as const) {
+    for (const resultado of ["APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"] as const) {
       hoy.mockReturnValue("2026-10-01");
       const cotizacion = await enviada();
       if (resultado === "VENCIDA") hoy.mockReturnValue("2026-10-17");
       const terminal = await entorno.modulos.servicio.responderCotizacion(cotizacion.id, {
-        version: cotizacion.actualizadoEn, resultado, motivo: "Motivo comprobado",
+        version: cotizacion.actualizadoEn, resultado, motivo: "Motivo comprobado", referenciaAprobacion: "Correo del cliente del 10/10", motivoAjuste: "Cambiar medidas",
       }, entorno.ventas.actor);
       await expect(entorno.modulos.servicio.editarCotizacion(terminal.id, {
         version: terminal.actualizadoEn, asunto: "Cambio prohibido",
       }, entorno.ventas.actor)).rejects.toMatchObject({ status: 409 });
       await expect(entorno.modulos.servicio.responderCotizacion(terminal.id, {
-        version: terminal.actualizadoEn, resultado: "APROBADA",
+        version: terminal.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: "Correo del cliente del 10/10",
       }, entorno.ventas.actor)).rejects.toMatchObject({ status: 409 });
       expect(await entorno.modulos.servicio.obtenerCotizacion(terminal.id)).toEqual(terminal);
     }

@@ -23,7 +23,7 @@ describeConBase("clientes: concurrencia de escrituras", () => {
   beforeAll(async () => {
     await sembrarReferencia(db);
     modulos = await cargarModuloClientes();
-    ventas = await abrirSesion(db, modulos, "VENTAS");
+    ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
   });
 
   afterAll(async () => {

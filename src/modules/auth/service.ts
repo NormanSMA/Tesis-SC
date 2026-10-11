@@ -1,5 +1,5 @@
 import type { Actor } from "@/core/autorizacion";
-import { destinoPorPerfil, type PerfilCodigo } from "@/core/permisos";
+import { destinoPorPerfil, perfilPrincipal, type PerfilCodigo } from "@/core/permisos";
 import { ttlSesionHoras } from "@/lib/auth/cookies";
 import { verificarContraFicticio, verificarContrasena } from "@/lib/auth/password";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
@@ -24,15 +24,20 @@ export type ResultadoLogin = {
   maxAgeSegundos: number;
 };
 
-export type DatosUsuario = Pick<UsuarioSesion, "id" | "nombre" | "correo" | "perfil">;
+export type DatosUsuario = Pick<UsuarioSesion, "id" | "nombre" | "correo" | "perfil" | "perfiles">;
 
-type UsuarioConPerfil = {
+type PerfilConPermisos = { codigo: PerfilCodigo; permisos: { permiso: { recurso: string; accion: string } }[] };
+
+type UsuarioConPerfiles = {
   id: string;
   nombre: string;
   correo: string;
-  perfilId: string;
-  perfil: { codigo: PerfilCodigo };
+  perfiles: { perfil: PerfilConPermisos }[];
 };
+
+const INCLUIR_PERFILES = {
+  perfiles: { include: { perfil: { include: { permisos: { include: { permiso: true } } } } } },
+} as const;
 
 // El mismo mensaje para usuario inexistente, inactivo o clave errónea: evita enumerar cuentas.
 function credencialesInvalidas(): AppError {
@@ -52,12 +57,21 @@ function cuentaBloqueada(hasta: Date): AppError {
   });
 }
 
-function datosUsuario({ id, nombre, correo }: Omit<DatosUsuario, "perfil">, perfil: PerfilCodigo): DatosUsuario {
-  return { id, nombre, correo, perfil };
+// Une los perfiles del usuario: el principal sigue el orden de PERFILES y los permisos son la unión.
+function resumenAcceso(usuario: UsuarioConPerfiles): { perfil: PerfilCodigo; perfiles: PerfilCodigo[]; permisos: string[] } {
+  const perfiles = usuario.perfiles.map(({ perfil }) => perfil.codigo);
+  const permisos = new Set(
+    usuario.perfiles.flatMap(({ perfil }) => perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`)),
+  );
+  return { perfil: perfilPrincipal(perfiles), perfiles, permisos: [...permisos].sort() };
+}
+
+function datosUsuario({ id, nombre, correo }: Pick<DatosUsuario, "id" | "nombre" | "correo">, acceso: { perfil: PerfilCodigo; perfiles: readonly PerfilCodigo[] }): DatosUsuario {
+  return { id, nombre, correo, perfil: acceso.perfil, perfiles: [...acceso.perfiles] };
 }
 
 export function respuestaSesion(actor: Actor): { usuario: DatosUsuario; permisos: string[] } {
-  return { usuario: datosUsuario(actor, actor.perfil), permisos: [...actor.permisos] };
+  return { usuario: datosUsuario(actor, actor), permisos: [...actor.permisos] };
 }
 
 // Un solo UPDATE condicionado: dos fallos simultáneos no pueden saltarse el conteo ni el bloqueo.
@@ -76,15 +90,7 @@ async function registrarFallo(usuarioId: string, ahora: Date): Promise<Date | nu
   return actual?.bloqueadoHasta && actual.bloqueadoHasta > ahora ? actual.bloqueadoHasta : null;
 }
 
-async function permisosDelPerfil(perfilId: string): Promise<string[]> {
-  const filas = await prisma.perfilPermiso.findMany({
-    where: { perfilId },
-    select: { permiso: { select: { recurso: true, accion: true } } },
-  });
-  return filas.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`).sort();
-}
-
-async function abrirSesion(usuario: UsuarioConPerfil, ahora: Date): Promise<ResultadoLogin> {
+async function abrirSesion(usuario: UsuarioConPerfiles, ahora: Date): Promise<ResultadoLogin> {
   const token = generarToken();
   const expiraEn = new Date(ahora.getTime() + ttlSesionHoras() * MS_POR_HORA);
   await prisma.$transaction([
@@ -96,10 +102,11 @@ async function abrirSesion(usuario: UsuarioConPerfil, ahora: Date): Promise<Resu
     // Las sesiones vencidas no tienen historial de negocio: se purgan al abrir una nueva.
     prisma.sesion.deleteMany({ where: { usuarioId: usuario.id, expiraEn: { lt: ahora } } }),
   ]);
+  const acceso = resumenAcceso(usuario);
   return {
-    usuario: datosUsuario(usuario, usuario.perfil.codigo),
-    permisos: await permisosDelPerfil(usuario.perfilId),
-    destino: destinoPorPerfil[usuario.perfil.codigo],
+    usuario: datosUsuario(usuario, acceso),
+    permisos: acceso.permisos,
+    destino: destinoPorPerfil[acceso.perfil],
     token,
     maxAgeSegundos: Math.floor((expiraEn.getTime() - ahora.getTime()) / 1000),
   };
@@ -107,7 +114,7 @@ async function abrirSesion(usuario: UsuarioConPerfil, ahora: Date): Promise<Resu
 
 export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date()): Promise<ResultadoLogin> {
   const correo = entrada.correo.trim().toLowerCase();
-  const usuario = await prisma.usuario.findUnique({ where: { correo }, include: { perfil: true } });
+  const usuario = await prisma.usuario.findUnique({ where: { correo }, include: INCLUIR_PERFILES });
   if (!usuario) {
     await verificarContraFicticio(entrada.contrasena);
     throw credencialesInvalidas();
@@ -119,7 +126,7 @@ export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date
     const bloqueadaHasta = usuario.activo ? await registrarFallo(usuario.id, ahora) : null;
     throw bloqueadaHasta ? cuentaBloqueada(bloqueadaHasta) : credencialesInvalidas();
   }
-  if (!usuario.activo) throw credencialesInvalidas();
+  if (!usuario.activo || usuario.perfiles.length === 0) throw credencialesInvalidas();
   return abrirSesion(usuario, ahora);
 }
 
@@ -131,19 +138,14 @@ export async function cerrarSesion(token: string | null, ahora = new Date()): Pr
   });
 }
 
-// Los permisos salen de perfil_permiso en cada petición: un cambio de la matriz rige de inmediato.
+// Los permisos salen de usuario_perfil y perfil_permiso en cada petición: un cambio rige de inmediato.
 export async function resolverSesion(token: string, ahora = new Date()): Promise<UsuarioSesion | null> {
   const sesion = await prisma.sesion.findUnique({
     where: { tokenHash: hashearToken(token) },
-    include: { usuario: { include: { perfil: { include: { permisos: { include: { permiso: true } } } } } } },
+    include: { usuario: { include: INCLUIR_PERFILES } },
   });
   if (!sesion || sesion.revocadaEn || sesion.expiraEn <= ahora || !sesion.usuario.activo) return null;
   const { usuario } = sesion;
-  return {
-    id: usuario.id,
-    nombre: usuario.nombre,
-    correo: usuario.correo,
-    perfil: usuario.perfil.codigo,
-    permisos: usuario.perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`).sort(),
-  };
+  if (usuario.perfiles.length === 0) return null;
+  return { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, ...resumenAcceso(usuario) };
 }

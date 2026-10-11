@@ -62,7 +62,7 @@ export default async function PaginaFichaCliente({ params }: { params: Promise<{
     <>
       <PageHeader
         titulo={ficha.nombre}
-        descripcion={descripcionDe(ficha)}
+        descripcion={`${ficha.codigoCliente} · ${descripcionDe(ficha)}`}
         acciones={puedeGestionar ? <AccionesFicha ficha={ficha} /> : null}
       />
       {ficha.activo ? null : <AvisoArchivado puedeGestionar={puedeGestionar} />}

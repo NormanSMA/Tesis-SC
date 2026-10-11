@@ -52,22 +52,25 @@ async function sembrarDatos(bd: PrismaClient): Promise<Datos> {
   await bd.$transaction(async (tx) => {
     const numeros = [await numeroNuevo(tx, "COTIZACION"), await numeroNuevo(tx, "COTIZACION"), await numeroNuevo(tx, "ORDEN_TRABAJO")];
     await tx.$executeRaw`SET LOCAL session_replication_role = replica`;
-    await tx.$executeRaw`INSERT INTO usuario (id, nombre, correo, hash_contrasena, perfil_id, actualizado_en)
-      VALUES (${d.usuarioId}::uuid, 'Prueba', ${`u-${sufijo}@example.com`}, 'hash', ${perfil.id}::uuid, now())`;
+    await tx.$executeRaw`INSERT INTO usuario (id, nombre, correo, hash_contrasena, actualizado_en)
+      VALUES (${d.usuarioId}::uuid, 'Prueba', ${`u-${sufijo}@example.com`}, 'hash', now())`;
+    await tx.$executeRaw`INSERT INTO usuario_perfil (usuario_id, perfil_id) VALUES (${d.usuarioId}::uuid, ${perfil.id}::uuid)`;
     await tx.$executeRaw`INSERT INTO cliente (id, nombre, tipo, telefono, actualizado_en)
       VALUES (${d.clienteId}::uuid, 'Cliente de prueba', 'PERSONA', '8888-0000', now())`;
     await tx.$executeRaw`INSERT INTO categoria (id, nombre) VALUES (${d.categoriaId}::uuid, ${`Categoria ${sufijo}`})`;
     await tx.$executeRaw`INSERT INTO cotizacion (id, numero, cliente_id, estado, tasa_impuesto, vigencia_dias,
-        fecha_emision, fecha_vencimiento, fecha_respuesta, creado_por_id, actualizado_en)
+        fecha_emision, fecha_vencimiento, fecha_respuesta, creado_por_id, actualizado_en,
+        usuario_aprobacion_id, referencia_aprobacion)
       VALUES (${d.cotizacionAprobadaId}::uuid, ${numeros[0]}, ${d.clienteId}::uuid, 'APROBADA', 15, 10,
-        current_date, current_date + 10, now(), ${d.usuarioId}::uuid, now())`;
+        current_date, current_date + 10, now(), ${d.usuarioId}::uuid, now(),
+        ${d.usuarioId}::uuid, 'Correo del cliente')`;
     await tx.$executeRaw`INSERT INTO cotizacion (id, numero, cliente_id, estado, tasa_impuesto, vigencia_dias,
         creado_por_id, actualizado_en)
       VALUES (${d.cotizacionBorradorId}::uuid, ${numeros[1]}, ${d.clienteId}::uuid, 'BORRADOR', 15, 10,
         ${d.usuarioId}::uuid, now())`;
-    await tx.$executeRaw`INSERT INTO orden_trabajo (id, numero, cotizacion_id, categoria_id, responsable_id,
+    await tx.$executeRaw`INSERT INTO orden_trabajo (id, numero, cotizacion_id, cliente_id, categoria_id, responsable_id,
         fecha_entrega, creado_por_id, actualizado_en)
-      VALUES (${d.ordenId}::uuid, ${numeros[2]}, ${d.cotizacionAprobadaId}::uuid, ${d.categoriaId}::uuid,
+      VALUES (${d.ordenId}::uuid, ${numeros[2]}, ${d.cotizacionAprobadaId}::uuid, ${d.clienteId}::uuid, ${d.categoriaId}::uuid,
         ${d.usuarioId}::uuid, current_date + 5, ${d.usuarioId}::uuid, now())`;
     await tx.$executeRaw`INSERT INTO material (id, codigo, nombre, unidad, actualizado_en)
       VALUES (${d.materialId}::uuid, ${`MAT-${sufijo}`}, 'Material de prueba', 'METRO', now())`;
@@ -127,6 +130,7 @@ describeConBase("traduccion de errores contra PostgreSQL real", () => {
         data: {
           numero,
           cotizacionId: d.cotizacionBorradorId,
+          clienteId: d.clienteId,
           categoriaId: d.categoriaId,
           responsableId: d.usuarioId,
           creadoPorId: d.usuarioId,

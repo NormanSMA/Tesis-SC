@@ -16,7 +16,7 @@ test.use({ baseURL: BASE });
 type Perfil = (typeof PERFILES)[number];
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
-const VENTAS = PERFILES.find((perfil) => perfil.codigo === "VENTAS") as Perfil;
+const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 
 function claveDe(perfil: Perfil): string {
@@ -76,7 +76,7 @@ async function archivarClientesE2E(browser: Browser): Promise<void> {
   const contexto = await browser.newContext({ baseURL: BASE });
   const page = await contexto.newPage();
   try {
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const lista = await page.request.get("/api/v1/clientes?q=E2E-&porPagina=100");
     const filas = ((await lista.json()).datos ?? []) as { id: string; nombre: string }[];
     for (const fila of filas.filter((cliente) => cliente.nombre.startsWith("E2E-"))) await archivarPorApi(page, fila.id);
@@ -93,7 +93,7 @@ test.describe("Ventas gestiona clientes", () => {
   test("crea, edita, busca y archiva un cliente", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const nombre = nombreE2E();
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
 
     await page.goto("/clientes");
     await page.getByRole("link", { name: "Nuevo cliente" }).click();
@@ -135,7 +135,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("reactiva un cliente archivado y vuelve a poder editarlo", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const cliente = await crearPorApi(page, { nombre: nombreE2E(), tipo: "PERSONA", telefono: "8888 0202" });
     await archivarPorApi(page, cliente.id);
 
@@ -149,7 +149,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("el formulario valida por campo y lleva el foco al primer error", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/clientes/nuevo");
     await page.getByRole("button", { name: "Guardar cliente" }).click();
 
@@ -168,7 +168,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("un RUC repetido se señala en el campo RUC", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const ruc = `E2E${Date.now()}`;
     const existente = await crearPorApi(page, { nombre: nombreE2E(), tipo: "EMPRESA", telefono: "8888 0303", ruc });
 
@@ -183,7 +183,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("un conflicto de edición ofrece recargar los datos", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const cliente = await crearPorApi(page, { nombre: nombreE2E(), tipo: "EMPRESA", telefono: "8888 0404" });
     await page.goto(`/clientes/${cliente.id}/editar`);
     await expect(page.locator("#nombre")).toHaveValue(/^E2E-/);
@@ -205,7 +205,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("la ficha de un cliente archivado no ofrece editar y la edición redirige a la ficha", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     const cliente = await crearPorApi(page, { nombre: nombreE2E(), tipo: "EMPRESA", telefono: "8888 0505" });
     await archivarPorApi(page, cliente.id);
     await page.goto(`/clientes/${cliente.id}/editar`);
@@ -214,7 +214,7 @@ test.describe("Ventas gestiona clientes", () => {
 
   test("un identificador inexistente muestra la pantalla de cliente no encontrado", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/clientes/00000000-0000-4000-8000-000000000000");
     await expect(page.getByText("Este cliente no existe")).toBeVisible();
     await page.goto("/clientes/abc");
@@ -276,7 +276,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
     test(`lista, formulario y ficha sin violaciones graves en ${vista.nombre}`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, VENTAS);
+      await entrarComo(page, ATENCION_CLIENTE);
 
       await page.goto("/clientes");
       await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
@@ -296,7 +296,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
   }
 
   test("lista y ficha no desbordan en horizontal", async ({ page }) => {
-    await entrarComo(page, VENTAS);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/clientes");
     await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
     await sinDesbordeHorizontal(page);
@@ -307,7 +307,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
 });
 
 test.describe("CF-11: capturas de la ficha con cotizaciones y trabajos", () => {
-  for (const perfil of [GERENCIA, VENTAS]) {
+  for (const perfil of [GERENCIA, ATENCION_CLIENTE]) {
     test(`ficha de ${perfil.codigo} en los 4 tamaños`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       test.setTimeout(120_000);

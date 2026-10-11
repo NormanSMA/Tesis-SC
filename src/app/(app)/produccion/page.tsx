@@ -25,7 +25,7 @@ export default async function PaginaProduccion({ searchParams }: { searchParams:
   const permisos = { planificar: can(actor, "produccion:planificar"), ejecutar: can(actor, "produccion:ejecutar"),
     avanzar: can(actor, "orden:avanzar") };
   return <><PageHeader titulo="Producción" descripcion="Consulte las etapas abiertas, sus responsables y sus fechas." acciones={<>
-    {actor.perfil === "PRODUCCION" ? <Button asChild><Link href={`/produccion?responsable=${actor.id}`}>Mis etapas</Link></Button> : null}
+    {actor.perfiles.includes("PRODUCCION") ? <Button asChild><Link href={`/produccion?responsable=${actor.id}`}>Mis etapas</Link></Button> : null}
     <Button asChild variant="outline"><Link href="/produccion/areas">Áreas</Link></Button>
     <Button asChild variant="outline"><Link href="/produccion/plantillas">Plantillas</Link></Button></>} />
     <div className="min-w-0 space-y-6">

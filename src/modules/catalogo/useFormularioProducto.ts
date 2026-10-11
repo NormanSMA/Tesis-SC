@@ -18,7 +18,8 @@ export function useHidratado() { return useSyncExternalStore(sinSuscripcion, () 
 
 function valoresIniciales(producto?: ProductoDto): ValoresProducto {
   return { codigo: producto?.codigo ?? "", nombre: producto?.nombre ?? "", descripcion: producto?.descripcion ?? "",
-    categoriaId: producto?.categoriaId ?? "", unidadCobro: producto?.unidadCobro ?? "UNIDAD", precioBase: producto?.precioBase ?? "" };
+    categoriaId: producto?.categoriaId ?? "", unidadCobro: producto?.unidadCobro ?? "UNIDAD", precioBase: producto?.precioBase ?? "",
+    costoUnitario: producto?.costoUnitario };
 }
 export function useFormularioProducto(producto?: ProductoDto) {
   const router = useRouter();
