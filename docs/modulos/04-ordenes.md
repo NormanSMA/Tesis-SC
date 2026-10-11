@@ -1,6 +1,11 @@
 # Módulo 3: Órdenes de trabajo
 
 Estado: diseño auditado por Codex y Gemini Pro. Fecha: 2026-10-06.
+
+Actualización documental v9: 2026-10-11.
+Aplique los permisos actuales; conserve las auditorías y cifras de cierre como antecedentes.
+Use anchos E2E de 768, 1024, 1366 y 1920 px.
+Esta actualización no registra una nueva ejecución de pruebas.
 Criterios de aceptación: CF-01, CF-02, CF-09. Requerimiento: R-04. Apoya CF-05, CF-06 y CF-11.
 Fuentes: tesis V6 secciones 1.2, 1.7 y 2.6; Anexo C (P4, Tabla C3); Anexo D (A1, A2, A9).
 Supuestos: S-07, S-08, S-17, SD-13, SD-16, SD-17, SD-18, SD-23.
@@ -15,16 +20,22 @@ Fuera de alcance:
 - Tablero y reportes: módulo 7.
 La interfaz de las etapas en la ficha es de solo lectura. El módulo 5 agrega las acciones sin cambiar este contrato.
 
-## Permisos (matriz aprobada)
-| Permiso | Gerencia | Ventas | Producción |
-|---|---|---|---|
-| orden:ver | sí | sí | sí |
-| orden:crear (convertir cotización) | no | sí | no |
-| orden:gestionar (responsable, fecha, especificaciones) | sí | sí | no |
-| orden:entregar | no | sí | sí |
-| orden:cerrar | sí | sí | no |
-| orden:cancelar | sí | no | no |
-Administración no ve el módulo. `orden:avanzar` queda para el módulo 5.
+## Permisos vigentes (v9)
+
+Consulte [la matriz v9](09-perfiles-v9.md) y `src/core/permisos.ts`.
+Combine los permisos cuando el usuario tenga varios perfiles.
+
+| Permiso | Gerencia | Administración | Operaciones | Atención al cliente | Producción | Administración técnica |
+|---|---|---|---|---|---|---|
+| orden:ver | sí | sí | sí | sí | sí | no |
+| orden:crear | no | no | sí | no | no | no |
+| orden:gestionar | no | sí | sí | no | no | no |
+| orden:avanzar | no | sí | sí | no | sí | no |
+| orden:entregar | no | no | sí | sí | no | no |
+| orden:cerrar | no | no | sí | sí | no | no |
+| orden:cancelar | no | no | sí | no | no | no |
+
+Reserve creación y cancelación para Operaciones; asignación para Operaciones y Administración.
 Todo dato monetario de la orden (precios, importes, totales, costos, márgenes) exige `cotizacion:ver`. Producción ve cantidades, medidas y materiales, sin dinero (ver Visibilidad).
 
 ## Conversión de cotización en orden (CF-01, R-04)
@@ -34,7 +45,7 @@ La persona solo digita lo que la cotización no trae:
 |---|---|
 | Cliente, ítems, líneas, totales, asunto | La orden los lee de la cotización congelada. No se copian |
 | Categoría principal | Se propone la del ítem de mayor importe. Se puede cambiar. Define la plantilla de etapas (SD-23) |
-| Responsable | Se elige entre usuarios activos del perfil Producción. Obligatorio |
+| Responsable | Opcional o nulo. Seleccione un usuario activo con perfil Producción cuando corresponda |
 | Fecha de entrega | Obligatoria. No anterior a hoy (hora de Managua) |
 | Especificaciones | Opcional. Se propone el asunto de la cotización como texto inicial editable |
 Efectos, todos en una transacción:
@@ -45,6 +56,11 @@ Efectos, todos en una transacción:
 5. Calcula y guarda el consumo estimado (ver abajo).
 6. Escribe una fila CONVERTIR_EN_ORDEN con ordenId y cotizacionId, y filas CREAR por cada etapa.
 Convertir dos veces la misma cotización devuelve 409 ORDEN_EXISTENTE con el número de la orden.
+Permita crear la orden sin responsable mediante `responsableId` omitido o nulo.
+Asigne después el responsable con `orden:gestionar`; no reasigne automáticamente las etapas.
+Exija una cotización aprobada con referencia obligatoria y usuario aprobador.
+Conserve una orden por cotización incluso después de cancelar o cerrar.
+Cree la versión corregida desde AJUSTE_SOLICITADO antes de generar otra orden desde otra cotización.
 
 ### Consumo estimado
 Función pura en src/core/consumo-estimado.ts, con los mismos redondeos que el motor de costeo.
@@ -60,7 +76,7 @@ Debe dar los mismos valores que la siembra (prisma/seed/estimado.ts). Una prueba
 PATCH /ordenes/[id] con `version` (`actualizadoEn`, igual que clientes y cotizaciones): fecha de entrega, responsable y especificaciones. Solo en PENDIENTE, EN_PRODUCCION y LISTA.
 - Cambio de responsable: bitácora ASIGNAR_RESPONSABLE con valores antes y después. Otros campos: EDITAR con antes y después.
 - Fecha de entrega no anterior a hoy cuando cambia (no se rechaza un valor ya guardado que no cambia).
-- El responsable debe ser usuario activo con perfil Producción.
+- Permita responsable nulo; exija usuario activo con perfil Producción cuando se asigne.
 - Un PATCH sin cambios reales no avanza la versión ni escribe bitácora (lección del módulo 2).
 
 ## Transiciones del módulo
@@ -88,7 +104,7 @@ Toda transición exige `version`, usa UPDATE condicionado a id, estado y versió
 | Método y ruta | Permiso | Resultado |
 |---|---|---|
 | GET /ordenes | orden:ver | Lista paginada. Filtros: estado, responsable, cliente, texto (número, cliente, asunto), vencidas (fecha de entrega pasada y no terminal), terminales |
-| POST /ordenes | orden:crear | 201. Cuerpo: cotizacionId, categoriaId, responsableId, fechaEntrega, especificaciones |
+| POST /ordenes | orden:crear | 201. Cotización, categoría y fecha obligatorias; responsableId y especificaciones opcionales |
 | GET /ordenes/[id] | orden:ver | Orden con cliente, cotización, ítems, etapas, consumo estimado y línea de tiempo |
 | PATCH /ordenes/[id] | orden:gestionar | Responsable, fecha, especificaciones. Exige version |
 | POST /ordenes/[id]/entregar | orden:entregar | Exige version |
@@ -115,7 +131,10 @@ I-09, I-10, I-11, I-14, I-15, I-17, I-18, I-19, I-20. CF-01, CF-02, CF-09.
 - Unitarias: consumo estimado (catálogo UNIDAD y M2, personalizado con merma, suma por material, origen), reglas de cancelación y de edición, esquemas zod.
 - Integración (base propia ord_test): conversión completa con etapas y estimado; doble conversión (409); cotización no aprobada (SC004 traducido a 409); categoría sin plantillas; concurrencia de dos conversiones simultáneas de la misma cotización (una gana, la otra 409); versión vieja; transiciones válidas e inválidas; cancelación con etapas PENDIENTE y EN_CURSO; cancelación con consumo pendiente; bitácora en la misma transacción y fila por evento; paridad del estimado con la siembra; DTO sin costos para Producción.
 - API por perfil: matriz de la tabla de permisos, 401, 403, 404, 409, 422.
-- E2E: Ventas convierte una cotización aprobada nueva y ve la orden con etapas y estimado; segunda conversión bloqueada; Gerencia edita y cancela; Producción ve sin costos ni botones de gestión; Administración a /sin-acceso; axe y desbordes; capturas CF-01, CF-02 y CF-09 en docs/capturas/ordenes con 4 tamaños.
+- E2E: Operaciones convierte, edita y cancela; bloquee la segunda conversión.
+  Permita edición a Administración; mantenga Gerencia en consulta y Producción sin costos.
+  Verifique entrega y cierre con Operaciones o Atención al cliente según los casos E2E.
+  Consulte axe, desbordes y capturas CF-01, CF-02 y CF-09 en cuatro tamaños.
 
 ## Auditoría (2026-10-06)
 Auditores de dos proveedores: Codex arquitecto y Gemini Pro. Ninguno halló severidad alta.

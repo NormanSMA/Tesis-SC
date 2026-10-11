@@ -1,5 +1,9 @@
 # Informe de rendimiento RNF-01
 
+Estado: corrida corregida registrada; resultado `CUMPLE` (2026-10-11).
+Evidencia: [resultado-rendimiento.json](resultado-rendimiento.json), fecha UTC 2026-10-11T16:55:14Z.
+La primera corrida y la corrida intermedia quedan como antecedentes en las secciones siguientes.
+
 ## Objetivo
 
 Verifique RNF-01 de la tesis v9 con 20 sesiones concurrentes.
@@ -9,22 +13,22 @@ Evalúe también todas las operaciones juntas.
 
 ## Entorno
 
-Complete estos datos antes de interpretar los resultados.
+Datos de la corrida final.
 
 | Dato | Valor |
 | --- | --- |
-| CPU | {{CPU}} |
-| Memoria disponible | {{MEMORIA}} |
-| Sistema operativo | {{SISTEMA_OPERATIVO}} |
-| Versión de Node | {{VERSION_NODE}} |
-| Versión de la aplicación | {{VERSION_APLICACION}} |
-| Modo de ejecución: desarrollo o producción | {{MODO}} |
-| Versión de PostgreSQL | {{VERSION_POSTGRESQL}} |
-| Tamaño inicial de la base | {{TAMANO_BASE}} |
-| Fecha UTC | {{FECHA_UTC}} |
-| URL local | {{BASE}} |
-| Duración solicitada y medida | {{DURACIONES}} |
-| Sesiones iniciadas | {{SESIONES}} |
+| CPU | Intel Core i7-12650H, 16 procesadores lógicos |
+| Memoria | 31.6 GB instalados |
+| Sistema operativo | win32, según JSON |
+| Versión de Node | v26.4.0 (generador de carga en el anfitrión) |
+| Versión de la aplicación | 0.1.0, commit 67cb2d7 más cambios locales de pulido |
+| Modo de ejecución | Producción: imagen Docker con `next start`, base PostgreSQL en contenedor en el mismo equipo |
+| Versión de PostgreSQL | 17.11 (Alpine, contenedor `db`) |
+| Tamaño inicial de la base | Base recién sembrada con datos de demostración (siembra v9) |
+| Fecha UTC | 2026-10-11T16:55:14.697Z |
+| URL local | http://127.0.0.1:3000 |
+| Duración solicitada y medida | 60 s; 60.0612374 s |
+| Sesiones iniciadas | 20 |
 
 ## Método
 
@@ -35,8 +39,8 @@ Envíe Origin con el origen indicado mediante `--base`.
 Restrinja la URL base a localhost, 127.0.0.1 o ::1.
 
 Compruebe las consultas disponibles antes de medir.
-Considere las rutas de panel, clientes, cotizaciones, órdenes y producción.
-Pruebe `/api/v1/inventario/materiales` y, como alternativa, `/api/v1/materiales`.
+Considere las rutas de panel, clientes, cotizaciones, órdenes y `/api/v1/produccion/tablero`.
+Pruebe `/api/v1/materiales`.
 Descarte únicamente las consultas previas con estados 403 o 404.
 Registre las comprobaciones previas dentro de `preparacion`.
 Cancele la medición ante otros errores previos, incluidos 401 y 429.
@@ -46,11 +50,13 @@ Mantenga una petición pendiente por sesión.
 Repita este ciclo durante la duración solicitada:
 
 1. Ejecute siete consultas mediante rotación de rutas disponibles.
-2. Cree dos clientes con nombre y RUC únicos mediante POST.
-3. Actualice el último cliente creado mediante PATCH con su `version`.
+2. Cree dos clientes con nombres y RUC sintéticos únicos mediante POST.
+3. Actualice las notas del último cliente mediante PATCH con su `version`.
 
-Use el prefijo `RENDIMIENTO-` en nombre y RUC.
-Conserve las versiones recibidas para posteriores mutaciones.
+Use el prefijo `RENDIMIENTO-` en el nombre.
+Limite el RUC sintético a 20 caracteres.
+Use `actualizadoEn` como `version` ISO para posteriores mutaciones.
+Ejecute consultas cuando el perfil carezca de `cliente:gestionar`.
 Registre los errores HTTP, incluidos 401, 403 y 429.
 Omita PATCH cuando ninguna creación entregue un cliente con versión válida.
 Registre esas omisiones sin inventar peticiones medidas.
@@ -104,40 +110,103 @@ Interprete código de salida 1 como incumplimiento, ejecución incompleta o arch
 ## Criterio
 
 Exija al menos 95 % dentro de 2000 ms globalmente y para cada tipo.
-Exija cero errores 5xx durante la medición.
+Exija cero errores 5xx y cero respuestas 4xx inesperadas.
+Permita únicamente respuestas 403 durante la preparación de rutas.
+Exija la duración solicitada para todas las sesiones.
 Exija muestras para los tres tipos.
 Marque `NO EVALUABLE` ante errores de ejecución, sesiones faltantes, omisiones o creaciones inciertas.
 Compruebe que la ejecución use 20 sesiones antes de validar RNF-01.
 
 Revise también los errores HTTP y los errores de red.
 Distinga una respuesta rápida de una operación completada correctamente.
-El criterio temporal permite respuestas 4xx rápidas y contabiliza esos errores separadamente.
+El criterio temporal contabiliza respuestas 4xx; la decisión exige cero respuestas 4xx inesperadas.
 Las escrituras requieren permisos para gestionar clientes.
-Los perfiles sin esos permisos pueden causar errores 403 y actualizaciones omitidas.
-Revise esos casos antes de usar la ejecución como evidencia de la tesis.
+Los perfiles sin esos permisos ejecutan consultas.
 
-## Resultados
+## Resultados de la corrida final: CUMPLE
 
-Reemplace esta tabla con la tabla impresa por el script.
+Corrida con 20 sesiones durante 60 s sobre la aplicación en producción y la base recién sembrada.
+La corrida intermedia (16:51 UTC) dio 100 % bajo 2 s, pero marcó NO CUMPLE por 40 respuestas 404.
+Causa: la preparación sondeaba `/api/v1/produccion` y `/api/v1/inventario/materiales`, rutas que no existen.
+Se corrigieron las rutas del script y se repitió la corrida.
 
 | Tipo | n | p50 (ms) | p95 (ms) | p99 (ms) | Máximo (ms) | ≤ 2000 ms (%) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Consulta | {{N_CONSULTA}} | {{P50_CONSULTA}} | {{P95_CONSULTA}} | {{P99_CONSULTA}} | {{MAX_CONSULTA}} | {{PORCENTAJE_CONSULTA}} |
-| Creación | {{N_CREACION}} | {{P50_CREACION}} | {{P95_CREACION}} | {{P99_CREACION}} | {{MAX_CREACION}} | {{PORCENTAJE_CREACION}} |
-| Actualización | {{N_ACTUALIZACION}} | {{P50_ACTUALIZACION}} | {{P95_ACTUALIZACION}} | {{P99_ACTUALIZACION}} | {{MAX_ACTUALIZACION}} | {{PORCENTAJE_ACTUALIZACION}} |
-| Global | {{N_GLOBAL}} | {{P50_GLOBAL}} | {{P95_GLOBAL}} | {{P99_GLOBAL}} | {{MAX_GLOBAL}} | {{PORCENTAJE_GLOBAL}} |
+| Consulta | 14514 | 75.70 | 115.86 | 144.00 | 228.41 | 100.00 |
+| Creación | 292 | 80.53 | 124.34 | 145.43 | 190.98 | 100.00 |
+| Actualización | 146 | 87.89 | 122.16 | 149.90 | 185.64 | 100.00 |
+| Global | 14952 | 75.94 | 116.10 | 144.28 | 228.41 | 100.00 |
 
 | Dato adicional | Valor |
 | --- | --- |
-| Decisión | {{DECISION}} |
-| Mezcla observada | {{MEZCLA_OBSERVADA}} |
-| Errores HTTP por estado | {{ERRORES_HTTP}} |
-| Errores 5xx | {{ERRORES_5XX}} |
-| Errores de red | {{ERRORES_RED}} |
-| Operaciones omitidas | {{OMITIDAS}} |
-| Creaciones inciertas | {{CREACIONES_INCIERTAS}} |
-| Clientes archivados y pendientes | {{LIMPIEZA}} |
-| Archivo JSON | {{ARCHIVO_JSON}} |
+| Decisión | CUMPLE |
+| Errores HTTP | 0 (5xx: 0; red: 0) |
+| Operaciones omitidas | 0 |
+| Creaciones inciertas | 0 |
+| Clientes archivados | 292 de 292 |
+| Archivo JSON | `docs/pruebas/resultado-rendimiento.json` |
+
+Resultado: el 100 % de las operaciones respondió en 2000 ms o menos, con p95 de 116 ms en total y por tipo.
+La base tiene datos de demostración; ver limitaciones.
+
+## Resultados de la primera corrida: NO EVALUABLE
+
+Conserve estos valores de `resumenes` en el JSON; redondee solo para presentación.
+Los conteos por tipo reflejan la clasificación de la primera versión del script.
+Esa versión clasificaba algunas consultas como escrituras según su posición en el ciclo.
+Recalcule por método efectivo durante la corrida corregida.
+
+| Tipo | n | p50 (ms) | p95 (ms) | p99 (ms) | Máximo (ms) | ≤ 2000 ms (%) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Consulta | 11167 | 75.45 | 95.33 | 112.11 | 143.95 | 100 |
+| Creación | 3168 | 75.82 | 94.55 | 112.33 | 129.07 | 100 |
+| Actualización | 1396 | 75.66 | 94.62 | 106.99 | 132.03 | 100 |
+| Global | 15731 | 75.55 | 95.19 | 112.02 | 143.95 | 100 |
+
+| Dato adicional | Valor |
+| --- | --- |
+| Decisión | NO EVALUABLE |
+| Mezcla observada | Clasificación histórica: consulta 70.99 %, creación 20.14 %, actualización 8.87 % |
+| Errores HTTP por estado | 372 respuestas 422 |
+| Errores 5xx | 0 |
+| Errores de red | 0 |
+| Operaciones omitidas | 186 |
+| Creaciones inciertas | 0 registradas |
+| Clientes archivados y pendientes | `limpieza: []`; el JSON no demuestra el archivado |
+| Archivo JSON | `docs/pruebas/resultado-rendimiento.json` |
+
+Los resultados finales constan en la sección de la corrida final.
+
+## Notas de la primera corrida
+
+Registre 15 731 peticiones, p95 de 95 ms y 100 % por debajo de 2 s.
+Registre la decisión `NO EVALUABLE` y 372 respuestas 422.
+Registre limpieza `0/0` y aproximadamente 3 000 clientes `RENDIMIENTO-*` todavía activos.
+Mantenga estos datos como observaciones de la primera corrida.
+Reserve los resultados finales para el orquestador.
+
+Use `actualizadoEn` como `version` ISO en PATCH y archivado.
+Actualice esa versión con cada respuesta PATCH.
+Cambie únicamente `notas` mediante un contador corto.
+Evite acumular sufijos en nombres; el límite es 200 caracteres.
+Limite el RUC de prueba; el identificador anterior supera el límite de 20 caracteres.
+Consulte `primeros422` para identificar errores futuros por tipo y ruta.
+Conserve únicamente mensajes de validación permitidos, sin datos personales.
+Evite atribuir los 372 errores a una causa sin sus cuerpos de respuesta.
+
+Cuente como consultas las operaciones ejecutadas por perfiles sin `cliente:gestionar`.
+Archive todos los clientes identificados durante la nueva corrida.
+Consulte `resumenLimpieza` para conocer archivados, total y pendientes.
+Revise `limpieza` para identificar archivados fallidos.
+Interprete código de salida 1 ante cualquier archivado fallido.
+Archive por separado los clientes pendientes de la primera corrida.
+
+Exija la duración solicitada para todas las sesiones.
+Exija cero respuestas 5xx y cero respuestas 4xx inesperadas.
+Excluya únicamente los 403 de preparación de rutas del conteo de errores inesperados.
+Exija muestras, p95 máximo de 2000 ms y al menos 95 % dentro del umbral.
+Evalúe globalmente y por consulta, creación y actualización.
+Consulte `causas` cuando la decisión difiera de `CUMPLE`.
 
 ## Limitaciones
 

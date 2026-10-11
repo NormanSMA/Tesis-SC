@@ -1,6 +1,11 @@
 # Módulo 5: Producción por etapas
 
 Estado: diseño auditado por Codex y Gemini Pro. Fecha: 2026-10-06.
+
+Actualización documental v9: 2026-10-11.
+Aplique los permisos actuales; conserve las auditorías y cifras de cierre como antecedentes.
+Use anchos E2E de 768, 1024, 1366 y 1920 px.
+Esta actualización no registra una nueva ejecución de pruebas.
 Criterios de aceptación: CF-02 (completa la parte pendiente del módulo 3), CF-09. Requerimiento: R-06. Apoya CF-05, CF-06 y CF-08.
 Fuentes: tesis V6 secciones 1.2, 1.7 y 2.6; Anexo C (P4, P7, Tablas C2 y C3); Anexo D (A2, A9).
 Supuestos: S-03, S-07, SD-13, SD-16, SD-17, SD-23.
@@ -15,15 +20,22 @@ Dentro:
 - Tablero de producción: etapas abiertas por responsable y por área, con acceso a la orden.
 Fuera de alcance: entrega, cierre y cancelación (módulo 3), consumo de material (módulo 4), panel gerencial, reportes de carga y tiempos (módulo 7), notificaciones.
 
-## Permisos (matriz aprobada)
-| Permiso | Gerencia | Ventas | Producción |
-|---|---|---|---|
-| produccion:ver | sí | sí | sí |
-| produccion:planificar (asignar, fechas, omitir, restaurar, agregar etapa) | no | no | sí |
-| produccion:ejecutar (iniciar, completar) | no | no | sí |
-| orden:avanzar (marcar lista, retrabajo) | no | no | sí |
-| catalogo:gestionar (áreas y plantillas) | sí | no | no |
-Administración no ve el módulo. Ventas y Gerencia consultan. El tablero y las fichas no muestran dinero.
+## Permisos vigentes (v9)
+
+Consulte [la matriz v9](09-perfiles-v9.md) y `src/core/permisos.ts`.
+Combine los permisos cuando el usuario tenga varios perfiles.
+
+| Permiso | Gerencia | Administración | Operaciones | Atención al cliente | Producción | Administración técnica |
+|---|---|---|---|---|---|---|
+| produccion:ver | sí | sí | sí | sí | sí | no |
+| produccion:planificar | no | sí | sí | no | no | no |
+| produccion:ejecutar | no | sí | no | no | sí | no |
+| orden:avanzar | no | sí | sí | no | sí | no |
+| catalogo:gestionar | no | no | sí | no | no | no |
+
+Reserve planificación para Operaciones y Administración; ejecución para Producción y Administración.
+Mantenga Gerencia y Atención al cliente en consulta; restrinja Administración técnica.
+El tablero y las fichas de producción no muestran dinero.
 
 ## Máquinas de estado
 Las transiciones válidas las define la base (`transicion_valida`, fn_validar_transicion). El servicio agrega permisos y condiciones.
@@ -49,9 +61,9 @@ Bitácora: etapa entidad ETAPA_ORDEN con `ordenId`; CAMBIAR_ESTADO con estado an
 7. Cuando completar una etapa deja todas cerradas, la orden no pasa a LISTA sola: la persona decide con "Marcar lista". La interfaz lo sugiere.
 
 ## Áreas y plantillas
-Áreas (`area`): nombre único (80), activo. Gerencia crea, edita nombre y archiva. Un área no se archiva (409 AREA_EN_USO) si tiene plantillas activas o etapas abiertas de órdenes no terminales. La conversión de órdenes (módulo 3) valida bajo bloqueo que el área de cada plantilla siga activa. Bitácora: se agrega el valor AREA al enum de entidades de bitácora, con CREAR, EDITAR, ARCHIVAR y REACTIVAR.
+Áreas (`area`): nombre único (80), activo. Operaciones crea, edita nombre y archiva. Un área no se archiva (409 AREA_EN_USO) si tiene plantillas activas o etapas abiertas de órdenes no terminales. La conversión de órdenes (módulo 3) valida bajo bloqueo que el área de cada plantilla siga activa. Bitácora: se agrega el valor AREA al enum de entidades de bitácora, con CREAR, EDITAR, ARCHIVAR y REACTIVAR.
 Migración del módulo (la hace el orquestador): `ALTER TYPE entidad_bitacora ADD VALUE 'AREA'`; columna `actualizado_en` (timestamptz, default now) en `area` y en `etapa_plantilla` para la versión optimista de su edición.
-Plantillas (`etapa_plantilla`): por categoría, secuencia única, nombre, área activa, activo. Gerencia agrega, edita, reordena (cambia secuencia) y archiva. Reordenar bloquea la categoría y mueve las secuencias por posiciones temporales altas libres (el UNIQUE de categoría y secuencia es inmediato y un intercambio directo daría 23505) antes de fijar las finales, todo en una transacción. Cambiar una plantilla no altera órdenes existentes: las etapas son una copia (snapshot). Bitácora: acción EDITAR sobre la entidad CATEGORIA con `entidadId` de la categoría y la operación y la plantilla (antes y después) en `detalle`; archivar una plantilla no se representa como archivar la categoría.
+Plantillas (`etapa_plantilla`): por categoría, secuencia única, nombre, área activa, activo. Operaciones agrega, edita, reordena (cambia secuencia) y archiva. Reordenar bloquea la categoría y mueve las secuencias por posiciones temporales altas libres (el UNIQUE de categoría y secuencia es inmediato y un intercambio directo daría 23505) antes de fijar las finales, todo en una transacción. Cambiar una plantilla no altera órdenes existentes: las etapas son una copia (snapshot). Bitácora: acción EDITAR sobre la entidad CATEGORIA con `entidadId` de la categoría y la operación y la plantilla (antes y después) en `detalle`; archivar una plantilla no se representa como archivar la categoría.
 Versión optimista en edición de áreas y plantillas. La conversión de órdenes (módulo 3) exige al menos una plantilla activa.
 
 ## API bajo /api/v1
@@ -72,7 +84,7 @@ Formato de AGENTS.md. Errores nuevos: ETAPA_SIN_RESPONSABLE, ORDEN_NO_ADMITE_CAM
 ## Pantallas
 - /produccion: tablero con dos vistas (por responsable y por área) de las etapas abiertas, con estado en texto, fechas planificadas y atraso. Para Producción incluye el atajo "Mis etapas". Acciones directas Iniciar y Completar por fila para quien tiene `produccion:ejecutar`.
 - /ordenes/[id]: la sección Etapas (hoy de solo lectura) gana acciones por fila según permiso y estado: asignar, fechas, iniciar, completar, omitir, restaurar; botón "Agregar etapa"; botones "Marcar lista" y "Reabrir por retrabajo" con diálogo de motivo.
-- /produccion/areas y /produccion/plantillas: administración de áreas y plantillas por categoría (solo Gerencia gestiona; los demás consultan).
+- /produccion/areas y /produccion/plantillas: gestión por Operaciones; consulta según `produccion:ver`.
 Cumple WCAG 2.2 AA, 4 viewports, sin desborde horizontal. Cada acción se deshabilita mientras la solicitud está en curso y los errores se anuncian con aria-live.
 
 ## Invariantes que cubre
@@ -83,7 +95,10 @@ I-14, I-15, I-17, I-19, I-20, I-21, y las guardas de bloqueo del módulo 4. CF-0
 - Prueba transversal de CF-09: conversión, consumo de material, ejecución de etapas y consulta vinculada de cliente, cotización, orden, materiales y producción, con captura.
 - Integración (base propia pro_test): flujo completo (asignar, iniciar la primera etapa lleva la orden a EN_PRODUCCION, completar, omitir, marcar lista, retrabajo con etapa nueva, entrega); permisos por perfil; versión vieja; responsable inválido o inactivo; etapa sin responsable; orden en estados que no admiten cambios; áreas con etapas abiertas; plantillas (copia, no altera órdenes existentes); bitácora en la misma transacción con una fila por evento; concurrencia: dos inicios de la primera etapa a la vez (una sola transición de la orden y fechaInicioReal estable), iniciar contra cancelar, consumir contra marcar lista, iniciar y completar contra cancelar, agregar o restaurar etapa contra marcar lista, entregar contra retrabajo, dos usuarios completando la misma etapa, etapas iguales y distintas, sin interbloqueo.
 - API por perfil: matriz de permisos, 401, 403, 404, 409, 422.
-- E2E: Producción asigna, inicia y completa etapas de una orden propia, marca lista; Ventas y Gerencia consultan sin acciones; Gerencia administra áreas y una plantilla; error visible al iniciar sin responsable; retrabajo; axe y desbordes; capturas CF-02 (etapas con acciones y tablero) en docs/capturas/produccion con 4 tamaños.
+- E2E: Operaciones planifica; Producción inicia, completa y marca lista.
+  Permita planificación y ejecución a Administración; mantenga Gerencia y Atención al cliente en consulta.
+  Reserve gestión de áreas y plantillas para Operaciones.
+  Consulte errores sin responsable, retrabajo, axe, desbordes y capturas CF-02 en cuatro tamaños.
 
 ## Auditoría (2026-10-06)
 Auditores de dos proveedores: Codex arquitecto y Gemini Pro. Ninguno halló un defecto alto demostrado.

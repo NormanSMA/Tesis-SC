@@ -1,6 +1,11 @@
 # Módulo 2: Catálogo y cotizaciones
 
 Estado: diseño auditado por Codex y Gemini Pro. Fecha: 2026-10-06.
+
+Actualización documental v9: 2026-10-11.
+Aplique los permisos actuales; conserve las auditorías y cifras de cierre como antecedentes.
+Use anchos E2E de 768, 1024, 1366 y 1920 px.
+Esta actualización no registra una nueva ejecución de pruebas.
 Criterio de aceptación: CF-10. Requerimientos: R-02, R-03. Apoya CF-09 y CF-06.
 Fuentes: tesis V6 secciones 1.1, 2.6 y 1.7; Anexo C (P2, P3, P11, Tablas C2 y C3); Anexo D (A10).
 Supuestos: S-04, S-06, S-08, S-11, S-12, S-15, S-17, S-23, SD-14, SD-15, SD-17, SD-25.
@@ -8,21 +13,25 @@ Motor de costeo: src/core/costeo.ts (docs/modulos/02-costeo.md). El módulo no r
 
 ## Alcance
 Catálogo: productos y recetas, con categorías.
-Cotizaciones: crear, editar, enviar, aprobar, rechazar, vencer, duplicar e imprimir la proforma.
+Cotizaciones: crear, editar, enviar, aprobar, rechazar, vencer, solicitar ajuste, corregir, duplicar e imprimir.
 Cotiza productos de catálogo y trabajos personalizados con costos variables en la misma cotización.
 Fuera de alcance: áreas y plantillas de etapas (módulo 5), consumo de materiales (módulo 4), conversión en orden (módulo 3), envío por correo y firma electrónica.
 
-## Permisos (matriz aprobada)
-| Permiso | Gerencia | Ventas | Producción |
-|---|---|---|---|
-| catalogo:ver | sí | sí | sí |
-| catalogo:gestionar | sí | no | no |
-| cotizacion:ver | sí | sí | no |
-| cotizacion:gestionar (crear, editar borrador, duplicar, archivar) | no | sí | no |
-| cotizacion:enviar | no | sí | no |
-| cotizacion:responder (aprobar, rechazar, vencer) | sí | sí | no |
+## Permisos vigentes (v9)
 
-Administración no ve ninguno de los dos módulos.
+Consulte [la matriz v9](09-perfiles-v9.md) y `src/core/permisos.ts`.
+Combine los permisos cuando el usuario tenga varios perfiles.
+
+| Permiso | Gerencia | Administración | Operaciones | Atención al cliente | Producción | Administración técnica |
+|---|---|---|---|---|---|---|
+| catalogo:ver | sí | sí | sí | sí | sí | no |
+| catalogo:gestionar | no | no | sí | no | no | no |
+| cotizacion:ver | sí | sí | sí | sí | no | no |
+| cotizacion:gestionar | no | no | no | sí | no | no |
+| cotizacion:enviar | no | no | no | sí | no | no |
+| cotizacion:responder | no | no | sí | sí | no | no |
+
+Reserve gestión de catálogo para Operaciones y gestión de cotizaciones para Atención al cliente.
 
 ## Catálogo
 Productos (`producto`): código único, nombre, descripción, categoría, unidad de cobro (UNIDAD o M2), precio base, activo.
@@ -42,8 +51,9 @@ Consulta de materiales para recetas y para el editor de cotizaciones: GET /api/v
 
 ## Cotizaciones
 Estados y transiciones (docs/analisis/05-modelo-datos.md, sección c; la base las valida):
-BORRADOR a ENVIADA; ENVIADA a APROBADA, RECHAZADA o VENCIDA. APROBADA, RECHAZADA y VENCIDA son terminales.
-Fuera de BORRADOR la base bloquea montos, ítems y líneas (SD-25). Se corrige con un duplicado.
+BORRADOR a ENVIADA; ENVIADA a APROBADA, RECHAZADA, VENCIDA o AJUSTE_SOLICITADO.
+Conserve congelados montos, ítems y líneas fuera de BORRADOR (SD-25).
+Cree una versión corregida desde AJUSTE_SOLICITADO; conserve intacta la cotización de origen.
 
 ### Reglas de negocio
 1. Crear exige un cliente activo y asunto. Las condiciones comerciales se precargan con el texto de la clave de configuración `cotizacion_condiciones` si existe, o con una constante del módulo (S-12). Numeración con `siguiente_numero('COTIZACION')`. Copia la tasa de IVA y la vigencia de la configuración. Crear y duplicar no llevan `version`: no modifican un registro existente.
@@ -53,13 +63,20 @@ Fuera de BORRADOR la base bloquea montos, ítems y líneas (SD-25). Se corrige c
 4. Todo monto lo calcula `src/core/costeo.ts`: línea, ítem, totales. El servidor recalcula siempre y no confía en montos del cliente. La interfaz usa las mismas funciones puras para mostrar totales en vivo.
 5. El descuento es un monto global menor o igual al subtotal.
 6. Enviar exige al menos un ítem. Fija fechaEmision (hoy, hora de Managua) y fechaVencimiento (hoy más vigencia). La base verifica las sumas.
-7. Aprobar exige hoy menor o igual a fechaVencimiento. Rechazar exige motivo. Marcar vencida exige hoy mayor que fechaVencimiento. Las tres fijan fechaRespuesta.
+7. Aprobar exige vigencia y `referenciaAprobacion` obligatoria de 3 a 200 caracteres.
+   Registre el usuario aprobador y la referencia del consentimiento del cliente.
+   Rechazar exige motivo; vencer exige fecha posterior al vencimiento.
+   Solicitar ajuste exige `motivoAjuste` de 3 a 500 caracteres y establece AJUSTE_SOLICITADO.
 8. Duplicar crea un BORRADOR nuevo. Copia ítems, líneas, asunto, descuento, condiciones y `cotizacionOrigenId`. Toma la tasa de IVA y la vigencia de la configuración vigente, no del origen. Reinicia fechas y respuesta. Exige cliente activo y producto activo para los ítems de catálogo; los ítems con producto archivado pasan como ítems existentes sin actualizar su precio y se avisa. Los precios se copian como instantánea del origen.
 9. Archivar una cotización la oculta de la lista por defecto. No borra nada.
 10. Versión optimista atómica en toda escritura sobre un registro existente, como en clientes.
     La edición de ítems envía el conjunto completo dentro de una transacción. Cada ítem trae su `itemId` si ya existe. Un ítem existente conserva su instantánea (producto, precio unitario, costo y margen guardados) mientras el cliente no pida `actualizarPrecio` para ese ítem; solo entonces se relee el precio vigente. El servidor verifica que cada `itemId` pertenece a la cotización. Un producto archivado ya incluido se conserva. Un ítem nuevo sí exige producto activo y relee su precio vigente. Todo se recalcula con el motor.
 11. Cada cambio escribe su evento de bitácora (entidad COTIZACION) en la misma transacción: CREAR, EDITAR, CAMBIAR_ESTADO con estado anterior y nuevo, y ARCHIVAR. EDITAR guarda en `detalle` los campos de cabecera cambiados (antes y después) y, si cambian ítems, una lista por ítem (agregado, modificado o quitado, secuencia, descripción, importe antes y después) más los totales antes y después. Con ese detalle se puede reconstruir qué cambió sin una copia de la cotización.
 12. La proforma imprimible (S-23) usa los datos vigentes del cliente (ADR-011) y los valores guardados de la cotización.
+13. Cree la versión corregida mediante la lógica de duplicación, con `cotizacionOrigenId` y versión incrementada.
+    Exija origen AJUSTE_SOLICITADO no archivado; cree un BORRADOR para editar, enviar y aprobar nuevamente.
+    Distinga la versión comercial numérica del campo `version` ISO usado para concurrencia.
+14. Reserve conversión para Operaciones; permita crear la orden sin responsable, según el módulo de órdenes.
 
 ### API bajo /api/v1/cotizaciones
 | Método y ruta | Permiso | Resultado |
@@ -70,8 +87,9 @@ Fuera de BORRADOR la base bloquea montos, ítems y líneas (SD-25). Se corrige c
 | PATCH /cotizaciones/[id] | cotizacion:gestionar | Asunto, condiciones, descuento, vigencia |
 | PUT /cotizaciones/[id]/items | cotizacion:gestionar | Reemplaza ítems y líneas. Devuelve totales recalculados |
 | POST /cotizaciones/[id]/enviar | cotizacion:enviar | Estado ENVIADA |
-| POST /cotizaciones/[id]/responder | cotizacion:responder | Cuerpo con resultado APROBADA, RECHAZADA o VENCIDA y motivo |
+| POST /cotizaciones/[id]/responder | cotizacion:responder | Resultado APROBADA, RECHAZADA, VENCIDA o AJUSTE_SOLICITADO; referencia o motivo según resultado |
 | POST /cotizaciones/[id]/duplicar | cotizacion:gestionar | 201, borrador nuevo |
+| POST /cotizaciones/[id]/version-corregida | cotizacion:gestionar | 201, BORRADOR corregido desde AJUSTE_SOLICITADO |
 | POST /cotizaciones/[id]/archivar | cotizacion:gestionar | Cotización archivada |
 
 Toda ruta que modifica un registro existente exige `version`. Crear y duplicar no la llevan. Sin versión: 422. Con versión vieja: 409 CONFLICTO_EDICION.
@@ -86,7 +104,8 @@ Errores de la base (SC001 a SC007) se traducen a 409 con su mensaje.
 | /cotizaciones/[id]/editar | Editor de ítems con totales en vivo, solo en BORRADOR |
 | /cotizaciones/[id]/imprimir | Proforma imprimible con estilos de impresión |
 
-Estados vacío, carga y error con los componentes comunes. Formularios accesibles. En 820 px se ven número, cliente, estado y total sin desplazamiento horizontal.
+Use componentes comunes para estados vacío, carga y error; mantenga formularios accesibles.
+Verifique número, cliente, estado y total sin desborde en 768 px.
 
 ## Pruebas
 | Nivel | Casos |
@@ -99,9 +118,9 @@ Estados vacío, carga y error con los componentes comunes. Formularios accesible
 | Reutilización | Duplicar con IVA y vigencia modificados en configuración toma los vigentes. Las condiciones por defecto se precargan |
 | Fechas | Aprobar el último día de vigencia en Managua funciona; el día siguiente se rechaza |
 | Permisos | Revocar cotizacion:ver o catalogo:ver oculta lo correspondiente. Gerencia no crea ni edita |
-| API por perfil | Gerencia: ver y responder sí, crear y editar 403. Ventas: todo menos catalogo:gestionar. Producción: catálogo ver, cotizaciones 403. Sin sesión 401 |
+| API por perfil | Gerencia y Administración consultan. Operaciones gestiona catálogo y responde cotizaciones. Atención al cliente gestiona, envía y responde cotizaciones. Producción consulta catálogo. Administración técnica sin acceso. Sin sesión 401 |
 | CF-10 | Una cotización mixta (catálogo por M2, catálogo por unidad y un personalizado con las tres clases de línea) con totales exactos |
-| E2E | Ventas crea una cotización mixta, la envía; Gerencia la aprueba; vista de impresión; axe en lista, editor y detalle |
+| E2E | Atención al cliente crea y envía; Operaciones aprueba con referencia. Consulte impresión y axe según los casos del archivo E2E |
 | Visual CF-10 | Captura de la cotización mixta en 4 tamaños |
 
 ## Archivos del módulo

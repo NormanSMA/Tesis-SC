@@ -8,8 +8,9 @@ Fecha: 2026-10-10. Entorno: Docker Compose local, PostgreSQL 17, base de demostr
 
 ## Mecanismo
 - Respaldo manual: `sh scripts/respaldo.sh [carpeta]` (pg_dump formato custom, falla sin dejar archivos vacíos).
-- Respaldo programado: servicio `respaldo` de `compose.yaml` (perfil `respaldo`).
-  - Activar: `docker compose --profile respaldo up -d respaldo`.
+- Respaldo programado: servicio `respaldo` de `compose.yaml`, sin perfil adicional.
+  - Inicie aplicación y respaldo mediante `docker compose up -d`.
+  - Inicie solo respaldo mediante `docker compose up -d respaldo`.
   - Ejecuta `scripts/respaldo-programado.sh`: respalda al arrancar y cada `INTERVALO_HORAS` (24 por defecto).
   - Solo cuenta un respaldo que `pg_restore --list` puede leer.
   - Conserva `RETENCION_DIAS` (7). Reintenta cada hora si falla.
@@ -39,6 +40,8 @@ Fecha: 2026-10-10. Entorno: Docker Compose local, PostgreSQL 17, base de demostr
 | Veredicto | cumple RNF-06 (respaldo verificable) y RNF-07 |
 
 Servicio programado: arrancado dos veces el mismo día; el registro muestra dos líneas OK con archivo y tamaño.
+Conserve estos resultados de 2026-10-10; no equivalen a una nueva corrida v9.
+Revise el registro mediante `docker compose exec respaldo cat /respaldos/registro.log`.
 
 ## Limitaciones
 - Volumen de datos de demostración (cientos de filas). El tiempo crece con el tamaño; el margen frente a 4 horas es amplio.

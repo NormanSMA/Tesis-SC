@@ -1,6 +1,11 @@
 # Módulo 4: Inventario de materiales
 
 Estado: diseño auditado por Codex y Gemini Pro. Fecha: 2026-10-06.
+
+Actualización documental v9: 2026-10-11.
+Aplique los permisos actuales; conserve las auditorías y cifras de cierre como antecedentes.
+Use anchos E2E de 768, 1024, 1366 y 1920 px.
+Esta actualización no registra una nueva ejecución de pruebas.
 Criterios de aceptación: CF-03, CF-04. Requerimiento: R-05. Apoya CF-05, CF-06 y CF-09. Alertas de stock: Tabla C2.
 Fuentes: tesis V6 secciones 1.7 y 2.6; Anexo C (P5, P8, Tablas C2 y C3); Anexo D (A3, A4).
 Supuestos: S-05, S-09, S-16, SD-15, SD-19, SD-20.
@@ -10,19 +15,26 @@ La base ya garantiza el libro, el saldo y los topes (restricciones.sql, fn_movim
 ## Alcance
 Dentro:
 - Materiales: alta, edición, archivar, reactivar, lista con existencia, costo promedio y alerta de stock bajo, ficha con libro de movimientos.
-- Entradas por compra, ajustes (solo Gerencia), consumo y devolución por orden, consulta del libro global y por material.
+- Entradas, ajustes, consumo y devolución por Administración; consulta del libro global y por material.
 - Consumo estimado, consumido, devuelto y neto por orden y material (CF-03), con acciones desde la ficha de la orden.
 Fuera de alcance: compras y proveedores, reservas de material, transferencias, lotes, panel y reportes (módulo 7), acciones de etapas (módulo 5).
 
-## Permisos (matriz aprobada)
-| Permiso | Gerencia | Ventas | Producción |
-|---|---|---|---|
-| inventario:ver | sí | sí | sí |
-| inventario:entrada | no | no | sí |
-| inventario:consumir (consumo y devolución) | no | no | sí |
-| inventario:ajustar | sí | no | no |
-| material:gestionar (alta, edición, stock mínimo, archivar) | sí | no | sí |
-Administración no ve el módulo. Ventas solo consulta. El costo promedio y el valor del inventario son visibles con `inventario:ver`: el inventario no es dinero de cotización y Producción necesita el costo para registrar entradas.
+## Permisos vigentes (v9)
+
+Consulte [la matriz v9](09-perfiles-v9.md) y `src/core/permisos.ts`.
+Combine los permisos cuando el usuario tenga varios perfiles.
+
+| Permiso | Gerencia | Administración | Operaciones | Atención al cliente | Producción | Administración técnica |
+|---|---|---|---|---|---|---|
+| inventario:ver | sí | sí | sí | no | no | no |
+| inventario:entrada | no | sí | no | no | no | no |
+| inventario:consumir | no | sí | no | no | no | no |
+| inventario:ajustar | no | sí | no | no | no | no |
+| material:gestionar | no | sí | no | no | no | no |
+
+Reserve las escrituras de inventario para Administración; permita consulta a Operaciones y Gerencia.
+Producción y Atención al cliente carecen de acceso al inventario por defecto.
+Muestre costo promedio y valor del inventario con `inventario:ver`.
 La ficha de la orden muestra cantidades de materiales a todo perfil con `orden:ver` e `inventario:ver`; no muestra costos (el DTO de orden sigue sin dinero).
 
 ## Materiales
@@ -110,7 +122,9 @@ I-01 a I-08 (verificados por la base y ejercitados desde el servicio), I-19, I-2
 - Integración (base propia inv_test): alta, edición con versión y regla del costo con existencia 0, archivar con existencia, entradas con costo promedio ponderado exacto, ajuste con motivo, consumo y devolución con enlace y bitácora, estados de orden admitidos y rechazados, existencia insuficiente con reversión total, devolución sobre el tope, exceso sobre el estimado con advertencia, conciliación existencia igual a la suma del libro.
 - Concurrencia (obligatoria): N consumidores simultáneos del mismo material con existencia limitada (suma de lo confirmado no supera la existencia; el resto recibe 409); consumos cruzados de dos materiales en orden opuesto sin interbloqueo; consumo contra cancelación de la misma orden (son válidos los dos órdenes secuenciales: consumo y luego cancelación, o cancelación y luego consumo rechazado; nunca un consumo confirmado después de la cancelación); dos devoluciones simultáneas que juntas superan lo consumido; reintentos con la misma Idempotency-Key en serie y en paralelo (un solo movimiento); archivar contra entrada concurrente (no queda material archivado con existencia); entrada concurrente con consumo; bitácora solo de lo confirmado.
 - API por perfil: matriz de permisos, 401, 403, 404, 409, 422.
-- E2E: Producción registra una entrada y un consumo desde la orden y ve el saldo y la alerta; Gerencia ajusta con motivo; Ventas consulta sin botones; Administración a /sin-acceso; error visible por existencia insuficiente; devolución; axe y desbordes; capturas CF-03 y CF-04 en docs/capturas/inventario.
+- E2E: Administración registra entradas, consumos, ajustes y devoluciones.
+  Permita consulta a Operaciones y Gerencia; restrinja acceso a los otros perfiles.
+  Consulte errores de existencia, axe, desbordes y capturas CF-03 y CF-04.
 
 ## Auditoría (2026-10-06)
 Auditores de dos proveedores: Codex arquitecto y Gemini Pro. Ninguno halló un defecto alto demostrado; Gemini marcó la idempotencia como alta y Codex como media.
@@ -121,7 +135,10 @@ Adoptado:
 - Ajuste con `direccion`, conciliación en una consulta, alerta solo de materiales activos, exceso contra el neto y costos de movimientos ligados a órdenes bajo `cotizacion:ver` (Codex).
 - Prueba de cancelación: ambos órdenes secuenciales son válidos (Codex).
 - Regla para los módulos 5 en adelante: una operación que actualice la fila de la orden toma `FOR UPDATE` desde el inicio y no retiene bloqueos de materiales. Promover `FOR SHARE` a `UPDATE` después de tomar un material podría cerrar un ciclo (Codex).
-Respuestas a las preguntas: devolución en PENDIENTE, EN_PRODUCCION, LISTA, ENTREGADA y CANCELADA y no en CERRADA (ambos); exceso solo con advertencia (ambos); Producción ve entradas, ajustes y costo promedio del material, no costos ligados a órdenes (Codex; Gemini permitía todo el costo, se adopta lo más restrictivo); idempotencia sí (ambos); sin ciclos con los flujos descritos (ambos).
+Conserve devolución en PENDIENTE, EN_PRODUCCION, LISTA, ENTREGADA y CANCELADA; excluya CERRADA.
+Conserve exceso con advertencia e idempotencia.
+Reemplace la visibilidad histórica de Producción por la matriz v9.
+Exija `cotizacion:ver` para costos ligados a órdenes.
 Aislamiento: Prisma usa READ COMMITTED (src/lib/db.ts no fija nivel). Las lecturas previas sin bloqueo pueden quedar obsoletas; por eso se valida bajo bloqueo.
 
 ## Revisión cruzada de la implementación (2026-10-06)

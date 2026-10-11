@@ -1,17 +1,27 @@
 # Módulo 7: Panel y reportes
 
 Estado: diseño aprobado por el orquestador. Fecha: 2026-10-07.
+
+Actualización documental v9: 2026-10-11.
+Aplique los permisos actuales; conserve las auditorías y cifras de cierre como antecedentes.
+Use anchos E2E de 768, 1024, 1366 y 1920 px.
+Esta actualización no registra una nueva ejecución de pruebas.
 Criterios de aceptación: CF-06 (desde el panel se consultan cotizaciones pendientes, materiales disponibles y carga de trabajo). Requerimientos: R-08, R-11. Supuesto S-18 (cuatro reportes y exportación CSV). Apoya CF-08 (diseño adaptable) y CF-09.
 Fuentes: tesis V6 secciones 1.7 y 2.6; Anexo C (P6, P7, Tabla C3); Anexo D (A6).
 Este módulo solo lee: no agrega migraciones ni escribe datos de negocio. Reutiliza las consultas de los módulos 2 a 5 (cotizaciones, inventario, órdenes, producción).
 
 ## Permisos
-| Permiso | Gerencia | Ventas | Producción | Administración |
-|---|---|---|---|---|
-| panel:ver | sí | sí | sí | no |
-| reporte:ver | sí | no | no | no |
-| reporte:exportar | sí | no | no | no |
-| cotizacion:ver (dinero de cotizaciones) | sí | sí | no | no |
+
+Consulte [la matriz v9](09-perfiles-v9.md) y `src/core/permisos.ts`.
+Combine los permisos cuando el usuario tenga varios perfiles.
+
+| Permiso | Gerencia | Administración | Operaciones | Atención al cliente | Producción | Administración técnica |
+|---|---|---|---|---|---|---|
+| panel:ver | sí | sí | sí | sí | sí | no |
+| reporte:ver | sí | no | no | no | no | no |
+| reporte:exportar | sí | no | no | no | no | no |
+| cotizacion:ver | sí | sí | sí | sí | no | no |
+| inventario:ver | sí | sí | sí | no | no | no |
 Cada bloque del panel aparece solo si el perfil tiene el permiso del dato que muestra: cotizaciones con `cotizacion:ver`, materiales con `inventario:ver`, órdenes y carga con `orden:ver` y `produccion:ver`. Sin `cotizacion:ver` no viaja ningún importe en ninguna respuesta del módulo.
 
 ## Panel (CF-06, R-08)
@@ -27,7 +37,7 @@ Estado vacío, error y carga con texto. Cumple WCAG 2.2 AA y 4 viewports. Los KP
 Pantalla /reportes y API GET /api/v1/reportes/<nombre> (reporte:ver). Filtros por periodo (desde y hasta, fecha de Managua) donde aplica. Cuatro reportes:
 | Nombre | Contenido | Filtros |
 |---|---|---|
-| cotizaciones-por-estado | Cantidad e importe total por estado (BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA) en el periodo de creación, con tasa de aprobación (aprobadas sobre respondidas) | desde, hasta |
+| cotizaciones-por-estado | Cantidad e importe por estado, incluido AJUSTE_SOLICITADO. Tasa: aprobadas entre aprobadas más rechazadas | desde, hasta |
 | existencias | Cada material con existencia, stock mínimo, costo promedio, valor del inventario (existencia por costo promedio) y estado de alerta, más totales | texto, solo alertas |
 | carga-por-operario | Por responsable: etapas pendientes, en curso, completadas en el periodo, atrasadas y órdenes a su cargo | desde, hasta |
 | ordenes-por-etapa | Órdenes no terminales agrupadas por la etapa actual (la primera etapa abierta por secuencia), con cantidad y atraso; más órdenes sin etapa abierta (listas para marcar lista o entregar) | área |
@@ -43,9 +53,16 @@ Errores del formato de AGENTS.md: 401, 403, 404 (reporte desconocido), 422 (fech
 
 ## Pruebas
 - Unitarias: serializador CSV (BOM, comillas, saltos, inyección de fórmulas con las cinco cabeceras peligrosas, tildes, decimales), reglas de alerta, cálculo de tasa de aprobación, esquemas zod de periodo.
-- Integración (base propia pan_test): cada reporte contra datos creados por la prueba con totales conocidos (varios estados de cotización, materiales con costo promedio y existencia, etapas por responsable); panel por perfil (Gerencia ve todo; Ventas sin carga de producción de etapas pero con cotizaciones; Producción sin cotizaciones ni importes: recorre el JSON completo buscando claves monetarias); límites de fecha; CSV idéntico al JSON; permisos (reportes solo Gerencia, panel Administración 403); valor del inventario exacto; "hoy" en Managua en el borde de medianoche.
+- Integración: compruebe reportes contra registros con totales conocidos y paneles según permisos.
+  Permita panel a cinco perfiles de negocio; restrinja Administración técnica.
+  Reserve reportes para Gerencia; oculte cotizaciones e importes a Producción.
+  Permita inventario a Gerencia, Administración y Operaciones.
+  Compruebe límites de fecha, CSV, valor de inventario y fechas de Managua.
 - API por perfil: 401, 403, 404, 422.
-- E2E: Gerencia, Ventas y Producción ven su panel con enlaces que funcionan; Gerencia abre cada reporte, aplica un periodo y descarga el CSV (se verifica el contenido y el nombre); Ventas y Producción no ven Reportes (403 o sin acceso); Administración sin acceso al panel; axe y desbordes; capturas CF-06 del panel con los tres perfiles y de un reporte con Gerencia en 4 tamaños en docs/capturas/panel.
+- E2E: consulte panel por perfil y enlaces permitidos según la matriz v9.
+  Gerencia consulta reportes y descarga CSV; los otros perfiles carecen de reportes.
+  Administración técnica carece de panel; Administración tiene acceso al panel.
+  Consulte axe, desbordes y capturas CF-06 en cuatro tamaños.
 
 ## Cierre del módulo (2026-10-07)
 Implementación y E2E: Codex (programar), que agotó su cuota al redactar el informe final; el trabajo estaba completo (typecheck y lint limpios, 98 pruebas del módulo verdes). Verificación: orquestador (un solo verificador).

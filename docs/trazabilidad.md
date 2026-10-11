@@ -2,7 +2,7 @@
 
 Fuente de los códigos y las medidas: `docs/analisis/06-requisitos-v9.md` (verificada contra la tesis v9).
 Historial con los códigos CF y R de la versión 6: `docs/trazabilidad-v6-historico.md`.
-Fecha de la matriz: 2026-10-10.
+Fecha de la matriz: 2026-10-11.
 
 ## Criterios de estado
 - Cubierto: hay implementación y al menos una prueba automatizada que la ejerce.
@@ -30,14 +30,14 @@ Las rutas son relativas a la raíz del repositorio. Las restricciones de base de
 
 | Código | Atributo y medida | Implementación | Pruebas | Estado | Nota |
 |---|---|---|---|---|---|
-| RNF-01 | Tiempo de respuesta. Al menos 95 % de operaciones en 2 s o menos, con 20 sesiones concurrentes. | Sin implementación específica. La medición usará `scripts/rendimiento.mjs` y se documentará en `docs/pruebas/rendimiento-RNF-01.md`. | Ninguna. | Pendiente | `scripts/rendimiento.mjs` y `docs/pruebas/rendimiento-RNF-01.md` no existen todavía. |
+| RNF-01 | Tiempo de respuesta. Al menos 95 % de operaciones en 2 s o menos, con 20 sesiones concurrentes. | `scripts/rendimiento.mjs`. | Corrida final: `docs/pruebas/resultado-rendimiento.json`; informe: `docs/pruebas/rendimiento-RNF-01.md`. | Cubierto | 20 sesiones, 60 s, 14 952 operaciones, p95 116 ms, 100 % en 2 s o menos, 0 errores. |
 | RNF-02 | Autenticación. 100 % de funciones protegidas rechaza solicitudes sin sesión válida. | `src/lib/http.ts` (`manejar`); `src/lib/auth/sesion.ts`; `src/lib/auth/guardia.ts`; `src/modules/auth/service.ts`. | `tests/integration/auth-http.test.ts`; `tests/integration/auth-sesion.test.ts`; `tests/integration/auth-login.test.ts`; `tests/integration/ordenes-api-perfiles.test.ts` (todas sin sesión responden 401); `tests/integration/produccion-api-perfiles.test.ts`; `tests/integration/reportes-api.test.ts`; `e2e/base.spec.ts` | Cubierto | Cubre sesión expirada, revocada y usuario desactivado. |
 | RNF-03 | Autorización. 100 % de casos no autorizados rechazado sin modificar información. | `src/core/autorizacion.ts` (`exigir`); `src/lib/http.ts` (`manejar` con permiso por acción). | `tests/integration/ordenes-api-perfiles.test.ts` (escrituras rechazadas conservan cabecera, etapas y bitácora); `tests/integration/cotizaciones-api-perfiles.test.ts` (conservan cotización y bitácora); `tests/integration/admin-permisos-api.test.ts`; `e2e/clientes.spec.ts` | Cubierto | La comprobación de no modificación está en órdenes y cotizaciones. El resto verifica el 403. |
 | RNF-04 | Confidencialidad en tránsito. 100 % de conexiones HTTPS con TLS 1.2 o superior. | `src/lib/auth/cookies.ts` (atributo `Secure` con `SESSION_COOKIE_SECURE=true`); `docs/seguridad.md`. TLS lo termina el despliegue. | `tests/integration/auth-login.test.ts` (cookie `Secure` solo con `SESSION_COOKIE_SECURE`) | Parcial | La versión de TLS se verifica al desplegar. Ninguna prueba automatizada la mide. |
 | RNF-05 | Integridad transaccional. Cero órdenes duplicadas, cero registros huérfanos, cero existencias negativas. | `orden_trabajo_cotizacion_id_key`; `material_existencia_no_negativa`; triggers `trg_movimiento_exige_consumo` y `trg_consumo_validar` (SC005); llaves foráneas con `ON DELETE RESTRICT`; bitácora en la misma transacción. | `tests/integration/errores-bd.test.ts`; `tests/integration/ordenes-conversion.test.ts`; `tests/integration/inventario-concurrencia.test.ts`; `tests/integration/produccion-historial.test.ts`; `scripts/prueba-recuperacion.sh` | Cubierto | El script de recuperación verifica huérfanos, duplicados y existencias en la base restaurada. |
-| RNF-06 | Respaldo. Al menos un respaldo exitoso cada 24 horas. | `scripts/respaldo.sh`; `scripts/respaldo-programado.sh`; servicio `respaldo` en `compose.yaml`. | `scripts/prueba-recuperacion.sh`; evidencia en `docs/pruebas/respaldo-RNF-06-07.md` | Cubierto | Depende de que el servicio `respaldo` esté activo. Falta copiar el volumen `sc_respaldos` a otro equipo. |
+| RNF-06 | Respaldo. Al menos un respaldo exitoso cada 24 horas. | `scripts/respaldo.sh`; `scripts/respaldo-programado.sh`; servicio `respaldo` en `compose.yaml`. | `scripts/prueba-recuperacion.sh`; evidencia en `docs/pruebas/respaldo-RNF-06-07.md` | Cubierto | `docker compose up -d` inicia respaldo sin perfil adicional. Mantenga el servicio activo y revise su registro. Falta copiar `sc_respaldos` a otro equipo. |
 | RNF-07 | Recuperabilidad. Restauración sin errores de integridad en máximo 4 horas. | `scripts/restaurar.sh`; `scripts/prueba-recuperacion.sh`. | `scripts/prueba-recuperacion.sh`; evidencia en `docs/pruebas/respaldo-RNF-06-07.md` | Cubierto | Restauración en 2 s con datos de demostración (límite 14 400 s). El tiempo crece con el volumen. |
-| RNF-08 | Adaptabilidad. Flujos críticos en 768, 1024, 1366 y 1920 px sin superposición ni desplazamiento horizontal. | `src/app/(app)/layout.tsx`; `src/components`; riel de íconos y panel lateral (ver `e2e/diseno.spec.ts`). | `e2e/base.spec.ts` (desborde en 4 tamaños); `e2e/diseno.spec.ts`; `e2e/clientes.spec.ts`; `e2e/ordenes.spec.ts`; `e2e/panel.spec.ts`; `e2e/produccion.spec.ts` | Parcial | Los E2E usan 1920, 1366, 1024 y 820 px (`e2e/ayudas.ts`, `playwright.config.ts`). Ninguno usa 768 px de ancho. Ninguna prueba mide superposición. |
+| RNF-08 | Adaptabilidad. Flujos críticos en 768, 1024, 1366 y 1920 px sin superposición ni desplazamiento horizontal. | `src/app/(app)/layout.tsx`; `src/components`; riel de íconos y panel lateral (ver `e2e/diseno.spec.ts`). | `e2e/base.spec.ts` (desborde en 4 tamaños); `e2e/diseno.spec.ts`; `e2e/clientes.spec.ts`; `e2e/ordenes.spec.ts`; `e2e/panel.spec.ts`; `e2e/produccion.spec.ts` | Parcial | `e2e/ayudas.ts`, `e2e/diseno.spec.ts` y `playwright.config.ts` usan 768, 1024, 1366 y 1920 px. La tableta vertical usa 768×1024. Falta medir superposición. |
 
 ## Reglas de negocio (RB-01 a RB-10)
 
@@ -55,9 +55,9 @@ Las rutas son relativas a la raíz del repositorio. Las restricciones de base de
 | RB-10 | Operaciones según rol. 100 % de pruebas de autorización coincide con la matriz rol-permiso. | `src/core/permisos.ts` (matriz por defecto); tablas `perfil_permiso` y `usuario_perfil`; `docs/modulos/09-perfiles-v9.md`. | `tests/unit/permisos.test.ts` (cada perfil recibe exactamente los permisos de su columna); `tests/integration/ordenes-api-perfiles.test.ts`; `tests/integration/cotizaciones-api-perfiles.test.ts`; `tests/integration/cotizaciones-v9.test.ts`; `e2e/base.spec.ts` | Cubierto | Las pruebas por perfil usan tablas de códigos esperados por operación. |
 
 ## Resumen de estados
-- Cubierto: 25 (RF-01 a RF-10; RNF-02, RNF-03, RNF-05, RNF-06, RNF-07; RB-01 a RB-10).
+- Cubierto: 26 (RF-01 a RF-10; RNF-01, RNF-02, RNF-03, RNF-05, RNF-06, RNF-07; RB-01 a RB-10).
 - Parcial: 2 (RNF-04, RNF-08).
-- Pendiente: 1 (RNF-01).
+- Pendiente: 0.
 
 ## Mapeo de códigos antiguos
 Fuente: `docs/analisis/06-requisitos-v9.md`. Los códigos CF y R pertenecen a la versión 6 de la tesis.
@@ -92,9 +92,9 @@ Fuente: `docs/analisis/06-requisitos-v9.md`. Los códigos CF y R pertenecen a la
 Códigos v9 sin equivalente antiguo: RNF-04, RNF-06, RNF-07, RNF-01 (solo fila temática), RB-02.
 
 ## Brechas abiertas
-1. RNF-01: no hay medición. Crear `scripts/rendimiento.mjs` (20 sesiones concurrentes, percentil 95 en 2 s) y registrar el resultado en `docs/pruebas/rendimiento-RNF-01.md`.
+1. RNF-01: cerrado con la corrida final (CUMPLE). Repita la corrida si cambia la infraestructura.
 2. RNF-04: ninguna prueba automatizada verifica TLS 1.2 o superior. Verificar al desplegar y activar `SESSION_COOKIE_SECURE=true`.
-3. RNF-08: alinear los E2E a 768, 1024, 1366 y 1920 px. Hoy la tableta vertical usa 820 px en `e2e/ayudas.ts` y `e2e/diseno.spec.ts`. Ninguna prueba mide superposición.
+3. RNF-08: los E2E ya usan 768, 1024, 1366 y 1920 px. Agregue medición de superposición; conserve el estado Parcial.
 4. RB-08: resuelta con la restricción de base de datos y la prueba `tests/integration/produccion-historial.test.ts`.
 5. RNF-03: la comprobación de no modificación existe en órdenes y cotizaciones. Extenderla a clientes, inventario, producción y catálogo.
 6. RB-02: falta una prueba que intente insertar una cotización sin cliente directamente en la base.

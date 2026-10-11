@@ -8,11 +8,11 @@ Modelo: `docs/analisis/05-modelo-datos.md`.
 
 | Dato | Cantidad |
 |---|---|
-| Perfiles, permisos y matriz | 4 perfiles, 30 permisos, 48 concesiones |
+| Perfiles, permisos y matriz | 6 perfiles, 30 permisos, 62 concesiones |
 | Configuración | 5 claves y el marcador `siembra_version` |
 | Áreas y categorías | 8 y 8 |
 | Plantillas de etapas | 8 plantillas, 32 etapas |
-| Usuarios | 8, uno por persona del taller |
+| Usuarios | 10, según `prisma/seed/datos/usuarios.json` |
 | Materiales | 33, con costo y stock mínimo |
 | Productos y recetas | 34 productos, 29 líneas de receta |
 | Clientes | 28, entre personas y empresas |
@@ -22,6 +22,10 @@ Modelo: `docs/analisis/05-modelo-datos.md`.
 | Bitácora | 229 eventos |
 
 Los totales salen de los JSON y de la lógica de siembra. `verificar.ts` los comprueba.
+Cuente las concesiones en `PERMISOS_POR_PERFIL` de `src/core/permisos.ts`.
+Distribución: GERENCIA 10, ADMINISTRACION 14, OPERACIONES 16, ATENCION_CLIENTE 12, PRODUCCION 6, ADMIN 4.
+Permita varios perfiles por usuario; la siembra asigna uno a cada usuario.
+Consulte [la matriz v9](modulos/09-perfiles-v9.md).
 
 ## Cómo ejecutarla
 
@@ -57,7 +61,9 @@ Las claves no están en este documento. Cada perfil usa la variable indicada.
 | Persona | Correo | Perfil | Variable de clave |
 |---|---|---|---|
 | Gerardo Jiménez | gerardo.jimenez@solucionescreativas.test | GERENCIA | `SEED_PASSWORD_GERENCIA` |
-| Valentina Castro | valentina.castro@solucionescreativas.test | VENTAS | `SEED_PASSWORD_VENTAS` |
+| Valentina Castro | valentina.castro@solucionescreativas.test | ATENCION_CLIENTE | `SEED_PASSWORD_ATENCION_CLIENTE` |
+| Karla Reyes | karla.reyes@solucionescreativas.test | OPERACIONES | `SEED_PASSWORD_OPERACIONES` |
+| Luis Mendoza | luis.mendoza@solucionescreativas.test | ADMINISTRACION | `SEED_PASSWORD_ADMINISTRACION` |
 | Roberto Díaz | roberto.diaz@solucionescreativas.test | ADMIN | `SEED_PASSWORD_ADMIN` |
 | Marco López (jefe de producción) | marco.lopez@solucionescreativas.test | PRODUCCION | `SEED_PASSWORD_PRODUCCION` |
 | Gabriel Cortez (impresión) | gabriel.cortez@solucionescreativas.test | PRODUCCION | `SEED_PASSWORD_PRODUCCION` |
@@ -116,7 +122,7 @@ El redondeo es mitad hacia arriba en valor absoluto. Es el de `round` en Postgre
 | Fecha de entrega | Es hoy más `diasParaEntrega`. Una orden entregada puede tener una fecha futura. |
 | Consumo estimado | Suma recetas del catálogo y líneas MATERIAL con su merma. Un registro por material. |
 | Responsables | La orden usa el responsable del escenario. El consumo lo registra el responsable de la orden. |
-| Actores de bitácora | Ventas cotiza, convierte y entrega. Gerencia cierra, cancela y ajusta. Producción planifica y ejecuta. |
+| Actores de bitácora | Atención al cliente cotiza y entrega. Operaciones aprueba con referencia y convierte. Conserve la limitación histórica indicada abajo. |
 | Cancelación | Motivo fijo: el cliente canceló antes de iniciar. Las etapas pasan a OMITIDA. |
 | Costo promedio | Todas las entradas tienen el mismo costo que la referencia. El promedio no cambia. |
 
@@ -137,12 +143,22 @@ Así el libro muestra los cuatro tipos de movimiento.
 
 | Tipo | Material | Cantidad | Orden o motivo |
 |---|---|---|---|
-| AJUSTE | TAZ-BLA-01 | −4 | Conteo físico: tazas quebradas. Lo registra Gerencia. |
-| AJUSTE | ACR-TRA-01 | +1 | Conteo físico: pliego hallado. Lo registra Gerencia. |
+| AJUSTE | TAZ-BLA-01 | −4 | Conteo físico: tazas quebradas. Actor histórico: Gerencia; permiso vigente: Administración. |
+| AJUSTE | ACR-TRA-01 | +1 | Conteo físico: pliego hallado. Actor histórico: Gerencia; permiso vigente: Administración. |
 | DEVOLUCION | PAP-COU-01 | 0.25 | Sobrante de `cot-aprobada-002`. |
 
 La generación de devoluciones por cancelación también existe. Con estos datos no devuelve nada.
 La orden cancelada no consumió material.
+
+### Limitación de actores históricos
+
+Distinga actores sembrados de permisos vigentes.
+`ordenes.ts` todavía atribuye cierre y cancelación a Gerencia y planificación a Producción.
+`inventario.ts` atribuye entradas y consumos a Producción y ajustes a Gerencia.
+Estos eventos históricos no conceden permisos para ejecutar esas acciones.
+Reserve cierre y cancelación para los perfiles indicados en la matriz v9.
+Reserve planificación para Operaciones y Administración; inventario para Administración.
+Queda pendiente corregir esos actores en el código de siembra.
 
 ## Alertas de stock
 

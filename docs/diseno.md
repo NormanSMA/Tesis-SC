@@ -10,7 +10,7 @@ Cubre el criterio CF-08 (adaptabilidad) y la accesibilidad WCAG 2.2 AA.
 - Empaqueta Inter con `@fontsource-variable/inter`. El build no depende de internet.
 - Usa lucide-react para íconos. No hay emojis.
 - Usa solo tema claro. Se eliminaron las variantes `dark:` de las primitivas.
-- Usa un solo color de acento (teal). Los estados usan color más ícono más texto.
+- Usa un color principal azul marino (#1f2a6b) y el dorado de la marca (#c9962f) solo como acento puntual. Los estados usan color más ícono más texto.
 - Reemplaza el paquete `cn` que instaló la CLI por `clsx` y `tailwind-merge` en `src/lib/utils.ts`.
 - Omite `ui/form.tsx`. `FormField` de `comunes` cubre ese papel con react-hook-form y zod.
 - Omite `next-themes`. El tema es fijo.
@@ -23,8 +23,12 @@ Los tokens viven en `src/app/globals.css`. Tailwind los expone con `@theme inlin
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--primary` | #0F766E | Acción primaria, enlace activo, foco |
-| `--primary-hover` | #115E59 | Hover del acento |
+| `--primary` | #1f2a6b | Acción primaria, enlace activo |
+| `--primary-hover` | #161f52 | Hover de la acción primaria |
+| `--primary-soft` | #eef1fb | Fondo tenue del primario |
+| `--primary-soft-border` | #cbd5e1 | Borde tenue del primario |
+| `--brand-gold` | #c9962f | Indicador puntual de marca en el menú |
+| `--ring` | #1f2a6b | Anillo de foco |
 | `--background` | #F8FAFC | Fondo de página |
 | `--card` | #FFFFFF | Superficie |
 | `--border` | #E2E8F0 | Contorno decorativo |
@@ -36,10 +40,17 @@ Los tokens viven en `src/app/globals.css`. Tailwind los expone con `@theme inlin
 | `--danger` | #B91C1C | Peligro y errores |
 | `--info` | #1D4ED8 | Información |
 
+Conserve #aab6ec como antecedente de `--primary-soft-border` en la lectura inicial de esta auditoría.
+Use #cbd5e1: `globals.css` cambió durante la actualización documental y contiene ese valor.
+
 Cada estado tiene fondo tenue y borde tenue: `--success-soft`, `--warning-soft`, `--danger-soft`, `--info-soft`, `--primary-soft`.
 `--neutral-strong` (#334155) pinta el estado Cerrada.
 
-### Contraste medido
+### Contraste histórico: por recalcular
+
+Conserve estas mediciones como antecedentes de la paleta anterior.
+Recalcule los pares con primario, hover, fondo tenue, borde tenue, dorado y foco actuales.
+No interprete los valores antiguos como verificación de los tokens vigentes.
 
 | Par | Razón |
 |---|---|
@@ -167,8 +178,8 @@ Ese endpoint es un supuesto. El agente de autenticación debe crearlo.
 | 1.1.1 Contenido no textual | Íconos decorativos con `aria-hidden`. Botones de ícono con `aria-label` | Todas |
 | 1.3.1 Información y relaciones | Landmarks `header`, `nav`, `main`. `th scope="col"`. `caption` por tabla | `AppShell`, `DataTable` |
 | 1.4.1 Uso del color | Estados con ícono y texto. Enlace activo con barra y `aria-current` | `EstadoBadge`, `ListaNavegacion` |
-| 1.4.3 Contraste mínimo | Pares de texto de 4.5:1 o más (ver tabla) | Tokens |
-| 1.4.11 Contraste no textual | Borde de control de 4.76:1. Foco de 5.47:1 | `Input`, `Select`, foco |
+| 1.4.3 Contraste mínimo | Exija 4.5:1 para texto normal; recalcule los pares de la paleta actual | Tokens |
+| 1.4.11 Contraste no textual | Exija 3:1; conserve medición histórica del borde y recalcule el foco actual | `Input`, `Select`, foco |
 | 1.4.13 Contenido en hover o foco | Tooltip persistente, descartable con Escape | `ListaNavegacion` |
 | 2.1.1 Teclado | Todo es operable con teclado. Escape cierra riel, menús y diálogos | `AppShell` |
 | 2.1.2 Sin trampas | Diálogos y paneles de Radix devuelven el foco al cerrar | `ConfirmDialog`, `MenuMovil` |
@@ -190,6 +201,8 @@ Ese endpoint es un supuesto. El agente de autenticación debe crearlo.
 
 ## Verificación
 
+- Use anchos E2E de 768, 1024, 1366 y 1920 px, según RNF-08 v9.
+- Mantenga pendiente la medición automatizada de superposición.
 - `e2e/diseno.spec.ts` ejecuta axe con etiquetas `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` y `wcag22aa`.
 - La prueba falla ante una violación crítica o seria.
 - Cubre `/login` sin sesión. Cubre `/panel` y `/diseno` con `E2E_DEMO=1`.
