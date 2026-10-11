@@ -73,11 +73,9 @@ const COLUMNAS = { responsableId: "responsable_id", fechaEntrega: "fecha_entrega
 type CondicionEscritura = { id: string; estado: string; version: string };
 
 export async function actualizarCondicionado(tx: Tx, condicion: CondicionEscritura, cambios: CambiosOrden): Promise<boolean> {
-  if (cambios.estado === "EN_PRODUCCION") cambios = { ...cambios, fechaInicioReal: cambios.fechaInicioReal ?? new Date() };
   const asignaciones = Object.entries(cambios).filter(([, valor]) => valor !== undefined).map(([campo, valor]) => {
     const columna = Prisma.raw(COLUMNAS[campo as keyof CambiosOrden]);
     if (campo === "responsableId") return Prisma.sql`${columna} = ${valor}::uuid`;
-    if (campo === "fechaInicioReal") return Prisma.sql`${columna} = COALESCE(fecha_inicio_real, ${valor})`;
     return campo === "estado" ? Prisma.sql`${columna} = ${valor}::estado_orden` : Prisma.sql`${columna} = ${valor}`;
   });
   const desde = new Date(condicion.version);

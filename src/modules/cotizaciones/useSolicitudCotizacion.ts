@@ -3,24 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 
+import { solicitarApi } from "@/lib/cliente-api";
 import type { CamposError } from "@/lib/errores";
-import type { CotizacionDto } from "./tipos";
 
-type Respuesta = { datos?: CotizacionDto; error?: { codigo?: string; mensaje?: string; campos?: CamposError } };
 type Peticion = { url: string; metodo: "POST" | "PATCH" | "PUT"; cuerpo: object; destino?: "editar" | "detalle" };
-
-async function solicitar(peticion: Peticion): Promise<Respuesta> {
-  try {
-    const respuesta = await fetch(peticion.url, { method: peticion.metodo,
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify(peticion.cuerpo) });
-    const cuerpo = await respuesta.json().catch(() => ({})) as Respuesta;
-    return respuesta.ok && cuerpo.datos ? cuerpo : { error: cuerpo.error ?? { mensaje: "No se pudo guardar." } };
-  } catch {
-    return { error: { mensaje: "No se pudo conectar. Revise su conexión e intente nuevamente." } };
-  }
-}
+const esquemaSolicitud = z.object({ id: z.string(), avisos: z.array(z.string()).optional() });
 
 export function enfocarError(idFormulario: string) {
   requestAnimationFrame(() => {
@@ -46,8 +35,8 @@ export function useSolicitudCotizacion(idFormulario?: string) {
     if (bloqueo.current) return;
     bloqueo.current = true;
     setEnviando(true); setError(null); setCampos({}); setConflicto(false);
-    const resultado = await solicitar(peticion);
-    if (resultado.datos) {
+    const resultado = await solicitarApi({ ...peticion, esquema: esquemaSolicitud });
+    if ("datos" in resultado) {
       toast.success("Cotización guardada.");
       resultado.datos.avisos?.forEach((aviso) => toast.warning(aviso));
       router.push(`/cotizaciones/${resultado.datos.id}${peticion.destino === "editar" ? "/editar" : ""}`);

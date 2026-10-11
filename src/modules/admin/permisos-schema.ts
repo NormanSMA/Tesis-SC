@@ -11,6 +11,7 @@ export const PERMISOS_PROTEGIDOS: readonly Permiso[] = [
 
 export const esquemaPerfilPermisos = z.enum(CODIGOS_PERFIL);
 export const esquemaReemplazarPermisos = z.strictObject({
+  version: z.string().regex(/^[0-9a-f]{64}$/, "Indique una versión SHA-256 hexadecimal válida."),
   permisos: z.array(z.enum(CATALOGO_PERMISOS.map(({ permiso }) => permiso)))
     .refine((codigos) => new Set(codigos).size === codigos.length, "No repita permisos."),
 });

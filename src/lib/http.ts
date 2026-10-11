@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 
 import { exigir, type Actor } from "@/core/autorizacion";
 import type { Permiso } from "@/core/permisos";
+import { exigirClaveCambiada } from "@/lib/auth/guardia";
 import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
 import { AppError, aErrorHttp, type CamposError } from "@/lib/errores";
 
@@ -33,13 +35,22 @@ async function cargarActor(req: Request, permiso: Permiso | undefined): Promise<
   if (!actor) {
     throw new AppError({ codigo: "SIN_SESION", mensaje: "Debe iniciar sesión para continuar.", status: 401 });
   }
+  exigirClaveCambiada(actor, new URL(req.url).pathname);
   if (permiso) exigir(actor, permiso);
   return actor;
 }
 
-function responderError(e: unknown): Response {
+function responderError(e: unknown, req: Request): Response {
   const { status, cuerpo } = aErrorHttp(e);
-  if (status >= 500) console.error("Error no controlado en la ruta", e);
+  if (status >= 500) {
+    console.error({
+      codigo: cuerpo.error.codigo,
+      mensaje: cuerpo.error.mensaje,
+      ruta: new URL(req.url).pathname,
+      metodo: req.method,
+      peticionId: randomUUID(),
+    });
+  }
   return Response.json(cuerpo, { status });
 }
 
@@ -68,7 +79,7 @@ export function manejar(
       const actor = opciones.publica ? null : await cargarActor(req, opciones.permiso);
       return await ejecutar({ req, actor, params });
     } catch (e) {
-      return responderError(e);
+      return responderError(e, req);
     }
   };
 }

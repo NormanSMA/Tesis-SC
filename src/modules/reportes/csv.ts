@@ -20,6 +20,6 @@ export function serializarCsv(entrada: { nombre: NombreReporte; reporte: Reporte
   }
   return `\uFEFF${lineas.join("\r\n")}\r\n`;
 }
-export function nombreArchivo(nombre: NombreReporte, instante = new Date()): string {
-  return `${nombre}-${hoyManagua(instante).replaceAll("-", "")}.csv`;
+export function nombreArchivo(nombre: NombreReporte, instante = new Date(), extension: "csv" | "xlsx" = "csv"): string {
+  return `${nombre}-${hoyManagua(instante).replaceAll("-", "")}.${extension}`;
 }

@@ -58,6 +58,7 @@ export async function crearUsuario(entrada: EntradaCrearUsuario, actor: Actor): 
       await bloquearAdministradores(tx);
       const creado = await insertarUsuario(tx, {
         ...entrada, correo: entrada.correo.toLowerCase(), hashContrasena, actorId: actor.id,
+        contrasenaTemporalExpiraEn: new Date(Date.now() + 48 * 3_600_000),
       });
       await registrarEvento(tx, {
         entidad: "USUARIO", entidadId: creado.id, accion: "CREAR", actorId: actor.id,
@@ -163,7 +164,10 @@ export async function reiniciarClaveUsuario(id: string, actor: Actor): Promise<U
     await bloquearUsuario(tx, id);
     const actual = await exigirUsuario(tx, id);
     const nuevo = await actualizarUsuario(tx, {
-      id, actualizadoEn: actual.actualizadoEn, cambios: { hashContrasena, intentosFallidos: 0, bloqueadoHasta: null },
+      id, actualizadoEn: actual.actualizadoEn, cambios: {
+        hashContrasena, intentosFallidos: 0, bloqueadoHasta: null,
+        contrasenaTemporal: true, contrasenaTemporalExpiraEn: new Date(Date.now() + 48 * 3_600_000),
+      },
     });
     await revocarSesiones(tx, id);
     await registrarEvento(tx, {

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { PERFILES, type PerfilCodigo } from "@/core/permisos";
 import type { Permiso } from "@/generated/prisma/client";
 
@@ -7,12 +9,18 @@ export function codigoPermiso(permiso: { recurso: string; accion: string }): str
   return `${permiso.recurso}:${permiso.accion}`;
 }
 
-export type PermisosPerfilDto = { perfil: PerfilCodigo; permisos: string[] };
+export type PermisosPerfilDto = { perfil: PerfilCodigo; permisos: string[]; version: string };
+
+export function versionPermisos(permisos: readonly string[]): string {
+  return createHash("sha256").update(JSON.stringify([...permisos].sort())).digest("hex");
+}
 
 export function aPermisosPerfilDto(perfil: PerfilConPermisos): PermisosPerfilDto {
+  const permisos = perfil.permisos.map(({ permiso }) => codigoPermiso(permiso)).sort();
   return {
     perfil: perfil.codigo,
-    permisos: perfil.permisos.map(({ permiso }) => codigoPermiso(permiso)).sort(),
+    permisos,
+    version: versionPermisos(permisos),
   };
 }
 
@@ -30,3 +38,4 @@ export function aMatrizPermisosDto(perfiles: PerfilConPermisos[], catalogo: Perm
     matriz: ordenados.map(aPermisosPerfilDto),
   };
 }
+

@@ -49,7 +49,7 @@ export function ordenarPlantillas(filas: PlantillaGuardada[], datos: { id: strin
   otras.splice(datos.posicion - 1, 0, elegida);
   return otras;
 }
-export async function prepararPosiciones(tx: Tx, filas: PlantillaGuardada[]) {
+async function prepararPosiciones(tx: Tx, filas: PlantillaGuardada[]) {
   const maxima = Math.max(0, ...filas.map((fila) => fila.secuencia));
   if (maxima + filas.length > 2147483647) throw regla("SECUENCIA_FUERA_DE_RANGO", "No quedan posiciones libres para reordenar las plantillas.");
   for (const [indice, fila] of filas.entries()) {

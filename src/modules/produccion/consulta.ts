@@ -8,6 +8,9 @@ import { incluirEtapa } from "./repo";
 import type { ConsultaTablero } from "./schema";
 import type { EtapaTablero, GrupoEtapas, OpcionesProduccion, TableroProduccion } from "./tipos";
 
+// Tope de etapas por petición del tablero. `total` informa el conteo completo.
+const LIMITE_TABLERO = 500;
+
 function filtroTablero(consulta: ConsultaTablero): Prisma.EtapaOrdenWhereInput {
   const texto = consulta.q ? { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const } : undefined;
   return { estado: consulta.estado ?? { in: ["PENDIENTE", "EN_CURSO"] }, areaId: consulta.area, responsableId: consulta.responsable,
@@ -26,14 +29,19 @@ function agrupar(datos: EtapaTablero[], campo: "area" | "responsable"): GrupoEta
 }
 export async function obtenerTablero(consulta: ConsultaTablero, actor: Actor): Promise<TableroProduccion> {
   exigir(actor, "produccion:ver");
-  const filas = await prisma.etapaOrden.findMany({ where: filtroTablero(consulta), include: { ...incluirEtapa,
-    orden: { select: { id: true, numero: true, estado: true, fechaEntrega: true } } },
-    orderBy: [{ orden: { fechaEntrega: "asc" } }, { ordenId: "asc" }, { secuencia: "asc" }] });
+  const where = filtroTablero(consulta);
+  const [filas, total] = await Promise.all([
+    prisma.etapaOrden.findMany({ where, include: { ...incluirEtapa,
+      orden: { select: { id: true, numero: true, estado: true, fechaEntrega: true } } },
+      orderBy: [{ orden: { fechaEntrega: "asc" } }, { ordenId: "asc" }, { secuencia: "asc" }], take: LIMITE_TABLERO }),
+    prisma.etapaOrden.count({ where }),
+  ]);
   const hoy = hoyManagua();
   const datos: EtapaTablero[] = filas.map((fila) => ({ ...aEtapaDto(fila),
     orden: { ...fila.orden, fechaEntrega: fila.orden.fechaEntrega.toISOString().slice(0, 10) },
     atrasada: Boolean(fila.fechaFinPlan && fila.fechaFinPlan.toISOString().slice(0, 10) < hoy) }));
-  return { datos, porArea: agrupar(datos, "area"), porResponsable: agrupar(datos, "responsable"), total: datos.length, pagina: 1 };
+  // Las etapas de porArea y porResponsable son las mismas referencias de datos: no se copian.
+  return { datos, porArea: agrupar(datos, "area"), porResponsable: agrupar(datos, "responsable"), total, pagina: 1 };
 }
 export async function opcionesProduccion(actor: Actor): Promise<OpcionesProduccion> {
   exigir(actor, "produccion:ver");

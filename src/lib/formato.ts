@@ -52,6 +52,26 @@ export function formatearCantidad(valor: string | number | null | undefined, dec
   return formatearDecimal(valor, decimales);
 }
 
+export function formatearMonedaEntera(valor: string | number | null | undefined): string {
+  if (valor === null || valor === undefined || valor === "") return "";
+  const numero = formatearDecimal(valor, 0);
+  if (!numero) return "";
+  return numero.startsWith("-") ? `-C$ ${numero.slice(1)}` : `C$ ${numero}`;
+}
+
+export function formatearPorcentaje(valor: string | number | null | undefined, decimales = 1): string {
+  if (valor === null || valor === undefined || valor === "") return "";
+  const numero = formatearDecimal(valor, decimales);
+  return numero ? `${numero} %` : "";
+}
+
+const UNIDADES_DISCRETAS = new Set(["UNIDAD", "PLIEGO"]);
+
+export function formatearCantidadPorUnidad(valor: string | number | null | undefined, unidad: string, decimales = 3): string {
+  const discreta = UNIDADES_DISCRETAS.has(unidad.toUpperCase());
+  return formatearCantidad(valor, discreta ? 0 : decimales);
+}
+
 function fechaDesdePartes(dia: string, mes: number, anio: string): string {
   return `${dia} ${MESES[mes - 1]} ${anio}`;
 }

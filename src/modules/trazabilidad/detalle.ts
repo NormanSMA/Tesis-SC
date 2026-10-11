@@ -44,24 +44,41 @@ export const LISTA_DETALLE: Record<AccionBitacora, Record<string, Regla>> = {
   REVOCAR_PERMISO: { recurso: "valor", accion: "valor", perfil: "valor" },
 };
 
-function proyectar(valor: unknown, regla: Regla, acceso: AccesoDetalle): DetalleVisible[string] | undefined {
-  if (typeof regla === "string") {
-    if (regla === "dinero" && !acceso.dinero || regla === "cliente" && !acceso.cliente) return;
-    if (valor === null || typeof valor === "number" || typeof valor === "boolean") return valor;
-    if (typeof valor === "string") return acceso.nombres?.get(valor) ?? textoValor(valor);
-    return;
-  }
-  if (Array.isArray(regla)) {
-    if (!Array.isArray(valor)) return;
-    return valor.flatMap((fila) => { const visible = proyectar(fila, regla[0], acceso); return visible === undefined ? [] : [visible]; }) as (Escalar | DetalleVisible)[];
-  }
+function permiteDetalle(regla: "valor" | "dinero" | "cliente", acceso: AccesoDetalle): boolean {
+  return regla === "valor" || acceso[regla];
+}
+
+function proyectarEscalar(valor: unknown, acceso: AccesoDetalle): Escalar | undefined {
+  if (valor === null || typeof valor === "number" || typeof valor === "boolean") return valor;
+  if (typeof valor === "string") return acceso.nombres?.get(valor) ?? textoValor(valor);
+}
+
+function proyectarLista(valor: unknown, regla: Regla, acceso: AccesoDetalle): DetalleVisible[string] | undefined {
+  if (!Array.isArray(valor)) return;
+  return valor.flatMap((fila) => {
+    const visible = proyectar(fila, regla, acceso);
+    return visible === undefined ? [] : [visible];
+  }) as (Escalar | DetalleVisible)[];
+}
+
+function tieneContenido(dato: DetalleVisible[string] | undefined): dato is DetalleVisible[string] {
+  return dato !== undefined && (typeof dato !== "object" || dato === null || Object.keys(dato).length > 0);
+}
+
+function proyectarObjeto(valor: unknown, regla: Regla, acceso: AccesoDetalle): DetalleVisible | undefined {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return;
   const visible: DetalleVisible = {};
   for (const [campo, permiso] of Object.entries(regla)) {
     const dato = proyectar((valor as Record<string, unknown>)[campo], permiso, acceso);
-    if (dato !== undefined && (typeof dato !== "object" || dato === null || Object.keys(dato).length)) visible[campo] = dato;
+    if (tieneContenido(dato)) visible[campo] = dato;
   }
   return Object.keys(visible).length ? visible : undefined;
+}
+
+function proyectar(valor: unknown, regla: Regla, acceso: AccesoDetalle): DetalleVisible[string] | undefined {
+  if (typeof regla === "string") return permiteDetalle(regla, acceso) ? proyectarEscalar(valor, acceso) : undefined;
+  if (Array.isArray(regla)) return proyectarLista(valor, regla[0], acceso);
+  return proyectarObjeto(valor, regla, acceso);
 }
 
 export function filtrarDetalle(accion: AccionBitacora, valor: unknown, acceso: AccesoDetalle): DetalleVisible {
@@ -82,18 +99,24 @@ const ETIQUETAS: Record<string, string> = { nombre: "Nombre", asunto: "Asunto", 
   fechaEmision: "Fecha de emisión", fechaVencimiento: "Fecha de vencimiento", unidad: "Unidad", unidadCobro: "Unidad de cobro",
   ancho: "Ancho", alto: "Alto", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
 
+function textoDato(dato: DetalleVisible[string] | undefined): string {
+  if (dato === null || dato === undefined) return "Sin asignar";
+  if (typeof dato === "object") return "Datos actualizados";
+  return typeof dato === "boolean" ? dato ? "Sí" : "No" : String(dato);
+}
 function resumirCampo(campo: string, valor: DetalleVisible[string]): string[] {
   const etiqueta = ETIQUETAS[campo] ?? campo;
   if (valor === null) return [];
-  if (typeof valor !== "object") return [`${etiqueta}: ${typeof valor === "boolean" ? valor ? "Sí" : "No" : valor}`];
+  if (typeof valor !== "object") return [`${etiqueta}: ${textoDato(valor)}`];
   if (Array.isArray(valor)) return valor.flatMap((fila) => resumirCampo(campo, fila));
   if ("anterior" in valor || "nuevo" in valor) {
-    const escalar = (dato: DetalleVisible[string] | undefined) => dato === null || dato === undefined ? "Sin asignar" : typeof dato === "object" ? "Datos actualizados" : String(dato);
-    return [`${etiqueta}: ${escalar(valor.anterior)} → ${escalar(valor.nuevo)}`];
+    if (JSON.stringify(valor.anterior) === JSON.stringify(valor.nuevo)) return [];
+    return [`${etiqueta}: ${textoDato(valor.anterior)} → ${textoDato(valor.nuevo)}`];
   }
   if (campo === "material" && typeof valor.nombre === "string") return [`Material: ${valor.nombre}`];
   return Object.entries(valor).flatMap(([clave, dato]) => resumirCampo(clave, dato));
 }
 export function resumirDetalle(detalle: DetalleVisible): string {
-  return Object.entries(detalle).flatMap(([campo, valor]) => resumirCampo(campo, valor)).join(". ");
+  const frases = Object.entries(detalle).flatMap(([campo, valor]) => resumirCampo(campo, valor));
+  return [...new Set(frases)].join(". ");
 }

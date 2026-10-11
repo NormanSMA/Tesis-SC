@@ -24,7 +24,7 @@ export const esquemaPeriodo = z.object({ desde: fecha, hasta: fecha }).superRefi
 });
 
 export const esquemaConsulta = esquemaPeriodo.safeExtend({
-  formato: z.enum(["json", "csv"], { error: "Seleccione JSON o CSV." }).default("json"),
+  formato: z.enum(["json", "csv", "xlsx"], { error: "Seleccione JSON, CSV o Excel." }).default("json"),
   texto: z.string().trim().max(200, "Admite hasta 200 caracteres.").optional(),
   soloAlertas: z.enum(["true", "false"], { error: "Seleccione un filtro de alertas válido." }).default("false"),
   area: z.uuid({ error: "Seleccione un área válida." }).transform((valor) => valor.toLowerCase()).optional(),

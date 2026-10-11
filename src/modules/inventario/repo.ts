@@ -65,11 +65,25 @@ export async function consultarMovimientos(consulta: ConsultaMovimientos) {
   ]);
   return { filas, total };
 }
-export async function consultarOpcionesLibro(verOrdenes: boolean) {
-  const [materiales, usuarios, ordenes] = await Promise.all([
-    prisma.material.findMany({ select: { id: true, codigo: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
-    prisma.usuario.findMany({ select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
-    verOrdenes ? prisma.ordenTrabajo.findMany({ select: { id: true, numero: true }, orderBy: [{ creadoEn: "desc" }, { id: "desc" }] }) : [],
+/** Tope de opciones por selector del libro. La opción seleccionada se agrega siempre. */
+export const TOPE_OPCIONES_LIBRO = 200;
+export type SeleccionLibro = { material?: string; usuario?: string; orden?: string };
+function conSeleccion<T extends { id: string }>(base: T[], actual: T[]) {
+  const ids = new Set(base.map((fila) => fila.id));
+  return [...base, ...actual.filter((fila) => !ids.has(fila.id))];
+}
+export async function consultarOpcionesLibro(verOrdenes: boolean, seleccion: SeleccionLibro = {}) {
+  const [materiales, usuarios, ordenes, materialActual, usuarioActual, ordenActual] = await Promise.all([
+    prisma.material.findMany({ select: { id: true, codigo: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }],
+      take: TOPE_OPCIONES_LIBRO }),
+    prisma.usuario.findMany({ select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }],
+      take: TOPE_OPCIONES_LIBRO }),
+    verOrdenes ? prisma.ordenTrabajo.findMany({ select: { id: true, numero: true }, orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
+      take: TOPE_OPCIONES_LIBRO }) : [],
+    seleccion.material ? prisma.material.findMany({ where: { id: seleccion.material }, select: { id: true, codigo: true, nombre: true } }) : [],
+    seleccion.usuario ? prisma.usuario.findMany({ where: { id: seleccion.usuario }, select: { id: true, nombre: true } }) : [],
+    verOrdenes && seleccion.orden ? prisma.ordenTrabajo.findMany({ where: { id: seleccion.orden }, select: { id: true, numero: true } }) : [],
   ]);
-  return { materiales, usuarios, ordenes };
+  return { materiales: conSeleccion(materiales, materialActual), usuarios: conSeleccion(usuarios, usuarioActual),
+    ordenes: conSeleccion(ordenes, ordenActual) };
 }

@@ -1,5 +1,6 @@
+import { formatearCantidadPorUnidad, formatearMoneda, formatearPorcentaje } from "@/lib/formato";
 import type { NombreReporte } from "./schema";
-import type { ColumnaReporte } from "./tipos";
+import type { ColumnaReporte, FilaReporte, ValorReporte } from "./tipos";
 
 export const TITULOS_REPORTES: Record<NombreReporte, string> = {
   "cotizaciones-por-estado": "Cotizaciones por estado", existencias: "Existencias",
@@ -42,7 +43,24 @@ export const ETIQUETAS_TOTALES: Record<string, string> = {
   valorInventario: "Valor del inventario (C$)", pendientes: "Etapas pendientes", enCurso: "Etapas en curso",
   completadas: "Completadas en el periodo", atrasadas: "Atrasadas", ordenes: "Órdenes a cargo",
 };
-const MONETARIAS = new Set(["importe", "costoPromedio", "valorInventario"]);
+export const MONETARIAS = new Set(["importe", "costoPromedio", "valorInventario"]);
 export function columnasReporte(nombre: NombreReporte, dinero: boolean): ColumnaReporte[] {
   return COLUMNAS[nombre].filter((columna) => dinero || !MONETARIAS.has(columna.campo));
+}
+const CANTIDADES = new Set(["existencia", "stockMinimo"]);
+export function etiquetaVisible(etiqueta: string): string {
+  return etiqueta.replace(/ \((?:C\$|%)\)$/, "");
+}
+export function celdaVisible(columna: ColumnaReporte, fila: FilaReporte): ValorReporte {
+  const valor = fila[columna.campo] ?? null;
+  if (valor === null) return "Sin dato";
+  if (MONETARIAS.has(columna.campo)) return formatearMoneda(valor);
+  if (CANTIDADES.has(columna.campo)) return formatearCantidadPorUnidad(valor, String(fila.unidad ?? ""));
+  return valor;
+}
+export function totalVisible(campo: string, valor: ValorReporte): ValorReporte {
+  if (valor === null) return null;
+  if (MONETARIAS.has(campo)) return formatearMoneda(valor);
+  if (campo === "tasaAprobacion") return formatearPorcentaje(valor);
+  return valor;
 }

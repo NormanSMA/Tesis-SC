@@ -7,7 +7,7 @@ import { ACCION_TEXTO, ENTIDAD_TEXTO, textoEstado, textoValor } from "./etiqueta
 import type { Referencias } from "./referencias";
 import type { CadenaGuardada, EventoGuardado, HistorialEtapaGuardado } from "./repo";
 
-export function aHistorialEtapaDto(historial: HistorialEtapaGuardado) {
+function aHistorialEtapaDto(historial: HistorialEtapaGuardado) {
   return { id: historial.id, ordenId: historial.ordenId, etapa: historial.etapa, usuario: historial.usuario,
     estadoAnterior: textoEstado(historial.estadoAnterior), estadoNuevo: textoEstado(historial.estadoNuevo),
     responsable: historial.responsable, creadoEn: historial.creadoEn.toISOString() };
@@ -67,23 +67,42 @@ export function aMaterialesDto(materiales: ResumenMaterialOrden[], costos?: Cost
     ...(costos ? { costoReal: costos.porMaterial[fila.material.id] ?? "0.0000000" } : {}) }));
 }
 
+type Persona = { id: string; nombre: string };
+type PersonasTrabajo = Map<string, Persona & { roles: Set<string> }>;
+
+function agregarPersona(personas: PersonasTrabajo, persona: Persona, rol: string) {
+  const fila = personas.get(persona.id) ?? { ...persona, roles: new Set<string>() };
+  fila.roles.add(rol);
+  personas.set(persona.id, fila);
+}
+
+function agregarResponsablesOrden(orden: CadenaGuardada, personas: PersonasTrabajo) {
+  if (orden.responsable) agregarPersona(personas, orden.responsable, "Responsable de orden");
+  agregarPersona(personas, orden.creadoPor, "Creó la orden");
+  for (const etapa of orden.etapas) {
+    if (etapa.responsable) agregarPersona(personas, etapa.responsable, `Responsable de ${etapa.nombre}`);
+  }
+}
+
+function agregarResponsableReferencia(id: unknown, referencias: Referencias, personas: PersonasTrabajo) {
+  if (typeof id !== "string" || !referencias.nombres.has(id)) return;
+  agregarPersona(personas, { id, nombre: referencias.nombres.get(id)! }, "Responsable anterior o asignado");
+}
+
+function agregarResponsablesAsignacion(evento: EventoGuardado, referencias: Referencias, personas: PersonasTrabajo) {
+  if (evento.accion !== "ASIGNAR_RESPONSABLE") return;
+  const detalle = filtrarDetalle(evento.accion, evento.detalle, { dinero: false, cliente: false });
+  const cambio = detalle.responsableId;
+  if (!cambio || typeof cambio !== "object" || Array.isArray(cambio)) return;
+  for (const id of Object.values(cambio)) agregarResponsableReferencia(id, referencias, personas);
+}
+
 export function responsablesTrabajo(datos: { orden: CadenaGuardada; eventos: EventoGuardado[]; referencias: Referencias }) {
-  const personas = new Map<string, { id: string; nombre: string; roles: Set<string> }>();
-  const agregar = (persona: { id: string; nombre: string }, rol: string) => {
-    const fila = personas.get(persona.id) ?? { ...persona, roles: new Set<string>() };
-    fila.roles.add(rol); personas.set(persona.id, fila);
-  };
-  if (datos.orden.responsable) agregar(datos.orden.responsable, "Responsable de orden");
-  agregar(datos.orden.creadoPor, "Creó la orden");
-  for (const etapa of datos.orden.etapas) if (etapa.responsable) agregar(etapa.responsable, `Responsable de ${etapa.nombre}`);
+  const personas: PersonasTrabajo = new Map();
+  agregarResponsablesOrden(datos.orden, personas);
   for (const evento of datos.eventos) {
-    agregar(evento.usuario, ACCION_TEXTO[evento.accion]);
-    if (evento.accion !== "ASIGNAR_RESPONSABLE") continue;
-    const detalle = filtrarDetalle(evento.accion, evento.detalle, { dinero: false, cliente: false });
-    const cambio = detalle.responsableId;
-    if (cambio && typeof cambio === "object" && !Array.isArray(cambio)) for (const id of Object.values(cambio)) {
-      if (typeof id === "string" && datos.referencias.nombres.has(id)) agregar({ id, nombre: datos.referencias.nombres.get(id)! }, "Responsable anterior o asignado");
-    }
+    agregarPersona(personas, evento.usuario, ACCION_TEXTO[evento.accion]);
+    agregarResponsablesAsignacion(evento, datos.referencias, personas);
   }
   return [...personas.values()].map((fila) => ({ id: fila.id, nombre: fila.nombre, roles: [...fila.roles] }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es") || a.id.localeCompare(b.id));

@@ -18,6 +18,7 @@ async function tomarCotizacion(tx: Tx, cotizacionId: string): Promise<Cotizacion
   if (!cotizacion) throw new AppError({ codigo: "NO_ENCONTRADO", status: 404, mensaje: "La cotización no existe." });
   const existente = await buscarOrdenDeCotizacion(tx, cotizacionId);
   if (existente) throw ordenExistente(existente);
+  if (cotizacion.archivada) throw regla("COTIZACION_ARCHIVADA", "La cotización está archivada y no se puede convertir en orden.");
   if (cotizacion.estado !== "APROBADA") throw regla("SC004", "La orden requiere una cotización aprobada.");
   return cotizacion;
 }

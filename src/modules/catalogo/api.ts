@@ -1,12 +1,15 @@
-export type FalloApi = { codigo?: string; mensaje: string; campos?: Record<string, string> };
+import { z } from "zod";
+
+import { solicitarApi, type FalloApi } from "@/lib/cliente-api";
+
+export type { FalloApi } from "@/lib/cliente-api";
 
 export async function enviarApi<T>(url: string, metodo: string, datos: object): Promise<{ datos: T } | { error: FalloApi }> {
-  try {
-    const respuesta = await fetch(url, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
-    const cuerpo = await respuesta.json().catch(() => ({}));
-    if (respuesta.ok && cuerpo.datos) return { datos: cuerpo.datos as T };
-    return { error: cuerpo.error ?? { mensaje: "No se pudo guardar. Intente de nuevo." } };
-  } catch {
-    return { error: { mensaje: "No se pudo conectar con el servidor. Revise su conexión." } };
-  }
+  return solicitarApi({
+    url, metodo, cuerpo: datos,
+    // El contrato legado permite elegir T sin aportar un esquema de respuesta.
+    esquema: z.custom<T>(),
+    mensajeError: "No se pudo guardar. Intente de nuevo.",
+    mensajeConexion: "No se pudo conectar con el servidor. Revise su conexión.",
+  });
 }

@@ -80,9 +80,19 @@ export async function configuracionCotizacion(tx: Tx) {
     empresaNombre: valores.empresa_nombre ?? "Soluciones Creativas" };
 }
 
-export function consultarClientesSelector() {
-  return prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true },
-    orderBy: [{ nombre: "asc" }, { id: "asc" }] });
+/** Tope de clientes en el selector. El cliente seleccionado se agrega siempre. */
+export const TOPE_CLIENTES_SELECTOR = 200;
+export async function consultarClientesSelector(clienteActualId?: string) {
+  const [base, actual] = await Promise.all([
+    prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true },
+      orderBy: [{ nombre: "asc" }, { id: "asc" }], take: TOPE_CLIENTES_SELECTOR }),
+    clienteActualId ? prisma.cliente.findMany({ where: { id: clienteActualId }, select: { id: true, nombre: true } }) : [],
+  ]);
+  return [...base, ...actual.filter((cliente) => !base.some((fila) => fila.id === cliente.id))];
+}
+
+export function consultarCategoriasSelector() {
+  return prisma.categoria.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
 }
 
 export async function consultarSelectores(): Promise<SelectoresEditor> {
@@ -94,7 +104,7 @@ export async function consultarSelectores(): Promise<SelectoresEditor> {
     prisma.material.findMany({ where: { activo: true }, select: {
       id: true, codigo: true, nombre: true, unidad: true, costoPromedio: true,
     }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
-    prisma.categoria.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    consultarCategoriasSelector(),
   ]);
   return {
     productos: productos.map((producto) => ({ ...producto,

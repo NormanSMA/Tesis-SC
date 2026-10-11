@@ -1,14 +1,15 @@
 import type { Actor } from "@/core/autorizacion";
-import { destinoPorPerfil, perfilPrincipal, type PerfilCodigo } from "@/core/permisos";
+import { destinoPorPerfil, PERFILES, perfilPrincipal, type PerfilCodigo } from "@/core/permisos";
 import { ttlSesionHoras } from "@/lib/auth/cookies";
-import { verificarContraFicticio, verificarContrasena } from "@/lib/auth/password";
+import { hashearContrasena, verificarContraFicticio, verificarContrasena } from "@/lib/auth/password";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
 import { generarToken, hashearToken } from "@/lib/auth/tokens";
+import { registrarEvento } from "@/lib/bitacora";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 import { formatearFechaHora } from "@/lib/formato";
 
-import type { CredencialesLogin } from "./schema";
+import type { CredencialesLogin, EntradaCambiarClave } from "./schema";
 
 export const INTENTOS_MAXIMOS = 5;
 export const BLOQUEO_MINUTOS = 15;
@@ -24,7 +25,7 @@ export type ResultadoLogin = {
   maxAgeSegundos: number;
 };
 
-export type DatosUsuario = Pick<UsuarioSesion, "id" | "nombre" | "correo" | "perfil" | "perfiles">;
+export type DatosUsuario = Pick<UsuarioSesion, "id" | "nombre" | "correo" | "perfil" | "perfiles" | "debeCambiarClave">;
 
 type PerfilConPermisos = { codigo: PerfilCodigo; permisos: { permiso: { recurso: string; accion: string } }[] };
 
@@ -59,19 +60,30 @@ function cuentaBloqueada(hasta: Date): AppError {
 
 // Une los perfiles del usuario: el principal sigue el orden de PERFILES y los permisos son la unión.
 function resumenAcceso(usuario: UsuarioConPerfiles): { perfil: PerfilCodigo; perfiles: PerfilCodigo[]; permisos: string[] } {
-  const perfiles = usuario.perfiles.map(({ perfil }) => perfil.codigo);
+  const posicion = (codigo: PerfilCodigo) => PERFILES.findIndex((perfil) => perfil.codigo === codigo);
+  const perfiles = usuario.perfiles.map(({ perfil }) => perfil.codigo).sort((a, b) => posicion(a) - posicion(b));
   const permisos = new Set(
     usuario.perfiles.flatMap(({ perfil }) => perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`)),
   );
   return { perfil: perfilPrincipal(perfiles), perfiles, permisos: [...permisos].sort() };
 }
 
-function datosUsuario({ id, nombre, correo }: Pick<DatosUsuario, "id" | "nombre" | "correo">, acceso: { perfil: PerfilCodigo; perfiles: readonly PerfilCodigo[] }): DatosUsuario {
-  return { id, nombre, correo, perfil: acceso.perfil, perfiles: [...acceso.perfiles] };
+function datosUsuario(
+  { id, nombre, correo, debeCambiarClave }: Pick<DatosUsuario, "id" | "nombre" | "correo" | "debeCambiarClave">,
+  acceso: { perfil: PerfilCodigo; perfiles: readonly PerfilCodigo[] },
+): DatosUsuario {
+  return { id, nombre, correo, perfil: acceso.perfil, perfiles: [...acceso.perfiles], debeCambiarClave };
 }
 
-export function respuestaSesion(actor: Actor): { usuario: DatosUsuario; permisos: string[] } {
-  return { usuario: datosUsuario(actor, actor), permisos: [...actor.permisos] };
+export function respuestaSesion(actor: Actor & { debeCambiarClave?: boolean }): { usuario: DatosUsuario; permisos: string[] } {
+  return {
+    usuario: datosUsuario({ ...actor, debeCambiarClave: actor.debeCambiarClave ?? false }, actor),
+    permisos: [...actor.permisos],
+  };
+}
+
+function claveTemporalVencida(usuario: { contrasenaTemporal: boolean; contrasenaTemporalExpiraEn: Date | null }, ahora: Date): boolean {
+  return usuario.contrasenaTemporal && (!usuario.contrasenaTemporalExpiraEn || usuario.contrasenaTemporalExpiraEn <= ahora);
 }
 
 // Un solo UPDATE condicionado: dos fallos simultáneos no pueden saltarse el conteo ni el bloqueo.
@@ -90,21 +102,33 @@ async function registrarFallo(usuarioId: string, ahora: Date): Promise<Date | nu
   return actual?.bloqueadoHasta && actual.bloqueadoHasta > ahora ? actual.bloqueadoHasta : null;
 }
 
-async function abrirSesion(usuario: UsuarioConPerfiles, ahora: Date): Promise<ResultadoLogin> {
+export async function abrirSesion(usuario: UsuarioConPerfiles & { hashContrasena: string }, ahora: Date): Promise<ResultadoLogin> {
   const token = generarToken();
   const expiraEn = new Date(ahora.getTime() + ttlSesionHoras() * MS_POR_HORA);
-  await prisma.$transaction([
-    prisma.usuario.update({
+  const debeCambiarClave = await prisma.$transaction(async (tx) => {
+    const [actual] = await tx.$queryRaw<{
+      hash_contrasena: string; activo: boolean; bloqueado_hasta: Date | null;
+      contrasena_temporal: boolean; contrasena_temporal_expira_en: Date | null;
+    }[]>`
+      SELECT hash_contrasena, activo, bloqueado_hasta, contrasena_temporal, contrasena_temporal_expira_en
+      FROM usuario WHERE id = ${usuario.id}::uuid FOR NO KEY UPDATE`;
+    if (!actual || actual.hash_contrasena !== usuario.hashContrasena || !actual.activo ||
+        (actual.bloqueado_hasta && actual.bloqueado_hasta > ahora) || claveTemporalVencida({
+          contrasenaTemporal: actual.contrasena_temporal,
+          contrasenaTemporalExpiraEn: actual.contrasena_temporal_expira_en,
+        }, ahora)) throw credencialesInvalidas();
+    await tx.usuario.update({
       where: { id: usuario.id },
       data: { intentosFallidos: 0, bloqueadoHasta: null, ultimoAcceso: ahora },
-    }),
-    prisma.sesion.create({ data: { tokenHash: hashearToken(token), usuarioId: usuario.id, expiraEn } }),
+    });
+    await tx.sesion.create({ data: { tokenHash: hashearToken(token), usuarioId: usuario.id, expiraEn } });
     // Las sesiones vencidas no tienen historial de negocio: se purgan al abrir una nueva.
-    prisma.sesion.deleteMany({ where: { usuarioId: usuario.id, expiraEn: { lt: ahora } } }),
-  ]);
+    await tx.sesion.deleteMany({ where: { usuarioId: usuario.id, expiraEn: { lt: ahora } } });
+    return actual.contrasena_temporal;
+  });
   const acceso = resumenAcceso(usuario);
   return {
-    usuario: datosUsuario(usuario, acceso),
+    usuario: datosUsuario({ ...usuario, debeCambiarClave }, acceso),
     permisos: acceso.permisos,
     destino: destinoPorPerfil[acceso.perfil],
     token,
@@ -117,6 +141,10 @@ export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date
   const usuario = await prisma.usuario.findUnique({ where: { correo }, include: INCLUIR_PERFILES });
   if (!usuario) {
     await verificarContraFicticio(entrada.contrasena);
+    throw credencialesInvalidas();
+  }
+  if (claveTemporalVencida(usuario, ahora)) {
+    await verificarContrasena(usuario.hashContrasena, entrada.contrasena);
     throw credencialesInvalidas();
   }
   if (usuario.bloqueadoHasta && usuario.bloqueadoHasta > ahora) throw cuentaBloqueada(usuario.bloqueadoHasta);
@@ -147,5 +175,43 @@ export async function resolverSesion(token: string, ahora = new Date()): Promise
   if (!sesion || sesion.revocadaEn || sesion.expiraEn <= ahora || !sesion.usuario.activo) return null;
   const { usuario } = sesion;
   if (usuario.perfiles.length === 0) return null;
-  return { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, ...resumenAcceso(usuario) };
+  return {
+    id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
+    ...resumenAcceso(usuario), debeCambiarClave: usuario.contrasenaTemporal,
+  };
+}
+
+export async function cambiarClave(
+  entrada: EntradaCambiarClave, actor: Actor, token: string | null,
+): Promise<{ debeCambiarClave: false }> {
+  const tokenHash = token ? hashearToken(token) : null;
+  const sinSesion = () => new AppError({ codigo: "SIN_SESION", mensaje: "Debe iniciar sesión para continuar.", status: 401 });
+  if (!tokenHash) throw sinSesion();
+  return prisma.$transaction(async (tx) => {
+    const [usuario] = await tx.$queryRaw<{ hash_contrasena: string; activo: boolean; actualizado_en: Date }[]>`
+      SELECT hash_contrasena, activo, actualizado_en FROM usuario
+      WHERE id = ${actor.id}::uuid FOR NO KEY UPDATE`;
+    const sesion = await tx.sesion.findUnique({ where: { tokenHash } });
+    const ahora = new Date();
+    if (!usuario?.activo || !sesion || sesion.usuarioId !== actor.id || sesion.revocadaEn || sesion.expiraEn <= ahora) {
+      throw sinSesion();
+    }
+    if (!await verificarContrasena(usuario.hash_contrasena, entrada.claveActual)) throw credencialesInvalidas();
+    const hashContrasena = await hashearContrasena(entrada.claveNueva);
+    await tx.usuario.update({
+      where: { id: actor.id },
+      data: {
+        hashContrasena, contrasenaTemporal: false, contrasenaTemporalExpiraEn: null,
+        actualizadoEn: new Date(Math.max(ahora.getTime(), usuario.actualizado_en.getTime() + 1)),
+      },
+    });
+    await tx.sesion.updateMany({
+      where: { usuarioId: actor.id, tokenHash: { not: tokenHash }, revocadaEn: null }, data: { revocadaEn: ahora },
+    });
+    await registrarEvento(tx, {
+      entidad: "USUARIO", entidadId: actor.id, accion: "EDITAR", actorId: actor.id,
+      detalle: { operacion: "CAMBIAR_CLAVE", sesionesRevocadas: true },
+    });
+    return { debeCambiarClave: false };
+  });
 }

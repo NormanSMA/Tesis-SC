@@ -34,7 +34,7 @@ export async function consultarMaterialesPanel(verDinero: boolean): Promise<Inve
     SELECT (SELECT count(*)::int FROM alertas) AS "bajoMinimo",
       CASE WHEN ${verDinero} THEN coalesce(sum(existencia * costo_promedio), 0)::text ELSE '0' END AS valor,
       (SELECT coalesce(jsonb_agg(f ORDER BY f.proporcion, f.nombre, f.id), '[]') FROM
-        (SELECT id, nombre, existencia::text, stock_minimo::text AS minimo,
+        (SELECT id, nombre, existencia::text, stock_minimo::text AS minimo, unidad::text,
           existencia / stock_minimo AS proporcion FROM alertas
           ORDER BY proporcion, nombre, id LIMIT 5) f) AS filas FROM materiales`;
   return resultado;
@@ -44,7 +44,11 @@ export async function consultarComercial(hoy: string): Promise<ComercialPanel> {
   const [resultado] = await prisma.$queryRaw<ComercialPanel[]>`
     WITH fechas AS (SELECT ${hoy}::date AS hoy, date_trunc('month', ${hoy}::date)::date AS mes),
     cotizaciones AS (SELECT c.*, coalesce((fecha_respuesta AT TIME ZONE 'America/Managua')::date,
-      CASE WHEN estado = 'VENCIDA' THEN fecha_vencimiento END) AS respuesta FROM cotizacion c),
+      CASE WHEN estado = 'VENCIDA' THEN fecha_vencimiento END) AS respuesta FROM cotizacion c
+      WHERE c.estado IN ('BORRADOR','ENVIADA','AJUSTE_SOLICITADO')
+        OR c.creado_en >= (((SELECT mes FROM fechas) - interval '12 months')::timestamp AT TIME ZONE 'America/Managua')
+        OR c.fecha_respuesta >= (((SELECT mes FROM fechas) - interval '12 months')::timestamp AT TIME ZONE 'America/Managua')
+        OR c.fecha_vencimiento >= (SELECT mes FROM fechas) - interval '12 months'),
     meses AS (SELECT generate_series((SELECT mes FROM fechas) - interval '5 months',
       (SELECT mes FROM fechas), interval '1 month')::date AS mes),
     resumen AS (SELECT m.mes::text, coalesce(sum(c.total) FILTER (WHERE estado = 'APROBADA'), 0)::text AS monto,
@@ -109,7 +113,8 @@ export async function consultarMovimientos(hoy: string): Promise<MovimientosPane
   const [resultado] = await prisma.$queryRaw<MovimientosPanel[]>`
     WITH fechas AS (SELECT ${hoy}::date AS hoy, date_trunc('week', ${hoy}::date)::date AS semana),
     movimientos AS (SELECT tipo, (creado_en AT TIME ZONE 'America/Managua')::date AS dia FROM movimiento_inventario
-      WHERE (creado_en AT TIME ZONE 'America/Managua')::date >= (SELECT semana - 35 FROM fechas)
+      WHERE creado_en >= ((SELECT semana - 35 FROM fechas)::timestamp AT TIME ZONE 'America/Managua')
+        AND (creado_en AT TIME ZONE 'America/Managua')::date >= (SELECT semana - 35 FROM fechas)
         AND (creado_en AT TIME ZONE 'America/Managua')::date <= ${hoy}::date)
     SELECT count(*) FILTER (WHERE tipo = 'CONSUMO' AND dia = ${hoy}::date)::int AS "consumosHoy",
       count(*) FILTER (WHERE dia >= (SELECT semana FROM fechas))::int AS "movimientosSemana",

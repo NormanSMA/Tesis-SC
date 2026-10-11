@@ -31,6 +31,10 @@ export function useEditorReceta(producto: FichaProducto) {
     setEnviando(true); setError(null); setConflicto(false);
     const respuesta = await enviarApi<FichaProducto>(`/api/v1/productos/${producto.id}/receta`, "PUT", valores);
     if ("datos" in respuesta) {
+      formulario.reset({
+        version: respuesta.datos.actualizadoEn,
+        materiales: respuesta.datos.receta.map((fila) => ({ materialId: fila.materialId, cantidad: fila.cantidad })),
+      });
       toast.success("Receta guardada."); router.refresh();
     } else {
       setError(respuesta.error.mensaje);

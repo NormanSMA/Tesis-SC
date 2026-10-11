@@ -26,7 +26,7 @@ export type OperacionPanel = {
   pendientes: number; sinResponsable: number; enProduccion: number; atrasadas: number;
   entregas: number; accion: number; porEstado: SerieConteo[]; filas: OrdenAtencion[];
 };
-export type MaterialAtencion = { id: string; nombre: string; existencia: string; minimo: string };
+export type MaterialAtencion = { id: string; nombre: string; existencia: string; minimo: string; unidad: string };
 export type InventarioPanel = { bajoMinimo: number; valor: string; filas: MaterialAtencion[] };
 export type MesComercial = { mes: string; monto: string; aprobadas: number; respondidas: number };
 export type ComercialPanel = {

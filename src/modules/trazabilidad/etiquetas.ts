@@ -31,3 +31,8 @@ export function textoEstado(estado: string | null): string | null {
 export function textoValor(valor: string): string {
   return OTROS[valor] ?? ETIQUETA_UNIDAD[valor] ?? valor;
 }
+
+export function textoCambioEstado(anterior: string | null, nuevo: string | null): string | null {
+  if (!nuevo || anterior === nuevo) return null;
+  return `${anterior ?? "Creación"} → ${nuevo}`;
+}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { Prisma, type TipoValorConfig } from "@/generated/prisma/client";
+import { CIEN, CERO, comparar, leerDecimal } from "@/core/decimal";
+import type { TipoValorConfig } from "@/generated/prisma/client";
 import { AppError } from "@/lib/errores";
 
 export const esquemaEditarConfiguracion = z.strictObject({
@@ -17,11 +18,12 @@ const valoresPorTipo = {
   TEXTO: z.string(),
 };
 
-const valoresPorClave = new Map<string, z.ZodType<string>>([
+const valoresPorClave = new Map<string, z.ZodType<string, string>>([
   ["iva_porcentaje", valoresPorTipo.DECIMAL.pipe(z.string().refine((valor) => {
-    const decimal = new Prisma.Decimal(valor);
-    return decimal.gte(0) && decimal.lte(100);
-  }, "Indique un IVA entre 0 y 100."))],
+    const decimal = leerDecimal(valor);
+    return /^-?\d+(\.\d{1,2})?$/.test(valor) && decimal !== null &&
+      comparar(decimal, CERO) >= 0 && comparar(decimal, CIEN) <= 0;
+  }, "Indique un IVA entre 0 y 100, con hasta 2 decimales."))],
   ["cotizacion_vigencia_dias", valoresPorTipo.ENTERO.pipe(z.string().refine((valor) => {
     const dias = BigInt(valor);
     return dias >= BigInt(1) && dias <= BigInt(365);
@@ -29,6 +31,10 @@ const valoresPorClave = new Map<string, z.ZodType<string>>([
   ["moneda", z.string().regex(/^[A-Z]{3}$/, "Indique tres letras mayúsculas.")],
   ["empresa_nombre", z.string().trim().min(1, "Ingrese el nombre de empresa.").max(120)],
 ]);
+
+export function esquemaValorPorClaveConfiguracion(clave: string): z.ZodType<string, string> | undefined {
+  return valoresPorClave.get(clave);
+}
 
 export function validarValorConfiguracion(datos: { clave: string; tipo: TipoValorConfig; valor: string }): string {
   if (datos.clave === "zona_horaria") {
@@ -43,7 +49,7 @@ export function validarValorConfiguracion(datos: { clave: string; tipo: TipoValo
   }
   const tipado = esquemaTipo.safeParse(datos.valor);
   const resultado = tipado.success
-    ? (valoresPorClave.get(datos.clave) ?? esquemaTipo).safeParse(tipado.data)
+    ? (esquemaValorPorClaveConfiguracion(datos.clave) ?? esquemaTipo).safeParse(tipado.data)
     : tipado;
   if (resultado.success) return resultado.data;
   throw new AppError({

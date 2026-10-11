@@ -59,11 +59,14 @@ async function exigirPerfiles(tx: Tx, codigos: readonly PerfilCodigo[]) {
   return perfiles;
 }
 
-export async function insertarUsuario(tx: Tx, datos: EntradaCrearUsuario & { hashContrasena: string; actorId: string }) {
+export async function insertarUsuario(tx: Tx, datos: EntradaCrearUsuario & {
+  hashContrasena: string; actorId: string; contrasenaTemporalExpiraEn: Date;
+}) {
   const perfiles = await exigirPerfiles(tx, datos.perfiles);
   return tx.usuario.create({
     data: {
       nombre: datos.nombre, correo: datos.correo, hashContrasena: datos.hashContrasena,
+      contrasenaTemporal: true, contrasenaTemporalExpiraEn: datos.contrasenaTemporalExpiraEn,
       perfiles: { create: perfiles.map((perfil) => ({ perfilId: perfil.id, asignadoPorId: datos.actorId })) },
     },
     select: SELECCION_USUARIO,
@@ -84,7 +87,7 @@ export async function reemplazarPerfiles(
 type EscrituraUsuario = {
   id: string; actualizadoEn: Date;
   cambios: Pick<Prisma.UsuarioUpdateInput, "nombre" | "correo" | "activo" | "hashContrasena" |
-    "intentosFallidos" | "bloqueadoHasta">;
+    "intentosFallidos" | "bloqueadoHasta" | "contrasenaTemporal" | "contrasenaTemporalExpiraEn">;
 };
 
 export function actualizarUsuario(tx: Tx, { id, actualizadoEn, cambios }: EscrituraUsuario) {

@@ -5,7 +5,7 @@ import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 
-import { aMatrizPermisosDto, aPermisosPerfilDto, codigoPermiso } from "./permisos-dto";
+import { aMatrizPermisosDto, aPermisosPerfilDto, codigoPermiso, versionPermisos } from "./permisos-dto";
 import {
   aplicarDiferenciasPermisos, bloquearPerfilPermisos, consultarCatalogoPermisos, consultarPerfilesPermisos,
 } from "./permisos-repo";
@@ -54,17 +54,24 @@ export async function reemplazarPermisosPerfil(
   return prisma.$transaction(async (tx) => {
     const actual = await bloquearPerfilPermisos(tx, perfil);
     if (!actual) throw new AppError({ codigo: "NO_ENCONTRADO", mensaje: "El perfil no existe.", status: 404 });
+    const permisosActuales = aPermisosPerfilDto(actual);
+    if (entrada.version !== permisosActuales.version) {
+      throw new AppError({
+        codigo: "CONFLICTO_EDICION", status: 409,
+        mensaje: "Los permisos del perfil cambiaron. Recargue los datos antes de guardar.",
+      });
+    }
     const catalogo = new Map((await consultarCatalogoPermisos(tx)).map((permiso) => [codigoPermiso(permiso), permiso]));
     if (entrada.permisos.some((codigo) => !catalogo.has(codigo))) {
       throw new AppError({ codigo: "PERMISO_INVALIDO", mensaje: "Un permiso no existe.", status: 422 });
     }
-    const { altas, bajas } = calcularDiferenciasPermisos(aPermisosPerfilDto(actual).permisos, entrada.permisos);
+    const { altas, bajas } = calcularDiferenciasPermisos(permisosActuales.permisos, entrada.permisos);
     await aplicarDiferenciasPermisos(tx, {
       perfilId: actual.id, actorId: actor.id,
       altas: altas.map((codigo) => catalogo.get(codigo)!.id),
       bajas: bajas.map((codigo) => catalogo.get(codigo)!.id),
     });
     await registrarDiferencias(tx, { perfilId: actual.id, perfil, actorId: actor.id, altas, bajas, catalogo });
-    return { perfil, permisos: [...entrada.permisos].sort() };
+    return { perfil, permisos: [...entrada.permisos].sort(), version: versionPermisos(entrada.permisos) };
   });
 }

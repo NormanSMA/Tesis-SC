@@ -16,6 +16,7 @@ export { leerIdCotizacion } from "./errores";
 export { enviarCotizacion, responderCotizacion, archivarCotizacion } from "./estados";
 
 async function exigirClienteActivo(tx: Tx, clienteId: string): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM cliente WHERE id = ${clienteId}::uuid FOR SHARE`;
   const cliente = await tx.cliente.findUnique({ where: { id: clienteId } });
   if (!cliente?.activo) throw regla("CLIENTE_ARCHIVADO", "Seleccione un cliente activo.");
 }

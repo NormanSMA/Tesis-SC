@@ -1,10 +1,20 @@
 import { notFound } from "next/navigation";
 
-import type { Actor } from "@/core/autorizacion";
+import { exigir, type Actor } from "@/core/autorizacion";
+import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errores";
-import { filtrarUsuarios, type FiltrosUsuarios } from "@/modules/admin/componentes/interfaz";
-import { leerIdUsuario, listarUsuarios, obtenerUsuario } from "@/modules/admin/service";
-import type { UsuarioDto } from "@/modules/admin/tipos";
+import type { FiltrosUsuarios } from "@/modules/admin/componentes/interfaz";
+import { aUsuarioDto } from "@/modules/admin/dto";
+import { leerIdUsuario, obtenerUsuario } from "@/modules/admin/service";
+
+const POR_PAGINA = 20;
+
+const SELECCION_LISTA = {
+  id: true, nombre: true, correo: true, activo: true, intentosFallidos: true,
+  bloqueadoHasta: true, ultimoAcceso: true, creadoEn: true, actualizadoEn: true,
+  perfiles: { select: { perfil: { select: { codigo: true } } } },
+} satisfies Prisma.UsuarioSelect;
 
 export async function cargarUsuario(id: string, actor: Actor) {
   try {
@@ -15,25 +25,34 @@ export async function cargarUsuario(id: string, actor: Actor) {
   }
 }
 
-export async function cargarUsuarios(filtros: FiltrosUsuarios, actor: Actor) {
-  // El servicio no ofrece filtro por bloqueo ni contadores globales.
-  const datos: UsuarioDto[] = [];
-  let pagina = 1;
-  let total = 0;
-  do {
-    const lista = await listarUsuarios({ pagina, porPagina: 100, activo: undefined }, actor);
-    datos.push(...lista.datos);
-    total = lista.total;
-    pagina += 1;
-    if (lista.datos.length === 0) break;
-  } while (datos.length < total);
-  const ahora = Date.now();
-  const encontrados = filtrarUsuarios(datos, filtros, ahora);
-  const porPagina = 20;
+function filtroEstado(estado: FiltrosUsuarios["estado"], ahora: Date): Prisma.UsuarioWhereInput {
+  if (estado === "ACTIVO") return { activo: true };
+  if (estado === "INACTIVO") return { activo: false };
+  if (estado === "BLOQUEADO") return { activo: true, bloqueadoHasta: { gt: ahora } };
+  return {};
+}
+
+function filtroUsuarios(filtros: FiltrosUsuarios, ahora: Date): Prisma.UsuarioWhereInput {
+  const contiene = { contains: filtros.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
   return {
-    datos: encontrados.slice((filtros.pagina - 1) * porPagina, filtros.pagina * porPagina),
-    total: encontrados.length, pagina: filtros.pagina, porPagina, ahora,
-    activos: datos.filter((usuario) => usuario.activo).length,
-    bloqueados: datos.filter((usuario) => usuario.activo && usuario.bloqueadoHasta && Date.parse(usuario.bloqueadoHasta) > ahora).length,
+    ...filtroEstado(filtros.estado, ahora),
+    ...(filtros.perfil && { perfiles: { some: { perfil: { codigo: filtros.perfil } } } }),
+    ...(filtros.q && { OR: [{ nombre: contiene }, { correo: contiene }] }),
   };
+}
+
+export async function cargarUsuarios(filtros: FiltrosUsuarios, actor: Actor) {
+  exigir(actor, "usuario:gestionar");
+  const ahora = Date.now();
+  const where = filtroUsuarios(filtros, new Date(ahora));
+  const [filas, total, activos, bloqueados] = await Promise.all([
+    prisma.usuario.findMany({
+      where, select: SELECCION_LISTA, orderBy: [{ nombre: "asc" }, { id: "asc" }],
+      skip: (filtros.pagina - 1) * POR_PAGINA, take: POR_PAGINA,
+    }),
+    prisma.usuario.count({ where }),
+    prisma.usuario.count({ where: { activo: true } }),
+    prisma.usuario.count({ where: { activo: true, bloqueadoHasta: { gt: new Date(ahora) } } }),
+  ]);
+  return { datos: filas.map(aUsuarioDto), total, pagina: filtros.pagina, porPagina: POR_PAGINA, ahora, activos, bloqueados };
 }

@@ -1,6 +1,6 @@
 import { exigir, type Actor } from "@/core/autorizacion";
-import { registrarEvento } from "@/lib/bitacora";
 import type { Tx } from "@/lib/db";
+import { registrarEtapa } from "@/modules/produccion/escritura";
 import { aOrdenDto } from "./dto";
 import { exigirOrden, guardarCambios, leerVersion, registrarCambio, transaccionOrden } from "./escritura";
 import { exigirTransicion, validarMotivoCancelacion } from "./reglas";
@@ -34,8 +34,8 @@ async function omitirEtapas(tx: Tx, datos: { ordenId: string; motivo: string; ac
   const pendientes = await tx.etapaOrden.findMany({ where: { ordenId: datos.ordenId, estado: "PENDIENTE" }, orderBy: { secuencia: "asc" } });
   for (const etapa of pendientes) {
     await tx.etapaOrden.update({ where: { id: etapa.id }, data: { estado: "OMITIDA", observaciones: datos.motivo } });
-    await registrarEvento(tx, { entidad: "ETAPA_ORDEN", entidadId: etapa.id, ordenId: datos.ordenId,
-      actorId: datos.actor.id, accion: "CAMBIAR_ESTADO", estadoAnterior: "PENDIENTE", estadoNuevo: "OMITIDA",
+    await registrarEtapa(tx, { etapa, actor: datos.actor,
+      accion: "CAMBIAR_ESTADO", estadoAnterior: "PENDIENTE", estadoNuevo: "OMITIDA",
       detalle: { motivo: datos.motivo, nombre: etapa.nombre } });
   }
 }

@@ -5,7 +5,7 @@ import { prisma, type Tx } from "@/lib/db";
 import { aMaterialDto, aMovimientoDto, type ListaMateriales, type ListaMovimientos } from "./dto";
 import { conflictoEdicion, exigirVersion, noEncontrado, regla, traducirError } from "./errores";
 import { actualizarCondicionado, bloquearMaterial, consultarConciliacion, consultarMateriales, consultarMovimientos, consultarOpcionesLibro,
-  type CambiosMaterial } from "./repo";
+  type CambiosMaterial, type SeleccionLibro } from "./repo";
 import type { ConsultaMateriales, ConsultaMovimientos, CrearMaterial, EditarMaterial } from "./schema";
 import { alertaMaterial } from "./reglas";
 
@@ -90,7 +90,7 @@ export async function listarMovimientosMaterial(id: string, consulta: ConsultaMo
   if (!await prisma.material.findUnique({ where: { id }, select: { id: true } })) throw noEncontrado();
   return listarMovimientos({ ...consulta, material: id }, actor);
 }
-export function opcionesLibro(actor: Actor) {
+export function opcionesLibro(actor: Actor, seleccion: SeleccionLibro = {}) {
   exigir(actor, "inventario:ver");
-  return consultarOpcionesLibro(can(actor, "orden:ver"));
+  return consultarOpcionesLibro(can(actor, "orden:ver"), seleccion);
 }

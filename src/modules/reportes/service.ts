@@ -57,7 +57,7 @@ async function etapas(consulta: ConsultaReporte, hoy: string) {
 }
 export async function obtenerReporte(entrada: { nombre: NombreReporte; consulta: ConsultaReporte; actor: Actor; instante?: Date }): Promise<ReporteDto> {
   exigir(entrada.actor, "reporte:ver");
-  if (entrada.consulta.formato === "csv") exigir(entrada.actor, "reporte:exportar");
+  if (entrada.consulta.formato !== "json") exigir(entrada.actor, "reporte:exportar");
   const instante = entrada.instante ?? new Date();
   const dinero = can(entrada.actor, "cotizacion:ver");
   const operaciones = {

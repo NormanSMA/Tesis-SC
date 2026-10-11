@@ -1,8 +1,8 @@
 import { can, type Actor } from "@/core/autorizacion";
 import { dividir, formatear, leerDecimal, deEntero } from "@/core/decimal";
-import { formatearCantidad, formatearFecha } from "@/lib/formato";
+import { formatearFecha } from "@/lib/formato";
 import { textoEstado } from "@/modules/trazabilidad/etiquetas";
-import { cantidadPanel, dineroPanel, META_APROBACION_PCT, nombreMes, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "./dto";
+import { cantidadMaterialPanel, cantidadPanel, dineroPanel, etiquetaDia, etiquetaSemana, mesesConActividad, META_APROBACION_PCT, nombreMes, nombreMesCorto, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "./dto";
 import { consultarClientesNuevos, consultarComercial, consultarMaterialesPanel, consultarMovimientos, consultarOperacion, consultarProduccion } from "./repo";
 import type { AtencionPanel, ContenidoPanel, GraficoPanel, IndicadorPanel, InventarioPanel, OperacionPanel, PerfilPanel, SerieConteo } from "./tipos";
 
@@ -13,6 +13,9 @@ function indicador(entrada: Omit<IndicadorPanel, "valor"> & { valor: number | st
 function grafico(titulo: string, subtitulo: string, datos: SerieConteo[]): GraficoPanel {
   return { titulo, subtitulo, tipo: "barras", datos };
 }
+function textoAprobadas(cantidad: number): string {
+  return cantidad === 1 ? "1 cotización aprobada" : `${cantidad} cotizaciones aprobadas`;
+}
 function atencionOrdenes(datos: OperacionPanel): AtencionPanel[] {
   return datos.filas.map((fila) => ({ id: fila.id, titulo: fila.dias > 0 ? `${fila.numero} atrasada ${fila.dias} días` : `${fila.numero} sin responsable`,
     detalle: fila.sinResponsable ? "Asigne un responsable" : "Revise la fecha de entrega",
@@ -20,7 +23,7 @@ function atencionOrdenes(datos: OperacionPanel): AtencionPanel[] {
 }
 function atencionMateriales(datos: InventarioPanel): AtencionPanel[] {
   return datos.filas.map((fila) => ({ id: fila.id, titulo: `${fila.nombre} bajo el mínimo`,
-    detalle: `Existencia ${formatearCantidad(fila.existencia, 3)}; mínimo ${formatearCantidad(fila.minimo, 3)}`,
+    detalle: `Existencia ${cantidadMaterialPanel(fila.existencia, fila.unidad)} de ${cantidadMaterialPanel(fila.minimo, fila.unidad)}`,
     gravedad: fila.existencia === "0.000" || Number(fila.existencia) === 0 ? "alta" : "media", destino: `/inventario/${fila.id}` }));
 }
 async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
@@ -34,13 +37,13 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
     const actual = comercial.meses[5], anterior = comercial.meses[4];
     panel.titulo = tituloGerencia(actual, anterior);
     panel.indicadores.push(indicador({ id: "monto-aprobado", etiqueta: "Monto aprobado", valor: dineroPanel(actual.monto),
-      contexto: `Frente a ${nombreMes(anterior.mes)} (${dineroPanel(anterior.monto)})`, tendencia: tendenciaMonto(actual.monto, anterior.monto), destino: "/cotizaciones?estado=APROBADA" }),
+      contexto: `${textoAprobadas(actual.aprobadas)}; ${nombreMes(anterior.mes)}: ${dineroPanel(anterior.monto)}`, tendencia: tendenciaMonto(actual.monto, anterior.monto), destino: "/cotizaciones?estado=APROBADA" }),
     indicador({ id: "tasa-aprobacion", etiqueta: "Tasa de aprobación", valor: `${Math.round(tasaAprobacion(actual))} %`,
       contexto: `Meta ${META_APROBACION_PCT} %; ${actual.aprobadas} aprobadas de ${actual.respondidas} respondidas`,
       tendencia: tendenciaTasa(actual, anterior), destino: "/cotizaciones" }));
-    panel.grafico = grafico("Monto aprobado por mes", "Últimos seis meses, en miles de córdobas", comercial.meses.map((mes) => ({
-      etiqueta: nombreMes(mes.mes), valor: Number(formatear(dividir(leerDecimal(mes.monto)!, deEntero(1000)), 5)), destacado: mes.mes === actual.mes })));
-    if (can(actor, "reporte:ver")) panel.grafico.nota = { texto: "Ver detalle en Reportes", destino: "/reportes" };
+    panel.grafico = grafico("Monto aprobado por mes", "Últimos seis meses, en miles de córdobas", mesesConActividad(comercial.meses).map((mes) => ({
+      etiqueta: nombreMesCorto(mes.mes), valor: Number(formatear(dividir(leerDecimal(mes.monto)!, deEntero(1000)), 1)), destacado: mes.mes === actual.mes })));
+    if (can(actor, "reporte:ver")) panel.grafico.nota = { texto: "Ver en Reportes", destino: "/reportes" };
   }
   if (ordenes) {
     if (!comercial) panel.titulo = `${ordenes.enProduccion} órdenes en producción`;
@@ -55,17 +58,21 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   return panel;
 }
 
+function tituloOperaciones(accion: number): string {
+  if (accion === 0) return "Ninguna orden necesita su acción";
+  return accion === 1 ? "1 orden necesita su acción" : `${accion} órdenes necesitan su acción`;
+}
 async function operaciones(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const pregunta = "¿Qué órdenes necesitan mi acción?";
   if (!can(actor, "orden:ver")) return { ...vacio(), pregunta };
   const datos = await consultarOperacion(hoy);
-  return { titulo: `${datos.accion} órdenes necesitan su acción`, pregunta,
+  return { titulo: tituloOperaciones(datos.accion), pregunta,
     indicadores: [
       indicador({ id: "por-iniciar", etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Órdenes pendientes", destino: "/ordenes?estado=PENDIENTE" }),
       indicador({ id: "sin-responsable", etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Órdenes activas", destino: "/ordenes?responsable=sin-asignar", alerta: datos.sinResponsable > 0 }),
       indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Trabajo en curso", destino: "/ordenes?estado=EN_PRODUCCION" }),
       indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, contexto: "Desde hoy hasta dentro de siete días", destino: "/ordenes" }),
-    ], grafico: grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
+    ], grafico: grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
     atencion: atencionOrdenes(datos), atencionTotal: datos.accion };
 }
 
@@ -78,7 +85,7 @@ async function atencionCliente(actor: Actor, hoy: string): Promise<ContenidoPane
     panel.indicadores.push(indicador({ id: "enviadas", etiqueta: "Enviadas sin respuesta", valor: datos.enviadas, contexto: "Cotizaciones vigentes", destino: "/cotizaciones?estado=ENVIADA" }),
       indicador({ id: "por-vencer", etiqueta: "Por vencer", valor: datos.porVencer, contexto: "Vencen desde hoy hasta dentro de tres días", destino: "/cotizaciones?estado=ENVIADA", alerta: datos.porVencer > 0 }),
       indicador({ id: "aprobadas-mes", etiqueta: "Aprobadas del mes", valor: datos.meses[5].aprobadas, contexto: "Respuestas registradas este mes", destino: "/cotizaciones?estado=APROBADA" }));
-    panel.grafico = grafico("Cotizaciones por estado", "Creadas en los últimos treinta días", datos.porEstado.map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta })));
+    panel.grafico = grafico("Cotizaciones por estado", "Creadas en los últimos treinta días", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta })));
     panel.atencionTotal = datos.atencionTotal;
     panel.atencion = datos.filas.map((fila) => ({ id: fila.id, titulo: fila.numero,
       detalle: fila.estado === "AJUSTE_SOLICITADO" ? "Ajuste solicitado sin versión corregida" : `Vence el ${formatearFecha(fila.vencimiento)}`,
@@ -98,7 +105,7 @@ async function produccion(actor: Actor, hoy: string, instante: Date): Promise<Co
       indicador({ id: "mis-etapas-pendientes", etiqueta: "Mis etapas pendientes", valor: datos.pendientes, contexto: "Asignadas a usted", destino: "/produccion" }),
       indicador({ id: "completadas-hoy", etiqueta: "Completadas hoy por mí", valor: datos.completadasHoy, contexto: "Transiciones registradas hoy", destino: "/produccion" }),
       indicador({ id: "mis-etapas-atrasadas", etiqueta: "Mis etapas atrasadas", valor: datos.atrasadas, contexto: "Fecha de fin planificada anterior a hoy", destino: "/produccion", alerta: datos.atrasadas > 0 }),
-    ], grafico: grafico("Etapas que completé", "Últimos siete días", datos.porDia.map((fila) => ({ ...fila, etiqueta: formatearFecha(fila.etiqueta) }))),
+    ], grafico: grafico("Etapas que completé", "Últimos siete días", datos.porDia.map((fila) => ({ ...fila, etiqueta: etiquetaDia(fila.etiqueta) }))),
     atencion: datos.filas.map((fila) => ({ id: fila.id, titulo: `${fila.numero}: ${fila.nombre}`,
       detalle: fila.dias > 0 ? `Atrasada ${fila.dias} días` : "En curso desde hace más de dos días",
       gravedad: fila.dias > 0 ? "alta" : "media", destino: `/ordenes/${fila.ordenId}` })), atencionTotal: datos.atencionTotal };
@@ -114,7 +121,7 @@ async function administracion(actor: Actor, hoy: string): Promise<ContenidoPanel
   if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), contexto: "Existencia por costo promedio", destino: "/inventario" }));
   indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Desde el lunes hasta hoy", destino: "/inventario" }));
   return { titulo: datos.bajoMinimo ? `${datos.bajoMinimo} materiales bajo el mínimo` : "El inventario está al día", pregunta, indicadores,
-    grafico: grafico("Consumos por semana", "Cantidad de consumos; últimas seis semanas", movimientos.semanas.map((fila) => ({ ...fila, etiqueta: formatearFecha(fila.etiqueta) }))),
+    grafico: grafico("Consumos por semana", "Cantidad de consumos; últimas seis semanas", movimientos.semanas.map((fila) => ({ ...fila, etiqueta: etiquetaSemana(fila.etiqueta) }))),
     atencion: atencionMateriales(datos), atencionTotal: datos.bajoMinimo };
 }
 

@@ -18,8 +18,13 @@ export function consultarCatalogoPermisos(tx: Tx) {
 }
 
 export async function bloquearPerfilPermisos(tx: Tx, codigo: PerfilCodigo) {
-  // Serialice reemplazos del mismo perfil antes de calcular las diferencias.
+  // El perfil mantiene el bloqueo incluso cuando no existen permisos concedidos.
   await tx.$queryRaw`SELECT id FROM perfil WHERE codigo::text = ${codigo} FOR UPDATE`;
+  await tx.$queryRaw`
+    SELECT permiso_id FROM perfil_permiso
+    WHERE perfil_id = (SELECT id FROM perfil WHERE codigo::text = ${codigo})
+    ORDER BY permiso_id FOR UPDATE
+  `;
   return tx.perfil.findUnique({ where: { codigo }, select: SELECCION_PERFIL });
 }
 

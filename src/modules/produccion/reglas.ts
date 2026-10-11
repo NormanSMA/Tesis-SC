@@ -14,6 +14,11 @@ export function exigirTransicionEtapa(estado: EstadoEtapa, accion: AccionEtapa) 
   if (estado !== TRANSICIONES_ETAPA[accion].desde) throw regla("TRANSICION_INVALIDA", "La etapa no admite esa transición.");
   return TRANSICIONES_ETAPA[accion].hacia;
 }
+export function puedeMarcarseLista(estado: EstadoOrden, estados: readonly EstadoEtapa[], avanzar: boolean): boolean {
+  return avanzar && estado === "EN_PRODUCCION"
+    && estados.every((etapa) => etapa === "COMPLETADA" || etapa === "OMITIDA")
+    && estados.includes("COMPLETADA");
+}
 export function exigirLista(estados: readonly EstadoEtapa[]) {
   if (estados.some((estado) => estado !== "COMPLETADA" && estado !== "OMITIDA")) {
     throw regla("ETAPAS_ABIERTAS", "Complete u omita las etapas abiertas antes de marcar la orden lista.");

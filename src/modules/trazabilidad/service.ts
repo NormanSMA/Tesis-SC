@@ -35,7 +35,8 @@ export async function obtenerTrazabilidad(id: string, actor: Actor) {
 }
 export async function opcionesBitacora(actor: Actor) {
   exigir(actor, "bitacora:ver");
-  return consultarUsuarios(prisma);
+  return prisma.$transaction((tx) => consultarUsuarios(tx),
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
 }
 export async function buscarOrdenPorNumero(numero: string, actor: Actor) {
   exigir(actor, "orden:ver");

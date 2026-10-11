@@ -26,6 +26,7 @@ export async function guardarCambios(tx: Tx, actual: FichaGuardada, cambios: Cam
 }
 
 export async function validarResponsable(tx: Tx, id: string): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM usuario WHERE id = ${id}::uuid FOR SHARE`;
   const responsable = await tx.usuario.findFirst({ where: { id, activo: true, perfiles: { some: { perfil: { codigo: "PRODUCCION" } } } } });
   if (!responsable) throw new AppError({ codigo: "VALIDACION", status: 422, mensaje: "Hay campos con errores.",
     campos: { responsableId: "Seleccione un usuario activo de Producción." } });

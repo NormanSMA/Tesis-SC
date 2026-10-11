@@ -15,3 +15,26 @@ export const esquemaLogin = z.object({
 });
 
 export type CredencialesLogin = z.infer<typeof esquemaLogin>;
+
+export const esquemaCambiarClave = z.object({
+  claveActual: z.string({ error: "Ingrese su contraseña actual." })
+    .min(1, "Ingrese su contraseña actual.")
+    .max(256, "La contraseña es demasiado larga."),
+  claveNueva: z.string({ error: "Ingrese su nueva contraseña." })
+    .min(14, "La contraseña debe tener al menos 14 caracteres.")
+    .max(256, "La contraseña es demasiado larga."),
+}).refine(({ claveActual, claveNueva }) => claveActual !== claveNueva, {
+  message: "La nueva contraseña debe ser distinta de la actual.", path: ["claveNueva"],
+});
+
+export type EntradaCambiarClave = z.infer<typeof esquemaCambiarClave>;
+
+export const esquemaFormularioCambiarClave = esquemaCambiarClave.safeExtend({
+  confirmacion: z.string({ error: "Confirme su nueva clave." })
+    .min(1, "Confirme su nueva clave.")
+    .max(256, "La clave es demasiado larga."),
+}).refine(({ claveNueva, confirmacion }) => claveNueva === confirmacion, {
+  message: "Las claves no coinciden.", path: ["confirmacion"],
+});
+
+export type ValoresCambiarClave = z.infer<typeof esquemaFormularioCambiarClave>;

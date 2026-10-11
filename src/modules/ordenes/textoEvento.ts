@@ -7,24 +7,36 @@ const ACCIONES: Record<string, string> = { CONVERTIR_EN_ORDEN: "convirtió la co
   CONSUMIR_MATERIAL: "registró un consumo de material", DEVOLVER_MATERIAL: "registró una devolución de material" };
 const CAMPOS: Record<string, string> = { responsableId: "Responsable", fechaEntrega: "Fecha de entrega", especificaciones: "Especificaciones" };
 
-function detalleEvento(evento: EventoOrden): string | undefined {
-  const detalle = evento.detalle && typeof evento.detalle === "object" && !Array.isArray(evento.detalle) ? evento.detalle : {};
+type DetalleObjeto = Extract<EventoOrden["detalle"], { [campo: string]: unknown }>;
+
+function formatearEstado(evento: EventoOrden): string[] {
+  if (!evento.estadoNuevo) return [];
+  const maquina = evento.entidad === "ETAPA_ORDEN" ? ESTADOS.etapa : ESTADOS.orden;
+  const anterior = evento.estadoAnterior ? maquina[evento.estadoAnterior]?.etiqueta ?? evento.estadoAnterior : "Creación";
+  return [`${anterior} → ${maquina[evento.estadoNuevo]?.etiqueta ?? evento.estadoNuevo}`];
+}
+
+function formatearEscalares(detalle: DetalleObjeto): string[] {
   const partes: string[] = [];
-  if (evento.estadoNuevo) {
-    const maquina = evento.entidad === "ETAPA_ORDEN" ? ESTADOS.etapa : ESTADOS.orden;
-    const anterior = evento.estadoAnterior ? maquina[evento.estadoAnterior]?.etiqueta ?? evento.estadoAnterior : "Creación";
-    partes.push(`${anterior} → ${maquina[evento.estadoNuevo]?.etiqueta ?? evento.estadoNuevo}`);
-  }
   if (typeof detalle.nombre === "string") partes.push(detalle.nombre);
   if (typeof detalle.motivo === "string") partes.push(`Motivo: ${detalle.motivo}`);
   if (typeof detalle.cantidad === "string") partes.push(`Cantidad: ${detalle.cantidad}`);
-  for (const [campo, etiqueta] of Object.entries(CAMPOS)) {
-    const cambio = detalle[campo];
-    if (cambio && typeof cambio === "object" && !Array.isArray(cambio)) {
-      const vacio = campo === "responsableId" ? "Sin responsable" : "(vacío)";
-      partes.push(`${etiqueta}: ${cambio.anterior ?? vacio} → ${cambio.nuevo ?? vacio}`);
-    }
-  }
+  return partes;
+}
+
+function formatearCambio(campo: string, etiqueta: string, cambio: EventoOrden["detalle"] | undefined): string[] {
+  if (!cambio || typeof cambio !== "object" || Array.isArray(cambio)) return [];
+  const vacio = campo === "responsableId" ? "Sin responsable" : "(vacío)";
+  return [`${etiqueta}: ${cambio.anterior ?? vacio} → ${cambio.nuevo ?? vacio}`];
+}
+
+function detalleEvento(evento: EventoOrden): string | undefined {
+  const detalle = evento.detalle && typeof evento.detalle === "object" && !Array.isArray(evento.detalle) ? evento.detalle : {};
+  const partes = [
+    ...formatearEstado(evento),
+    ...formatearEscalares(detalle),
+    ...Object.entries(CAMPOS).flatMap(([campo, etiqueta]) => formatearCambio(campo, etiqueta, detalle[campo])),
+  ];
   return partes.length ? partes.join(". ") : undefined;
 }
 
