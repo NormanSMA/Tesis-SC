@@ -16,10 +16,17 @@ if [ "${2:-}" != "--confirmar" ]; then
   exit 1
 fi
 
+# Un respaldo ilegible se detecta antes de detener la aplicacion.
+if ! docker compose exec -T db sh -c 'pg_restore --list > /dev/null' < "$archivo"; then
+  echo "El respaldo no se puede leer. No se detuvo la aplicacion ni se cambio ningun dato." >&2
+  exit 1
+fi
+
 # Sin la aplicacion conectada, pg_restore puede borrar y recrear las tablas.
+# --single-transaction: si algo falla, no queda una restauracion parcial.
 docker compose stop app
 docker compose exec -T db sh -c \
-  'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --exit-on-error' < "$archivo"
+  'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --single-transaction --exit-on-error' < "$archivo"
 # --clean recrea las tablas: se vuelven a aplicar los permisos de sc_app.
 docker compose run --rm --no-deps migrate sh scripts/db/roles.sh
 # --no-deps evita volver a ejecutar migrate (y la siembra) tras restaurar.

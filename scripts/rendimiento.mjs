@@ -8,8 +8,12 @@ const TIPOS = ["consulta", "creacion", "actualizacion"];
 const UMBRAL_MS = 2000;
 const CICLO = ["consulta", "consulta", "consulta", "consulta", "consulta", "consulta", "consulta",
   "creacion", "creacion", "actualizacion"];
+// Las rutas sin permiso para el perfil responden 403 en la preparación y se descartan.
+// usuarios y configuracion solo las consulta el perfil ADMIN.
 const RUTAS_CONSULTA = ["/api/v1/panel", "/api/v1/clientes", "/api/v1/cotizaciones",
-  "/api/v1/ordenes", "/api/v1/produccion"];
+  "/api/v1/ordenes", "/api/v1/produccion/tablero", "/api/v1/usuarios", "/api/v1/configuracion"];
+// Solo Atención al cliente crea y edita clientes (cliente:gestionar). Los demás perfiles solo consultan.
+const PERFILES_CON_ESCRITURA = new Set(["ATENCION_CLIENTE"]);
 const VARIABLES_CLAVE = {
   GERENCIA: "SEED_PASSWORD_GERENCIA",
   ATENCION_CLIENTE: "SEED_PASSWORD_ATENCION_CLIENTE",
@@ -51,12 +55,15 @@ export function resumir(muestras) {
 /**
  * @param {Record<string, ReturnType<typeof resumir>>} resumenes
  * @param {number} errores5xx
+ * @param {{ duracionAlcanzada: boolean, errores4xxInesperados: number }} condiciones
  */
-export function decidirCumplimiento(resumenes, errores5xx) {
-  return errores5xx === 0 && ["global", ...TIPOS].every((tipo) => {
-    const resumen = resumenes[tipo];
-    return resumen !== undefined && resumen.n > 0 && resumen.porcentajeHasta2000 >= 95;
-  });
+export function decidirCumplimiento(resumenes, errores5xx, condiciones) {
+  return condiciones.duracionAlcanzada && condiciones.errores4xxInesperados === 0 &&
+    errores5xx === 0 && ["global", ...TIPOS].every((tipo) => {
+      const resumen = resumenes[tipo];
+      return resumen !== undefined && resumen.n > 0 && resumen.p95 !== null &&
+        resumen.p95 <= UMBRAL_MS && resumen.porcentajeHasta2000 >= 95;
+    });
 }
 
 function leerOpciones(argumentos) {
@@ -112,9 +119,10 @@ async function solicitar(sesion, peticion) {
     estado = respuesta.status;
     const texto = await respuesta.text();
     const ms = performance.now() - inicio;
-    let datos = null;
-    try { datos = texto ? JSON.parse(texto).datos ?? null : null; } catch { /* Conserva los errores HTTP sin JSON. */ }
-    return { estado, ms, respondio: true, datos,
+    let cuerpo = null;
+    try { cuerpo = texto ? JSON.parse(texto) : null; } catch { /* Conserva los errores HTTP sin JSON. */ }
+    return { estado, ms, respondio: true, datos: cuerpo?.datos ?? null,
+      cuerpo422: estado === 422 ? cuerpo : null,
       cookie: (respuesta.headers.get("set-cookie") ?? "").split(";")[0],
       error: respuesta.ok ? null : `HTTP_${estado}` };
   } catch (error) {
@@ -123,9 +131,26 @@ async function solicitar(sesion, peticion) {
   }
 }
 
+function registrar422(contexto, tipo, { ruta, metodo = "GET", respuesta }) {
+  if (respuesta.estado !== 422) return;
+  const rutaNormalizada = ruta.replace(/\/clientes\/[^/]+/, "/clientes/:id");
+  if (contexto.primeros422.some((error) => error.tipo === tipo && error.ruta === rutaNormalizada)) return;
+  const error = respuesta.cuerpo422?.error;
+  const camposPermitidos = new Set(["nombre", "tipo", "ruc", "telefono", "correo", "notas", "version",
+    "contactoPrincipal", "direccion", "q", "activo", "pagina", "porPagina"]);
+  // Conserve únicamente mensajes de validación conocidos; nunca valores enviados ni textos arbitrarios.
+  const mensajes = /^(Hay (campos|parámetros) con errores\.|Falta la versión del cliente\. Recargue la página\.|El (nombre|RUC|contacto principal|teléfono|correo) admite hasta \d+ caracteres\.|Ingrese el nombre del cliente\.|Debe ser texto\.|Seleccione el tipo de cliente\.|Ingrese un correo electrónico válido\.|Indique un teléfono o un correo electrónico\.|Este campo no se puede modificar\.)$/;
+  const sanear = (mensaje) => typeof mensaje === "string" && mensajes.test(mensaje) ? mensaje : "[Texto omitido]";
+  const campos = Object.entries(error?.campos ?? {}).filter(([campo]) => camposPermitidos.has(campo));
+  contexto.primeros422.push({ tipo, ruta: rutaNormalizada, metodo,
+    cuerpo: { error: { codigo: error?.codigo === "VALIDACION" ? "VALIDACION" : "[Código omitido]",
+      mensaje: sanear(error?.mensaje), campos: Object.fromEntries(campos.map(([campo, mensaje]) => [campo, sanear(mensaje)])) } } });
+}
+
 function registrarPreparacion(contexto, sesion, ruta, respuesta) {
+  registrar422(contexto, "preparacion", { ruta, respuesta });
   contexto.preparacion.push({ sesion: sesion.numero, perfil: sesion.perfil, ruta,
-    estado: respuesta.estado, error: respuesta.error });
+    estado: respuesta.estado, respondio: respuesta.respondio, error: respuesta.error });
 }
 
 async function abrirSesion(contexto, usuario, numero) {
@@ -150,7 +175,7 @@ async function seleccionarConsultas(contexto, sesion) {
       throw new Error(`Consulta previa de sesión ${sesion.numero}: ${respuesta.error}.`);
     }
   }
-  for (const ruta of ["/api/v1/inventario/materiales", "/api/v1/materiales"]) {
+  for (const ruta of ["/api/v1/materiales"]) {
     const respuesta = await solicitar(sesion, { ruta });
     registrarPreparacion(contexto, sesion, ruta, respuesta);
     if (!respuesta.error) { sesion.rutas.push(ruta); break; }
@@ -161,36 +186,38 @@ async function seleccionarConsultas(contexto, sesion) {
   if (sesion.rutas.length === 0) throw new Error(`Sesión ${sesion.numero} sin consultas autorizadas.`);
 }
 
-function prepararOperacion(contexto, sesion, tipo) {
+function prepararOperacion(contexto, sesion, tipoSolicitado) {
+  const tipo = PERFILES_CON_ESCRITURA.has(sesion.perfil) ? tipoSolicitado : "consulta";
   if (tipo === "consulta") {
     const ruta = sesion.rutas[sesion.consultas++ % sesion.rutas.length];
-    return { ruta, metodo: "GET" };
+    return { tipo, ruta, metodo: "GET" };
   }
   if (tipo === "creacion") {
-    const identificador = `RENDIMIENTO-${randomUUID()}`;
-    return { ruta: "/api/v1/clientes", metodo: "POST",
-      cuerpo: { nombre: identificador, ruc: identificador } };
+    const identificador = randomUUID();
+    return { tipo, ruta: "/api/v1/clientes", metodo: "POST",
+      cuerpo: { nombre: `RENDIMIENTO-${identificador}`, tipo: "EMPRESA",
+        ruc: identificador.replaceAll("-", "").slice(0, 20), telefono: "8888 0000" } };
   }
   const cliente = sesion.clientes.at(-1);
-  if (!cliente || !Number.isSafeInteger(cliente.version)) {
+  if (!cliente || typeof cliente.version !== "string" || !Number.isFinite(Date.parse(cliente.version))) {
     contexto.omitidas.push({ sesion: sesion.numero, tipo, motivo: "SIN_CLIENTE_CON_VERSION" });
     return null;
   }
-  return { ruta: `/api/v1/clientes/${encodeURIComponent(cliente.id)}`, metodo: "PATCH",
-    cuerpo: { nombre: `${cliente.nombre}-EDITADO`, version: cliente.version } };
+  return { tipo, ruta: `/api/v1/clientes/${encodeURIComponent(cliente.id)}`, metodo: "PATCH",
+    cuerpo: { notas: `Edición ${++cliente.ediciones}`, version: cliente.version } };
 }
 
 function guardarCliente(contexto, sesion, peticion, respuesta) {
   const cliente = respuesta.datos;
   if (peticion.metodo === "POST") {
     if (cliente?.id !== undefined && cliente.id !== null && !respuesta.error) {
-      sesion.clientes.push({ id: String(cliente.id), version: cliente.version, nombre: peticion.cuerpo.nombre });
+      sesion.clientes.push({ id: String(cliente.id), version: cliente.actualizadoEn, ediciones: 0 });
     } else if (!respuesta.respondio || !respuesta.error) {
       contexto.creacionesInciertas.push({ sesion: sesion.numero, nombre: peticion.cuerpo.nombre });
     }
   }
-  if (peticion.metodo === "PATCH" && !respuesta.error && cliente) {
-    sesion.clientes.at(-1).version = cliente.version;
+  if (peticion.metodo === "PATCH" && !respuesta.error) {
+    sesion.clientes.at(-1).version = cliente?.actualizadoEn;
   }
 }
 
@@ -198,8 +225,9 @@ async function ejecutarOperacion(contexto, sesion, tipo) {
   const peticion = prepararOperacion(contexto, sesion, tipo);
   if (!peticion) return;
   const respuesta = await solicitar(sesion, peticion);
+  registrar422(contexto, peticion.tipo, { ...peticion, respuesta });
   guardarCliente(contexto, sesion, peticion, respuesta);
-  contexto.muestras.push({ sesion: sesion.numero, perfil: sesion.perfil, tipo,
+  contexto.muestras.push({ sesion: sesion.numero, perfil: sesion.perfil, tipo: peticion.tipo,
     ruta: peticion.ruta, metodo: peticion.metodo, ms: respuesta.ms,
     estado: respuesta.estado, respondio: respuesta.respondio, error: respuesta.error });
   sesion.solicitudes++;
@@ -208,19 +236,21 @@ async function ejecutarOperacion(contexto, sesion, tipo) {
 async function ejecutarSesion(contexto, sesion, fin) {
   while (performance.now() < fin) {
     for (const tipo of CICLO) {
-      if (performance.now() >= fin) return;
+      if (performance.now() >= fin) { sesion.duracionAlcanzada = true; return; }
       await ejecutarOperacion(contexto, sesion, tipo);
     }
     sesion.ciclos++;
   }
+  sesion.duracionAlcanzada = performance.now() >= fin;
 }
 
 async function archivarClientes(contexto, sesion) {
   for (const cliente of sesion.clientes) {
     const ruta = `/api/v1/clientes/${encodeURIComponent(cliente.id)}/archivar`;
     const respuesta = await solicitar(sesion, { ruta, metodo: "POST", cuerpo: { version: cliente.version } });
+    registrar422(contexto, "limpieza", { ruta, metodo: "POST", respuesta });
     contexto.limpieza.push({ sesion: sesion.numero, clienteId: cliente.id,
-      estado: respuesta.estado, archivado: respuesta.respondio && !respuesta.error,
+      estado: respuesta.estado, respondio: respuesta.respondio, archivado: respuesta.respondio && !respuesta.error,
       error: respuesta.error });
   }
 }
@@ -240,14 +270,45 @@ function contarErrores(muestras) {
     porEstado: estados, red, errores5xx };
 }
 
+function causasResultado(contexto, resumenes, errores) {
+  const causas = [];
+  if (contexto.errorEjecucion) causas.push(contexto.errorEjecucion);
+  if (contexto.sesiones.length !== contexto.opciones.sesiones) causas.push("Faltan sesiones solicitadas.");
+  if (contexto.duracionMedidaSegundos < contexto.opciones.duracion ||
+      contexto.sesiones.some((sesion) => !sesion.duracionAlcanzada)) causas.push("No se alcanzó la duración solicitada.");
+  if (errores.errores5xx) causas.push(`Respuestas 5xx: ${errores.errores5xx}.`);
+  if (errores.errores4xxInesperados) causas.push(`Respuestas 4xx inesperadas: ${errores.errores4xxInesperados}.`);
+  if (errores.red || errores.http > errores.errores5xx + errores.errores4xxInesperados) causas.push("Hubo errores de red u otros estados HTTP inesperados.");
+  if (contexto.omitidas.length) causas.push(`Operaciones omitidas: ${contexto.omitidas.length}.`);
+  if (contexto.creacionesInciertas.length) causas.push(`Creaciones inciertas: ${contexto.creacionesInciertas.length}.`);
+  const pendientes = contexto.limpieza.filter((cliente) => !cliente.archivado).length;
+  if (pendientes) causas.push(`Archivados fallidos: ${pendientes}. Consulte limpieza.`);
+  for (const tipo of ["global", ...TIPOS]) {
+    const resumen = resumenes[tipo];
+    if (resumen.n === 0) causas.push(`Sin muestras de ${tipo}.`);
+    else if (resumen.p95 > UMBRAL_MS || resumen.porcentajeHasta2000 < 95) causas.push(`Umbral temporal incumplido en ${tipo}.`);
+  }
+  return causas;
+}
+
 function crearResultado(contexto) {
   const resumenes = Object.fromEntries(TIPOS.map((tipo) =>
     [tipo, resumir(contexto.muestras.filter((muestra) => muestra.tipo === tipo))]));
   resumenes.global = resumir(contexto.muestras);
   const errores = contarErrores(contexto.muestras);
-  const cumpleCriterioTemporal = decidirCumplimiento(resumenes, errores.errores5xx);
+  const previos = contexto.preparacion.filter((peticion) => peticion.estado !== 403 || peticion.ruta === "/api/v1/auth/login");
+  const erroresTotales = contarErrores([...contexto.muestras, ...previos, ...contexto.limpieza]);
+  erroresTotales.errores4xxInesperados = [...contexto.muestras, ...previos, ...contexto.limpieza]
+    .filter((peticion) => peticion.estado >= 400 && peticion.estado <= 499).length;
+  const duracionAlcanzada = contexto.duracionMedidaSegundos >= contexto.opciones.duracion &&
+    contexto.sesiones.length > 0 && contexto.sesiones.every((sesion) => sesion.duracionAlcanzada);
+  const cumpleCriterioTemporal = decidirCumplimiento(resumenes, 0,
+    { duracionAlcanzada: true, errores4xxInesperados: 0 });
+  const causas = causasResultado(contexto, resumenes, erroresTotales);
   const completa = contexto.errorEjecucion === null && contexto.omitidas.length === 0 &&
-    contexto.creacionesInciertas.length === 0 && contexto.sesiones.length === contexto.opciones.sesiones;
+    contexto.creacionesInciertas.length === 0 && contexto.sesiones.length === contexto.opciones.sesiones && duracionAlcanzada;
+  const totalClientes = contexto.sesiones.reduce((total, sesion) => total + sesion.clientes.length, 0);
+  const archivados = contexto.limpieza.filter((cliente) => cliente.archivado).length;
   return {
     requisito: "RNF-01", fechaUTC: new Date().toISOString(), opciones: contexto.opciones,
     entorno: { node: process.version, plataforma: process.platform, cpu: "POR_COMPLETAR",
@@ -256,13 +317,18 @@ function crearResultado(contexto) {
       percentiles: "rango más cercano", umbralMs: UMBRAL_MS, tiempoLimitePeticionMs: 30000 },
     inicioUTC: contexto.inicioUTC, duracionMedidaSegundos: contexto.duracionMedidaSegundos,
     sesiones: contexto.sesiones.map((sesion) => ({ numero: sesion.numero, perfil: sesion.perfil,
-      rutas: sesion.rutas, solicitudes: sesion.solicitudes, ciclosCompletos: sesion.ciclos })),
+      rutas: sesion.rutas, solicitudes: sesion.solicitudes, ciclosCompletos: sesion.ciclos,
+      duracionAlcanzada: sesion.duracionAlcanzada ?? false })),
     resumenes, mezclaObservada: Object.fromEntries(TIPOS.map((tipo) => [tipo,
       resumenes.global.n ? (resumenes[tipo].n / resumenes.global.n) * 100 : 0])),
-    errores, preparacion: contexto.preparacion, omitidas: contexto.omitidas,
+    errores, erroresTotales, primeros422: contexto.primeros422, causas,
+    preparacion: contexto.preparacion, omitidas: contexto.omitidas,
     creacionesInciertas: contexto.creacionesInciertas, limpieza: contexto.limpieza,
+    resumenLimpieza: { archivados, total: totalClientes, pendientes: totalClientes - archivados },
     ejecucionCompleta: completa, errorEjecucion: contexto.errorEjecucion,
-    cumpleCriterioTemporal, decision: completa ? (cumpleCriterioTemporal ? "CUMPLE" : "NO CUMPLE") : "NO EVALUABLE",
+    cumpleCriterioTemporal, decision: completa ? (causas.length === 0 && decidirCumplimiento(resumenes,
+      erroresTotales.errores5xx, { duracionAlcanzada, errores4xxInesperados: erroresTotales.errores4xxInesperados })
+      ? "CUMPLE" : "NO CUMPLE") : "NO EVALUABLE",
     muestras: contexto.muestras,
   };
 }
@@ -280,7 +346,11 @@ function imprimirResultado(resultado) {
   console.log(`Errores HTTP: ${resultado.errores.http}; 5xx: ${resultado.errores.errores5xx}; red: ${resultado.errores.red}.`);
   console.log(`Estados HTTP: ${JSON.stringify(resultado.errores.porEstado)}`);
   console.log(`Operaciones omitidas: ${resultado.omitidas.length}; creaciones inciertas: ${resultado.creacionesInciertas.length}.`);
-  console.log(`Archivados: ${resultado.limpieza.filter((cliente) => cliente.archivado).length}/${resultado.limpieza.length}.`);
+  console.log(`Archivados: ${resultado.resumenLimpieza.archivados}/${resultado.resumenLimpieza.total}.`);
+  for (const causa of resultado.causas) console.error(`Causa: ${causa}`);
+  for (const cliente of resultado.limpieza.filter((cliente) => !cliente.archivado)) {
+    console.error(`Archivado fallido: ${cliente.clienteId}; ${cliente.error ?? cliente.estado}.`);
+  }
   if (resultado.errorEjecucion) console.error(resultado.errorEjecucion);
   console.log(`JSON: ${resultado.opciones.salida}`);
 }
@@ -303,7 +373,7 @@ async function medir(contexto, usuarios) {
 async function principal() {
   const opciones = leerOpciones(process.argv.slice(2));
   const usuarios = await cargarUsuarios();
-  const contexto = { opciones, sesiones: [], muestras: [], preparacion: [], limpieza: [],
+  const contexto = { opciones, sesiones: [], muestras: [], preparacion: [], limpieza: [], primeros422: [],
     omitidas: [], creacionesInciertas: [], errorEjecucion: null, inicioUTC: null, duracionMedidaSegundos: 0 };
   try {
     await medir(contexto, usuarios);

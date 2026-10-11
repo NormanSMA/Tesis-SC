@@ -19,3 +19,7 @@ Dockerfile
 compose.yaml
 .dockerignore
 *.md
+
+respaldos
+scripts/_tmp*
+output

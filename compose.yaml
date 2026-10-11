@@ -83,12 +83,19 @@ services:
       retries: 20
       start_period: 3s
 
-  # Respaldo programado cada 24 horas (RNF-06). Se activa con: docker compose --profile respaldo up -d respaldo
+  # Respaldo programado cada 24 horas (RNF-06). Arranca con el resto: docker compose up -d
+  # Bitacora de intentos: docker compose exec respaldo cat /respaldos/registro.log
   respaldo:
     <<: *entorno
     image: postgres:17-alpine
-    profiles: ["respaldo"]
     restart: unless-stopped
+    healthcheck:
+      # Sano si el ultimo intento registrado fue exitoso y ocurrio hace menos de 26 horas.
+      test: ["CMD-SHELL", "tail -n 1 /respaldos/registro.log | grep -q ' OK ' && test -n \"$(find /respaldos/registro.log -mmin -1560)\""]
+      interval: 10m
+      timeout: 10s
+      retries: 1
+      start_period: 2m
     volumes:
       - sc_respaldos:/respaldos
       - ./scripts/respaldo-programado.sh:/usr/local/bin/respaldo-programado.sh:ro

@@ -28,8 +28,9 @@ ENV DATABASE_URL_MIGRACION=postgresql://sin:uso@127.0.0.1:5432/sin_uso
 RUN apt-get update \
     && apt-get install -y --no-install-recommends postgresql-client openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node . .
+USER node
 RUN pnpm exec prisma generate
 ENTRYPOINT ["sh", "/app/scripts/docker/entrypoint.sh", "propietario"]
 CMD ["sh", "/app/scripts/db/preparar.sh"]

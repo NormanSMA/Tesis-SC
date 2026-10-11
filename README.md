@@ -47,6 +47,9 @@ Abre http://127.0.0.1:3000.
 Comprueba el estado en http://127.0.0.1:3000/api/v1/salud.
 
 El comando levanta la base de datos, aplica las migraciones, carga datos de demostración e inicia la aplicación.
+También inicia el servicio `respaldo` con `docker compose up -d`, sin perfil adicional.
+El servicio respalda al arrancar y cada 24 horas por defecto.
+Consulte el registro mediante `docker compose exec respaldo cat /respaldos/registro.log`.
 
 ## Usuarios de prueba
 
@@ -55,9 +58,16 @@ Las contraseñas están en `.env.example`.
 | Perfil | Correo | Variable de la clave |
 |---|---|---|
 | Gerencia | gerardo.jimenez@solucionescreativas.test | `SEED_PASSWORD_GERENCIA` |
-| Ventas | valentina.castro@solucionescreativas.test | `SEED_PASSWORD_VENTAS` |
+| Atención al cliente | valentina.castro@solucionescreativas.test | `SEED_PASSWORD_ATENCION_CLIENTE` |
+| Operaciones | karla.reyes@solucionescreativas.test | `SEED_PASSWORD_OPERACIONES` |
+| Administración | luis.mendoza@solucionescreativas.test | `SEED_PASSWORD_ADMINISTRACION` |
 | Producción | marco.lopez@solucionescreativas.test | `SEED_PASSWORD_PRODUCCION` |
-| Administración | roberto.diaz@solucionescreativas.test | `SEED_PASSWORD_ADMIN` |
+| Administración técnica | roberto.diaz@solucionescreativas.test | `SEED_PASSWORD_ADMIN` |
+
+La matriz vigente contiene seis perfiles, 30 permisos y 62 concesiones.
+El conteo procede de `PERMISOS_POR_PERFIL` en `src/core/permisos.ts`.
+Un usuario puede tener varios perfiles; sus permisos efectivos forman una unión.
+Consulte [la matriz v9](docs/modulos/09-perfiles-v9.md) y [la siembra](docs/seed.md).
 
 ## Pruebas
 
@@ -65,6 +75,7 @@ Necesitas Node 24 y pnpm.
 
 ```sh
 pnpm install
+pnpm db:generate
 pnpm typecheck
 pnpm lint
 docker compose --profile test up -d db_test
@@ -73,6 +84,16 @@ pnpm e2e
 ```
 
 La base de pruebas debe terminar en `_test`. La suite borra su contenido.
+
+## Integración continua
+
+GitHub Actions ejecuta `.github/workflows/ci.yml` en cada `push` y `pull_request`.
+Usa Node 24 y la versión de pnpm indicada por `packageManager` en `package.json`.
+Carga `.env.example` con valores ficticios y dirige `TEST_DATABASE_URL` al servicio PostgreSQL 17.
+Instala con `pnpm install --frozen-lockfile` y ejecuta `pnpm db:generate`.
+Ejecuta `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build`.
+La suite prepara las migraciones y los permisos en la base desechable `sc_test`.
+Los E2E requieren navegadores y una aplicación con siembra; quedan para un flujo separado.
 
 ## Parar y limpiar
 
