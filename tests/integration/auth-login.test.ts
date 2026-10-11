@@ -39,7 +39,7 @@ describeConBase("POST /api/v1/auth/login", () => {
     const { datos } = await respuesta.json();
     expect(datos.usuario).toEqual({
       id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
-      perfil: "ATENCION_CLIENTE", perfiles: ["ATENCION_CLIENTE"],
+      perfil: "ATENCION_CLIENTE", perfiles: ["ATENCION_CLIENTE"], debeCambiarClave: false,
     });
     expect(datos.destino).toBe("/panel");
     expect(datos.permisos).toContain("cotizacion:gestionar");

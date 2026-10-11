@@ -133,4 +133,65 @@ describeConBase("trazabilidad: consultas vinculadas", () => {
     await expect(entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones.ADMIN.actor)).rejects.toMatchObject({ status: 403 });
     await expect(entorno.servicio.buscarOrdenPorNumero(orden.numero, entorno.sesiones.ADMIN.actor)).rejects.toMatchObject({ status: 403 });
   });
+
+  it("conserva el payload de eventos vinculados con filtros SQL", async () => {
+    const orden = await crearTrabajo(entorno);
+    const { consultarGlobal, incluirEventos } = await import("@/modules/trazabilidad/repo");
+    const esperados = await db.bitacora.findMany({
+      where: { OR: [{ ordenId: orden.id }, { cotizacion: { orden: { id: orden.id } } }] },
+      include: incluirEventos, orderBy: [{ creadoEn: "desc" }, { id: "desc" }], take: 100,
+    });
+    for (const texto of [undefined, orden.numero]) {
+      const resultado = await consultarGlobal(db, esquemaConsultaBitacora.parse({ orden: orden.numero, texto, porPagina: 100 }));
+      expect(resultado).toEqual({ eventos: esperados, total: esperados.length });
+    }
+  });
+
+  it("pagina coincidencias de texto sin recortar los registros buscados", async () => {
+    const texto = `Tra\\_100% ${randomUUID()}`;
+    const materiales = Array.from({ length: 105 }, (_, indice) => ({ id: randomUUID(),
+      codigo: `TR-${texto.slice(-16)}-${indice}`, nombre: `${texto} ${indice}`, unidad: "UNIDAD" as const,
+      activo: indice !== 104 }));
+    await db.material.createMany({ data: materiales });
+    const eventos = materiales.map((material) => ({ id: randomUUID(), entidad: "MATERIAL" as const,
+      entidadId: material.id, accion: "CREAR" as const, usuarioId: entorno.sesiones.ADMINISTRACION.usuarioId,
+      creadoEn: new Date("2000-01-01T00:00:00Z") }));
+    await db.bitacora.createMany({ data: eventos });
+    const consulta = esquemaConsultaBitacora.parse({ texto, entidad: "MATERIAL", porPagina: 100 });
+    const actor = entorno.sesiones.GERENCIA.actor;
+    const primera = await entorno.servicio.listarBitacora(consulta, actor);
+    const segunda = await entorno.servicio.listarBitacora({ ...consulta, pagina: 2 }, actor);
+    expect(primera.total).toBe(105); expect(segunda.total).toBe(105);
+    expect(primera.datos).toHaveLength(100); expect(segunda.datos).toHaveLength(5);
+    const lista = [...primera.datos, ...segunda.datos];
+    expect(lista.map((evento) => evento.id)).toEqual(eventos.map((evento) => evento.id).sort().reverse());
+    for (const evento of lista) {
+      expect(evento.registro.nombre).toBe(materiales.find((material) => material.id === evento.entidadId)!.nombre);
+    }
+    expect((await entorno.servicio.listarBitacora({ ...consulta, pagina: 3 }, actor)).datos).toEqual([]);
+  });
+
+  it("conserva eventos, historial y etapas completos al superar un lote", async () => {
+    const orden = await crearTrabajo(entorno);
+    const creadoEn = new Date("2000-01-01T00:00:00Z");
+    const usuarioId = entorno.sesiones.OPERACIONES.usuarioId;
+    const eventos = Array.from({ length: 105 }, () => ({ id: randomUUID(), entidad: "ORDEN_TRABAJO" as const,
+      entidadId: orden.id, ordenId: orden.id, cotizacionId: orden.cotizacion.id,
+      accion: "EDITAR" as const, usuarioId, creadoEn }));
+    const historial = Array.from({ length: 105 }, () => ({ id: randomUUID(), ordenId: orden.id,
+      etapaId: orden.etapas[0].id, usuarioId, estadoAnterior: "PENDIENTE" as const,
+      estadoNuevo: "PENDIENTE" as const, creadoEn }));
+    const etapas = Array.from({ length: 105 }, (_, indice) => ({ id: randomUUID(), ordenId: orden.id,
+      areaId: orden.etapas[0].area.id, secuencia: 1000 + indice, nombre: `Etapa ${indice}` }));
+    await db.bitacora.createMany({ data: eventos });
+    await db.historialEtapa.createMany({ data: historial });
+    await db.etapaOrden.createMany({ data: etapas });
+    const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones.GERENCIA.actor);
+    expect(traza.eventos.slice(0, 105).map((evento) => evento.id)).toEqual(eventos.map((evento) => evento.id).sort());
+    expect(traza.cadena.historialEtapas!.slice(0, 105).map((fila) => fila.id)).toEqual(historial.map((fila) => fila.id).sort());
+    expect(traza.cadena.etapas.filter((etapa) => etapa.secuencia >= 1000).map((etapa) => etapa.id))
+      .toEqual(etapas.map((etapa) => etapa.id));
+    expect(new Set(traza.eventos.map((evento) => evento.id)).size).toBe(traza.eventos.length);
+    expect(new Set(traza.cadena.historialEtapas!.map((fila) => fila.id)).size).toBe(traza.cadena.historialEtapas!.length);
+  });
 });

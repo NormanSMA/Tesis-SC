@@ -60,9 +60,11 @@ export default async function setup(project: TestProject) {
 
   if (typeof conexion === "string") {
     const aviso = `La base de pruebas no responde (${conexion}). Levanta: docker compose --profile test up -d db_test`;
-    // En CI omitir en silencio daria una suite verde sin probar la base.
-    if (process.env.CI) throw new Error(aviso);
-    console.warn(`\n[integracion] ${aviso}\n[integracion] Las pruebas de integracion se omiten.\n`);
+    // Omitir en silencio daria una suite verde sin probar la base: solo se omite si se pide de forma explicita.
+    if (process.env.OMITIR_INTEGRACION !== "1") {
+      throw new Error(`${aviso}. Para omitir la integracion a conciencia usa OMITIR_INTEGRACION=1.`);
+    }
+    console.warn(`\n[integracion] ${aviso}\n[integracion] Las pruebas de integracion se omiten por OMITIR_INTEGRACION=1.\n`);
     project.provide("baseDisponible", false);
     return;
   }

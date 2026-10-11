@@ -90,7 +90,7 @@ describe("órdenes: responsable opcional en componentes", () => {
   it("lista: 5 columnas, fila enlazada a la ficha y filtro Sin responsable visible", () => {
     const consulta = esquemaConsultaOrdenes.parse({});
     const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { consulta, lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20 } }));
-    expect(tabla.match(/<th /g)).toHaveLength(5);
+    expect(tabla.match(/<th [^>]*scope="col"/g)).toHaveLength(5);
     expect(tabla).toContain(`href="/ordenes/${id}"`);
     const filtros = renderToStaticMarkup(createElement(FiltrosOrdenes, { consulta, responsables: [responsable] }));
     expect(filtros).toContain("responsable=sin-responsable");

@@ -4,6 +4,7 @@ import { cambiosEdicion, estaAtrasada, exigirEditable, exigirTransicion, validar
 import { ESTADOS, esquemaCancelarOrden, esquemaCambioEstado, esquemaConsultaOrdenes, esquemaCrearOrden, esquemaEditarOrden,
   objetoDeParametros } from "@/modules/ordenes/schema";
 import { aEventoTimeline } from "@/modules/ordenes/textoEvento";
+import type { EventoOrden } from "@/modules/ordenes/tipos";
 
 const id = "11111111-1111-4111-8111-111111111111";
 const version = "2026-10-06T12:00:00.123Z";
@@ -70,6 +71,44 @@ describe("órdenes: esquemas zod", () => {
   it("normaliza parámetros repetidos y vacíos", () => {
     expect(objetoDeParametros({ q: [" texto ", "otro"], estado: "", cliente: undefined })).toEqual({ q: "texto" });
     expect(objetoDeParametros(new URLSearchParams("q=+texto+&estado="))).toEqual({ q: "texto" });
+  });
+});
+
+describe("órdenes: formateadores de eventos", () => {
+  const evento: EventoOrden = { id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "EDITAR",
+    estadoAnterior: null, estadoNuevo: null, actor: "Operaciones", creadoEn: version, detalle: {} };
+  const casos: { tipo: string; entrada: Partial<EventoOrden>; esperado: string | undefined }[] = [
+    { tipo: "estado de orden", entrada: { estadoAnterior: "PENDIENTE", estadoNuevo: "EN_PRODUCCION" },
+      esperado: "Pendiente → En producción" },
+    { tipo: "estado de etapa", entrada: { entidad: "ETAPA_ORDEN", estadoAnterior: "EN_CURSO", estadoNuevo: "COMPLETADA" },
+      esperado: "En curso → Completada" },
+    { tipo: "creación", entrada: { estadoNuevo: "PENDIENTE" }, esperado: "Creación → Pendiente" },
+    { tipo: "estados desconocidos", entrada: { estadoAnterior: "ANTES", estadoNuevo: "DESPUES" }, esperado: "ANTES → DESPUES" },
+    { tipo: "estado nuevo vacío", entrada: { estadoAnterior: "PENDIENTE", estadoNuevo: "" }, esperado: undefined },
+    { tipo: "escalares", entrada: { detalle: { cantidad: "2", motivo: "Entrega", nombre: "Corte" } },
+      esperado: "Corte. Motivo: Entrega. Cantidad: 2" },
+    { tipo: "escalar vacío", entrada: { detalle: { nombre: "" } }, esperado: "" },
+    { tipo: "escalares inválidos", entrada: { detalle: { nombre: null, motivo: false, cantidad: 2 } }, esperado: undefined },
+    { tipo: "objeto vacío", entrada: { detalle: {} }, esperado: undefined },
+    { tipo: "lista", entrada: { detalle: [{ nombre: "Corte" }] }, esperado: undefined },
+    { tipo: "nulo", entrada: { detalle: null }, esperado: undefined },
+    { tipo: "detalle escalar", entrada: { detalle: "Corte" }, esperado: undefined },
+    { tipo: "cambios", entrada: { detalle: { especificaciones: { anterior: null, nuevo: "Texto" },
+      fechaEntrega: { anterior: "2026-10-06", nuevo: null }, responsableId: { anterior: null, nuevo: "Ana" } } },
+      esperado: "Responsable: Sin responsable → Ana. Fecha de entrega: 2026-10-06 → (vacío). Especificaciones: (vacío) → Texto" },
+    { tipo: "cambio vacío", entrada: { detalle: { responsableId: {} } },
+      esperado: "Responsable: Sin responsable → Sin responsable" },
+    { tipo: "cambios escalares", entrada: { detalle: { responsableId: "Ana", fechaEntrega: false, especificaciones: null } },
+      esperado: undefined },
+    { tipo: "cambio lista", entrada: { detalle: { responsableId: [{ nuevo: "Ana" }] } }, esperado: undefined },
+    { tipo: "cambios falsos", entrada: { detalle: { especificaciones: { anterior: false, nuevo: 0 } } },
+      esperado: "Especificaciones: false → 0" },
+    { tipo: "combinación", entrada: { estadoNuevo: "LISTA", detalle: { nombre: "Corte", motivo: "Fin", cantidad: "2",
+      responsableId: { anterior: "Ana", nuevo: null } } },
+      esperado: "Creación → Lista. Corte. Motivo: Fin. Cantidad: 2. Responsable: Ana → Sin responsable" },
+  ];
+  it.each(casos)("formatea $tipo", ({ entrada, esperado }) => {
+    expect(aEventoTimeline({ ...evento, ...entrada }).detalle).toBe(esperado);
   });
 });
 

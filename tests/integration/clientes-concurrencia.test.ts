@@ -132,14 +132,39 @@ describeConBase("clientes: concurrencia de escrituras", () => {
     const cliente = await clienteNuevo();
     const condicion = { id: cliente.id, activo: true, version: cliente.actualizadoEn };
     const pausa = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
+    // Escritores esperando un bloqueo de transacción o de fila en la base (visible para cualquier rol).
+    const escritoresEnEspera = async () => {
+      const [fila] = await db.$queryRaw<{ total: number }[]>`
+        SELECT count(*)::int AS total FROM pg_locks
+        WHERE NOT granted AND locktype IN ('transactionid', 'tuple')`;
+      return fila.total;
+    };
+
+    let bloqueoAdquirido!: () => void;
+    const adquirido = new Promise<void>((resolver) => { bloqueoAdquirido = resolver; });
+    let liberarPrimero!: () => void;
+    const liberacion = new Promise<void>((resolver) => { liberarPrimero = resolver; });
 
     const primero = prisma.$transaction(async (tx) => {
       const aplicado = await actualizarCondicionado(tx, condicion, { notas: "primero" });
-      await pausa(400);
+      bloqueoAdquirido();
+      await liberacion;
       return aplicado;
     });
-    await pausa(100);
+    await adquirido;
     const segundo = prisma.$transaction((tx) => actualizarCondicionado(tx, condicion, { notas: "segundo" }));
+
+    let bloqueado = false;
+    try {
+      const limite = Date.now() + 5000;
+      while (!bloqueado && Date.now() < limite) {
+        bloqueado = (await escritoresEnEspera()) > 0;
+        if (!bloqueado) await pausa(10);
+      }
+    } finally {
+      liberarPrimero();
+    }
+    expect(bloqueado).toBe(true);
 
     expect(await primero).toBe(true);
     expect(await segundo).toBe(false);

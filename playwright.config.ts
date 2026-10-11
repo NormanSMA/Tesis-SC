@@ -23,11 +23,13 @@ export default defineConfig({
     screenshot: "only-on-failure",
     locale: "es-NI",
     timezoneId: "America/Managua",
+    reducedMotion: "reduce",
   },
+  // RNF-08 (tesis v9): 1920, 1366, 1024 y 768 px.
   projects: [
     {
       name: "escritorio",
-      use: { ...devices["Desktop Chrome"], colorScheme: "light" },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 }, colorScheme: "light" },
     },
     {
       name: "portatil",
@@ -35,11 +37,11 @@ export default defineConfig({
     },
     {
       name: "tableta-horizontal",
-      use: { ...devices["iPad Pro landscape"] },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 768 }, hasTouch: true },
     },
     {
       name: "tableta",
-      use: { ...devices["iPad Pro"] },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1024 }, hasTouch: true },
     },
   ],
 });

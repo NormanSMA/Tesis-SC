@@ -113,7 +113,7 @@ export async function violacionesGraves(page: Page): Promise<string[]> {
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
   return resultado.violations
-    .filter((violacion) => violacion.impact === "critical" || violacion.impact === "serious")
+    .filter((violacion) => ["critical", "serious", "moderate", "minor"].includes(violacion.impact ?? ""))
     .map((violacion) => `${violacion.id}: ${violacion.nodes.map((nodo) => nodo.target.join(" ")).join(" | ")}`);
 }
 
@@ -124,9 +124,3 @@ export async function sinDesbordeHorizontal(page: Page): Promise<void> {
   expect(desborde).toBeLessThanOrEqual(0);
 }
 
-export async function obtenerNombreArchivoCaptura(
-  perfil: string,
-  viewport: string,
-): Promise<string> {
-  return `${perfil.toLowerCase()}-${viewport}.png`;
-}

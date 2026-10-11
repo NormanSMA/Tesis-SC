@@ -26,7 +26,7 @@ beforeEach(() => {
 describe("panel: perfiles, permisos y vacíos", () => {
   it.each([
     ["GERENCIA", "Mayo lleva C$ 0 aprobados, sin aprobaciones el mes anterior"],
-    ["OPERACIONES", "0 órdenes necesitan su acción"],
+    ["OPERACIONES", "Ninguna orden necesita su acción"],
     ["ATENCION_CLIENTE", "0 cotizaciones esperan respuesta del cliente"],
     ["PRODUCCION", "0 etapas por atender hoy"],
     ["ADMINISTRACION", "El inventario está al día"],
@@ -103,7 +103,7 @@ describe("panel: prioridad de atención", () => {
   it("Gerencia prioriza órdenes y limita atención sin perder el total", async () => {
     consultas.ordenes.mockResolvedValue({ pendientes: 1, sinResponsable: 0, enProduccion: 2, atrasadas: 4, entregas: 0, accion: 4, porEstado: [],
       filas: Array.from({ length: 4 }, (_, indice) => ({ id: `orden-${indice}`, numero: `OT-${indice}`, dias: 10 - indice, sinResponsable: false })) });
-    consultas.inventario.mockResolvedValue({ bajoMinimo: 8, valor: "0", filas: Array.from({ length: 5 }, (_, indice) => ({ id: `material-${indice}`, nombre: "Material", existencia: "0", minimo: "1" })) });
+    consultas.inventario.mockResolvedValue({ bajoMinimo: 8, valor: "0", filas: Array.from({ length: 5 }, (_, indice) => ({ id: `material-${indice}`, nombre: "Material", existencia: "0", minimo: "1", unidad: "UNIDAD" })) });
     const panel = await obtenerPanel(actor("GERENCIA"), instante);
     expect(panel.atencion).toHaveLength(5); expect(panel.atencionTotal).toBe(12);
     expect(panel.atencion.slice(0, 4).every((fila) => fila.id.startsWith("orden-"))).toBe(true);

@@ -2,8 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { useForm } from "react-hook-form";
+
 import { PERFILES } from "@/core/permisos";
 import { AvisoAdmin } from "@/modules/admin/componentes/AvisoAdmin";
+import { CamposUsuario, PerfilesUsuario } from "@/modules/admin/componentes/CamposUsuario";
 import { ClaveTemporal } from "@/modules/admin/componentes/ClaveTemporal";
 import { FilaConfiguracion, type ParametroDto } from "@/modules/admin/componentes/FilaConfiguracion";
 import {
@@ -12,7 +15,7 @@ import {
 } from "@/modules/admin/componentes/interfaz";
 import { peticionAdministracion } from "@/modules/admin/componentes/peticion";
 import { TablaPermisos, type MatrizDto } from "@/modules/admin/componentes/TablaPermisos";
-import { esquemaCrearUsuario } from "@/modules/admin/schema";
+import { esquemaCrearUsuario, type EntradaCrearUsuario } from "@/modules/admin/schema";
 import type { UsuarioDto } from "@/modules/admin/tipos";
 
 const AHORA = Date.parse("2026-10-10T12:00:00Z");
@@ -37,7 +40,17 @@ describe("Lista de usuarios", () => {
     const filtros = leerFiltrosUsuarios({ q: "ANA", perfil: "GERENCIA", estado: "BLOQUEADO" });
     expect(filtrarUsuarios([usuario, bloqueado], filtros, AHORA)).toEqual([bloqueado]);
     expect(filtrarUsuarios([usuario], leerFiltrosUsuarios({ q: "example.test" }), AHORA)).toEqual([usuario]);
-    expect(filtrarUsuarios([usuario], { ...filtros, perfil: "PRODUCCION", estado: "" }, AHORA)).toEqual([]);
+    expect(filtrarUsuarios([usuario], { ...filtros, perfil: "PRODUCCION", estado: "TODOS" }, AHORA)).toEqual([]);
+  });
+
+  it("muestra solo activos por defecto y permite ver inactivos o todos", () => {
+    const inactivo = { ...usuario, id: "inactivo", activo: false };
+    const bloqueado = { ...usuario, id: "bloqueado", bloqueadoHasta: "2026-10-10T13:00:00Z" };
+    const datos = [usuario, inactivo, bloqueado];
+    expect(leerFiltrosUsuarios({}).estado).toBe("ACTIVO");
+    expect(filtrarUsuarios(datos, leerFiltrosUsuarios({}), AHORA)).toEqual([usuario, bloqueado]);
+    expect(filtrarUsuarios(datos, leerFiltrosUsuarios({ estado: "INACTIVO" }), AHORA)).toEqual([inactivo]);
+    expect(filtrarUsuarios(datos, leerFiltrosUsuarios({ estado: "TODOS" }), AHORA)).toEqual(datos);
   });
 
   it("conserva los filtros al paginar y normaliza parámetros inválidos", () => {
@@ -48,7 +61,9 @@ describe("Lista de usuarios", () => {
     expect(url.searchParams.get("estado")).toBe("INACTIVO");
     expect(url.searchParams.get("pagina")).toBe("3");
     expect(leerFiltrosUsuarios({ q: ["uno", "dos"], perfil: "otro", estado: "otro", pagina: "NaN" }))
-      .toEqual({ q: "", perfil: "", estado: "", pagina: 1 });
+      .toEqual({ q: "", perfil: "", estado: "ACTIVO", pagina: 1 });
+    expect(hrefUsuarios(leerFiltrosUsuarios({}), 1)).toBe("/admin/usuarios");
+    expect(new URL(hrefUsuarios(leerFiltrosUsuarios({ estado: "TODOS" }), 1), "https://plataforma.test").searchParams.get("estado")).toBe("TODOS");
   });
 });
 
@@ -87,6 +102,19 @@ describe("Formulario de usuario y errores", () => {
     expect(html).toContain("No se vuelve a mostrar.");
     expect(html).toContain("Copiar clave");
     expect(html).toContain("Cerrar clave");
+    expect(html).toContain('role="region"');
+    expect(html).toContain('tabindex="-1"');
+    expect(html).toContain('role="status"');
+  });
+
+  it("marca los campos obligatorios con asterisco oculto y texto accesible", () => {
+    function Campos() {
+      const formulario = useForm<EntradaCrearUsuario>({ defaultValues: { nombre: "", correo: "", perfiles: [] } });
+      return createElement("div", null, createElement(CamposUsuario, { formulario }), createElement(PerfilesUsuario, { formulario }));
+    }
+    const html = renderToStaticMarkup(createElement(Campos));
+    expect(html.match(/<span aria-hidden="true" class="text-danger">\*<\/span>/g)).toHaveLength(3);
+    expect(html.match(/\(obligatorio\)/g)).toHaveLength(3);
   });
 
   it("conserva los errores por campo y captura fallos de conexión", async () => {
@@ -122,7 +150,7 @@ describe("Matriz de permisos", () => {
       matriz: [],
     };
     const html = renderToStaticMarkup(createElement(TablaPermisos, {
-      datos, seleccion: {}, guardados: {}, enviando: false, alCambiar: vi.fn(), alGuardar: vi.fn(),
+      datos, seleccion: {}, enviando: false, alCambiar: vi.fn(),
     }));
     for (const { codigo } of PERFILES) expect(html).toContain(`aria-label="Perfil ${codigo}: permiso usuario:gestionar"`);
     const casilla = html.match(/<button[^>]*aria-label="Perfil ADMIN: permiso usuario:gestionar"[^>]*>/)?.[0];
@@ -132,6 +160,20 @@ describe("Matriz de permisos", () => {
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain('role="region"');
     expect(html).toContain('tabindex="0"');
+  });
+
+  it("ofrece un selector de perfil con aria-pressed para móvil y una columna visible", () => {
+    const datos: MatrizDto = {
+      perfiles: PERFILES.map(({ codigo, nombre, descripcion }) => ({ id: codigo, codigo, nombre, descripcion })),
+      permisos: [{ recurso: "usuario", permisos: [{ id: "uno", codigo: "usuario:gestionar", accion: "gestionar", descripcion: "Gestionar usuarios" }] }],
+      matriz: [],
+    };
+    const html = renderToStaticMarkup(createElement(TablaPermisos, { datos, seleccion: {}, enviando: false, alCambiar: vi.fn() }));
+    expect(html).toContain('role="group"');
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+    expect(html.match(/aria-pressed="false"/g)).toHaveLength(PERFILES.length - 1);
+    expect(html.match(/<th scope="col" class="[^"]*max-md:hidden/g)).toHaveLength(PERFILES.length - 1);
+    expect(html).not.toContain("Guardar cambios de");
   });
 });
 
@@ -156,7 +198,8 @@ describe("Configuración", () => {
     const html = renderToStaticMarkup(createElement(FilaConfiguracion, { inicial }));
     expect(html).toContain('readOnly=""');
     expect(html).toContain("Última edición");
-    expect(html).toContain("Valor actual");
+    expect(html).not.toContain("Valor actual");
+    expect(html).toContain("cursor-not-allowed");
     expect(html).toContain("Zona horaria del sistema.");
     expect(html).not.toContain('type="submit"');
   });

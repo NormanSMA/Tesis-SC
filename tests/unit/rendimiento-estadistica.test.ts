@@ -64,26 +64,50 @@ function resumenesConPorcentaje(porcentaje = 95) {
   );
 }
 
+const condicionesCompletas = { duracionAlcanzada: true, errores4xxInesperados: 0 };
+
 describe("decisión de RNF-01", () => {
   it("acepta exactamente 95 % sin errores 5xx", () => {
-    expect(decidirCumplimiento(resumenesConPorcentaje(), 0)).toBe(true);
+    expect(decidirCumplimiento(resumenesConPorcentaje(), 0, condicionesCompletas)).toBe(true);
   });
 
   it.each(["global", "consulta", "creacion", "actualizacion"])("rechaza %s por debajo de 95 %", (tipo) => {
     const resumenes = resumenesConPorcentaje(100);
     resumenes[tipo] = resumenConPorcentaje(94.9999);
-    expect(decidirCumplimiento(resumenes, 0)).toBe(false);
+    expect(decidirCumplimiento(resumenes, 0, condicionesCompletas)).toBe(false);
   });
 
   it("rechaza cualquier error 5xx aunque las respuestas sean rápidas", () => {
-    expect(decidirCumplimiento(resumenesConPorcentaje(100), 1)).toBe(false);
+    expect(decidirCumplimiento(resumenesConPorcentaje(100), 1, condicionesCompletas)).toBe(false);
+  });
+
+  it("rechaza una duración incompleta aunque las respuestas sean rápidas", () => {
+    expect(decidirCumplimiento(resumenesConPorcentaje(100), 0,
+      { ...condicionesCompletas, duracionAlcanzada: false })).toBe(false);
+  });
+
+  it.each([1, 372])("rechaza %s respuestas 4xx inesperadas aunque sean rápidas", (cantidad) => {
+    expect(decidirCumplimiento(resumenesConPorcentaje(100), 0,
+      { ...condicionesCompletas, errores4xxInesperados: cantidad })).toBe(false);
+  });
+
+  it.each(["global", "consulta", "creacion", "actualizacion"])("rechaza p95 de %s superior a 2000 ms", (tipo) => {
+    const resumenes = resumenesConPorcentaje(100);
+    resumenes[tipo].p95 = 2000.01;
+    expect(decidirCumplimiento(resumenes, 0, condicionesCompletas)).toBe(false);
+  });
+
+  it("acepta p95 exactamente igual a 2000 ms para cada tipo", () => {
+    const resumenes = resumenesConPorcentaje();
+    for (const resumen of Object.values(resumenes)) resumen.p95 = 2000;
+    expect(decidirCumplimiento(resumenes, 0, condicionesCompletas)).toBe(true);
   });
 
   it("rechaza los tipos sin muestras o ausentes", () => {
     const resumenes = resumenesConPorcentaje(100);
     resumenes.actualizacion = { ...resumenes.actualizacion, n: 0 };
-    expect(decidirCumplimiento(resumenes, 0)).toBe(false);
+    expect(decidirCumplimiento(resumenes, 0, condicionesCompletas)).toBe(false);
     delete resumenes.actualizacion;
-    expect(decidirCumplimiento(resumenes, 0)).toBe(false);
+    expect(decidirCumplimiento(resumenes, 0, condicionesCompletas)).toBe(false);
   });
 });

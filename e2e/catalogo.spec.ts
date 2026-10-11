@@ -128,7 +128,8 @@ test.describe("Operaciones gestiona el catálogo", () => {
     await crearProductoPorPantalla(page, { codigo, nombre: nombreInicial });
     await expect(page.getByRole("heading", { level: 1, name: nombreInicial })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByText(`${codigo} · ${CATEGORIA}`)).toBeVisible();
+    await expect(page.getByText(codigo, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(CATEGORIA).first()).toBeVisible();
     await expect(page.getByText("m²", { exact: true })).toBeVisible();
     await expect(page.getByText("C$ 125.50")).toBeVisible();
     await abrirPestana(page, "Receta");

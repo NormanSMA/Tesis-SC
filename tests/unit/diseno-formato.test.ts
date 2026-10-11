@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatearCantidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
+import { formatearCantidad, formatearCantidadPorUnidad, formatearFecha, formatearFechaHora, formatearMoneda, formatearMonedaEntera, formatearPorcentaje } from "@/lib/formato";
 
 describe("formatearMoneda", () => {
   it("agrupa miles y fija dos decimales", () => {
@@ -54,5 +54,24 @@ describe("formatearFecha", () => {
     expect(formatearFecha(null)).toBe("");
     expect(formatearFecha("no es fecha")).toBe("");
     expect(formatearFechaHora("")).toBe("");
+  });
+});
+
+describe("formatos de reporte y panel", () => {
+  it("muestra dinero sin decimales con redondeo exacto", () => {
+    expect(formatearMonedaEntera("1174042.49")).toBe("C$ 1,174,042");
+    expect(formatearMonedaEntera("1174042.50")).toBe("C$ 1,174,043");
+    expect(formatearMonedaEntera(null)).toBe("");
+  });
+
+  it("agrega el símbolo de porcentaje", () => {
+    expect(formatearPorcentaje("88.24")).toBe("88.2 %");
+    expect(formatearPorcentaje("100.00", 0)).toBe("100 %");
+  });
+
+  it("muestra enteros solo en unidades discretas", () => {
+    expect(formatearCantidadPorUnidad("64.000", "UNIDAD")).toBe("64");
+    expect(formatearCantidadPorUnidad("1200.000", "Pliego")).toBe("1,200");
+    expect(formatearCantidadPorUnidad("64.000", "Metro")).toBe("64.000");
   });
 });

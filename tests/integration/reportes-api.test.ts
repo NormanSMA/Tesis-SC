@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import type { ReporteDto } from "@/modules/reportes/tipos";
@@ -87,6 +88,26 @@ function registrarExportaciones() {
       comprobarCsv({ csv: bytes.toString("utf8"), nombre, reporte });
     });
   }
+  for (const nombre of NOMBRES_REPORTES) {
+    it(`${nombre}: XLSX coincide con JSON, tipo y nombre local`, async () => {
+      const cookie = entorno.sesiones.GERENCIA.cookie;
+      const parametros = nombre === "cotizaciones-por-estado" || nombre === "carga-por-operario"
+        ? "desde=2041-01-01&hasta=2041-01-01" : "";
+      const json = await solicitarReporte(entorno, { nombre, parametros, cookie });
+      const reporte = (await json.json()).datos as ReporteDto;
+      const respuesta = await solicitarReporte(entorno, { nombre, parametros: `${parametros}&formato=xlsx`, cookie });
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.headers.get("content-type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      expect(respuesta.headers.get("cache-control")).toBe("private, no-store");
+      const { hoyManagua } = await import("@/modules/cotizaciones/fechas");
+      expect(respuesta.headers.get("content-disposition")).toBe(`attachment; filename="${nombre}-${hoyManagua().replaceAll("-", "")}.xlsx"`);
+      const libro = new ExcelJS.Workbook();
+      await libro.xlsx.load(Buffer.from(await respuesta.arrayBuffer()) as unknown as ExcelJS.Buffer);
+      const hoja = libro.worksheets[0];
+      expect(hoja.getRow(6).values).toEqual([undefined, ...columnasReporte(nombre, true).map((columna) => columna.encabezado)]);
+      expect(hoja.getCell(7 + reporte.filas.length + 1, 1).value).toBe("Totales");
+    });
+  }
   it("exporta texto peligroso protegido y conserva tildes", async () => {
     const marca = `Csv ${entorno.sesiones.GERENCIA.usuarioId}`;
     await crearMaterialPanel(entorno, { nombre: `=FÓRMULA ${marca}`, existencia: "1.001" });
@@ -110,7 +131,9 @@ function registrarRevocaciones() {
     await conPermisoRevocado(db, { perfil: "GERENCIA", permiso: "reporte:exportar" }, async () => {
       for (const nombre of NOMBRES_REPORTES) {
         expect((await solicitarReporte(entorno, { nombre, cookie: entorno.sesiones.GERENCIA.cookie })).status).toBe(200);
-        expect((await solicitarReporte(entorno, { nombre, parametros: "formato=csv", cookie: entorno.sesiones.GERENCIA.cookie })).status).toBe(403);
+        for (const formato of ["csv", "xlsx"]) {
+          expect((await solicitarReporte(entorno, { nombre, parametros: `formato=${formato}`, cookie: entorno.sesiones.GERENCIA.cookie })).status).toBe(403);
+        }
       }
     });
   });

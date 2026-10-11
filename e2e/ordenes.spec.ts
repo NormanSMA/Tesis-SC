@@ -1,8 +1,9 @@
-import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
 import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { elegir } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -48,15 +49,6 @@ function fechaVisible(fecha: string): string {
   const [anio, mes, dia] = fecha.split("-");
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${dia} ${meses[Number(mes) - 1]} ${anio}`;
-}
-
-async function elegir(campo: Locator, opcion: string | RegExp, page: Page): Promise<void> {
-  // La hidratación puede descartar el primer clic sobre un selector renderizado en el servidor.
-  await expect(async () => {
-    if (await campo.getAttribute("aria-expanded") !== "true") await campo.click();
-    await expect(campo).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
-  }).toPass({ timeout: 10000 });
-  await page.getByRole("option", { name: opcion, exact: typeof opcion === "string" }).click();
 }
 
 async function abrirPestana(page: Page, nombre: string): Promise<void> {
@@ -140,10 +132,10 @@ async function convertirMixta(page: Page): Promise<void> {
   orden = (await respuesta.json()).datos as Orden;
   await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^OT-\d{4}-\d{4}$/);
-  await expect(page.getByRole("definition").filter({ hasText: /^Pendiente$/ })).toBeVisible();
+  await expect(page.getByRole("main").getByText("Pendiente", { exact: true }).first()).toBeVisible();
   expect(conversion.responsableId).toBeFalsy();
   await expect(page.getByRole("button", { name: "Asignar", exact: true })).toBeVisible();
-  await expect(page.getByRole("definition").filter({ hasText: /^Sin responsable$/ })).toBeVisible();
+  await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: fechaVisible(conversion.fechaEntrega) })).toBeVisible();
   await expect(page.getByRole("main")).toContainText(/siguiente paso/i);
   await abrirPestana(page, "Especificaciones");
@@ -326,16 +318,16 @@ function registrarListaYAsignacion(): void {
     if (!orden) throw new Error("Falta la orden convertida.");
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/ordenes/${orden.id}`);
-    await expect(page.getByRole("definition").filter({ hasText: /^Sin responsable$/ })).toBeVisible();
+    await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
     await entrarComo(page, ADMINISTRACION);
     await page.goto(`/ordenes/${orden.id}`);
     await page.getByRole("button", { name: "Asignar", exact: true }).click();
     const dialogo = page.getByRole("dialog");
-    await elegir(dialogo.getByLabel("Responsable"), "Marco López", page);
+    await elegir(dialogo.getByLabel("Responsable", { exact: true }), "Marco López", page);
     await dialogo.getByRole("button", { name: /^(Asignar|Guardar cambios)$/ }).click();
     await expect(dialogo).toHaveCount(0);
-    await expect(page.getByRole("definition").filter({ hasText: /^Marco López$/ })).toBeVisible();
+    await expect(page.getByRole("main").getByText("Marco López", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
     await abrirPestana(page, "Historial");
     await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("asignó el responsable");
@@ -357,12 +349,12 @@ function registrarGestion(): void {
     await entrarComo(page, OPERACIONES);
     await page.goto(`/ordenes/${orden.id}`);
     await page.getByRole("link", { name: "Editar", exact: true }).click();
-    await elegir(page.getByLabel("Responsable"), "Gabriel Cortez", page);
+    await elegir(page.getByLabel("Responsable", { exact: true }), "Gabriel Cortez", page);
     const nuevaFecha = fechaFutura(21);
     await page.getByLabel("Fecha de entrega").fill(nuevaFecha);
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
-    await expect(page.getByRole("definition").filter({ hasText: /^Gabriel Cortez$/ })).toBeVisible();
+    await expect(page.getByRole("main").getByText("Gabriel Cortez", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("definition").filter({ hasText: fechaVisible(nuevaFecha) })).toBeVisible();
     await abrirPestana(page, "Historial");
     const historial = page.getByRole("list", { name: "Historial de la orden" });
@@ -373,7 +365,7 @@ function registrarGestion(): void {
     const motivo = `${MARCA}-cancelación de prueba`;
     await page.getByRole("dialog").getByLabel("Motivo").fill(motivo);
     await page.getByRole("dialog").getByRole("button", { name: "Cancelar orden", exact: true }).click();
-    await expect(page.getByRole("definition").filter({ hasText: /^Cancelada$/ })).toBeVisible();
+    await expect(page.getByRole("main").getByText("Cancelada", { exact: true }).first()).toBeVisible();
     await abrirPestana(page, "Historial");
     await expect(page.getByRole("main")).toContainText(motivo);
     const etapas = page.getByRole("table", { name: "Etapas de la orden" });

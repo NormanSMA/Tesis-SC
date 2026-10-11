@@ -10,8 +10,8 @@ const ORIGIN = new URL(BASE).origin;
 const CAPTURAS = path.join("docs", "capturas", "inventario");
 const SELLO = Date.now();
 const MARCA = `E2E-${SELLO}-inventario-${Math.floor(Math.random() * 100000)}`;
-// El código admite 30 caracteres: el sello viaja en base 36.
-const CODIGO = `E2E-${SELLO.toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`.toUpperCase();
+// El prefijo evita limpiar materiales ajenos y mantiene códigos menores de 30 caracteres.
+const PREFIJO_CODIGO = `E2E-${randomUUID().replaceAll("-", "").slice(0, 12)}-`.toUpperCase();
 const NOMBRE = `${MARCA} material`;
 const UNIDAD = "PLIEGO";
 type Perfil = (typeof PERFILES)[number];
@@ -23,7 +23,6 @@ const GERENCIA = PERFIL("GERENCIA");
 const OPERACIONES = PERFIL("OPERACIONES");
 const PRODUCCION = PERFIL("PRODUCCION");
 const ADMIN = PERFIL("ADMIN");
-let material: Material | undefined;
 
 test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
   ? { browserName: "chromium" as const, channel: process.env.E2E_BROWSER_CHANNEL } : {}) });
@@ -40,19 +39,19 @@ function soloPortatil(proyecto: string): void {
   test.skip(proyecto !== "portatil", "Los efectos y las capturas corren únicamente en portatil.");
 }
 
-function actual(): Material {
-  if (!material) throw new Error("Falta el material: falló una prueba previa.");
-  return material;
-}
-
 function exacto(texto: string): RegExp {
   return new RegExp(`^${texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
 }
 
-// Un formulario llenado antes de hidratar pierde sus valores: se espera a que la red quede en reposo.
-async function abrir(page: Page, ruta: string): Promise<void> {
+async function abrir(page: Page, ruta: string, nombre: string): Promise<void> {
   await page.goto(ruta);
-  await page.waitForLoadState("networkidle");
+  await esperarFormulario(formulario(page, nombre));
+}
+
+async function esperarFormulario(form: Locator): Promise<void> {
+  await expect(form).toBeVisible();
+  await expect(form.locator("fieldset")).toBeEnabled();
+  await expect(form.getByRole("button", { name: /^(Guardar material|Registrar entrada|Registrar ajuste)$/ })).toBeEnabled();
 }
 
 function formulario(page: Page, nombre: string): Locator {
@@ -75,11 +74,12 @@ function listaMateriales(page: Page): Locator {
   return page.getByRole("region", { name: "Materiales del inventario" });
 }
 
-async function crearMaterial(page: Page): Promise<void> {
+async function crearMaterial(page: Page): Promise<Material> {
+  const codigo = `${PREFIJO_CODIGO}${randomUUID().replaceAll("-", "").slice(0, 12)}`.toUpperCase();
   await entrarComo(page, ADMINISTRACION);
-  await abrir(page, "/inventario/nuevo");
+  await abrir(page, "/inventario/nuevo", "Crear material");
   const form = formulario(page, "Crear material");
-  await form.getByLabel("Código").fill(CODIGO);
+  await form.getByLabel("Código").fill(codigo);
   await form.getByLabel("Nombre").fill(NOMBRE);
   await form.getByLabel("Unidad").selectOption(UNIDAD);
   // El mínimo supera la existencia que alcanzará la prueba: así la alerta es esperable.
@@ -89,22 +89,23 @@ async function crearMaterial(page: Page): Promise<void> {
   await form.getByRole("button", { name: "Guardar material" }).click();
   const respuesta = await creada;
   expect(respuesta.status(), await respuesta.text()).toBe(201);
-  material = (await respuesta.json()).datos as Material;
+  const material = (await respuesta.json()).datos as Material;
   await expect(page).toHaveURL(/\/inventario$/);
+  return material;
 }
 
-async function verFicha(page: Page, esperado: { existencia: string; costo: string }): Promise<void> {
-  await page.goto(`/inventario/${actual().id}`);
+async function verFicha(page: Page, material: Material, esperado: { existencia: string; costo: string }): Promise<void> {
+  await page.goto(`/inventario/${material.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(NOMBRE);
   await expect(page.getByRole("definition").filter({ hasText: exacto(`${esperado.existencia} ${UNIDAD}`) })).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: exacto(esperado.costo) })).toBeVisible();
 }
 
-async function registrarEntrada(page: Page, entrada: { cantidad: string; costo: string; referencia: string }): Promise<void> {
-  await page.goto(`/inventario/${actual().id}`);
+async function registrarEntrada(page: Page, material: Material, entrada: { cantidad: string; costo: string; referencia: string }): Promise<void> {
+  await page.goto(`/inventario/${material.id}`);
   await page.getByRole("link", { name: "Registrar entrada", exact: true }).click();
-  await page.waitForLoadState("networkidle");
   const form = formulario(page, "Registrar entrada");
+  await esperarFormulario(form);
   await form.getByLabel("Cantidad").fill(entrada.cantidad);
   await form.getByLabel("Costo unitario (C$)").fill(entrada.costo);
   await form.getByLabel("Referencia").fill(entrada.referencia);
@@ -115,15 +116,15 @@ async function registrarEntrada(page: Page, entrada: { cantidad: string; costo: 
   await expect(page.getByText("Registro guardado").first()).toBeVisible();
 }
 
-async function leerFicha(page: Page): Promise<Material> {
-  const respuesta = await page.request.get(`/api/v1/materiales/${actual().id}`);
+async function leerFicha(page: Page, material: Material): Promise<Material> {
+  const respuesta = await page.request.get(`/api/v1/materiales/${material.id}`);
   expect(respuesta.status()).toBe(200);
   return (await respuesta.json()).datos as Material;
 }
 
-async function ajustarACero(page: Page): Promise<void> {
-  const { existencia } = await leerFicha(page);
-  await abrir(page, `/inventario/ajuste?materialId=${actual().id}`);
+async function ajustarACero(page: Page, material: Material): Promise<void> {
+  const { existencia } = await leerFicha(page, material);
+  await abrir(page, `/inventario/ajuste?materialId=${material.id}`, "Ajustar inventario");
   const form = formulario(page, "Ajustar inventario");
   await form.getByLabel("Dirección").selectOption("DISMINUIR");
   await form.getByLabel("Cantidad").fill(existencia);
@@ -135,8 +136,8 @@ async function ajustarACero(page: Page): Promise<void> {
   await expect(page.getByText("Registro guardado").first()).toBeVisible();
 }
 
-async function archivarDesdeFicha(page: Page): Promise<void> {
-  await page.goto(`/inventario/${actual().id}`);
+async function archivarDesdeFicha(page: Page, material: Material): Promise<void> {
+  await page.goto(`/inventario/${material.id}`);
   await page.getByRole("button", { name: "Archivar", exact: true }).click();
   const enviada = page.waitForResponse((r) => r.url().endsWith("/archivar") && r.request().method() === "POST");
   await page.getByRole("dialog").getByRole("button", { name: "Archivar", exact: true }).click();
@@ -145,10 +146,10 @@ async function archivarDesdeFicha(page: Page): Promise<void> {
 
 async function archivarYVaciar(page: Page): Promise<void> {
   await entrarComo(page, ADMINISTRACION);
-  const lista = await page.request.get(`/api/v1/materiales?q=${CODIGO}&activo=todos&porPagina=100`);
+  const lista = await page.request.get(`/api/v1/materiales?q=${PREFIJO_CODIGO}&activo=todos&porPagina=100`);
   expect(lista.status()).toBe(200);
-  for (const fila of ((await lista.json()).datos as Material[]).filter((fila) => fila.codigo === CODIGO && fila.activo)) {
-    const ficha = (await (await page.request.get(`/api/v1/materiales/${fila.id}`)).json()).datos as Material;
+  for (const fila of ((await lista.json()).datos as Material[]).filter((fila) => fila.codigo.startsWith(PREFIJO_CODIGO) && fila.activo)) {
+    const ficha = await leerFicha(page, fila);
     if (Number(ficha.existencia) > 0) {
       const ajuste = await page.request.post("/api/v1/inventario/ajustes", {
         headers: { Origin: ORIGIN, "Idempotency-Key": randomUUID() },
@@ -156,8 +157,9 @@ async function archivarYVaciar(page: Page): Promise<void> {
       });
       expect(ajuste.status(), await ajuste.text()).toBe(201);
     }
+    const vigente = await leerFicha(page, fila);
     const archivada = await page.request.post(`/api/v1/materiales/${fila.id}/archivar`, {
-      headers: { Origin: ORIGIN }, data: { version: ficha.actualizadoEn },
+      headers: { Origin: ORIGIN }, data: { version: vigente.actualizadoEn },
     });
     expect(archivada.status(), await archivada.text()).toBe(200);
   }
@@ -206,11 +208,11 @@ function registrarAxe(): void {
       soloPortatil(info.project.name);
       test.setTimeout(120000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, ADMINISTRACION);
+      const material = await crearMaterial(page);
       await page.goto("/inventario");
       await expect(listaMateriales(page)).toBeVisible();
       expect.soft(await violacionesGraves(page), "lista").toEqual([]);
-      await page.goto(`/inventario/${actual().id}`);
+      await page.goto(`/inventario/${material.id}`);
       await expect(libro(page)).toBeVisible();
       expect.soft(await violacionesGraves(page), "ficha").toEqual([]);
     });
@@ -218,25 +220,23 @@ function registrarAxe(): void {
 }
 
 test.describe("Inventario con un material propio", () => {
-  // Cada paso usa el material E2E para conservar los datos sembrados.
-  test.describe.configure({ mode: "serial" });
   test.afterAll(async ({ browser }, info) => {
     if (info.project.name === "portatil") await limpiarCreadas(browser);
   });
 
   test("Administración crea un material y lo ve con existencia cero", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    await crearMaterial(page);
-    await verFicha(page, { existencia: "0.000", costo: "5.0000" });
+    const material = await crearMaterial(page);
+    await verFicha(page, material, { existencia: "0.000", costo: "5.0000" });
     await expect(page.getByRole("main")).toContainText("Sin existencia");
   });
 
   test("Administración registra una entrada y ve existencia, alerta, libro y conciliación", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, ADMINISTRACION);
-    await registrarEntrada(page, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
-    await verFicha(page, { existencia: "10.000", costo: "10.0000" });
+    const material = await crearMaterial(page);
+    await registrarEntrada(page, material, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
+    await verFicha(page, material, { existencia: "10.000", costo: "10.0000" });
     await expect(page.getByRole("status").filter({ hasText: /^Bajo mínimo$/ })).toBeVisible();
     // El libro vive en una sección details abierta con el total de registros.
     await expect(page.getByText(/^Movimientos \(\d+ registros?\)$/)).toBeVisible();
@@ -249,10 +249,11 @@ test.describe("Inventario con un material propio", () => {
   test("una segunda entrada con otro costo cambia el costo promedio ponderado", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, ADMINISTRACION);
-    await registrarEntrada(page, { cantidad: "3", costo: "20", referencia: `${MARCA}-FAC-2` });
+    const material = await crearMaterial(page);
+    await registrarEntrada(page, material, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
+    await registrarEntrada(page, material, { cantidad: "3", costo: "20", referencia: `${MARCA}-FAC-2` });
     // (10 x 10 + 3 x 20) / 13 = 12.30769...
-    await verFicha(page, { existencia: "13.000", costo: "12.3077" });
+    await verFicha(page, material, { existencia: "13.000", costo: "12.3077" });
     await expect(filaLibro(page, "ENTRADA")).toHaveCount(2);
     await expect(page.getByRole("main")).toContainText("Conciliado");
   });
@@ -268,22 +269,23 @@ test.describe("Inventario con un material propio", () => {
   test("Administración no archiva con existencia, ajusta a cero, archiva y el material sale de la lista", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
-    await entrarComo(page, ADMINISTRACION);
-    await archivarDesdeFicha(page);
+    const material = await crearMaterial(page);
+    await registrarEntrada(page, material, { cantidad: "13", costo: "10", referencia: `${MARCA}-FAC-archivo` });
+    await archivarDesdeFicha(page, material);
     await expect(page.getByText("El material tiene existencia").first()).toBeVisible();
     await page.keyboard.press("Escape");
     // Con 13 unidades y mínimo 100 el estado es "Bajo mínimo"; el material sigue activo.
     await expect(page.getByText("Archivado", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Bajo mínimo", { exact: true }).first()).toBeVisible();
-    await ajustarACero(page);
-    await page.goto(`/inventario/${actual().id}`);
+    await ajustarACero(page, material);
+    await page.goto(`/inventario/${material.id}`);
     await expect(page.getByRole("definition").filter({ hasText: exacto(`0.000 ${UNIDAD}`) })).toBeVisible();
     await expect(filaLibro(page, "AJUSTE")).toContainText(`${MARCA}-limpieza de existencia`);
-    await archivarDesdeFicha(page);
+    await archivarDesdeFicha(page, material);
     await expect(page.getByText("Archivado", { exact: true })).toBeVisible();
-    await page.goto(`/inventario?q=${CODIGO}`);
+    await page.goto(`/inventario?q=${material.codigo}`);
     await expect(page.getByRole("main").getByText("Sin resultados", { exact: true })).toBeVisible();
-    await page.goto(`/inventario?q=${CODIGO}&activo=false`);
+    await page.goto(`/inventario?q=${material.codigo}&activo=false`);
     await expect(page.getByRole("link", { name: NOMBRE })).toBeVisible();
   });
 });
@@ -316,7 +318,7 @@ test("Administración gestiona, registra entradas y ajusta", async ({ page }) =>
   await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toBeVisible();
   await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
   await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toBeVisible();
-  await abrir(page, "/inventario/ajuste");
+  await abrir(page, "/inventario/ajuste", "Ajustar inventario");
   await expect(formulario(page, "Ajustar inventario")).toBeVisible();
 });
 

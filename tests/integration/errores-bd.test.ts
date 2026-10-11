@@ -155,6 +155,27 @@ describeConBase("traduccion de errores contra PostgreSQL real", () => {
     expect(esperarConflicto(e, "SC005")).toMatch(/consumo_orden solo admite movimientos CONSUMO o DEVOLUCION/);
   });
 
+  it("SC005: consumo directo sobre una orden cancelada, rechazado por el trigger", async () => {
+    const e = await capturar(() =>
+      bd.$transaction(async (tx) => {
+        await tx.$executeRaw`SET LOCAL session_replication_role = replica`;
+        await tx.$executeRaw`UPDATE orden_trabajo SET estado = 'CANCELADA', motivo_cancelacion = 'Prueba de trigger'
+          WHERE id = ${d.ordenId}::uuid`;
+        await tx.$executeRaw`SET LOCAL session_replication_role = origin`;
+        await tx.movimientoInventario.create({
+          data: { materialId: d.materialId, tipo: "ENTRADA", cantidad: "10", costoUnitario: "5", usuarioId: d.usuarioId },
+        });
+        const consumo = await tx.movimientoInventario.create({
+          data: { materialId: d.materialId, tipo: "CONSUMO", cantidad: "-1", usuarioId: d.usuarioId },
+        });
+        await tx.consumoOrden.create({
+          data: { ordenId: d.ordenId, materialId: d.materialId, movimientoId: consumo.id },
+        });
+      }),
+    );
+    expect(esperarConflicto(e, "SC005")).toMatch(/La orden en estado CANCELADA no admite consumo de material/);
+  });
+
   it("SC005: consumo sin orden, detectado al confirmar la transaccion", async () => {
     const e = await capturar(() =>
       bd.$transaction(async (tx) => {

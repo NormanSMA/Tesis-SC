@@ -59,6 +59,14 @@ describeConBase("órdenes: conversión y concurrencia", () => {
     expect(orden.especificaciones).toBe(cotizacion.asunto);
   });
 
+  it("rechaza convertir una cotización archivada con 409 COTIZACION_ARCHIVADA", async () => {
+    const cotizacion = await crearAprobada(entorno);
+    await db.cotizacion.update({ where: { id: cotizacion.id }, data: { archivada: true } });
+    await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, cotizacion.id), entorno.sesiones.OPERACIONES.actor))
+      .rejects.toMatchObject({ status: 409, codigo: "COTIZACION_ARCHIVADA", mensaje: expect.stringContaining("archivada") });
+    expect(await db.ordenTrabajo.count({ where: { cotizacionId: cotizacion.id } })).toBe(0);
+  });
+
   it("la doble conversión responde ORDEN_EXISTENTE con el número", async () => {
     const orden = await crearOrden(entorno);
     await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, orden.cotizacion.id), entorno.sesiones.OPERACIONES.actor))

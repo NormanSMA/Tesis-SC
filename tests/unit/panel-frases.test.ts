@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cantidadPanel, dineroPanel, META_APROBACION_PCT, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "@/modules/panel/dto";
+import { cantidadMaterialPanel, cantidadPanel, dineroPanel, etiquetaDia, etiquetaSemana, mesesConActividad, META_APROBACION_PCT, nombreMesCorto, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "@/modules/panel/dto";
 import type { MesComercial } from "@/modules/panel/tipos";
 
 const mes = (monto: string, fecha = "2034-10-01"): MesComercial => ({ mes: fecha, monto, aprobadas: 0, respondidas: 0 });
 describe("panel: frases y formatos", () => {
-  it.each([["184500.00", "C$ 184,500"], ["184500.25", "C$ 184,500.25"], ["0", "C$ 0"],
+  it.each([["184500.00", "C$ 184,500"], ["184500.25", "C$ 184,500"], ["1174042.59", "C$ 1,174,043"], ["0", "C$ 0"],
     ["99999999999999.995", "C$ 100,000,000,000,000"]])("formatea exactamente %s", (valor, esperado) => {
     expect(dineroPanel(valor)).toBe(esperado);
   });
@@ -27,8 +27,26 @@ describe("panel: frases y formatos", () => {
     const actual = { ...mes("0"), aprobadas: 7, respondidas: 10 };
     const anterior = { ...mes("0"), aprobadas: 3, respondidas: 5 };
     expect(tasaAprobacion(actual)).toBe(70); expect(tasaAprobacion(mes("0"))).toBe(0);
-    expect(tendenciaTasa(actual, anterior)).toEqual({ direccion: "sube", texto: "10 puntos frente al mes anterior" });
-    expect(tendenciaTasa(anterior, actual)).toEqual({ direccion: "baja", texto: "-10 puntos frente al mes anterior" });
+    expect(tendenciaTasa(actual, anterior)).toEqual({ direccion: "sube", texto: "10 pts" });
+    expect(tendenciaTasa(anterior, actual)).toEqual({ direccion: "baja", texto: "10 pts" });
     expect(tendenciaTasa(actual, actual).direccion).toBe("igual");
+  });
+  it("abrevia meses y días para los gráficos", () => {
+    expect(nombreMesCorto("2034-09-01")).toBe("sep");
+    expect(etiquetaDia("2026-10-05")).toBe("lun 5");
+    expect(etiquetaDia("2026-10-11")).toBe("dom 11");
+    expect(etiquetaSemana("2026-10-05")).toBe("5 oct");
+  });
+  it("omite los meses vacíos iniciales y conserva al menos los dos últimos", () => {
+    const meses = (montos: string[]) => montos.map((monto, indice) => ({ ...mes(monto), mes: `2034-0${indice + 1}-01` }));
+    expect(mesesConActividad(meses(["0", "0", "5", "0", "7", "9"])).map((fila) => fila.mes[6])).toEqual(["3", "4", "5", "6"]);
+    expect(mesesConActividad(meses(["0", "0", "0", "0", "0", "0"])).map((fila) => fila.mes[6])).toEqual(["5", "6"]);
+    expect(mesesConActividad(meses(["0", "0", "0", "0", "0", "3"])).map((fila) => fila.mes[6])).toEqual(["5", "6"]);
+  });
+  it("muestra cantidades de materiales sin ceros sobrantes", () => {
+    expect(cantidadMaterialPanel("0.000", "UNIDAD")).toBe("0");
+    expect(cantidadMaterialPanel("5.000", "Pliego")).toBe("5");
+    expect(cantidadMaterialPanel("2.500", "METRO")).toBe("2.5");
+    expect(cantidadMaterialPanel("10.000", "METRO")).toBe("10");
   });
 });

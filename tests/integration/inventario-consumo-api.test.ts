@@ -28,6 +28,29 @@ describeConBase("inventario: API de consumo y devolución por perfil", () => {
     return entorno.sesiones[perfil].cookie;
   }
 
+  function estadoInventario(materialId: string, ordenId: string) {
+    return db.$queryRaw<{ existencia: string; movimientos: number; consumos: number; bitacora: number }[]>`
+      SELECT m.existencia::text AS existencia,
+        (SELECT COUNT(*)::int FROM movimiento_inventario WHERE material_id = m.id) AS movimientos,
+        (SELECT COUNT(*)::int FROM consumo_orden
+          WHERE material_id = m.id OR orden_id = ${ordenId}::uuid) AS consumos,
+        (SELECT COUNT(*)::int FROM bitacora b
+          WHERE b.orden_id = ${ordenId}::uuid
+            OR (b.entidad = 'MATERIAL' AND b.entidad_id = m.id)
+            OR b.detalle->>'materialId' = m.id::text
+            OR b.detalle->'material'->>'id' = m.id::text
+            OR (b.entidad = 'MOVIMIENTO_INVENTARIO' AND EXISTS (
+              SELECT 1 FROM movimiento_inventario v WHERE v.id = b.entidad_id AND v.material_id = m.id))) AS bitacora
+      FROM material m WHERE m.id = ${materialId}::uuid`;
+  }
+
+  async function llamarSinCambios(materialId: string, solicitud: Llamada) {
+    const antes = await estadoInventario(materialId, solicitud.ordenId);
+    const respuesta = await llamar(solicitud);
+    expect(await estadoInventario(materialId, solicitud.ordenId)).toEqual(antes);
+    return respuesta;
+  }
+
   async function ordenConConsumo() {
     const orden = await nuevaOrden(entorno);
     const material = await crearMaterial(entorno, { existencia: "10", costo: "7.25" });
@@ -49,8 +72,10 @@ describeConBase("inventario: API de consumo y devolución por perfil", () => {
   for (const perfil of Object.keys(ESPERADO) as PerfilCodigo[]) {
     for (const operacion of ["consumir", "devolver", "resumen"] as Operacion[]) {
       it(`${perfil}: ${operacion} responde ${ESPERADO[perfil][operacion]}`, async () => {
-        const { orden, lineas } = await ordenConConsumo();
-        const respuesta = await llamar({ operacion, ordenId: orden.id, cookie: cookie(perfil), cuerpo: { lineas } });
+        const { orden, material, lineas } = await ordenConConsumo();
+        const solicitud = { operacion, ordenId: orden.id, cookie: cookie(perfil), cuerpo: { lineas } };
+        const respuesta = ESPERADO[perfil][operacion] === 403
+          ? await llamarSinCambios(material.id, solicitud) : await llamar(solicitud);
         expect(respuesta.status).toBe(ESPERADO[perfil][operacion]);
         if (respuesta.status === 403) expect(respuesta.error?.codigo).toBe("SIN_PERMISO");
       });
@@ -74,11 +99,14 @@ describeConBase("inventario: API de consumo y devolución por perfil", () => {
   });
 
   it("exige Idempotency-Key válida y repite la respuesta con 200", async () => {
-    const { orden, lineas } = await ordenConConsumo();
+    const { orden, material, lineas } = await ordenConConsumo();
     const base = { operacion: "consumir" as const, ordenId: orden.id, cookie: cookie("ADMINISTRACION"), cuerpo: { lineas } };
-    const sinClave = await llamar({ ...base, clave: null });
-    expect(sinClave).toMatchObject({ status: 422, error: { codigo: "VALIDACION", campos: { "Idempotency-Key": expect.any(String) } } });
-    expect((await llamar({ ...base, clave: "no-es-uuid" })).status).toBe(422);
+    for (const operacion of ["consumir", "devolver"] as const) {
+      for (const clave of [null, "no-es-uuid"]) {
+        const respuesta = await llamarSinCambios(material.id, { ...base, operacion, clave });
+        expect(respuesta).toMatchObject({ status: 422, error: { codigo: "VALIDACION", campos: { "Idempotency-Key": expect.any(String) } } });
+      }
+    }
     const clave = randomUUID();
     const primera = await llamar({ ...base, clave });
     const segunda = await llamar({ ...base, clave });
@@ -101,7 +129,7 @@ describeConBase("inventario: API de consumo y devolución por perfil", () => {
 
   it("valida el cuerpo con 422 por campo", async () => {
     const { orden, material } = await ordenConConsumo();
-    const base = { operacion: "consumir" as const, ordenId: orden.id, cookie: cookie("ADMINISTRACION") };
+    const base = { ordenId: orden.id, cookie: cookie("ADMINISTRACION") };
     const casos: [unknown, string][] = [
       [{ lineas: [] }, "lineas"],
       [{ lineas: [{ materialId: material.id, cantidad: "0" }] }, "lineas.0.cantidad"],
@@ -109,26 +137,28 @@ describeConBase("inventario: API de consumo y devolución por perfil", () => {
       [{ lineas: [{ materialId: material.id, cantidad: "1" }, { materialId: material.id, cantidad: "2" }] }, "lineas.1.materialId"],
       [{ lineas: [{ materialId: randomUUID(), cantidad: "1" }] }, "lineas.0.materialId"],
     ];
-    for (const [cuerpo, campo] of casos) {
-      const respuesta = await llamar({ ...base, cuerpo });
-      expect(respuesta.status).toBe(422);
-      expect(respuesta.error?.campos).toHaveProperty([campo]);
+    for (const operacion of ["consumir", "devolver"] as const) {
+      for (const [cuerpo, campo] of casos) {
+        const respuesta = await llamarSinCambios(material.id, { ...base, operacion, cuerpo });
+        expect(respuesta.status).toBe(422);
+        expect(respuesta.error?.campos).toHaveProperty([campo]);
+      }
     }
   });
 
   it("responde 409 por estado de la orden, existencia y tope de devolución", async () => {
     const { orden, material } = await ordenConConsumo();
     const administracion = cookie("ADMINISTRACION");
-    const insuficiente = await llamar({ operacion: "consumir", ordenId: orden.id, cookie: administracion,
+    const insuficiente = await llamarSinCambios(material.id, { operacion: "consumir", ordenId: orden.id, cookie: administracion,
       cuerpo: { lineas: [{ materialId: material.id, cantidad: "8.001" }] } });
     expect(insuficiente).toMatchObject({ status: 409, error: { codigo: "EXISTENCIA_INSUFICIENTE",
       campos: { "lineas.0.cantidad": expect.stringContaining("disponible 8.000") } } });
-    const excede = await llamar({ operacion: "devolver", ordenId: orden.id, cookie: administracion,
+    const excede = await llamarSinCambios(material.id, { operacion: "devolver", ordenId: orden.id, cookie: administracion,
       cuerpo: { lineas: [{ materialId: material.id, cantidad: "2.001" }] } });
     expect(excede).toMatchObject({ status: 409, error: { codigo: "DEVOLUCION_EXCEDE_CONSUMO" } });
     await ponerEstado(db, orden.id, "CERRADA");
     for (const operacion of ["consumir", "devolver"] as Operacion[]) {
-      const respuesta = await llamar({ operacion, ordenId: orden.id, cookie: administracion,
+      const respuesta = await llamarSinCambios(material.id, { operacion, ordenId: orden.id, cookie: administracion,
         cuerpo: { lineas: [{ materialId: material.id, cantidad: "1" }] } });
       expect(respuesta).toMatchObject({ status: 409, error: { codigo: "ORDEN_NO_ADMITE_CONSUMO" } });
     }

@@ -270,7 +270,7 @@ test.describe("ADMIN gestiona permisos", () => {
       const etiqueta = await candidata.getAttribute("aria-label");
       if (!etiqueta) throw new Error("GERENCIA ya tiene todos los permisos");
       const casilla = matriz.getByRole("checkbox", { name: etiqueta, exact: true });
-      const guardar = matriz.getByRole("button", { name: "Guardar cambios de Gerencia" });
+      const guardar = page.getByRole("button", { name: "Guardar cambios", exact: true });
       const estado = page.getByRole("status").filter({ hasText: "Permisos de GERENCIA guardados." });
 
       await casilla.click();
@@ -284,7 +284,7 @@ test.describe("ADMIN gestiona permisos", () => {
       await expect(page.getByRole("checkbox", { name: etiqueta, exact: true })).toBeChecked();
 
       await page.getByRole("checkbox", { name: etiqueta, exact: true }).click();
-      await page.getByRole("button", { name: "Guardar cambios de Gerencia" }).click();
+      await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
       await page.getByRole("dialog").getByRole("button", { name: "Guardar cambios", exact: true }).click();
       await expect(estado).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);

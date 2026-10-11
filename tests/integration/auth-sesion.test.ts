@@ -54,7 +54,7 @@ describeConBase("sesión: /yo, logout, expiración y revocación", () => {
     const { datos } = await respuesta.json();
     expect(datos.usuario).toEqual({
       id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
-      perfil: "PRODUCCION", perfiles: ["PRODUCCION"],
+      perfil: "PRODUCCION", perfiles: ["PRODUCCION"], debeCambiarClave: false,
     });
     expect([...datos.permisos].sort()).toEqual([...PERMISOS_POR_PERFIL.PRODUCCION].sort());
     expect(datos.permisos).not.toContain("inventario:consumir");
@@ -68,7 +68,7 @@ describeConBase("sesión: /yo, logout, expiración y revocación", () => {
     const { datos } = await respuesta.json();
     expect(datos.usuario).toEqual({
       id: usuario.id, nombre: usuario.nombre, correo: usuario.correo,
-      perfil: "ADMINISTRACION", perfiles: ["ADMINISTRACION", "ADMIN"],
+      perfil: "ADMINISTRACION", perfiles: ["ADMINISTRACION", "ADMIN"], debeCambiarClave: false,
     });
     const permisos = [...new Set([...PERMISOS_POR_PERFIL.ADMINISTRACION, ...PERMISOS_POR_PERFIL.ADMIN])].sort();
     expect([...datos.permisos].sort()).toEqual(permisos);

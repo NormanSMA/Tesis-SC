@@ -4,6 +4,7 @@ import type { TipoValorConfig } from "@/generated/prisma/client";
 import {
   esquemaEditarConfiguracion, validarValorConfiguracion, validarVersionConfiguracion,
 } from "@/modules/admin/configuracion-schema";
+import { esquemaValorConfiguracion } from "@/modules/admin/componentes/interfaz";
 
 const version = "2026-10-10T12:00:00.000Z";
 
@@ -23,7 +24,7 @@ describe("schema de configuración", () => {
 });
 
 describe("valores y versión de configuración", () => {
-  it.each(["0", "15.00", "100", "99.999999999999999999999999"])("acepta IVA %s", (valor) => {
+  it.each(["0", "15.00", "100", "99.99"])("acepta IVA %s", (valor) => {
     expect(validarValorConfiguracion({ clave: "iva_porcentaje", tipo: "DECIMAL", valor })).toBe(valor);
   });
 
@@ -32,7 +33,8 @@ describe("valores y versión de configuración", () => {
   });
 
   const invalidos: { clave: string; tipo: TipoValorConfig; valor: string }[] = [
-    ...["-0.01", "100.000000000000000000000001", "101", "NaN", "Infinity", "1e1", "15,5", ""].map(
+    ...["-0.01", "100.01", "100.000000000000000001", "99.999999999999999999999999",
+      "15.001", "15.000", "101", "NaN", "Infinity", "1e2", "15,5", ""].map(
       (valor) => ({ clave: "iva_porcentaje", tipo: "DECIMAL" as const, valor }),
     ),
     ...["0", "366", "1.5", "1e2", "", "999999999999999999999999"].map(
@@ -72,5 +74,29 @@ describe("valores y versión de configuración", () => {
     expect(() => validarVersionConfiguracion(new Date(version), "2026-10-10T11:59:59.999Z"))
       .toThrow(expect.objectContaining({ codigo: "CONFLICTO_EDICION", status: 409 }));
     expect(() => validarVersionConfiguracion(new Date(version), "2026-10-10T06:00:00.000-06:00")).not.toThrow();
+  });
+});
+
+describe("validación compartida de configuración", () => {
+  it.each([
+    ["0", true], ["100", true], ["100.00", true], ["100.01", false],
+    ["100.000000000000000001", false], ["-0.01", false], ["15.5", true],
+    ["15,5", false], ["1e2", false], ["15.55", true], ["15.555", false], ["15.000", false],
+  ])("valida IVA %s igual en interfaz y servidor", (valor, valido) => {
+    const datos = { clave: "iva_porcentaje", tipo: "DECIMAL" as const, valor };
+    expect(esquemaValorConfiguracion(datos).safeParse(valor).success).toBe(valido);
+    if (valido) expect(validarValorConfiguracion(datos)).toBe(valor);
+    else expect(() => validarValorConfiguracion(datos)).toThrow(expect.objectContaining({ status: 422 }));
+  });
+
+  it.each([
+    ["1", true], ["15", true], ["365", true], ["0", false], ["366", false],
+    ["-1", false], ["1.5", false], ["1.0", false], ["15,5", false], ["1e2", false],
+    ["999999999999999999999999", false], ["", false],
+  ])("valida vigencia %s igual en interfaz y servidor", (valor, valido) => {
+    const datos = { clave: "cotizacion_vigencia_dias", tipo: "ENTERO" as const, valor };
+    expect(esquemaValorConfiguracion(datos).safeParse(valor).success).toBe(valido);
+    if (valido) expect(validarValorConfiguracion(datos)).toBe(valor);
+    else expect(() => validarValorConfiguracion(datos)).toThrow(expect.objectContaining({ status: 422 }));
   });
 });

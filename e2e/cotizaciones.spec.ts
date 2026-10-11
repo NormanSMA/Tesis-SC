@@ -409,6 +409,7 @@ test.describe("Lista, borradores y permisos", () => {
     await page.goto(`/cotizaciones/${idCopia}`);
     await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(borrador.numero);
     await expect(page.getByText("Borrador", { exact: true })).toBeVisible();
+    await abrirPlegable(page, "Condiciones y fechas");
     await expect(page.getByRole("link", { name: "Ver cotización original" })).toHaveAttribute("href", `/cotizaciones/${borrador.id}`);
     await expect(page.getByRole("link", { name: "Editar" })).toBeVisible();
   });

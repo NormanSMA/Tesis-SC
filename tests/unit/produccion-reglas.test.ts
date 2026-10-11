@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 import type { EstadoEtapa, EstadoOrden } from "@/generated/prisma/enums";
-import { exigirLista, exigirOrdenEditable, exigirTransicionEtapa, validarFechas, validarMotivo, TRANSICIONES_ETAPA } from "@/modules/produccion/reglas";
+import { exigirLista, exigirOrdenEditable, exigirTransicionEtapa, puedeMarcarseLista, validarFechas, validarMotivo, TRANSICIONES_ETAPA } from "@/modules/produccion/reglas";
+
+describe("producción: puedeMarcarseLista", () => {
+  for (const estado of ["PENDIENTE", "EN_PRODUCCION", "LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as EstadoOrden[]) {
+    for (const avanzar of [false, true]) {
+      it(`orden ${estado} con permiso avanzar ${avanzar}`, () => {
+        expect(puedeMarcarseLista(estado, ["COMPLETADA", "OMITIDA"], avanzar))
+          .toBe(avanzar && estado === "EN_PRODUCCION");
+      });
+    }
+  }
+  const casos: { estados: EstadoEtapa[]; esperado: boolean }[] = [
+    { estados: [], esperado: false },
+    { estados: ["OMITIDA"], esperado: false },
+    { estados: ["OMITIDA", "OMITIDA"], esperado: false },
+    { estados: ["PENDIENTE"], esperado: false },
+    { estados: ["EN_CURSO"], esperado: false },
+    { estados: ["COMPLETADA", "PENDIENTE"], esperado: false },
+    { estados: ["COMPLETADA", "EN_CURSO"], esperado: false },
+    { estados: ["COMPLETADA"], esperado: true },
+    { estados: ["COMPLETADA", "COMPLETADA"], esperado: true },
+    { estados: ["COMPLETADA", "OMITIDA"], esperado: true },
+    { estados: ["OMITIDA", "COMPLETADA"], esperado: true },
+  ];
+  it.each(casos)("etapas $estados: $esperado", ({ estados, esperado }) => {
+    expect(puedeMarcarseLista("EN_PRODUCCION", Object.freeze(estados), true)).toBe(esperado);
+  });
+});
 
 describe("producción: reglas puras", () => {
   for (const estado of ["PENDIENTE", "EN_PRODUCCION", "LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as EstadoOrden[]) {

@@ -129,6 +129,7 @@ describe("producción: permisos de interfaz", () => {
         { categoriaId: id, plantillas: [plantilla], areas: [area], gestionar }));
       expect(areas.includes("Crear área")).toBe(ESPERADO[perfil].gestionarCatalogo);
       expect(plantillas.includes("Agregar plantilla")).toBe(ESPERADO[perfil].gestionarCatalogo);
+      if (gestionar) expect(plantillas).not.toContain('data-size="sm"');
     });
   }
 

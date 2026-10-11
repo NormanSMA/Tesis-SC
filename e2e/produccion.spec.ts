@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 
 import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { elegir } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -55,15 +56,6 @@ function fechaVisible(fecha: string): string {
   const [anio, mes, dia] = fecha.split("-");
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${dia} ${meses[Number(mes) - 1]} ${anio}`;
-}
-
-async function elegir(campo: Locator, opcion: string | RegExp, page: Page): Promise<void> {
-  // La hidratación puede descartar el primer clic del selector renderizado en el servidor.
-  await expect(async () => {
-    if (await campo.getAttribute("aria-expanded") !== "true") await campo.click();
-    await expect(campo).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
-  }).toPass({ timeout: 10000 });
-  await page.getByRole("option", { name: opcion, exact: typeof opcion === "string" }).click();
 }
 
 async function abrirPestana(page: Page, nombre: string): Promise<void> {
@@ -147,7 +139,7 @@ async function aprobarYConvertir(page: Page): Promise<void> {
   await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
-  await elegir(page.getByLabel("Responsable"), "Marco López", page);
+  await elegir(page.getByLabel("Responsable", { exact: true }), "Marco López", page);
   await page.getByLabel("Fecha de entrega").fill(fechaFutura(14));
   await page.getByLabel("Especificaciones").fill(`${MARCA}-especificaciones`);
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/ordenes") && r.request().method() === "POST");
@@ -192,7 +184,7 @@ async function guardarDialogo(page: Page): Promise<void> {
 
 async function asignar(page: Page, nombre: string): Promise<void> {
   await page.getByRole("button", { name: `Asignar responsable: ${nombre}`, exact: true }).click();
-  await page.getByRole("dialog").getByLabel("Responsable").selectOption({ label: "Marco López" });
+  await page.getByRole("dialog").getByLabel("Responsable", { exact: true }).selectOption({ label: "Marco López" });
   await guardarDialogo(page);
   await expect(filaEtapa(page, nombre)).toContainText("Marco López");
 }

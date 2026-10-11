@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,7 @@ import { hashearContrasena } from "@/lib/auth/password";
 import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
 import * as bitacora from "@/lib/bitacora";
 import { prisma } from "@/lib/db";
+import type { PermisosPerfilDto } from "@/modules/admin/permisos-dto";
 import { PERMISOS_PROTEGIDOS } from "@/modules/admin/permisos-schema";
 import { reemplazarPermisosPerfil } from "@/modules/admin/permisos-service";
 
@@ -73,8 +74,18 @@ beforeEach(async () => {
 
 afterEach(prepararMatriz);
 
-function reemplazar(perfil: PerfilCodigo, permisos: readonly string[], cookie = cookieAdmin) {
-  return PUT(solicitud({ ruta: `permisos/${perfil}`, metodo: "PUT", cookie, cuerpo: { permisos } }), {
+async function leerPermisos(perfil: PerfilCodigo): Promise<PermisosPerfilDto> {
+  const respuesta = await GET(solicitud({ cookie: cookieAdmin }));
+  expect(respuesta.status).toBe(200);
+  const { datos } = await respuesta.json();
+  return datos.matriz.find((fila: PermisosPerfilDto) => fila.perfil === perfil);
+}
+
+async function reemplazar(perfil: PerfilCodigo, permisos: readonly string[], opciones: { cookie?: string; version?: string } = {}) {
+  const version = opciones.version ?? (await leerPermisos(perfil)).version;
+  return PUT(solicitud({
+    ruta: `permisos/${perfil}`, metodo: "PUT", cookie: opciones.cookie ?? cookieAdmin, cuerpo: { permisos, version },
+  }), {
     params: Promise.resolve({ perfil }),
   });
 }
@@ -82,7 +93,7 @@ function reemplazar(perfil: PerfilCodigo, permisos: readonly string[], cookie = 
 describe("API de permisos", () => {
   it("exige sesión para GET y PUT", async () => {
     expect((await GET(solicitud({ cookie: "" }))).status).toBe(401);
-    expect((await reemplazar("PRODUCCION", [], "")).status).toBe(401);
+    expect((await reemplazar("PRODUCCION", [], { cookie: "" })).status).toBe(401);
   });
 
   it("devuelve perfiles, catálogo agrupado y matriz para ADMIN", async () => {
@@ -91,13 +102,17 @@ describe("API de permisos", () => {
     const { datos } = await respuesta.json();
     expect(datos.perfiles).toHaveLength(6);
     expect(datos.permisos.flatMap((grupo: { permisos: unknown[] }) => grupo.permisos)).toHaveLength(CATALOGO_PERMISOS.length);
-    expect(datos.matriz).toContainEqual({ perfil: "ADMIN", permisos: [...PERMISOS_POR_PERFIL.ADMIN].sort() });
+    for (const fila of datos.matriz as PermisosPerfilDto[]) {
+      expect(fila.version).toMatch(/^[0-9a-f]{64}$/);
+      expect(fila.version).toBe(createHash("sha256").update(JSON.stringify([...fila.permisos].sort())).digest("hex"));
+    }
+    expect(datos.matriz).toContainEqual(expect.objectContaining({ perfil: "ADMIN", permisos: [...PERMISOS_POR_PERFIL.ADMIN].sort() }));
   });
 
   it.each(PERFILES.filter(({ codigo }) => codigo !== "ADMIN"))("rechaza GET y PUT de $codigo", async ({ codigo }) => {
     const { cookie } = await crearSesionPerfil(codigo);
     expect((await GET(solicitud({ cookie }))).status).toBe(403);
-    expect((await reemplazar("PRODUCCION", [], cookie)).status).toBe(403);
+    expect((await reemplazar("PRODUCCION", [], { cookie })).status).toBe(403);
   });
 
   it.each(PERMISOS_PROTEGIDOS)("impide revocar %s sin cambios ni bitácora", async (protegido) => {
@@ -147,12 +162,74 @@ describe("API de permisos", () => {
     expect(await prisma.bitacora.count({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } })).toBe(0);
   });
 
+  it("exige una versión hexadecimal válida sin cambios ni bitácora", async () => {
+    const anterior = await leerPermisos("PRODUCCION");
+    for (const cuerpo of [{ permisos: [] }, { permisos: [], version: "antigua" }]) {
+      const respuesta = await PUT(solicitud({
+        ruta: "permisos/PRODUCCION", metodo: "PUT", cookie: cookieAdmin, cuerpo,
+      }), { params: Promise.resolve({ perfil: "PRODUCCION" }) });
+      expect(respuesta.status).toBe(422);
+      expect((await respuesta.json()).error.campos).toHaveProperty("version");
+    }
+    expect(await leerPermisos("PRODUCCION")).toEqual(anterior);
+    expect(await prisma.bitacora.count({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } })).toBe(0);
+  });
+
+  it("guarda con la versión vigente y devuelve la nueva versión", async () => {
+    const anterior = await leerPermisos("PRODUCCION");
+    const permisos = [...anterior.permisos, "cliente:ver"];
+    const respuesta = await reemplazar("PRODUCCION", permisos, { version: anterior.version });
+    expect(respuesta.status).toBe(200);
+    const { datos } = await respuesta.json();
+    expect(datos.permisos).toEqual([...permisos].sort());
+    expect(datos.version).not.toBe(anterior.version);
+    expect(datos.version).toBe(createHash("sha256").update(JSON.stringify([...permisos].sort())).digest("hex"));
+    expect(await leerPermisos("PRODUCCION")).toEqual(datos);
+    expect((await reemplazar("PRODUCCION", anterior.permisos, { version: datos.version })).status).toBe(200);
+  });
+
+  it("rechaza la versión antigua sin modificar asignaciones ni bitácora", async () => {
+    const anterior = await leerPermisos("PRODUCCION");
+    expect((await reemplazar("PRODUCCION", [...anterior.permisos, "cliente:ver"], { version: anterior.version })).status).toBe(200);
+    const vigente = await leerPermisos("PRODUCCION");
+    const asignaciones = await prisma.perfilPermiso.findMany({
+      where: { perfil: { codigo: "PRODUCCION" } }, orderBy: { permisoId: "asc" },
+    });
+    const eventos = await prisma.bitacora.findMany({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } });
+    const respuesta = await reemplazar("PRODUCCION", [], { version: anterior.version });
+    expect(respuesta.status).toBe(409);
+    expect((await respuesta.json()).error.codigo).toBe("CONFLICTO_EDICION");
+    expect(await leerPermisos("PRODUCCION")).toEqual(vigente);
+    expect(await prisma.perfilPermiso.findMany({
+      where: { perfil: { codigo: "PRODUCCION" } }, orderBy: { permisoId: "asc" },
+    })).toEqual(asignaciones);
+    expect(await prisma.bitacora.findMany({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } })).toEqual(eventos);
+  });
+
+  it.each([false, true])("serializa dos PUT con la misma versión; matriz vacía: %s", async (vacia) => {
+    if (vacia) expect((await reemplazar("PRODUCCION", [])).status).toBe(200);
+    const anterior = await leerPermisos("PRODUCCION");
+    const eventosPrevios = await prisma.bitacora.count({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } });
+    const respuestas = await Promise.all([
+      reemplazar("PRODUCCION", [...anterior.permisos, "cliente:ver"], { version: anterior.version }),
+      reemplazar("PRODUCCION", [...anterior.permisos, "cliente:gestionar"], { version: anterior.version }),
+    ]);
+    expect(respuestas.map(({ status }) => status).sort()).toEqual([200, 409]);
+    const ganadora = respuestas.find(({ status }) => status === 200)!;
+    const rechazada = respuestas.find(({ status }) => status === 409)!;
+    const { datos } = await ganadora.json();
+    expect((await rechazada.json()).error.codigo).toBe("CONFLICTO_EDICION");
+    expect(await leerPermisos("PRODUCCION")).toEqual(datos);
+    expect(await prisma.bitacora.count({ where: { entidad: "PERFIL_PERMISO", usuarioId: actorId } })).toBe(eventosPrevios + 1);
+  });
+
   it("revierte la matriz cuando falla la bitácora", async () => {
     const actor = await obtenerSesionDeRequest(solicitud({ cookie: cookieAdmin }));
     expect(actor).not.toBeNull();
+    const { version } = await leerPermisos("PRODUCCION");
     const registrar = vi.spyOn(bitacora, "registrarEvento").mockRejectedValueOnce(new Error("Fallo de bitácora"));
     try {
-      await expect(reemplazarPermisosPerfil("PRODUCCION", { permisos: [] }, actor!)).rejects.toThrow("Fallo de bitácora");
+      await expect(reemplazarPermisosPerfil("PRODUCCION", { permisos: [], version }, actor!)).rejects.toThrow("Fallo de bitácora");
       const perfil = await prisma.perfil.findUniqueOrThrow({
         where: { codigo: "PRODUCCION" }, include: { permisos: { include: { permiso: true } } },
       });

@@ -141,7 +141,7 @@ async function convertirEnOrden(page: Page): Promise<void> {
   await page.goto(`/cotizaciones/${datos(cotizacion, "la cotización").id}`);
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
-  await elegir(page.getByLabel("Responsable"), "Marco López", page);
+  await elegir(page.getByLabel("Responsable", { exact: true }), "Marco López", page);
   await page.getByLabel("Fecha de entrega").fill(fechaFutura(14));
   await page.getByLabel("Especificaciones").fill(`${MARCA}-especificaciones`);
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/ordenes") && r.request().method() === "POST");

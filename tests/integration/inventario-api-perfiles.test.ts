@@ -21,6 +21,28 @@ describe("inventario: API por perfil", () => {
   let entorno: EntornoInventario;
   beforeAll(async () => { entorno = await prepararInventario(db); });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
+
+  function estadoInventario(materialId: string) {
+    return db.$queryRaw<{ existencia: string; movimientos: number; consumos: number; bitacora: number }[]>`
+      SELECT m.existencia::text AS existencia,
+        (SELECT COUNT(*)::int FROM movimiento_inventario WHERE material_id = m.id) AS movimientos,
+        (SELECT COUNT(*)::int FROM consumo_orden WHERE material_id = m.id) AS consumos,
+        (SELECT COUNT(*)::int FROM bitacora b
+          WHERE (b.entidad = 'MATERIAL' AND b.entidad_id = m.id)
+            OR b.detalle->>'materialId' = m.id::text
+            OR b.detalle->'material'->>'id' = m.id::text
+            OR (b.entidad = 'MOVIMIENTO_INVENTARIO' AND EXISTS (
+              SELECT 1 FROM movimiento_inventario v WHERE v.id = b.entidad_id AND v.material_id = m.id))) AS bitacora
+      FROM material m WHERE m.id = ${materialId}::uuid`;
+  }
+
+  async function invocarSinCambios(materialId: string, manejador: Parameters<typeof invocar>[0], solicitud: Request) {
+    const antes = await estadoInventario(materialId);
+    const respuesta = await invocar(manejador, solicitud);
+    expect(await estadoInventario(materialId)).toEqual(antes);
+    return respuesta;
+  }
+
   async function ejecutar(operacion: Operacion, cookie?: string) {
     let material = await crearMaterial(entorno);
     if (operacion === "reactivar") material = await entorno.modulos.servicio.cambiarActivoMaterial(
@@ -41,7 +63,12 @@ describe("inventario: API por perfil", () => {
     const ruta = rutas[operacion];
     const solicitud = peticion(ruta.metodo, ruta.ruta, { cookie, cuerpo: ruta.cuerpo });
     solicitud.headers.set("Idempotency-Key", randomUUID());
-    return invocar(ruta.manejador, solicitud, material.id);
+    const antes = ["entrada", "ajuste"].includes(operacion) ? await estadoInventario(material.id) : undefined;
+    const respuesta = await invocar(ruta.manejador, solicitud, material.id);
+    if (antes && [403, 409, 422].includes(respuesta.status)) {
+      expect(await estadoInventario(material.id)).toEqual(antes);
+    }
+    return respuesta;
   }
   for (const perfil of Object.keys(PERMITIDAS) as PerfilCodigo[]) {
     for (const operacion of OPERACIONES) {
@@ -80,8 +107,14 @@ describe("inventario: API por perfil", () => {
       [entorno.modulos.entrada.POST, entorno.sesiones.ADMINISTRACION.cookie, { materialId: material.id, cantidad: "1", costoUnitario: "0" }],
       [entorno.modulos.ajuste.POST, entorno.sesiones.ADMINISTRACION.cookie, { materialId: material.id, cantidad: "1", direccion: "AUMENTAR", motivo: "Conteo físico" }],
     ] as const) {
-      for (const clave of [null, "invalida"]) expect((await invocar(manejador, peticionLibro({ ruta: "/api/v1/inventario", cookie, cuerpo, clave }))).status).toBe(422);
-      expect((await invocar(manejador, peticionLibro({ ruta: "/api/v1/inventario", cookie, cuerpo: { ...cuerpo, cantidad: "0" } }))).status).toBe(422);
+      for (const clave of [null, "invalida"]) {
+        const respuesta = await invocarSinCambios(material.id, manejador,
+          peticionLibro({ ruta: "/api/v1/inventario", cookie, cuerpo, clave }));
+        expect(respuesta.status).toBe(422);
+      }
+      const respuesta = await invocarSinCambios(material.id, manejador,
+        peticionLibro({ ruta: "/api/v1/inventario", cookie, cuerpo: { ...cuerpo, cantidad: "0" } }));
+      expect(respuesta.status).toBe(422);
     }
   });
   it("reintentos de entrada y ajuste responden 200 con repetida true", async () => {
@@ -111,7 +144,7 @@ describe("inventario: API por perfil", () => {
     const mutable = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", "/api/v1/materiales", { cookie,
       cuerpo: { version: material.actualizadoEn, unidad: "LITRO" } }), material.id);
     expect(mutable.status).toBe(422);
-    const ajuste = await invocar(entorno.modulos.ajuste.POST, peticionLibro({ ruta: "/api/v1/inventario/ajustes",
+    const ajuste = await invocarSinCambios(material.id, entorno.modulos.ajuste.POST, peticionLibro({ ruta: "/api/v1/inventario/ajustes",
       cookie: entorno.sesiones.ADMINISTRACION.cookie, cuerpo: { materialId: material.id, cantidad: "1", direccion: "AUMENTAR", motivo: "1234" } }));
     expect(ajuste.status).toBe(422); expect(ajuste.error?.campos?.motivo).toBeTruthy();
     for (const [ruta, manejador] of [["/api/v1/materiales?pagina=0", entorno.modulos.lista.GET], ["/api/v1/movimientos?desde=ayer", entorno.modulos.movimientos.GET]] as const) {

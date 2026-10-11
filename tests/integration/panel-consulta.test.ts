@@ -47,11 +47,27 @@ async function accionSinDuplicados() {
   expect(valorIndicador(actual, "sin-responsable")).toBe(valorIndicador(anterior, "sin-responsable") + 1);
   expect(valorIndicador(actual, "entregas-proximas")).toBe(valorIndicador(anterior, "entregas-proximas") + 2);
   expect(actual.atencionTotal).toBe(anterior.atencionTotal + 1);
-  // La lista muestra como máximo 5 filas: con la base compartida de la suite la orden nueva puede quedar fuera.
   expect(actual.atencion.length).toBeLessThanOrEqual(5);
   expect(actual.atencion.filter((fila) => fila.id === orden.id).length).toBeLessThanOrEqual(1);
-  if (anterior.atencionTotal < 5) expect(actual.atencion.map((fila) => fila.id)).toContain(orden.id);
-  expect(actual.grafico?.datos).toHaveLength(6);
+  expect(actual.grafico?.datos).toHaveLength(4);
+  await listaAcotadaDeterminista(actor, actual.atencionTotal);
+}
+// Seis órdenes atrasadas sin responsable, más antiguas que cualquier orden activa previa:
+// las cinco más atrasadas llenan la lista y la sexta queda fuera, sin depender de datos compartidos.
+async function listaAcotadaDeterminista(actor: Parameters<EntornoPanel["servicio"]["obtenerPanel"]>[0], totalPrevio: number) {
+  const masAntigua = await db.ordenTrabajo.aggregate({ _min: { fechaEntrega: true }, where: { estado: { notIn: ["CERRADA", "CANCELADA"] } } });
+  const base = masAntigua._min.fechaEntrega ?? new Date("2034-05-01");
+  const ordenes = [];
+  for (let indice = 0; indice < 6; indice++) {
+    const fecha = new Date(base);
+    fecha.setUTCDate(fecha.getUTCDate() - (7 - indice));
+    ordenes.push(await crearOrdenPanel(entorno, { fechaEntrega: fecha.toISOString().slice(0, 10), responsableId: null }));
+  }
+  const panel = await entorno.servicio.obtenerPanel(actor, instante);
+  expect(panel.atencionTotal).toBe(totalPrevio + 6);
+  expect(panel.atencion).toHaveLength(5);
+  expect(panel.atencion.map((fila) => fila.id)).toEqual(ordenes.slice(0, 5).map((fila) => fila.id));
+  expect(panel.atencion.map((fila) => fila.id)).not.toContain(ordenes[5].id);
 }
 async function produccionPropia() {
   const actor = entorno.sesiones.PRODUCCION.actor;

@@ -65,6 +65,8 @@ describe("Interfaz del panel", () => {
     expect(html).toContain('dateTime="2026-10-10T16:30:00.000Z"');
     expect(html).toContain('aria-busy="false"');
     expect(html).toContain("Actualizar");
+    expect(html).toContain('aria-disabled="false"');
+    expect(html).not.toMatch(/<button[^>]*\sdisabled/);
   });
 
   it("mantiene los indicadores y la atención cuando no hay gráfico", () => {

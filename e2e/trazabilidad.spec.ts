@@ -188,21 +188,17 @@ test.describe("Trazabilidad de un trabajo E2E propio", () => {
     expect(await page.getByRole("main").innerText()).not.toMatch(/C\$|Costo unitario|Costo promedio/);
     expect((await page.request.get(`/api/v1/ordenes/${orden.id}/trazabilidad`)).status()).toBe(403);
   });
-  // Solo Gerencia y ADMIN tienen bitacora:ver: el resto pierde la trazabilidad, el enlace y la API.
-  test("Administración, Operaciones, Atención al cliente y Producción no acceden a la trazabilidad", async ({ page }, info) => {
+  // La bitácora global exige bitacora:ver (Gerencia y ADMIN). La cadena de un trabajo exige orden:ver, como la propia orden.
+  test("Administración, Operaciones, Atención al cliente y Producción no ven la bitácora global y sí la cadena de su orden", async ({ page }, info) => {
     soloPortatil(info.project.name); test.setTimeout(120000);
     for (const actor of [ADMINISTRACION, OPERACIONES, ATENCION_CLIENTE, PRODUCCION]) {
       await entrarComo(page, actor);
-      for (const ruta of ["/trazabilidad", `/trazabilidad/ordenes/${orden.id}`]) {
-        await page.goto(ruta); await expect(page).toHaveURL(/\/sin-acceso$/);
-      }
-      for (const ruta of ["/bitacora", `/ordenes/${orden.id}/trazabilidad`]) {
-        expect((await page.request.get(`/api/v1${ruta}`)).status(), `${actor.codigo} ${ruta}`).toBe(403);
-      }
-      for (const ruta of [`/ordenes/${orden.id}`, `/cotizaciones/${cotizacion.id}`]) {
-        await page.goto(ruta);
-        await expect(page.getByRole("link", { name: "Trazabilidad completa", exact: true })).toHaveCount(0);
-      }
+      await page.goto("/trazabilidad");
+      await expect(page).toHaveURL(/\/sin-acceso$/);
+      expect((await page.request.get("/api/v1/bitacora")).status(), `${actor.codigo} /bitacora`).toBe(403);
+      await page.goto(`/trazabilidad/ordenes/${orden.id}`);
+      await expect(page).toHaveURL(new RegExp(`/trazabilidad/ordenes/${orden.id}$`));
+      expect((await page.request.get(`/api/v1/ordenes/${orden.id}/trazabilidad`)).status(), `${actor.codigo} trazabilidad de la orden`).toBe(200);
     }
   });
   test("axe, desbordes y capturas CF-05 y CF-09 en cuatro tamaños", async ({ page }, info) => {
