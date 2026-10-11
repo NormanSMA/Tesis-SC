@@ -49,6 +49,22 @@ docs/              tesis, trazabilidad, decisiones, capturas
 - E2E: Playwright por perfil. Accesibilidad con axe.
 - Cada CF tiene al menos una prueba automatizada y una captura en docs/capturas.
 
+## Definición de terminado
+Un cambio está terminado solo si cumple todo lo que aplica:
+- TypeScript, ESLint y Vitest limpios. Build de producción limpio.
+- E2E críticos limpios. Capturas revisadas.
+- axe sin violaciones bloqueantes. Teclado revisado.
+- 0 errores de consola y de red.
+- Migración incluida si cambia el modelo.
+- Autorización probada en el servidor.
+- Transacción revisada si toca varias entidades.
+- Bitácora en las operaciones sensibles.
+- Trivy sin CRITICAL aceptados por error.
+- Docker arranca desde cero (nunca `down -v`).
+- Documentación actualizada. Ninguna credencial en git.
+Scripts únicos: `check:types`, `check:lint`, `check:unit`, `check:build`, `check:e2e`, `audit:code`, `audit:full`.
+Informes de auditoría: `docs/auditoria/<fase>-<parte>.md`.
+
 ## Reparto de archivos
 Un agente es dueño de sus rutas. Nunca edites archivos de otro agente.
 Si necesitas un cambio en un archivo ajeno, descríbelo en tu informe final.
