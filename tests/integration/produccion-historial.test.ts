@@ -97,4 +97,13 @@ describeConBase("producción: historial propio de etapas", () => {
     expect(await db.bitacora.count({ where: { ordenId: orden.id } })).toBe(eventos);
     expect((await db.etapaOrden.findUniqueOrThrow({ where: { id: asignada.id } })).estado).toBe("EN_CURSO");
   });
+  it('RB-08: la base rechaza un cambio a EN_CURSO o COMPLETADA sin responsable', async () => {
+    const orden = await nuevaOrden(entorno);
+    for (const estadoNuevo of ['EN_CURSO', 'COMPLETADA'] as const) {
+      await expect(db.historialEtapa.create({ data: { ordenId: orden.id, etapaId: orden.etapas[0].id,
+        usuarioId: entorno.actor.id, estadoAnterior: 'PENDIENTE', estadoNuevo, responsableId: null } }))
+        .rejects.toThrow(/historial_etapa_responsable_obligatorio|check constraint/i);
+    }
+  });
+
 });

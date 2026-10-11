@@ -3,7 +3,7 @@ import type { EstadoEtapa, EstadoOrden, TipoCliente, TipoItem, TipoLineaCosto, U
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ReferenciaOrden = { id: string; nombre: string };
-export type ClienteOrden = ReferenciaOrden & { tipo: TipoCliente; telefono: string | null; correo: string | null;
+export type ClienteOrden = ReferenciaOrden & { codigoCliente: string; tipo: TipoCliente; telefono: string | null; correo: string | null;
   ruc?: string | null; direccion?: string | null };
 export type OrdenFila = {
   id: string; numero: string; estado: EstadoOrden; categoria: ReferenciaOrden; responsable: ReferenciaOrden | null;

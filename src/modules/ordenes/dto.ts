@@ -6,7 +6,8 @@ import type { FichaGuardada, FilaGuardada } from "./repo";
 import type { ClienteOrden, EventoOrden, ItemOrden, LineaOrden, OrdenDto, OrdenFila } from "./tipos";
 
 function clienteDto(cliente: Cliente, actor: Actor): ClienteOrden {
-  const base = { id: cliente.id, nombre: cliente.nombre, tipo: cliente.tipo, telefono: cliente.telefono, correo: cliente.correo };
+  const base = { id: cliente.id, nombre: cliente.nombre, codigoCliente: cliente.codigoCliente,
+    tipo: cliente.tipo, telefono: cliente.telefono, correo: cliente.correo };
   return can(actor, "cliente:ver") ? { ...base, ruc: cliente.ruc, direccion: cliente.direccion } : base;
 }
 

@@ -33,7 +33,7 @@ const permisos = { gestionar: true, entregar: true, cerrar: true, cancelar: true
 const permisosEtapas = { planificar: true, ejecutar: true, avanzar: true };
 const orden: OrdenDto = {
   id, numero: "OT-2026-0001", estado: "PENDIENTE", categoria, responsable,
-  cliente: { id, nombre: "Cliente de prueba con nombre extenso", tipo: "EMPRESA", telefono: "8888 0000", correo: "prueba@example.com" },
+  cliente: { id, nombre: "Cliente de prueba con nombre extenso", tipo: "EMPRESA", telefono: "8888 0000", correo: "prueba@example.com", codigoCliente: "CLI-0001" },
   cotizacion: { id, numero: "COT-2026-0001", asunto: "Trabajo de prueba" }, fechaEntrega: "2026-10-05", atrasada: true,
   creadoEn: "2026-10-06T12:00:00Z", actualizadoEn: "2026-10-06T12:00:00Z", fechaInicioReal: null, fechaEntregaReal: null,
   fechaCierre: null, motivoCancelacion: null, especificaciones: "Especificaciones de prueba. ".repeat(30),

@@ -85,6 +85,9 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
       q: ordenes[0].numero, estado: "PENDIENTE", responsable: entorno.sesiones.PRODUCCION.usuarioId, cliente: ordenes[0].cliente.id,
     }), actor);
     expect(individual.datos.map((fila) => fila.id)).toEqual([ordenes[0].id]);
+    expect([ordenes[0].cliente.codigoCliente, individual.datos[0].cliente.codigoCliente]).toEqual([
+      expect.stringMatching(/^CLI-\d{4}$/), expect.stringMatching(/^CLI-\d{4}$/),
+    ]);
     comprobarSinDinero(individual.datos);
   });
 

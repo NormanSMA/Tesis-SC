@@ -21,6 +21,7 @@ export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
   const puedeAsignar = permisos.gestionar && EDITABLES.includes(orden.estado);
   return <Card role="region" aria-label="Resumen de la orden" className="min-w-0 gap-5 px-5">
     <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
+      <Dato etiqueta="Cliente">{orden.cliente.nombre} ({orden.cliente.codigoCliente})</Dato>
       <Dato etiqueta="Fecha de entrega"><Fecha valor={orden.fechaEntrega} />
         {orden.atrasada ? <span className="flex items-center gap-1 font-semibold text-danger">
           <TriangleAlert aria-hidden="true" className="size-4" />Atrasada</span> : null}</Dato>

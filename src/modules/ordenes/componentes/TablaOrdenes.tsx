@@ -10,7 +10,9 @@ import type { ListaOrdenes, OrdenFila } from "../tipos";
 const columnas: ColumnaTabla<OrdenFila>[] = [
   { id: "numero", encabezado: "Número", celda: (fila) => <Link href={`/ordenes/${fila.id}`}
     className="font-semibold text-foreground underline-offset-4 after:absolute after:inset-0 hover:underline">{fila.numero}</Link> },
-  { id: "cliente", encabezado: "Cliente", celda: (fila) => fila.cliente.nombre },
+  { id: "cliente", encabezado: "Cliente", celda: (fila) => <div>
+    <span>{fila.cliente.nombre}</span>
+    <span className="block text-xs text-muted-foreground">{fila.cliente.codigoCliente}</span></div> },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoBadge tipo="orden" estado={fila.estado} /> },
   { id: "entrega", encabezado: "Entrega", celda: (fila) => <div className="space-y-1">
     <span><span className="md:sr-only">Entrega: </span><Fecha valor={fila.fechaEntrega} /></span>
