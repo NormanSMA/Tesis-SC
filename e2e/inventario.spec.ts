@@ -17,8 +17,10 @@ const UNIDAD = "PLIEGO";
 type Perfil = (typeof PERFILES)[number];
 type Material = { id: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
+const ADMINISTRACION = PERFIL("ADMINISTRACION");
 const ATENCION_CLIENTE = PERFIL("ATENCION_CLIENTE");
 const GERENCIA = PERFIL("GERENCIA");
+const OPERACIONES = PERFIL("OPERACIONES");
 const PRODUCCION = PERFIL("PRODUCCION");
 const ADMIN = PERFIL("ADMIN");
 let material: Material | undefined;
@@ -74,7 +76,7 @@ function listaMateriales(page: Page): Locator {
 }
 
 async function crearMaterial(page: Page): Promise<void> {
-  await entrarComo(page, PRODUCCION);
+  await entrarComo(page, ADMINISTRACION);
   await abrir(page, "/inventario/nuevo");
   const form = formulario(page, "Crear material");
   await form.getByLabel("Código").fill(CODIGO);
@@ -142,7 +144,7 @@ async function archivarDesdeFicha(page: Page): Promise<void> {
 }
 
 async function archivarYVaciar(page: Page): Promise<void> {
-  await entrarComo(page, GERENCIA);
+  await entrarComo(page, ADMINISTRACION);
   const lista = await page.request.get(`/api/v1/materiales?q=${CODIGO}&activo=todos&porPagina=100`);
   expect(lista.status()).toBe(200);
   for (const fila of ((await lista.json()).datos as Material[]).filter((fila) => fila.codigo === CODIGO && fila.activo)) {
@@ -204,7 +206,7 @@ function registrarAxe(): void {
       soloPortatil(info.project.name);
       test.setTimeout(120000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, PRODUCCION);
+      await entrarComo(page, ADMINISTRACION);
       await page.goto("/inventario");
       await expect(listaMateriales(page)).toBeVisible();
       expect.soft(await violacionesGraves(page), "lista").toEqual([]);
@@ -222,20 +224,23 @@ test.describe("Inventario con un material propio", () => {
     if (info.project.name === "portatil") await limpiarCreadas(browser);
   });
 
-  test("Producción crea un material y lo ve con existencia cero", async ({ page }, info) => {
+  test("Administración crea un material y lo ve con existencia cero", async ({ page }, info) => {
     soloPortatil(info.project.name);
     await crearMaterial(page);
     await verFicha(page, { existencia: "0.000", costo: "5.0000" });
     await expect(page.getByRole("main")).toContainText("Sin existencia");
   });
 
-  test("Producción registra una entrada y ve existencia, alerta, libro y conciliación", async ({ page }, info) => {
+  test("Administración registra una entrada y ve existencia, alerta, libro y conciliación", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await registrarEntrada(page, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
     await verFicha(page, { existencia: "10.000", costo: "10.0000" });
-    await expect(page.getByRole("status").filter({ hasText: /^Stock bajo$/ })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /^Bajo mínimo$/ })).toBeVisible();
+    // El libro vive en una sección details abierta con el total de registros.
+    await expect(page.getByText(/^Movimientos \(\d+ registros?\)$/)).toBeVisible();
+    await expect(page.locator("details[open]").filter({ has: libro(page) })).toHaveCount(1);
     await expect(filaLibro(page, "ENTRADA")).toContainText(`${MARCA}-FAC-1`);
     await expect(filaLibro(page, "ENTRADA")).toContainText("Unitario: 10.0000");
     await expect(page.getByRole("main")).toContainText("Conciliado");
@@ -244,7 +249,7 @@ test.describe("Inventario con un material propio", () => {
   test("una segunda entrada con otro costo cambia el costo promedio ponderado", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await registrarEntrada(page, { cantidad: "3", costo: "20", referencia: `${MARCA}-FAC-2` });
     // (10 x 10 + 3 x 20) / 13 = 12.30769...
     await verFicha(page, { existencia: "13.000", costo: "12.3077" });
@@ -260,14 +265,16 @@ test.describe("Inventario con un material propio", () => {
     await capturarTodo(page);
   });
 
-  test("Gerencia no archiva con existencia, ajusta a cero, archiva y el material sale de la lista", async ({ page }, info) => {
+  test("Administración no archiva con existencia, ajusta a cero, archiva y el material sale de la lista", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, ADMINISTRACION);
     await archivarDesdeFicha(page);
     await expect(page.getByText("El material tiene existencia").first()).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByText("Activo", { exact: true })).toBeVisible();
+    // Con 13 unidades y mínimo 100 el estado es "Bajo mínimo"; el material sigue activo.
+    await expect(page.getByText("Archivado", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Bajo mínimo", { exact: true }).first()).toBeVisible();
     await ajustarACero(page);
     await page.goto(`/inventario/${actual().id}`);
     await expect(page.getByRole("definition").filter({ hasText: exacto(`0.000 ${UNIDAD}`) })).toBeVisible();
@@ -281,38 +288,63 @@ test.describe("Inventario con un material propio", () => {
   });
 });
 
-test("Ventas consulta inventario y una ficha sin botones de gestión", async ({ page }) => {
-  await entrarComo(page, ATENCION_CLIENTE);
-  await page.goto("/inventario");
-  await expect(listaMateriales(page)).toBeVisible();
-  await expect(page.getByRole("link", { name: /^(Nuevo material|Registrar entrada|Ajustar)$/ })).toHaveCount(0);
-  await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
-  await expect(libro(page)).toBeVisible();
-  await expect(page.getByRole("link", { name: /^(Registrar entrada|Ajustar|Editar)$/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /^(Archivar|Reactivar)$/ })).toHaveCount(0);
-  await expect(page.getByRole("main")).toContainText("Conciliado");
+const COLUMNAS_LISTA = ["Código", "Material", "Existencia", "Stock mínimo", "Estado"];
+
+test("Gerencia y Operaciones consultan inventario sin acciones de gestión", async ({ page }) => {
+  for (const perfil of [GERENCIA, OPERACIONES]) {
+    await entrarComo(page, perfil);
+    await page.goto("/inventario");
+    await expect(listaMateriales(page)).toBeVisible();
+    await expect(page.getByRole("link", { name: /^(Nuevo material|Registrar entrada|Ajustar)$/ })).toHaveCount(0);
+    await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
+    await expect(libro(page)).toBeVisible();
+    await expect(page.getByRole("link", { name: /^(Registrar entrada|Ajustar|Editar)$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^(Archivar|Reactivar)$/ })).toHaveCount(0);
+    await expect(page.getByRole("main")).toContainText("Conciliado");
+    for (const ruta of ["/inventario/nuevo", "/inventario/ajuste"]) {
+      await page.goto(ruta);
+      await expect(page).toHaveURL(/\/sin-acceso$/);
+    }
+  }
 });
 
-test("Producción gestiona y registra entradas, pero no ajusta", async ({ page }) => {
-  await entrarComo(page, PRODUCCION);
+test("Administración gestiona, registra entradas y ajusta", async ({ page }) => {
+  await entrarComo(page, ADMINISTRACION);
   await page.goto("/inventario");
   await expect(page.getByRole("link", { name: "Nuevo material", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Registrar entrada", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toHaveCount(0);
-  await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
-  await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toHaveCount(0);
-  await page.goto("/inventario/ajuste");
-  await expect(page).toHaveURL(/\/sin-acceso$/);
-});
-
-test("Gerencia ve Ajustar y no registra entradas", async ({ page }) => {
-  await entrarComo(page, GERENCIA);
-  await page.goto("/inventario");
   await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Registrar entrada", exact: true })).toHaveCount(0);
+  await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
+  await expect(page.getByRole("link", { name: "Ajustar", exact: true })).toBeVisible();
+  await abrir(page, "/inventario/ajuste");
+  await expect(formulario(page, "Ajustar inventario")).toBeVisible();
 });
 
-test("Administración termina en sin-acceso al abrir inventario", async ({ page }) => {
+test("la lista de materiales tiene cinco columnas y el costo promedio queda en la ficha", async ({ page }) => {
+  await entrarComo(page, ADMINISTRACION);
+  await page.goto("/inventario");
+  await expect(listaMateriales(page)).toBeVisible();
+  for (const nombre of COLUMNAS_LISTA) {
+    await expect(listaMateriales(page).getByRole("columnheader", { name: nombre, exact: true })).toBeVisible();
+  }
+  await expect(listaMateriales(page).getByRole("columnheader", { name: "Costo promedio (C$)" })).toHaveCount(0);
+  await expect(listaMateriales(page).getByText(/^(Activo|Stock bajo)$/)).toHaveCount(0);
+  await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
+  await expect(page.getByText("Costo promedio (C$)").first()).toBeVisible();
+});
+
+test("Atención al cliente y Producción no ven inventario y terminan en sin-acceso", async ({ page }) => {
+  for (const perfil of [ATENCION_CLIENTE, PRODUCCION]) {
+    await entrarComo(page, perfil);
+    for (const ruta of ["/inventario", "/inventario/nuevo", "/inventario/ajuste"]) {
+      await page.goto(ruta);
+      await expect(page).toHaveURL(/\/sin-acceso$/);
+    }
+    expect((await page.request.get("/api/v1/materiales")).status()).toBe(403);
+  }
+});
+
+test("ADMIN (administración técnica) termina en sin-acceso al abrir inventario", async ({ page }) => {
   await entrarComo(page, ADMIN);
   await page.goto("/inventario");
   await expect(page).toHaveURL(/\/sin-acceso$/);
@@ -321,7 +353,7 @@ test("Administración termina en sin-acceso al abrir inventario", async ({ page 
 test("lista y ficha de inventario no desbordan horizontalmente en el tamaño del proyecto", async ({ page }, info) => {
   const vista = VIEWPORTS.find((candidata) => candidata.nombre === info.project.name)!;
   await page.setViewportSize({ width: vista.width, height: vista.height });
-  await entrarComo(page, ATENCION_CLIENTE);
+  await entrarComo(page, GERENCIA);
   await page.goto("/inventario");
   await expect(listaMateriales(page)).toBeVisible();
   await sinDesbordeHorizontal(page);

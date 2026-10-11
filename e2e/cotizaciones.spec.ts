@@ -11,6 +11,8 @@ const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const CARPETA_CAPTURAS = path.join("docs", "capturas", "cotizaciones");
 const CLIENTE_SEMBRADO = "Agencia Viajes Tropical";
 const CATEGORIA = "Rotulación y gran formato";
+const APROBADOR = "Karla Reyes";
+const PLEGABLES = ["Condiciones y fechas", "Costos internos"];
 
 test.use({ baseURL: BASE });
 // Las pruebas comparten la cotización mixta: cada paso depende del anterior.
@@ -21,11 +23,14 @@ type Totales = { subtotal: number; impuesto: number; total: number };
 type Cotizacion = { id: string; numero: string; asunto: string; actualizadoEn: string };
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
+const OPERACIONES = PERFILES.find((perfil) => perfil.codigo === "OPERACIONES") as Perfil;
 const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
 
 let mixta: { id: string; numero: string; totales: Totales } | null = null;
+let referenciaAprobacion: string | null = null;
+let conAjustes: { id: string } | null = null;
 
 function claveDe(perfil: Perfil): string {
   const directa = process.env[perfil.claveEnv];
@@ -55,6 +60,16 @@ function datosMixta(): { id: string; numero: string; totales: Totales } {
   return mixta;
 }
 
+function datosAprobacion(): string {
+  if (!referenciaAprobacion) throw new Error("La cotización mixta no se aprobó: falló la prueba de aprobación.");
+  return referenciaAprobacion;
+}
+
+function datosConAjustes(): { id: string } {
+  if (!conAjustes) throw new Error("No hay cotización con ajustes solicitados: falló la prueba anterior.");
+  return conAjustes;
+}
+
 function porId(page: Page, id: string): Locator {
   return page.locator(`[id="${id}"]`);
 }
@@ -62,6 +77,15 @@ function porId(page: Page, id: string): Locator {
 async function elegirEn(page: Page, id: string, opcion: string | RegExp): Promise<void> {
   await porId(page, id).click();
   await page.getByRole("option", { name: opcion }).click();
+}
+
+// Los plegables de la ficha vienen cerrados: ábralos antes de leer su contenido.
+async function abrirPlegable(page: Page, nombre: string): Promise<void> {
+  const detalle = page.locator("details").filter({ has: page.locator("summary", { hasText: nombre }) }).first();
+  await expect(detalle).toBeVisible();
+  const abierto = await detalle.evaluate((elemento) => (elemento as HTMLDetailsElement).open);
+  if (!abierto) await detalle.locator("summary").first().click();
+  await expect(detalle).toHaveJSProperty("open", true);
 }
 
 function aNumero(texto: string | null): number {
@@ -176,19 +200,22 @@ async function verificarItemsDelDetalle(page: Page): Promise<void> {
   await expect(vinil).toContainText("C$ 4,950.00");
   await expect(page.getByRole("row", { name: /Panel ACM con vinil/ })).toContainText("C$ 9,200.00");
   await expect(page.getByRole("row", { name: /Trabajo personalizado E2E/ }).first()).toBeVisible();
+  await abrirPlegable(page, "Costos internos");
   await expect(page.getByText("Costos del ítem 3: Trabajo personalizado E2E")).toBeVisible();
 }
 
 async function enviarDesdeDetalle(page: Page): Promise<void> {
+  await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible();
   await page.getByRole("button", { name: "Enviar cotización" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Enviar" }).click();
   await expect(page.getByText("Enviada", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Enviar cotización" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
 }
 
-test.describe("Ventas cotiza y Gerencia aprueba", () => {
-  test("Ventas crea una cotización mixta, compara totales y la envía", async ({ page }, info) => {
+test.describe("Atención al cliente cotiza y Operaciones aprueba", () => {
+  test("Atención al cliente crea una cotización mixta, compara totales y la envía", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     test.setTimeout(120_000);
     const asunto = marcaE2E();
@@ -204,29 +231,78 @@ test.describe("Ventas cotiza y Gerencia aprueba", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^COT-/);
     const numero = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
     await expect(page.getByText(asunto, { exact: true })).toBeVisible();
+    for (const plegable of PLEGABLES) {
+      const detalle = page.locator("details").filter({ has: page.locator("summary", { hasText: plegable }) }).first();
+      await expect(detalle).toHaveJSProperty("open", false);
+    }
     await verificarItemsDelDetalle(page);
     await enviarDesdeDetalle(page);
     mixta = { id: page.url().split("/").pop() as string, numero, totales };
   });
 
-  test("Gerencia aprueba la cotización enviada con su versión", async ({ page }, info) => {
+  test("Operaciones exige la referencia y aprueba la cotización enviada con su versión", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const { id } = datosMixta();
-    await entrarComo(page, GERENCIA);
+    const referencia = `OC-${marcaE2E()}`;
+    await entrarComo(page, OPERACIONES);
     await page.goto(`/cotizaciones/${id}`);
     await expect(page.getByText("Enviada", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Aprobar", exact: true }).click();
+    const dialogo = page.getByRole("dialog");
+    const confirmar = dialogo.getByRole("button", { name: "Aprobar cotización" });
+    const campo = dialogo.getByLabel("Referencia de aprobación");
+    await expect(campo).toBeVisible();
+
+    // Sin referencia, o con menos de 3 caracteres, la aprobación no se registra.
+    for (const invalida of ["", "ab"]) {
+      await campo.fill(invalida);
+      if (await confirmar.isEnabled()) await confirmar.click();
+      await expect(dialogo).toBeVisible();
+    }
+
+    await campo.fill(referencia);
     const peticion = page.waitForRequest((req) => req.url().includes(`/cotizaciones/${id}/responder`));
-    await page.getByRole("dialog").getByRole("button", { name: "Aprobar cotización" }).click();
+    await confirmar.click();
     const cuerpo = (await peticion).postDataJSON() as { version?: string; resultado?: string };
     expect(cuerpo.version).toBeTruthy();
     expect(cuerpo.resultado).toBe("APROBADA");
+    expect(JSON.stringify(cuerpo)).toContain(referencia);
 
     await expect(page.getByText("Aprobada", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toHaveCount(0);
     expect(await leerTotales(page)).toEqual(datosMixta().totales);
+
+    await abrirPlegable(page, "Condiciones y fechas");
+    await expect(page.getByText(referencia).first()).toBeVisible();
+    await expect(page.getByText(APROBADOR).first()).toBeVisible();
+    await expect(page.getByText("Emisión").first()).toBeVisible();
+    await expect(page.getByText("Vigencia").first()).toBeVisible();
+    referenciaAprobacion = referencia;
+  });
+
+  test("Gerencia ve la aprobación y quién la registró sin botones de gestión", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    const { id } = datosMixta();
+    const referencia = datosAprobacion();
+    await entrarComo(page, GERENCIA);
+    await page.goto(`/cotizaciones/${id}`);
+    await expect(page.getByText("Aprobada", { exact: true })).toBeVisible();
+    await abrirPlegable(page, "Condiciones y fechas");
+    await expect(page.getByText(referencia).first()).toBeVisible();
+    await expect(page.getByText(APROBADOR).first()).toBeVisible();
+    for (const nombre of ["Aprobar", "Solicitar ajustes", "Crear versión corregida", "Editar"]) {
+      await expect(page.getByRole("button", { name: nombre, exact: true })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: nombre, exact: true })).toHaveCount(0);
+    }
+
+    const respuesta = await page.request.post(`/api/v1/cotizaciones/${id}/responder`, {
+      headers: { Origin: BASE },
+      data: { version: new Date().toISOString(), resultado: "APROBADA", referencia: "E2E-sin-permiso" },
+    });
+    expect(respuesta.status()).toBe(403);
   });
 
   test("la vista de impresión muestra el número y el total", async ({ page }, info) => {
@@ -252,14 +328,78 @@ async function crearBorradorPorApi(page: Page): Promise<Cotizacion> {
   return borrador;
 }
 
-test.describe("Borradores: duplicar y permisos", () => {
-  test("Ventas duplica un borrador y la copia es otro borrador", async ({ page }, info) => {
+test.describe("Ajustes solicitados y versión corregida", () => {
+  test("Atención al cliente solicita ajustes con motivo a una cotización enviada", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    test.setTimeout(90_000);
+    await entrarComo(page, ATENCION_CLIENTE);
+    const borrador = await crearBorradorPorApi(page);
+    await page.goto(`/cotizaciones/${borrador.id}`);
+    await enviarDesdeDetalle(page);
+
+    const motivo = `Ajustar medidas ${marcaE2E()}`;
+    await page.getByRole("button", { name: "Solicitar ajustes" }).click();
+    const dialogo = page.getByRole("dialog");
+    const confirmar = dialogo.getByRole("button", { name: "Solicitar ajustes" });
+    const campo = dialogo.getByLabel(/Motivo/);
+
+    // Con menos de 3 caracteres el motivo no se registra.
+    await campo.fill("ab");
+    if (await confirmar.isEnabled()) await confirmar.click();
+    await expect(dialogo).toBeVisible();
+
+    await campo.fill(motivo);
+    await confirmar.click();
+    await expect(page.getByText("Ajustes solicitados", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Solicitar ajustes" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toHaveCount(0);
+    await abrirPlegable(page, "Condiciones y fechas");
+    await expect(page.getByText(motivo).first()).toBeVisible();
+    conAjustes = { id: borrador.id };
+  });
+
+  test("Atención al cliente crea la versión corregida (Versión 2) como borrador", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    test.setTimeout(90_000);
+    const { id } = datosConAjustes();
+    await entrarComo(page, ATENCION_CLIENTE);
+    await page.goto(`/cotizaciones/${id}`);
+    await expect(page.getByText("Ajustes solicitados", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Crear versión corregida" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Crear versión/ }).click();
+    await expect.poll(() => page.url().match(/cotizaciones\/([0-9a-f-]{36})/)?.[1]).not.toBe(id);
+    const nuevoId = page.url().match(/cotizaciones\/([0-9a-f-]{36})/)?.[1] as string;
+    expect(nuevoId).toMatch(/^[0-9a-f-]{36}$/);
+
+    await page.goto(`/cotizaciones/${nuevoId}`);
+    await expect(page.getByText(/Versión 2/).first()).toBeVisible();
+    await expect(page.getByText("Borrador", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Editar" })).toBeVisible();
+  });
+});
+
+test.describe("Lista, borradores y permisos", () => {
+  test("la lista no muestra las columnas Asunto ni Emisión y la fila enlaza a la ficha", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    await entrarComo(page, ATENCION_CLIENTE);
+    await page.goto("/cotizaciones");
+    await expect(page.getByRole("region", { name: "Listado de cotizaciones" })).toBeVisible();
+    for (const columna of ["Asunto", "Emisión"]) {
+      await expect(page.getByRole("columnheader", { name: columna })).toHaveCount(0);
+    }
+    await expect(page.getByRole("link", { name: /COT-/ }).first()).toHaveAttribute("href", /\/cotizaciones\/[0-9a-f-]{36}$/);
+  });
+
+  test("Atención al cliente duplica un borrador y la copia es otro borrador", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
 
     await page.goto(`/cotizaciones/${borrador.id}`);
     await expect(page.getByText("Borrador", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible();
     await page.getByRole("button", { name: "Duplicar" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Duplicar" }).click();
     await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
@@ -312,12 +452,10 @@ test.describe("Borradores: duplicar y permisos", () => {
 });
 
 test.describe("Accesibilidad (axe)", () => {
-  const TAMANOS = VIEWPORTS.filter((vista) => vista.nombre === "portatil" || vista.nombre === "tableta");
-
-  for (const vista of TAMANOS) {
-    test(`lista, editor y detalle sin violaciones graves en ${vista.nombre}`, async ({ page }, info) => {
+  for (const vista of VIEWPORTS) {
+    test(`lista, editor y detalle sin violaciones graves en ${vista.nombre} (${vista.width} px)`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
-      test.setTimeout(90_000);
+      test.setTimeout(120_000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
       await entrarComo(page, ATENCION_CLIENTE);
 
@@ -334,6 +472,8 @@ test.describe("Accesibilidad (axe)", () => {
       await page.goto(`/cotizaciones/${datosMixta().id}`);
       await expect(page.getByLabel("Totales de cotización")).toBeVisible();
       expect(await violacionesGraves(page), "detalle").toEqual([]);
+      for (const plegable of PLEGABLES) await abrirPlegable(page, plegable);
+      expect(await violacionesGraves(page), "detalle con secciones abiertas").toEqual([]);
     });
   }
 });
@@ -345,7 +485,7 @@ async function capturar(page: Page, archivo: string): Promise<void> {
 
 test.describe("CF-10: capturas de la cotización mixta aprobada", () => {
   for (const perfil of [ATENCION_CLIENTE, GERENCIA]) {
-    test(`detalle visto por ${perfil.codigo} en los 4 tamaños`, async ({ page }, info) => {
+    test(`detalle visto por ${perfil.codigo} en los 4 anchos`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       test.setTimeout(120_000);
       fs.mkdirSync(CARPETA_CAPTURAS, { recursive: true });

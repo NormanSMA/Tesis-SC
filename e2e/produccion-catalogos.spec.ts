@@ -13,7 +13,7 @@ const PLANTILLA_EDITADA = `${MARCA}-etapa editada`;
 type Perfil = (typeof PERFILES)[number];
 type Registro = { id: string; nombre: string; activo: boolean; actualizadoEn: string };
 type Plantilla = Registro & { area: { id: string; nombre: string } };
-const GERENCIA = PERFILES.find((fila) => fila.codigo === "GERENCIA")!;
+const OPERACIONES = PERFILES.find((fila) => fila.codigo === "OPERACIONES")!;
 let categoria: Registro | undefined;
 
 test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
@@ -145,7 +145,7 @@ async function limpiar(browser: Browser): Promise<void> {
   const page = await contexto.newPage();
   const errores: unknown[] = [];
   try {
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     try { await limpiarCategorias(page); } catch (error) { errores.push(error); }
     for (const area of (await leer<Registro[]>(page, "/areas")).filter((fila) => fila.nombre.startsWith(MARCA) && fila.activo)) {
       try { await archivar(page, `/areas/${area.id}`, area.actualizadoEn); } catch (error) { errores.push(error); }
@@ -159,10 +159,10 @@ test.describe("Catálogos propios de producción", () => {
     test.setTimeout(120000);
     if (info.project.name === "portatil") await limpiar(browser);
   });
-  test("Gerencia crea, edita y archiva área y plantilla E2E", async ({ page }, info) => {
+  test("Operaciones crea, edita y archiva área y plantilla E2E", async ({ page }, info) => {
     test.skip(info.project.name !== "portatil", "Los efectos corren únicamente en portatil.");
     test.setTimeout(180000);
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     await crearYEditarArea(page);
     await crearCategoria(page);
     await gestionarPlantilla(page);
@@ -171,8 +171,8 @@ test.describe("Catálogos propios de producción", () => {
   });
 });
 
-for (const codigo of ["PRODUCCION", "ATENCION_CLIENTE"]) {
-  test(`${codigo === "PRODUCCION" ? "Producción" : "Ventas"} consulta áreas y plantillas sin gestión`, async ({ page }) => {
+for (const codigo of ["PRODUCCION", "ATENCION_CLIENTE", "ADMINISTRACION", "GERENCIA"]) {
+  test(`${codigo} consulta áreas y plantillas sin gestión`, async ({ page }) => {
     await entrarComo(page, PERFILES.find((fila) => fila.codigo === codigo)!);
     await page.goto("/produccion/areas");
     await expect(page.getByRole("table", { name: "Áreas de producción" })).toBeVisible();
@@ -183,11 +183,11 @@ for (const codigo of ["PRODUCCION", "ATENCION_CLIENTE"]) {
   });
 }
 
-for (const vista of VIEWPORTS.filter((fila) => ["portatil", "tableta"].includes(fila.nombre))) {
+for (const vista of VIEWPORTS) {
   test(`áreas pasa axe en ${vista.nombre}`, async ({ page }) => {
     test.setTimeout(90000);
     await page.setViewportSize({ width: vista.width, height: vista.height });
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     await page.goto("/produccion/areas");
     await expect(page.getByRole("table", { name: "Áreas de producción" })).toBeVisible();
     expect(await violacionesGraves(page)).toEqual([]);

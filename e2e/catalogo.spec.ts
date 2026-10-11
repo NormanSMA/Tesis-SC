@@ -18,6 +18,8 @@ test.use({ baseURL: BASE });
 type Perfil = (typeof PERFILES)[number];
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
+const ADMINISTRACION = PERFILES.find((perfil) => perfil.codigo === "ADMINISTRACION") as Perfil;
+const OPERACIONES = PERFILES.find((perfil) => perfil.codigo === "OPERACIONES") as Perfil;
 const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
@@ -50,11 +52,18 @@ async function elegirOpcion(page: Page, campo: RegExp, opcion: string | RegExp):
   await page.getByRole("option", { name: opcion }).click();
 }
 
+// Solo la pestaña activa está en el DOM: ábrala antes de buscar su contenido.
+async function abrirPestana(page: Page, nombre: string): Promise<void> {
+  const pestana = page.getByRole("tab", { name: nombre });
+  await pestana.click();
+  await expect(pestana).toHaveAttribute("aria-selected", "true");
+}
+
 async function archivarProductosE2E(browser: Browser): Promise<void> {
   const contexto = await browser.newContext({ baseURL: BASE });
   const page = await contexto.newPage();
   try {
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     const lista = await page.request.get("/api/v1/productos?q=E2E-&activo=true&porPagina=100");
     const filas = ((await lista.json()).datos ?? []) as { id: string; codigo: string; actualizadoEn: string }[];
     for (const fila of filas.filter((producto) => producto.codigo.startsWith("E2E-"))) {
@@ -108,19 +117,21 @@ async function agregarRecetaPorPantalla(page: Page): Promise<void> {
   await expect(page.getByText("Receta guardada.")).toBeVisible();
 }
 
-test.describe("Gerencia gestiona el catálogo", () => {
+test.describe("Operaciones gestiona el catálogo", () => {
   test("crea, edita, agrega receta y archiva un producto", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const codigo = marcaE2E();
     const nombreInicial = `${codigo} original`;
     const nombreFinal = `${codigo} editado`;
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
 
     await crearProductoPorPantalla(page, { codigo, nombre: nombreInicial });
     await expect(page.getByRole("heading", { level: 1, name: nombreInicial })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByText(`${codigo} · ${CATEGORIA}`)).toBeVisible();
     await expect(page.getByText("m²", { exact: true })).toBeVisible();
     await expect(page.getByText("C$ 125.50")).toBeVisible();
+    await abrirPestana(page, "Receta");
     await expect(page.getByText("Sin receta")).toBeVisible();
 
     await editarDatosPorPantalla(page, nombreFinal);
@@ -129,6 +140,7 @@ test.describe("Gerencia gestiona el catálogo", () => {
 
     await agregarRecetaPorPantalla(page);
     await page.goto(page.url().replace(/\/editar$/, ""));
+    await abrirPestana(page, "Receta");
     const filaMaterial = page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) });
     await expect(filaMaterial).toBeVisible();
     await expect(filaMaterial).toContainText("0.500");
@@ -143,20 +155,24 @@ test.describe("Gerencia gestiona el catálogo", () => {
     await page.goto(`/catalogo?q=${encodeURIComponent(codigo)}`);
     await expect(page.getByText("Sin resultados", { exact: true })).toBeVisible();
     await page.goto(`/catalogo?q=${encodeURIComponent(codigo)}&activo=false`);
-    await expect(page.getByRole("link", { name: nombreFinal })).toBeVisible();
+    await expect(page.getByRole("link", { name: nombreFinal }).first()).toBeVisible();
   });
 });
 
 async function abrirFichaSembrada(page: Page): Promise<void> {
   await page.goto(`/catalogo?q=${PRODUCTO_SEMBRADO}`);
   await page.getByRole("heading", { level: 2 }).getByRole("link").first().click();
-  await expect(page.getByRole("heading", { level: 2, name: "Receta de materiales" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Receta" })).toBeVisible();
 }
 
-async function verificarSoloLectura(page: Page): Promise<void> {
+// veCosto: el costo de referencia vive en la ficha y exige cotizacion:ver.
+async function verificarSoloLectura(page: Page, veCosto: boolean): Promise<void> {
   await page.goto("/catalogo");
   await expect(page.getByRole("heading", { level: 1, name: "Catálogo" })).toBeVisible();
   await expect(page.getByRole("img", { name: /^Producto: / }).first()).toBeVisible();
+  await expect(page.getByText("Costo de referencia")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Nuevo producto" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /^Editar/ })).toHaveCount(0);
 
@@ -165,22 +181,41 @@ async function verificarSoloLectura(page: Page): Promise<void> {
   await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Archivar|Reactivar/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Nuevo producto" })).toHaveCount(0);
+  if (veCosto) await expect(page.getByText("Costo de referencia").first()).toBeVisible();
+  else await expect(page.getByText("Costo de referencia")).toHaveCount(0);
+
+  await abrirPestana(page, "Receta");
+  await expect(page.getByRole("tabpanel")).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Agregar material|Guardar receta/ })).toHaveCount(0);
 }
 
 test.describe("Perfiles de consulta ven el catálogo sin gestión", () => {
-  test("Ventas ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
+  test("Gerencia ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    await entrarComo(page, GERENCIA);
+    await verificarSoloLectura(page, true);
+  });
+
+  test("Atención al cliente ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
-    await verificarSoloLectura(page);
+    await verificarSoloLectura(page, true);
   });
 
-  test("Producción ve el catálogo y no ve botones de gestión", async ({ page }, info) => {
+  test("Administración ve el catálogo y no ve botones de gestión", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    await entrarComo(page, ADMINISTRACION);
+    await verificarSoloLectura(page, true);
+  });
+
+  test("Producción ve el catálogo, sin botones de gestión ni costo de referencia", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, PRODUCCION);
-    await verificarSoloLectura(page);
+    await verificarSoloLectura(page, false);
   });
 
-  test("Administración termina en sin-acceso al abrir el catálogo", async ({ page }, info) => {
+  test("Administración técnica termina en sin-acceso al abrir el catálogo", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ADMIN);
     await page.goto("/catalogo");
@@ -188,25 +223,33 @@ test.describe("Perfiles de consulta ven el catálogo sin gestión", () => {
     await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
   });
 
-  test("Producción recibe 403 al crear un producto por la API", async ({ page }, info) => {
+  test("Gerencia no entra a las rutas de gestión", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, PRODUCCION);
-    const respuesta = await page.request.post("/api/v1/productos", {
-      headers: { Origin: BASE },
-      data: { codigo: "E2E-403", nombre: "No debe crearse" },
-    });
-    expect(respuesta.status()).toBe(403);
+    await entrarComo(page, GERENCIA);
+    await page.goto("/catalogo/nuevo");
+    await expect(page).toHaveURL(/\/sin-acceso$/);
   });
+
+  for (const perfil of [GERENCIA, PRODUCCION]) {
+    test(`${perfil.codigo} recibe 403 al crear un producto por la API`, async ({ page }, info) => {
+      soloUnaVez(info.project.name);
+      await entrarComo(page, perfil);
+      const respuesta = await page.request.post("/api/v1/productos", {
+        headers: { Origin: BASE },
+        data: { codigo: "E2E-403", nombre: "No debe crearse" },
+      });
+      expect(respuesta.status()).toBe(403);
+    });
+  }
 });
 
 test.describe("Accesibilidad (axe) y adaptabilidad", () => {
-  const TAMANOS = VIEWPORTS.filter((vista) => vista.nombre === "portatil" || vista.nombre === "tableta");
-
-  for (const vista of TAMANOS) {
-    test(`lista y formulario sin violaciones graves en ${vista.nombre}`, async ({ page }, info) => {
+  for (const vista of VIEWPORTS) {
+    test(`lista, formulario y ficha sin violaciones graves en ${vista.nombre} (${vista.width} px)`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
+      test.setTimeout(90_000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, GERENCIA);
+      await entrarComo(page, OPERACIONES);
 
       await page.goto("/catalogo");
       await expect(page.getByRole("img", { name: /^Producto: / }).first()).toBeVisible();
@@ -216,19 +259,30 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
       await expect(page.getByRole("heading", { level: 1, name: "Nuevo producto" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Guardar producto" })).toBeEnabled();
       expect(await violacionesGraves(page), "formulario nuevo producto").toEqual([]);
+
+      await abrirFichaSembrada(page);
+      for (const pestana of ["Resumen", "Receta"]) {
+        await abrirPestana(page, pestana);
+        expect(await violacionesGraves(page), `ficha, pestaña ${pestana}`).toEqual([]);
+      }
     });
   }
 
-  test("la lista no desborda en horizontal", async ({ page }) => {
+  test("la lista y la ficha no desbordan en horizontal", async ({ page }) => {
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/catalogo");
     await expect(page.getByRole("img", { name: /^Producto: / }).first()).toBeVisible();
     await sinDesbordeHorizontal(page);
+    await abrirFichaSembrada(page);
+    for (const pestana of ["Resumen", "Receta"]) {
+      await abrirPestana(page, pestana);
+      await sinDesbordeHorizontal(page);
+    }
   });
 });
 
 test.describe("Capturas del catálogo con Gerencia", () => {
-  test("lista y ficha con receta en los 4 tamaños", async ({ page }, info) => {
+  test("lista y ficha con receta en los 4 anchos", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     test.setTimeout(120_000);
     fs.mkdirSync(CARPETA_CAPTURAS, { recursive: true });
@@ -242,6 +296,13 @@ test.describe("Capturas del catálogo con Gerencia", () => {
       await page.screenshot({ path: path.join(CARPETA_CAPTURAS, `catalogo-lista-${vista.nombre}.png`), fullPage: true });
 
       await abrirFichaSembrada(page);
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({
+        path: path.join(CARPETA_CAPTURAS, `catalogo-ficha-resumen-${vista.nombre}.png`),
+        fullPage: true,
+      });
+
+      await abrirPestana(page, "Receta");
       await expect(page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) })).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       await page.screenshot({ path: path.join(CARPETA_CAPTURAS, `catalogo-ficha-${vista.nombre}.png`), fullPage: true });

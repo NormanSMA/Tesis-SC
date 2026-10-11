@@ -1,20 +1,30 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
-import { randomUUID } from "node:crypto";
+import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { hoyManagua } from "../src/modules/cotizaciones/fechas";
 import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
-const ORIGEN = new URL(BASE).origin;
 const CAPTURAS = path.join("docs", "capturas", "panel");
-const MARCA = `E2E-panel-${randomUUID()}`;
 type Perfil = typeof PERFILES[number];
-type Cotizacion = { id: string; asunto: string; actualizadoEn: string; archivada: boolean };
 type Reporte = { filas: Record<string, string | number | null>[]; totales: Record<string, string | number | null> };
+type PanelEsperado = { pregunta: string; indicadores: string[]; grafico: string };
 const gerencia = PERFILES.find((perfil) => perfil.codigo === "GERENCIA")!;
-const ventas = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE")!;
+const admin = PERFILES.find((perfil) => perfil.codigo === "ADMIN")!;
 const perfilesPanel = PERFILES.filter((perfil) => perfil.codigo !== "ADMIN");
+// Textos fijos de cada panel (src/modules/panel/paneles.ts). Las cifras y la conclusión del título dependen de la siembra.
+const PANELES: Record<string, PanelEsperado> = {
+  GERENCIA: { pregunta: "¿Cómo va el negocio este mes?", grafico: "Monto aprobado por mes",
+    indicadores: ["Monto aprobado", "Tasa de aprobación", "Órdenes en producción", "Órdenes atrasadas"] },
+  OPERACIONES: { pregunta: "¿Qué órdenes necesitan mi acción?", grafico: "Órdenes por estado",
+    indicadores: ["Por iniciar", "Sin responsable", "En producción", "Entregas próximas"] },
+  ATENCION_CLIENTE: { pregunta: "¿Qué clientes esperan respuesta?", grafico: "Cotizaciones por estado",
+    indicadores: ["Enviadas sin respuesta", "Por vencer", "Aprobadas del mes", "Clientes nuevos"] },
+  PRODUCCION: { pregunta: "¿Qué hago hoy?", grafico: "Etapas que completé",
+    indicadores: ["Mis etapas en curso", "Mis etapas pendientes", "Completadas hoy por mí", "Mis etapas atrasadas"] },
+  ADMINISTRACION: { pregunta: "¿Está sano el inventario?", grafico: "Consumos por semana",
+    indicadores: ["Materiales bajo el mínimo", "Consumos de hoy", "Valor del inventario", "Movimientos de la semana"] },
+};
 const REPORTES = [
   { nombre: "cotizaciones-por-estado", titulo: "Cotizaciones por estado", encabezado: "Estado", campos: ["estado", "cantidad", "importe"] },
   { nombre: "existencias", titulo: "Existencias", encabezado: "Código", campos: ["codigo", "material", "unidad", "existencia", "stockMinimo", "costoPromedio", "valorInventario", "alerta"] },
@@ -25,6 +35,8 @@ const REPORTES = [
 test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
   ? { browserName: "chromium" as const, channel: process.env.E2E_BROWSER_CHANNEL } : {}) });
 
+const esRespuestaPanel = (url: string) => new URL(url).pathname === "/api/v1/panel";
+
 async function entrarComo(page: Page, perfil: Perfil) {
   const clave = process.env[perfil.claveEnv];
   if (!clave) throw new Error(`Falta ${perfil.claveEnv}.`);
@@ -32,57 +44,33 @@ async function entrarComo(page: Page, perfil: Perfil) {
   await iniciarSesion(page, perfil.correo, clave);
   await page.waitForURL(`**${perfil.destino}`);
 }
-async function leer<T>(page: Page, ruta: string): Promise<T> {
-  const respuesta = await page.request.get(`/api/v1${ruta}`);
-  expect(respuesta.status(), await respuesta.text()).toBe(200);
-  return (await respuesta.json()).datos as T;
-}
-async function prepararCotizacion(browser: Browser) {
-  const contexto = await browser.newContext({ baseURL: BASE });
-  try {
-    const page = await contexto.newPage();
-    await entrarComo(page, ventas);
-    const clientes = await leer<{ id: string }[]>(page, `/clientes?q=${encodeURIComponent("Agencia Viajes Tropical")}`);
-    const productos = await leer<{ id: string }[]>(page, "/productos?q=ROT-VIN-001");
-    expect(clientes.length).toBeGreaterThan(0); expect(productos.length).toBeGreaterThan(0);
-    const creada = await page.request.post("/api/v1/cotizaciones", { headers: { Origin: ORIGEN },
-      data: { clienteId: clientes[0].id, asunto: MARCA } });
-    expect(creada.status(), await creada.text()).toBe(201);
-    const cotizacion = (await creada.json()).datos as Cotizacion;
-    const items = await page.request.put(`/api/v1/cotizaciones/${cotizacion.id}/items`, { headers: { Origin: ORIGEN },
-      data: { version: cotizacion.actualizadoEn, items: [{ tipo: "CATALOGO", productoId: productos[0].id,
-        cantidad: "1", ancho: "1", alto: "1" }] } });
-    expect(items.status(), await items.text()).toBe(200);
-    const editada = (await items.json()).datos as Cotizacion;
-    const enviada = await page.request.post(`/api/v1/cotizaciones/${cotizacion.id}/enviar`, {
-      headers: { Origin: ORIGEN }, data: { version: editada.actualizadoEn } });
-    expect(enviada.status(), await enviada.text()).toBe(200);
-    expect((await enviada.json()).datos.estado).toBe("ENVIADA");
-  } finally { await contexto.close(); }
-}
-async function limpiarCotizacion(browser: Browser) {
-  const contexto = await browser.newContext({ baseURL: BASE });
-  try {
-    const page = await contexto.newPage();
-    await entrarComo(page, ventas);
-    const filas = await leer<Cotizacion[]>(page, `/cotizaciones?q=${MARCA}&archivadas=false&porPagina=100`);
-    for (const fila of filas.filter((fila) => fila.asunto === MARCA)) {
-      const actual = await leer<Cotizacion>(page, `/cotizaciones/${fila.id}`);
-      expect(actual.asunto).toBe(MARCA);
-      const respuesta = await page.request.post(`/api/v1/cotizaciones/${fila.id}/archivar`, {
-        headers: { Origin: ORIGEN }, data: { version: actual.actualizadoEn } });
-      expect(respuesta.status(), await respuesta.text()).toBe(200);
-      expect((await respuesta.json()).datos.archivada).toBe(true);
-    }
-  } finally { await contexto.close(); }
+function regionPanel(page: Page) {
+  return page.getByRole("region", { name: "Panel", exact: true });
 }
 async function abrirPanel(page: Page) {
   await page.goto("/panel");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Panel");
-  await expect(page.getByRole("region", { name: "Materiales disponibles", exact: true })).toBeVisible();
+  await expect(regionPanel(page)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+}
+async function verificarEstructuraPanel(page: Page, perfil: Perfil) {
+  const esperado = PANELES[perfil.codigo];
+  const panel = regionPanel(page);
+  await expect(page.getByText(esperado.pregunta, { exact: true })).toBeVisible();
+  const titulo = page.getByRole("heading", { level: 1 });
+  await expect(titulo).not.toHaveText(/^\s*$/);
+  await expect(titulo).not.toHaveText("No hay datos disponibles con sus permisos");
+  for (const etiqueta of esperado.indicadores) {
+    await expect(panel.getByRole("link", { name: new RegExp(`^${etiqueta}`) })).toHaveCount(1);
+  }
+  await expect(panel.getByRole("link", { name: new RegExp(`^(${esperado.indicadores.join("|")})`) })).toHaveCount(4);
+  await expect(panel.getByRole("heading", { level: 2, name: esperado.grafico, exact: true })).toBeVisible();
+  await expect(panel.getByRole("img", { name: new RegExp(`^${esperado.grafico}`) })).toBeVisible();
+  await expect(panel.getByRole("heading", { level: 2, name: "Requiere atención", exact: true })).toBeVisible();
+  await expect(panel.locator("aside[aria-label='Requiere atención']")).toBeVisible();
+  await expect(panel.getByRole("group", { name: "Perfil del panel" })).toHaveCount(0);
 }
 async function verificarEnlaces(page: Page) {
-  const enlaces = page.getByRole("main").locator("a");
+  const enlaces = regionPanel(page).locator("a");
   const destinos = await enlaces.evaluateAll((nodos) => nodos.map((nodo) => nodo.getAttribute("href")!));
   expect(destinos.length).toBeGreaterThan(0);
   const seleccionados = new Map<string, string>();
@@ -92,7 +80,7 @@ async function verificarEnlaces(page: Page) {
   }
   for (const destino of seleccionados.values()) {
     await abrirPanel(page);
-    await page.getByRole("main").locator(`a[href="${destino}"]`).first().click();
+    await regionPanel(page).locator(`a[href="${destino}"]`).first().click();
     await expect(page).toHaveURL(new URL(destino, BASE).toString());
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page).not.toHaveURL(/\/(sin-acceso|login)$/);
@@ -164,7 +152,7 @@ async function capturarPanel(page: Page, perfil: Perfil) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
     await sinDesbordeHorizontal(page); await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: path.join(CAPTURAS, `CF-06-panel-${perfil.codigo.toLowerCase()}-${vista.width}x${vista.height}.png`), fullPage: true });
-    if ([1366, 820].includes(vista.width)) expect(await violacionesGraves(page)).toEqual([]);
+    if ([1366, 768].includes(vista.width)) expect(await violacionesGraves(page)).toEqual([]);
   }
 }
 async function capturarReporte(page: Page) {
@@ -174,20 +162,22 @@ async function capturarReporte(page: Page) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
     await sinDesbordeHorizontal(page); await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: path.join(CAPTURAS, `CF-06-reporte-gerencia-${vista.width}x${vista.height}.png`), fullPage: true });
-    if ([1366, 820].includes(vista.width)) expect(await violacionesGraves(page)).toEqual([]);
+    if ([1366, 768].includes(vista.width)) expect(await violacionesGraves(page)).toEqual([]);
   }
 }
 function registrarPerfilesPanel() {
   for (const perfil of perfilesPanel) {
-    test(`${perfil.codigo}: panel, permisos, actualización y enlaces`, async ({ page }) => {
+    test(`${perfil.codigo}: panel con pregunta, 4 indicadores, gráfico y requiere atención`, async ({ page }) => {
       await entrarComo(page, perfil); await abrirPanel(page);
-      const cotizaciones = page.getByRole("region", { name: "Cotizaciones pendientes", exact: true });
-      await expect(cotizaciones).toHaveCount(perfil.codigo === "PRODUCCION" ? 0 : 1);
+      await verificarEstructuraPanel(page, perfil);
       if (perfil.codigo === "PRODUCCION") expect(await page.getByRole("main").innerText()).not.toContain("C$");
-      const actualizada = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/panel"));
+    });
+    test(`${perfil.codigo}: actualización y enlaces`, async ({ page }) => {
+      await entrarComo(page, perfil); await abrirPanel(page);
+      const actualizada = page.waitForResponse((respuesta) => esRespuestaPanel(respuesta.url()));
       await page.getByRole("button", { name: "Actualizar", exact: true }).click();
       expect((await actualizada).status()).toBe(200);
-      await expect(page.getByRole("status")).toContainText("Actualizado:");
+      await expect(page.getByRole("status").filter({ hasText: "Actualizado:" })).toBeVisible();
       await verificarEnlaces(page);
     });
     test(`${perfil.codigo}: capturas CF-06, axe y cuatro tamaños`, async ({ page }) => {
@@ -218,7 +208,7 @@ function registrarReportes() {
   });
 }
 function registrarAccesoYErrores() {
-  for (const perfil of PERFILES.filter((perfil) => ["ATENCION_CLIENTE", "PRODUCCION"].includes(perfil.codigo))) {
+  for (const perfil of perfilesPanel.filter((perfil) => perfil.codigo !== "GERENCIA")) {
     test(`${perfil.codigo}: sin acceso a Reportes`, async ({ page }) => {
       await entrarComo(page, perfil);
       await expect(page.locator("#menu-principal").getByRole("link", { name: "Reportes", exact: true })).toHaveCount(0);
@@ -226,19 +216,21 @@ function registrarAccesoYErrores() {
       for (const reporte of REPORTES) expect((await page.request.get(`/api/v1/reportes/${reporte.nombre}`)).status()).toBe(403);
     });
   }
-  test("Administración: sin acceso al panel", async ({ page }) => {
-    await entrarComo(page, PERFILES.find((perfil) => perfil.codigo === "ADMIN")!);
+  test("ADMIN: sin acceso al panel", async ({ page }) => {
+    await entrarComo(page, admin);
+    await expect(page.locator("#menu-principal").getByRole("link", { name: "Panel", exact: true })).toHaveCount(0);
     await page.goto("/panel"); await expect(page).toHaveURL(/\/sin-acceso$/);
     expect((await page.request.get("/api/v1/panel")).status()).toBe(403);
   });
   test("Gerencia: error accesible y recuperación del panel", async ({ page }) => {
     await entrarComo(page, gerencia); await abrirPanel(page);
-    await page.route("**/api/v1/panel", (ruta) => ruta.fulfill({ status: 500, contentType: "application/json",
+    const rutaPanel = /\/api\/v1\/panel(\?|$)/;
+    await page.route(rutaPanel, (ruta) => ruta.fulfill({ status: 500, contentType: "application/json",
       body: JSON.stringify({ error: { codigo: "ERROR_INTERNO", mensaje: "No se pudo actualizar el panel." } }) }));
     await page.getByRole("button", { name: "Actualizar", exact: true }).click();
     await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveAttribute("aria-live", "assertive");
     await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toContainText("No se pudo actualizar el panel.");
-    await page.unroute("**/api/v1/panel");
+    await page.unroute(rutaPanel);
     await page.getByRole("button", { name: "Actualizar", exact: true }).click();
     await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveCount(0);
   });
@@ -254,7 +246,5 @@ function registrarAccesoYErrores() {
 test.describe("Panel y reportes CF-06", () => {
   test.setTimeout(120000);
   test.beforeEach(({ browserName }, info) => { void browserName; test.skip(info.project.name !== "portatil", "La suite comprueba los cuatro tamaños desde portatil."); });
-  test.beforeAll(async ({ browser }, info) => { if (info.project.name === "portatil") await prepararCotizacion(browser); });
-  test.afterAll(async ({ browser }, info) => { if (info.project.name === "portatil") await limpiarCotizacion(browser); });
   registrarPerfilesPanel(); registrarReportes(); registrarAccesoYErrores();
 });

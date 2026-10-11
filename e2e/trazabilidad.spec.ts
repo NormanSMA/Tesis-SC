@@ -17,7 +17,8 @@ type Material = Registro & { codigo: string; activo: boolean; existencia: string
 type Cotizacion = Registro & { numero: string; asunto: string; archivada: boolean };
 type Orden = Registro & { numero: string; estado: string; cotizacion: { asunto: string } };
 const perfil = (codigo: string) => PERFILES.find((fila) => fila.codigo === codigo)!;
-const ATENCION_CLIENTE = perfil("ATENCION_CLIENTE"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION"), ADMIN = perfil("ADMIN");
+const ADMINISTRACION = perfil("ADMINISTRACION"), ATENCION_CLIENTE = perfil("ATENCION_CLIENTE"), GERENCIA = perfil("GERENCIA");
+const OPERACIONES = perfil("OPERACIONES"), PRODUCCION = perfil("PRODUCCION"), ADMIN = perfil("ADMIN");
 let material: Material, cotizacion: Cotizacion, orden: Orden;
 let responsableId: string;
 test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
@@ -52,8 +53,10 @@ function comprobarSinDinero(valor: unknown): void {
   }
 }
 async function prepararMaterial(page: Page) {
+  // El responsable de la orden es un usuario de Producción; el material lo crea Administración.
   await entrarComo(page, PRODUCCION);
   responsableId = (await leer<{ usuario: { id: string } }>(page, "/auth/yo")).usuario.id;
+  await entrarComo(page, ADMINISTRACION);
   material = await escribir(page, "/materiales", { estado: 201,
     cuerpo: { codigo: CODIGO, nombre: NOMBRE, unidad: "PLIEGO", stockMinimo: "0", costoPromedio: "12.3456" } });
   await escribir(page, "/inventario/entradas", { estado: 201, idempotente: true,
@@ -73,14 +76,15 @@ async function prepararCotizacion(page: Page) {
         descripcion: NOMBRE, unidad: "pliego", cantidad: "4", costoUnitario: "12.3456", mermaPct: "0" }] }],
   } });
   cotizacion = await escribir(page, `/cotizaciones/${cotizacion.id}/enviar`, { cuerpo: { version: cotizacion.actualizadoEn } });
-  await entrarComo(page, GERENCIA);
-  cotizacion = await escribir(page, `/cotizaciones/${cotizacion.id}/responder`, { cuerpo: { version: cotizacion.actualizadoEn, resultado: "APROBADA" } });
-  await entrarComo(page, ATENCION_CLIENTE);
+  // Aprueba y crea la orden Operaciones; la aprobación exige referencia.
+  await entrarComo(page, OPERACIONES);
+  cotizacion = await escribir(page, `/cotizaciones/${cotizacion.id}/responder`, { cuerpo: {
+    version: cotizacion.actualizadoEn, resultado: "APROBADA", referenciaAprobacion: `${MARCA}-aprobacion` } });
   orden = await escribir(page, "/ordenes", { estado: 201, cuerpo: { cotizacionId: cotizacion.id, categoriaId: categoria!.id,
     responsableId, fechaEntrega: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), especificaciones: MARCA } });
 }
 async function consumirMaterial(page: Page) {
-  await entrarComo(page, PRODUCCION);
+  await entrarComo(page, ADMINISTRACION);
   await escribir(page, `/ordenes/${orden.id}/consumos`, { estado: 201, idempotente: true,
     cuerpo: { lineas: [{ materialId: material.id, cantidad: "3.333" }] } });
 }
@@ -146,9 +150,9 @@ async function limpiar(browser: Browser) {
   try {
     await paso(GERENCIA, async () => { propias = (await leer<Orden[]>(page, `/ordenes?q=${MARCA}&terminales=todas&porPagina=100`))
       .filter((fila) => fila.cotizacion.asunto === MARCA); });
-    await paso(PRODUCCION, async () => { for (const fila of propias) await devolverNeto(page, fila); });
-    await paso(GERENCIA, async () => { for (const fila of propias) await cancelarOrden(page, fila); });
-    await paso(GERENCIA, () => vaciarMaterial(page));
+    await paso(ADMINISTRACION, async () => { for (const fila of propias) await devolverNeto(page, fila); });
+    await paso(OPERACIONES, async () => { for (const fila of propias) await cancelarOrden(page, fila); });
+    await paso(ADMINISTRACION, () => vaciarMaterial(page));
     await paso(ATENCION_CLIENTE, () => archivarCotizacion(page));
   } finally { await contexto.close(); }
   if (errores.length) throw new AggregateError(errores, `Falló la limpieza de ${MARCA}`);
@@ -175,7 +179,7 @@ test.describe("Trazabilidad de un trabajo E2E propio", () => {
     await page.getByRole("button", { name: "Abrir trazabilidad completa" }).click();
     await expect(page).toHaveURL(new RegExp(`/trazabilidad/ordenes/${orden.id}$`));
   });
-  test("Administración consulta global sin dinero y no accede a la orden", async ({ page }, info) => {
+  test("ADMIN consulta global sin dinero y no accede a la orden", async ({ page }, info) => {
     soloPortatil(info.project.name); await entrarComo(page, ADMIN);
     await page.goto(`/trazabilidad?orden=${orden.numero}`);
     await expect(page.getByRole("table", { name: "Bitácora global" })).toContainText("Registró un consumo de material");
@@ -184,19 +188,22 @@ test.describe("Trazabilidad de un trabajo E2E propio", () => {
     expect(await page.getByRole("main").innerText()).not.toMatch(/C\$|Costo unitario|Costo promedio/);
     expect((await page.request.get(`/api/v1/ordenes/${orden.id}/trazabilidad`)).status()).toBe(403);
   });
-  test("Ventas abre trazabilidad desde orden y cotización; global responde 403", async ({ page }, info) => {
-    soloPortatil(info.project.name); await entrarComo(page, ATENCION_CLIENTE);
-    for (const ruta of [`/ordenes/${orden.id}`, `/cotizaciones/${cotizacion.id}`]) {
-      await page.goto(ruta); await page.getByRole("link", { name: "Trazabilidad completa", exact: true }).click();
-      await expect(page).toHaveURL(new RegExp(`/trazabilidad/ordenes/${orden.id}$`));
+  // Solo Gerencia y ADMIN tienen bitacora:ver: el resto pierde la trazabilidad, el enlace y la API.
+  test("Administración, Operaciones, Atención al cliente y Producción no acceden a la trazabilidad", async ({ page }, info) => {
+    soloPortatil(info.project.name); test.setTimeout(120000);
+    for (const actor of [ADMINISTRACION, OPERACIONES, ATENCION_CLIENTE, PRODUCCION]) {
+      await entrarComo(page, actor);
+      for (const ruta of ["/trazabilidad", `/trazabilidad/ordenes/${orden.id}`]) {
+        await page.goto(ruta); await expect(page).toHaveURL(/\/sin-acceso$/);
+      }
+      for (const ruta of ["/bitacora", `/ordenes/${orden.id}/trazabilidad`]) {
+        expect((await page.request.get(`/api/v1${ruta}`)).status(), `${actor.codigo} ${ruta}`).toBe(403);
+      }
+      for (const ruta of [`/ordenes/${orden.id}`, `/cotizaciones/${cotizacion.id}`]) {
+        await page.goto(ruta);
+        await expect(page.getByRole("link", { name: "Trazabilidad completa", exact: true })).toHaveCount(0);
+      }
     }
-    expect((await page.request.get("/api/v1/bitacora")).status()).toBe(403);
-  });
-  test("Producción consulta el trabajo sin dinero ni datos restringidos", async ({ page }, info) => {
-    soloPortatil(info.project.name); await entrarComo(page, PRODUCCION); await abrirTrabajo(page);
-    const traza = await leer<TrazabilidadOrden>(page, `/ordenes/${orden.id}/trazabilidad`); comprobarSinDinero(traza);
-    expect(traza.cadena.cliente).not.toHaveProperty("ruc"); expect(traza.cadena.cliente).not.toHaveProperty("direccion");
-    expect(await page.getByRole("main").innerText()).not.toMatch(/C\$|Costo real|Costo unitario/);
   });
   test("axe, desbordes y capturas CF-05 y CF-09 en cuatro tamaños", async ({ page }, info) => {
     soloPortatil(info.project.name); test.setTimeout(180000); await entrarComo(page, GERENCIA);

@@ -10,12 +10,15 @@ dotenv.config();
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const CARPETA_CAPTURAS = path.join("docs", "capturas", "clientes");
 const CLIENTE_SEMBRADO = "Agencia Viajes Tropical";
+const PESTANAS_FICHA = ["Resumen", "Cotizaciones", "Trabajos", "Actividad"];
 
 test.use({ baseURL: BASE });
 
 type Perfil = (typeof PERFILES)[number];
 
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
+const ADMINISTRACION = PERFILES.find((perfil) => perfil.codigo === "ADMINISTRACION") as Perfil;
+const OPERACIONES = PERFILES.find((perfil) => perfil.codigo === "OPERACIONES") as Perfil;
 const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as Perfil;
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 
@@ -65,9 +68,17 @@ async function llenarFormulario(page: Page, valores: Record<string, string>): Pr
   for (const [id, valor] of Object.entries(valores)) await page.locator(`#${id}`).fill(valor);
 }
 
+// Solo la pestaña activa está en el DOM: ábrala antes de buscar su contenido.
+async function abrirPestana(page: Page, nombre: string): Promise<void> {
+  const pestana = page.getByRole("tab", { name: nombre });
+  await pestana.click();
+  await expect(pestana).toHaveAttribute("aria-selected", "true");
+}
+
+// La fila completa de la lista es un enlace: puede haber más de un enlace con el nombre.
 async function abrirFichaSembrada(page: Page): Promise<void> {
   await page.goto(`/clientes?q=${encodeURIComponent(CLIENTE_SEMBRADO)}`);
-  await page.getByRole("link", { name: CLIENTE_SEMBRADO, exact: true }).click();
+  await page.getByRole("link", { name: CLIENTE_SEMBRADO }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: CLIENTE_SEMBRADO })).toBeVisible();
 }
 
@@ -89,7 +100,7 @@ test.afterAll(async ({ browser }, info) => {
   if (info.project.name === "portatil") await archivarClientesE2E(browser);
 });
 
-test.describe("Ventas gestiona clientes", () => {
+test.describe("Atención al cliente gestiona clientes", () => {
   test("crea, edita, busca y archiva un cliente", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const nombre = nombreE2E();
@@ -103,7 +114,10 @@ test.describe("Ventas gestiona clientes", () => {
 
     await expect(page).toHaveURL(/\/clientes\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1, name: nombre })).toBeVisible();
+    await expect(page.getByText(/CLI-\d{4}/).first()).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByText("contacto@e2e.test")).toBeVisible();
+    await abrirPestana(page, "Actividad");
     await expect(page.getByText("creó el cliente")).toBeVisible();
 
     await page.getByRole("link", { name: "Editar" }).click();
@@ -112,25 +126,43 @@ test.describe("Ventas gestiona clientes", () => {
     await page.locator("#contactoPrincipal").fill("Ana E2E");
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByText("Cliente de prueba E2E", { exact: true })).toBeVisible();
+    await abrirPestana(page, "Actividad");
     await expect(page.getByText("editó el cliente")).toBeVisible();
 
     await page.goto("/clientes");
     await page.getByLabel("Buscar", { exact: true }).fill(nombre.toLowerCase());
     await page.getByRole("button", { name: "Buscar" }).click();
     await expect(page).toHaveURL(/q=e2e-/);
-    await expect(page.getByRole("link", { name: nombre })).toBeVisible();
-    await page.getByRole("link", { name: nombre }).click();
+    await expect(page.getByRole("link", { name: nombre }).first()).toBeVisible();
+    await page.getByRole("link", { name: nombre }).first().click();
 
     await page.getByRole("button", { name: "Archivar" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Archivar" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Cliente archivado" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
+    await abrirPestana(page, "Actividad");
     await expect(page.getByText("archivó el cliente")).toBeVisible();
 
     await page.goto(`/clientes?q=${encodeURIComponent(nombre)}`);
     await expect(page.getByText("Sin resultados", { exact: true })).toBeVisible();
     await page.goto(`/clientes?q=${encodeURIComponent(nombre)}&activo=false`);
-    await expect(page.getByRole("link", { name: nombre })).toBeVisible();
+    await expect(page.getByRole("link", { name: nombre }).first()).toBeVisible();
+  });
+
+  test("la lista muestra solo las columnas reducidas y la fila enlaza a la ficha", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    await entrarComo(page, ATENCION_CLIENTE);
+    await page.goto(`/clientes?q=${encodeURIComponent(CLIENTE_SEMBRADO)}`);
+    for (const columna of ["Nombre", "Código", "Tipo", "Estado", "Cotizaciones"]) {
+      await expect(page.getByRole("columnheader", { name: columna })).toBeVisible();
+    }
+    for (const columna of ["Contacto", "Teléfono"]) {
+      await expect(page.getByRole("columnheader", { name: columna })).toHaveCount(0);
+    }
+    await expect(page.getByRole("link", { name: CLIENTE_SEMBRADO }).first()).toHaveAttribute(
+      "href",
+      /\/clientes\/[0-9a-f-]{36}$/,
+    );
   });
 
   test("reactiva un cliente archivado y vuelve a poder editarlo", async ({ page }, info) => {
@@ -143,6 +175,7 @@ test.describe("Ventas gestiona clientes", () => {
     await page.getByRole("button", { name: "Reactivar" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Reactivar" }).click();
     await expect(page.getByRole("link", { name: "Editar" })).toBeVisible();
+    await abrirPestana(page, "Actividad");
     await expect(page.getByText("reactivó el cliente")).toBeVisible();
     await archivarPorApi(page, cliente.id);
   });
@@ -222,20 +255,27 @@ test.describe("Ventas gestiona clientes", () => {
   });
 });
 
-test.describe("Gerencia consulta sin modificar", () => {
-  test("ve la lista y la ficha sin botones de gestión", async ({ page }, info) => {
-    soloUnaVez(info.project.name);
-    await entrarComo(page, GERENCIA);
-    await page.goto("/clientes");
-    await expect(page.getByRole("heading", { level: 1, name: "Clientes" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Nuevo cliente" })).toHaveCount(0);
+test.describe("Gerencia y Operaciones consultan sin modificar", () => {
+  for (const perfil of [GERENCIA, OPERACIONES]) {
+    test(`${perfil.codigo} ve la lista y la ficha sin botones de gestión`, async ({ page }, info) => {
+      soloUnaVez(info.project.name);
+      await entrarComo(page, perfil);
+      await page.goto("/clientes");
+      await expect(page.getByRole("heading", { level: 1, name: "Clientes" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Nuevo cliente" })).toHaveCount(0);
 
-    await abrirFichaSembrada(page);
-    await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Archivar|Reactivar/ })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Cotizaciones del cliente" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Trabajos del cliente" })).toBeVisible();
-  });
+      await abrirFichaSembrada(page);
+      await expect(page.getByText(/CLI-\d{4}/).first()).toBeVisible();
+      await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /Archivar|Reactivar/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "Nueva cotización" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Nueva cotización" })).toHaveCount(0);
+      await abrirPestana(page, "Cotizaciones");
+      await expect(page.getByRole("tabpanel")).toContainText(/COT-/);
+      await abrirPestana(page, "Trabajos");
+      await expect(page.getByRole("tabpanel")).toBeVisible();
+    });
+  }
 
   test("las rutas de gestión redirigen a sin-acceso y la API responde 403", async ({ page }, info) => {
     soloUnaVez(info.project.name);
@@ -244,7 +284,7 @@ test.describe("Gerencia consulta sin modificar", () => {
     await expect(page).toHaveURL(/\/sin-acceso$/);
 
     await abrirFichaSembrada(page);
-    const id = page.url().split("/").pop();
+    const id = new URL(page.url()).pathname.split("/").pop();
     await page.goto(`/clientes/${id}/editar`);
     await expect(page).toHaveURL(/\/sin-acceso$/);
 
@@ -256,25 +296,26 @@ test.describe("Gerencia consulta sin modificar", () => {
   });
 });
 
-test.describe("Producción no ve el módulo", () => {
-  test("termina en sin-acceso al abrir clientes", async ({ page }, info) => {
-    soloUnaVez(info.project.name);
-    await entrarComo(page, PRODUCCION);
-    for (const ruta of ["/clientes", "/clientes/nuevo"]) {
-      await page.goto(ruta);
-      await expect(page).toHaveURL(/\/sin-acceso$/);
-      await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
-    }
-    expect((await page.request.get("/api/v1/clientes")).status()).toBe(403);
-  });
+test.describe("Producción y Administración no ven el módulo", () => {
+  for (const perfil of [PRODUCCION, ADMINISTRACION]) {
+    test(`${perfil.codigo} termina en sin-acceso al abrir clientes`, async ({ page }, info) => {
+      soloUnaVez(info.project.name);
+      await entrarComo(page, perfil);
+      for (const ruta of ["/clientes", "/clientes/nuevo"]) {
+        await page.goto(ruta);
+        await expect(page).toHaveURL(/\/sin-acceso$/);
+        await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
+      }
+      expect((await page.request.get("/api/v1/clientes")).status()).toBe(403);
+    });
+  }
 });
 
 test.describe("Accesibilidad (axe) y adaptabilidad", () => {
-  const TAMANOS = VIEWPORTS.filter((vista) => vista.nombre === "portatil" || vista.nombre === "tableta");
-
-  for (const vista of TAMANOS) {
-    test(`lista, formulario y ficha sin violaciones graves en ${vista.nombre}`, async ({ page }, info) => {
+  for (const vista of VIEWPORTS) {
+    test(`lista, formulario y ficha sin violaciones graves en ${vista.nombre} (${vista.width} px)`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
+      test.setTimeout(90_000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
       await entrarComo(page, ATENCION_CLIENTE);
 
@@ -290,8 +331,10 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
       expect(await violacionesGraves(page), "formulario con errores").toEqual([]);
 
       await abrirFichaSembrada(page);
-      await expect(page.getByRole("region", { name: "Cotizaciones del cliente" })).toBeVisible();
-      expect(await violacionesGraves(page), "ficha").toEqual([]);
+      for (const pestana of PESTANAS_FICHA) {
+        await abrirPestana(page, pestana);
+        expect(await violacionesGraves(page), `ficha, pestaña ${pestana}`).toEqual([]);
+      }
     });
   }
 
@@ -301,14 +344,16 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
     await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
     await sinDesbordeHorizontal(page);
     await abrirFichaSembrada(page);
-    await expect(page.getByRole("region", { name: "Cotizaciones del cliente" })).toBeVisible();
-    await sinDesbordeHorizontal(page);
+    for (const pestana of PESTANAS_FICHA) {
+      await abrirPestana(page, pestana);
+      await sinDesbordeHorizontal(page);
+    }
   });
 });
 
 test.describe("CF-11: capturas de la ficha con cotizaciones y trabajos", () => {
   for (const perfil of [GERENCIA, ATENCION_CLIENTE]) {
-    test(`ficha de ${perfil.codigo} en los 4 tamaños`, async ({ page }, info) => {
+    test(`ficha de ${perfil.codigo} en los 4 anchos`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       test.setTimeout(120_000);
       fs.mkdirSync(CARPETA_CAPTURAS, { recursive: true });
@@ -316,13 +361,19 @@ test.describe("CF-11: capturas de la ficha con cotizaciones y trabajos", () => {
       await abrirFichaSembrada(page);
       for (const vista of VIEWPORTS) {
         await page.setViewportSize({ width: vista.width, height: vista.height });
-        await expect(page.getByRole("region", { name: "Cotizaciones del cliente" })).toBeVisible();
-        await expect(page.getByRole("region", { name: "Trabajos del cliente" })).toBeVisible();
-        await page.evaluate(() => document.fonts.ready);
-        await page.screenshot({
-          path: path.join(CARPETA_CAPTURAS, `CF-11-${perfil.codigo.toLowerCase()}-${vista.nombre}.png`),
-          fullPage: true,
-        });
+        // Una captura por pestaña: la de Cotizaciones conserva el nombre anterior.
+        for (const [pestana, sufijo] of [
+          ["Cotizaciones", ""],
+          ["Trabajos", "-trabajos"],
+        ]) {
+          await abrirPestana(page, pestana);
+          await expect(page.getByRole("tabpanel")).toBeVisible();
+          await page.evaluate(() => document.fonts.ready);
+          await page.screenshot({
+            path: path.join(CARPETA_CAPTURAS, `CF-11-${perfil.codigo.toLowerCase()}${sufijo}-${vista.nombre}.png`),
+            fullPage: true,
+          });
+        }
       }
     });
   }

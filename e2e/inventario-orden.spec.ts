@@ -23,8 +23,10 @@ type Orden = { id: string; numero: string; estado: string; actualizadoEn: string
 type Fila = { tipo: string; costoUnitario?: string };
 type Consumos = { movimientos: Fila[]; materiales: { neto: string; material: { codigo: string; id: string } }[] };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
+const ADMINISTRACION = PERFIL("ADMINISTRACION");
 const ATENCION_CLIENTE = PERFIL("ATENCION_CLIENTE");
 const GERENCIA = PERFIL("GERENCIA");
+const OPERACIONES = PERFIL("OPERACIONES");
 const PRODUCCION = PERFIL("PRODUCCION");
 let material: Material | undefined;
 let cotizacion: Cotizacion | undefined;
@@ -81,7 +83,7 @@ function filaLibro(page: Page, tipo: string): Locator {
 
 // El material nace por API: la interfaz de alta y de entradas ya se prueba en inventario.spec.ts.
 async function prepararMaterial(page: Page): Promise<void> {
-  await entrarComo(page, PRODUCCION);
+  await entrarComo(page, ADMINISTRACION);
   const alta = await page.request.post("/api/v1/materiales", { headers: { Origin: ORIGIN },
     data: { codigo: CODIGO, nombre: NOMBRE, unidad: UNIDAD, stockMinimo: "100", costoPromedio: "5" } });
   expect(alta.status(), await alta.text()).toBe(201);
@@ -124,11 +126,14 @@ async function crearCotizacion(page: Page): Promise<void> {
   await expect(page.getByRole("main")).toContainText("Enviada");
 }
 
+// Aprueba Operaciones (cotizacion:responder); la aprobación exige una referencia de 3 a 200 caracteres.
 async function aprobarCotizacion(page: Page): Promise<void> {
-  await entrarComo(page, GERENCIA);
+  await entrarComo(page, OPERACIONES);
   await page.goto(`/cotizaciones/${datos(cotizacion, "la cotización").id}`);
   await page.getByRole("button", { name: "Aprobar", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Aprobar cotización" }).click();
+  const dialogo = page.getByRole("dialog");
+  await dialogo.getByLabel("Referencia de aprobación").fill(`${MARCA}-aprobacion`);
+  await dialogo.getByRole("button", { name: "Aprobar cotización" }).click();
   await expect(page.getByRole("main")).toContainText("Aprobada");
 }
 
@@ -147,8 +152,18 @@ async function convertirEnOrden(page: Page): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
 }
 
+// La ficha de la orden usa pestañas: la tabla de materiales vive en "Materiales consumidos".
+async function abrirPestana(page: Page, nombre: string): Promise<void> {
+  const pestana = page.getByRole("tab", { name: nombre, exact: true });
+  await expect(async () => {
+    if (await pestana.getAttribute("aria-selected") !== "true") await pestana.click();
+    await expect(pestana).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
+  }).toPass({ timeout: 10000 });
+}
+
 // Cuatro cantidades en el orden de la tabla: estimado, consumido, devuelto y neto.
 async function verResumen(page: Page, cantidades: string[]): Promise<void> {
+  await abrirPestana(page, "Materiales consumidos");
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: NOMBRE });
   await expect(fila.getByRole("cell")).toHaveText([NOMBRE, ...cantidades.map((valor) => `${valor} ${UNIDAD}`)]);
 }
@@ -160,6 +175,7 @@ async function abrirOrden(page: Page): Promise<void> {
 
 async function abrirMovimiento(page: Page, tipo: "consumo" | "devolucion"): Promise<Locator> {
   await abrirOrden(page);
+  await abrirPestana(page, "Materiales consumidos");
   await page.getByRole("link", { name: tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante", exact: true }).click();
   const form = formulario(page, tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante");
   await expect(form.getByLabel("Cantidad")).toBeVisible();
@@ -224,12 +240,6 @@ async function totalMovimientos(page: Page): Promise<number> {
   return (await respuesta.json()).total as number;
 }
 
-async function consultarMovimientos(page: Page): Promise<Fila[]> {
-  const respuesta = await page.request.get(`/api/v1/materiales/${datos(material, "el material").id}/movimientos?porPagina=100`);
-  expect(respuesta.status()).toBe(200);
-  return (await respuesta.json()).datos as Fila[];
-}
-
 async function consultarConsumos(page: Page, ordenId: string): Promise<Consumos> {
   const respuesta = await page.request.get(`/api/v1/ordenes/${ordenId}/consumos`);
   expect(respuesta.status()).toBe(200);
@@ -251,25 +261,24 @@ async function repetirConsumo(page: Page): Promise<void> {
   expect((await consultarConsumos(page, ordenId)).materiales.map((fila) => fila.neto)).toEqual(["3.000"]);
 }
 
-async function verCostosComoProduccion(page: Page): Promise<void> {
+// Producción ve la orden pero no el inventario ni los costos: ninguna pantalla ni respuesta lleva dinero.
+async function verSinCostosComoProduccion(page: Page): Promise<void> {
   await entrarComo(page, PRODUCCION);
   await page.goto(`/inventario/${datos(material, "el material").id}`);
-  await expect(filaLibro(page, "ENTRADA").first()).toContainText("Unitario: ");
-  for (const tipo of ["CONSUMO", "DEVOLUCION"]) {
-    await expect(filaLibro(page, tipo).first()).toContainText("Sin permiso");
-    await expect(filaLibro(page, tipo).first()).not.toContainText("Unitario");
-  }
-  const ligados = (await consultarMovimientos(page)).filter((fila) => ["CONSUMO", "DEVOLUCION"].includes(fila.tipo));
-  expect(ligados.length).toBeGreaterThan(0);
-  expect(ligados.every((fila) => fila.costoUnitario === undefined)).toBe(true);
-  expect((await consultarConsumos(page, datos(orden, "la orden").id)).movimientos.every((fila) => fila.costoUnitario === undefined)).toBe(true);
+  await expect(page).toHaveURL(/\/sin-acceso$/);
+  expect((await page.request.get(`/api/v1/materiales/${datos(material, "el material").id}/movimientos?porPagina=100`)).status()).toBe(403);
+  const consumos = await page.request.get(`/api/v1/ordenes/${datos(orden, "la orden").id}/consumos`);
+  if (consumos.status() === 200) {
+    expect(((await consumos.json()).datos as Consumos).movimientos.every((fila) => fila.costoUnitario === undefined)).toBe(true);
+  } else expect(consumos.status()).toBe(403);
   await abrirOrden(page);
-  await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
+  if (consumos.status() === 200) await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
   expect(await page.evaluate(() => document.body.innerText)).not.toMatch(/C\$|Unitario/);
 }
 
-async function verCostosComoGerencia(page: Page): Promise<void> {
-  await entrarComo(page, GERENCIA);
+// Gerencia, Administración y Operaciones tienen inventario:ver y cotizacion:ver: ven el costo del consumo.
+async function verCostos(page: Page, perfil: Perfil): Promise<void> {
+  await entrarComo(page, perfil);
   await page.goto(`/inventario/${datos(material, "el material").id}`);
   await expect(filaLibro(page, "CONSUMO").first()).toContainText("Unitario: 12.3077");
   await expect(filaLibro(page, "DEVOLUCION").first()).toContainText("Unitario: 12.3077");
@@ -344,9 +353,9 @@ async function limpiarCreadas(browser: Browser): Promise<void> {
     expect(respuesta.status()).toBe(200);
     ordenes = ((await respuesta.json()).datos as Orden[]).filter((fila) => fila.cotizacion.asunto?.startsWith(MARCA));
   });
-  await paso(PRODUCCION, async () => { for (const fila of ordenes) await devolverNeto(page, fila.id); });
-  await paso(GERENCIA, async () => { for (const fila of ordenes) await cancelarPorApi(page, fila); });
-  await paso(GERENCIA, () => archivarYVaciarMaterial(page));
+  await paso(ADMINISTRACION, async () => { for (const fila of ordenes) await devolverNeto(page, fila.id); });
+  await paso(OPERACIONES, async () => { for (const fila of ordenes) await cancelarPorApi(page, fila); });
+  await paso(ADMINISTRACION, () => archivarYVaciarMaterial(page));
   await paso(ATENCION_CLIENTE, () => archivarCotizaciones(page));
   await contexto.close();
   if (errores.length) throw new AggregateError(errores, `Falló la limpieza de ${MARCA}`);
@@ -371,7 +380,7 @@ function registrarAxe(): void {
     test(`el formulario de consumo pasa axe en ${vista.nombre}`, async ({ page }, info) => {
       soloPortatil(info.project.name);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, PRODUCCION);
+      await entrarComo(page, ADMINISTRACION);
       await page.goto(`/inventario/consumo?ordenId=${datos(orden, "la orden").id}`);
       await expect(formulario(page, "Registrar consumo").getByLabel("Cantidad")).toBeVisible();
       expect.soft(await violacionesGraves(page), "formulario de consumo").toEqual([]);
@@ -387,63 +396,73 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
     if (info.project.name === "portatil") await limpiarCreadas(browser);
   });
 
-  test("Ventas cotiza el material, Gerencia aprueba y Ventas convierte en orden con estimado", async ({ page }, info) => {
+  test("Atención al cliente cotiza el material, Operaciones aprueba y convierte en orden con estimado", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(180000);
     await prepararMaterial(page);
     await entrarComo(page, ATENCION_CLIENTE);
     await crearCotizacion(page);
     await aprobarCotizacion(page);
-    await entrarComo(page, ATENCION_CLIENTE);
     await convertirEnOrden(page);
     await verResumen(page, ["4.000", "0.000", "0.000", "0.000"]);
   });
 
   registrarAxe();
 
-  test("Producción consume desde la orden y ve consumido, neto y existencia", async ({ page }, info) => {
+  test("Administración consume desde la orden y ve consumido, neto y existencia", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await consumirDesdeFormulario(page);
   });
 
   test("un consumo mayor que la existencia muestra el error por línea y no cambia la existencia", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await rechazarExceso(page);
   });
 
-  test("Producción devuelve parte del sobrante y una devolución excesiva se rechaza", async ({ page }, info) => {
+  test("Administración devuelve parte del sobrante y una devolución excesiva se rechaza", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await devolverParcial(page);
     await rechazarDevolucionExcesiva(page);
   });
 
   test("la misma Idempotency-Key no duplica el consumo", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    await entrarComo(page, PRODUCCION);
+    await entrarComo(page, ADMINISTRACION);
     await repetirConsumo(page);
   });
 
-  test("Producción no ve costos de consumo ni devolución; Gerencia sí", async ({ page }, info) => {
+  test("Producción no ve inventario ni costos; Gerencia, Administración y Operaciones sí", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    test.setTimeout(90000);
-    await verCostosComoProduccion(page);
-    await verCostosComoGerencia(page);
+    test.setTimeout(120000);
+    await verSinCostosComoProduccion(page);
+    for (const perfil of [GERENCIA, ADMINISTRACION, OPERACIONES]) await verCostos(page, perfil);
   });
 
-  test("Ventas ve la sección Materiales de la orden sin acciones de consumo", async ({ page }, info) => {
+  test("Gerencia, Operaciones, Atención al cliente y Producción no registran consumos ni devoluciones", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    await entrarComo(page, ATENCION_CLIENTE);
-    await abrirOrden(page);
-    await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
-    await expect(page.getByRole("link", { name: /^(Registrar consumo|Devolver sobrante)$/ })).toHaveCount(0);
-    await page.goto(`/inventario/consumo?ordenId=${datos(orden, "la orden").id}`);
-    await expect(page).toHaveURL(/\/sin-acceso$/);
+    test.setTimeout(120000);
+    const ordenId = datos(orden, "la orden").id;
+    for (const perfil of [GERENCIA, OPERACIONES, ATENCION_CLIENTE, PRODUCCION]) {
+      await entrarComo(page, perfil);
+      await abrirOrden(page);
+      if (await page.getByRole("tab", { name: "Materiales consumidos", exact: true }).count() > 0) {
+        await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
+      }
+      await expect(page.getByRole("link", { name: /^(Registrar consumo|Devolver sobrante)$/ })).toHaveCount(0);
+      await page.goto(`/inventario/consumo?ordenId=${ordenId}`);
+      await expect(page).toHaveURL(/\/sin-acceso$/);
+      const consumo = await page.request.post(`/api/v1/ordenes/${ordenId}/consumos`, {
+        headers: { Origin: ORIGIN, "Idempotency-Key": randomUUID() },
+        data: { lineas: [{ materialId: datos(material, "el material").id, cantidad: "1.000" }] },
+      });
+      expect(consumo.status(), `${perfil.codigo}: ${await consumo.text()}`).toBe(403);
+    }
   });
 
   test("captura CF-03 de la orden con consumo y devolución con Gerencia", async ({ page }, info) => {

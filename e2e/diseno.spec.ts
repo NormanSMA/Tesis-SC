@@ -9,7 +9,7 @@ const TAMANOS = [
   { nombre: "escritorio", width: 1920, height: 1080 },
   { nombre: "portatil", width: 1366, height: 768 },
   { nombre: "tableta horizontal", width: 1024, height: 768 },
-  { nombre: "tableta vertical", width: 820, height: 1180 },
+  { nombre: "tableta vertical", width: 768, height: 1024 },
 ];
 
 async function violacionesGraves(page: Page) {
@@ -98,7 +98,7 @@ test.describe("pantallas con sesión de demostración", () => {
     test(`el panel no desborda horizontalmente en ${tamano.nombre}`, async ({ page }) => {
       await page.setViewportSize({ width: tamano.width, height: tamano.height });
       await page.goto(`${BASE}/panel`);
-      await expect(page.getByRole("heading", { level: 1, name: "Panel" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await sinDesbordeHorizontal(page);
     });
   }

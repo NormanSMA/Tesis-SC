@@ -74,6 +74,37 @@ test.describe("login - captura error", () => {
   });
 });
 
+test.describe("login - pantalla dividida", () => {
+  test("en 1366 px muestra el panel informativo y un solo logo", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto(`${BASE}/login`);
+
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Cotice, produzca y controle en un solo lugar" }),
+    ).toBeVisible();
+
+    const logos = page.getByRole("img", { name: "Soluciones Creativas" });
+    await expect(logos).toHaveCount(1);
+    await expect(logos).toBeVisible();
+  });
+
+  test("en 390 px oculta el panel informativo y conserva un solo logo", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${BASE}/login`);
+
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Cotice, produzca y controle en un solo lugar" }),
+    ).toBeHidden();
+
+    const logos = page.getByRole("img", { name: "Soluciones Creativas" });
+    await expect(logos).toHaveCount(1);
+    await expect(logos).toBeVisible();
+    await sinDesbordeHorizontal(page);
+  });
+});
+
 test.describe("acceso denegado", () => {
   test("captura sin-acceso en 1366x768", async ({ page }) => {
     crearDirectorioCapturasEsNecesario();

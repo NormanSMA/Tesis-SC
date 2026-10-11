@@ -1,13 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 
+// RNF-08 (tesis v9): 768, 1024, 1366 y 1920 px.
 export const VIEWPORTS = [
   { nombre: "escritorio", width: 1920, height: 1080 },
   { nombre: "portatil", width: 1366, height: 768 },
   { nombre: "tableta-horizontal", width: 1024, height: 768 },
-  { nombre: "tableta", width: 820, height: 1180 },
+  { nombre: "tableta", width: 768, height: 1024 },
 ];
 
+// Menú exacto por perfil según la matriz de docs/modulos/09-perfiles-v9.md.
 export const PERFILES = [
   {
     codigo: "GERENCIA",
@@ -28,20 +30,36 @@ export const PERFILES = [
     rutasProhibidas: ["/admin/usuarios"],
   },
   {
+    codigo: "ADMINISTRACION",
+    correo: "luis.mendoza@solucionescreativas.test",
+    claveEnv: "SEED_PASSWORD_ADMINISTRACION",
+    destino: "/panel",
+    items: ["Panel", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
+    rutasProhibidas: ["/clientes", "/reportes", "/trazabilidad", "/admin/usuarios"],
+  },
+  {
+    codigo: "OPERACIONES",
+    correo: "karla.reyes@solucionescreativas.test",
+    claveEnv: "SEED_PASSWORD_OPERACIONES",
+    destino: "/panel",
+    items: ["Panel", "Clientes", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
+    rutasProhibidas: ["/reportes", "/trazabilidad", "/admin/usuarios"],
+  },
+  {
     codigo: "ATENCION_CLIENTE",
     correo: "valentina.castro@solucionescreativas.test",
     claveEnv: "SEED_PASSWORD_ATENCION_CLIENTE",
     destino: "/panel",
-    items: ["Panel", "Clientes", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
-    rutasProhibidas: ["/reportes", "/admin/permisos"],
+    items: ["Panel", "Clientes", "Cotizaciones", "Órdenes de trabajo", "Producción", "Catálogo"],
+    rutasProhibidas: ["/reportes", "/inventario", "/admin/permisos"],
   },
   {
     codigo: "PRODUCCION",
     correo: "marco.lopez@solucionescreativas.test",
     claveEnv: "SEED_PASSWORD_PRODUCCION",
     destino: "/panel",
-    items: ["Panel", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
-    rutasProhibidas: ["/clientes", "/cotizaciones"],
+    items: ["Panel", "Órdenes de trabajo", "Producción", "Catálogo"],
+    rutasProhibidas: ["/clientes", "/cotizaciones", "/inventario"],
   },
   {
     codigo: "ADMIN",

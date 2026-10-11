@@ -27,6 +27,7 @@ type Etapa = Registro & { nombre: string; estado: string; area: { id: string; no
 type Orden = Registro & { numero: string; estado: string; cotizacion: { asunto: string | null }; etapas: Etapa[] };
 const perfil = (codigo: string) => PERFILES.find((fila) => fila.codigo === codigo)!;
 const ATENCION_CLIENTE = perfil("ATENCION_CLIENTE"), GERENCIA = perfil("GERENCIA"), PRODUCCION = perfil("PRODUCCION");
+const OPERACIONES = perfil("OPERACIONES"), ADMINISTRACION = perfil("ADMINISTRACION");
 let material: Material;
 let cotizacion: Cotizacion;
 let orden: Orden;
@@ -65,6 +66,13 @@ async function elegir(campo: Locator, opcion: string | RegExp, page: Page): Prom
   await page.getByRole("option", { name: opcion, exact: typeof opcion === "string" }).click();
 }
 
+async function abrirPestana(page: Page, nombre: string): Promise<void> {
+  // Solo la pestaña activa está en el DOM: se abre antes de buscar su contenido.
+  const pestana = page.getByRole("tab", { name: nombre, exact: true });
+  await pestana.click();
+  await expect(pestana).toHaveAttribute("aria-selected", "true");
+}
+
 async function leer<T>(page: Page, ruta: string): Promise<T> {
   const respuesta = await page.request.get(`/api/v1${ruta}`);
   expect(respuesta.status(), await respuesta.text()).toBe(200);
@@ -80,7 +88,8 @@ async function escribir(page: Page, ruta: string, entrada: { cuerpo: object; est
 }
 
 async function prepararMaterial(page: Page): Promise<void> {
-  await entrarComo(page, PRODUCCION);
+  // Alta de material y entrada de inventario: Administración.
+  await entrarComo(page, ADMINISTRACION);
   material = await escribir(page, "/materiales", { estado: 201,
     cuerpo: { codigo: CODIGO, nombre: MATERIAL, unidad: "PLIEGO", stockMinimo: "0", costoPromedio: "10" } }) as Material;
   await escribir(page, "/inventario/entradas", { estado: 201, idempotente: true,
@@ -122,10 +131,19 @@ async function crearCotizacion(page: Page): Promise<void> {
 async function aprobarYConvertir(page: Page): Promise<void> {
   await entrarComo(page, GERENCIA);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
+  await expect(page.getByRole("main")).toContainText("Enviada");
+  await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toHaveCount(0);
+  await entrarComo(page, OPERACIONES);
+  await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("button", { name: "Aprobar", exact: true }).click();
+  await page.getByRole("dialog").getByLabel("Referencia de aprobación").fill(`${MARCA}-referencia`);
   await page.getByRole("dialog").getByRole("button", { name: "Aprobar cotización" }).click();
   await expect(page.getByRole("main")).toContainText("Aprobada");
+  // Atención al cliente registra la aprobación pero no crea la orden.
   await entrarComo(page, ATENCION_CLIENTE);
+  await page.goto(`/cotizaciones/${cotizacion.id}`);
+  await expect(page.getByRole("link", { name: "Convertir en orden", exact: true })).toHaveCount(0);
+  await entrarComo(page, OPERACIONES);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
@@ -152,6 +170,19 @@ function filaEtapa(page: Page, nombre: string): Locator {
 async function abrirOrden(page: Page): Promise<void> {
   await page.goto(`/ordenes/${orden.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(orden.numero);
+}
+
+async function verificarHistorialEtapa(page: Page, actor: string): Promise<void> {
+  // Cada transición muestra al actor y la fecha-hora.
+  await abrirPestana(page, "Historial");
+  const historial = page.getByRole("list", { name: "Historial de la orden" });
+  for (const transicion of ["Pendiente → En curso", "En curso → Completada"]) {
+    const entrada = historial.getByRole("listitem").filter({ hasText: transicion });
+    await expect(entrada).toHaveCount(1);
+    await expect(entrada).toContainText(actor);
+    await expect(entrada).toContainText(/\d{1,2} (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic) \d{4}/);
+    await expect(entrada).toContainText(/\d{1,2}:\d{2}/);
+  }
 }
 
 async function guardarDialogo(page: Page): Promise<void> {
@@ -186,6 +217,7 @@ async function ejecutarPrimera(page: Page): Promise<void> {
   await expect(page.getByRole("definition").filter({ hasText: /^En producción$/ })).toBeVisible();
   await page.getByRole("button", { name: `Completar: ${ETAPAS[0]}`, exact: true }).click();
   await expect(filaEtapa(page, ETAPAS[0])).toContainText("Completada");
+  await verificarHistorialEtapa(page, "Marco López");
 }
 
 async function omitir(page: Page, nombre: string): Promise<void> {
@@ -230,6 +262,7 @@ async function cerrarYReabrir(page: Page): Promise<void> {
 }
 
 async function verificarHistorial(page: Page): Promise<void> {
+  await abrirPestana(page, "Historial");
   const historial = page.getByRole("list", { name: "Historial de la orden" });
   for (const texto of ["convirtió la cotización en orden", "asignó el responsable", "editó la orden", "creó una etapa",
     "Pendiente → En curso", "En curso → Completada", "Pendiente → Omitida", "Omitida → Pendiente",
@@ -240,12 +273,15 @@ async function verificarHistorial(page: Page): Promise<void> {
 }
 
 async function verificarCadena(page: Page): Promise<void> {
+  await abrirPestana(page, "Cliente y cotización");
   await expect(page.getByRole("link", { name: CLIENTE, exact: true })).toHaveAttribute("href", /\/clientes\//);
   await expect(page.getByRole("link", { name: cotizacion.numero, exact: true })).toHaveAttribute("href", `/cotizaciones/${cotizacion.id}`);
+  await abrirPestana(page, "Especificaciones");
   const items = page.getByRole("region", { name: "Ítems", exact: true });
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
   await expect(items).toContainText(PERSONALIZADO);
+  await abrirPestana(page, "Consumo estimado");
   const estimado = page.getByRole("table", { name: "Consumo estimado de materiales" });
   await expect(estimado.getByRole("row").filter({ hasText: MATERIAL })).toContainText("4.000");
   await expect(estimado).toContainText("Vinil adhesivo blanco brillo");
@@ -256,8 +292,11 @@ async function consumir(page: Page): Promise<void> {
   await escribir(page, `/ordenes/${orden.id}/consumos`, { estado: 201, idempotente: true,
     cuerpo: { lineas: [{ materialId: material.id, cantidad: "2" }] } });
   await abrirOrden(page);
+  await abrirPestana(page, "Materiales consumidos");
+  await expect(page.getByRole("button", { name: "Registrar consumo", exact: true })).toBeVisible();
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: MATERIAL });
   await expect(fila.getByRole("cell")).toHaveText([MATERIAL, "4.000 PLIEGO", "2.000 PLIEGO", "0.000 PLIEGO", "2.000 PLIEGO"]);
+  await abrirPestana(page, "Historial");
   await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("registró un consumo de material");
 }
 
@@ -267,6 +306,7 @@ async function verificarTablero(page: Page): Promise<void> {
   await expect(page.getByLabel("Responsable", { exact: true })).not.toHaveValue("");
   await page.getByLabel("Buscar orden").fill(orden.numero);
   await page.getByRole("button", { name: "Filtrar", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Fechas planificadas" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: orden.numero, exact: true })).toHaveCount(1);
   await expect(page.getByRole("main")).toContainText(RETRABAJO);
   for (const vista of ["Por área", "Por responsable"]) {
@@ -292,19 +332,18 @@ async function capturasProduccion(page: Page): Promise<void> {
     await expect(page.getByRole("link", { name: orden.numero, exact: true })).toBeVisible();
     await sinDesbordeHorizontal(page);
     await capturar(page, `CF-02-tablero-${vista.nombre}`);
-    if (["portatil", "tableta"].includes(vista.nombre)) expect.soft(await violacionesGraves(page), `tablero ${vista.nombre}`).toEqual([]);
+    expect.soft(await violacionesGraves(page), `tablero ${vista.nombre}`).toEqual([]);
     await abrirOrden(page);
     await expect(page.getByRole("button", { name: `Iniciar: ${RETRABAJO}`, exact: true })).toBeVisible();
+    await abrirPestana(page, "Materiales consumidos");
     await expect(page.getByRole("table", { name: "Materiales de la orden" })).toContainText(MATERIAL);
     await sinDesbordeHorizontal(page);
     await page.getByRole("region", { name: "Etapas de la orden", exact: true }).evaluate((elemento) => { elemento.scrollTop = elemento.scrollHeight; });
     await capturar(page, `CF-02-etapas-${vista.nombre}`);
-    if (["portatil", "tableta"].includes(vista.nombre)) {
-      const resultado = await new AxeBuilder({ page }).include('section[aria-labelledby="titulo-etapas"]')
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-      expect.soft(resultado.violations.filter((v) => ["critical", "serious"].includes(v.impact ?? "")), `etapas ${vista.nombre}`).toEqual([]);
-      expect.soft(await violacionesGraves(page), `ficha ${vista.nombre}`).toEqual([]);
-    }
+    const resultado = await new AxeBuilder({ page }).include('section[aria-labelledby="titulo-etapas"]')
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+    expect.soft(resultado.violations.filter((v) => ["critical", "serious"].includes(v.impact ?? "")), `etapas ${vista.nombre}`).toEqual([]);
+    expect.soft(await violacionesGraves(page), `ficha ${vista.nombre}`).toEqual([]);
   }
 }
 
@@ -314,7 +353,10 @@ async function consultarSinAcciones(page: Page, actor: Perfil): Promise<void> {
   await verificarCadena(page);
   await expect(filaEtapa(page, ETAPAS[0])).toContainText("Completada");
   await expect(filaEtapa(page, RETRABAJO)).toContainText("Pendiente");
-  await expect(page.getByRole("button", { name: /^(Iniciar:|Completar:|Asignar responsable:|Planificar fechas:|Omitir:|Restaurar:|Agregar etapa$|Marcar lista$|Reabrir por retrabajo$)/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Iniciar:|Completar:|Asignar responsable:|Planificar fechas:|Omitir:|Restaurar:|Agregar etapa$|Marcar lista$|Reabrir por retrabajo$|Asignar$)/ })).toHaveCount(0);
+  const materiales = page.getByRole("tab", { name: "Materiales consumidos", exact: true });
+  if (await materiales.count()) await abrirPestana(page, "Materiales consumidos");
+  await expect(page.getByRole("button", { name: "Registrar consumo", exact: true })).toHaveCount(0);
   await page.goto(`/produccion?q=${orden.numero}`);
   await expect(page.getByRole("link", { name: orden.numero, exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^(Iniciar:|Completar:)/ })).toHaveCount(0);
@@ -362,9 +404,9 @@ async function limpiar(browser: Browser): Promise<void> {
     filas = (await leer<Orden[]>(page, `/ordenes?q=${MARCA}&terminales=todas&porPagina=100`))
       .filter((fila) => fila.cotizacion.asunto?.startsWith(MARCA));
   });
-  await paso(PRODUCCION, async () => { for (const fila of filas) await devolverNeto(page, fila.id); });
-  await paso(GERENCIA, async () => { for (const fila of filas) await cancelar(page, fila); });
-  await paso(GERENCIA, () => vaciarMaterial(page));
+  await paso(ADMINISTRACION, async () => { for (const fila of filas) await devolverNeto(page, fila.id); });
+  await paso(OPERACIONES, async () => { for (const fila of filas) await cancelar(page, fila); });
+  await paso(ADMINISTRACION, () => vaciarMaterial(page));
   await paso(ATENCION_CLIENTE, async () => {
     const cotizaciones = await leer<Cotizacion[]>(page, `/cotizaciones?q=${MARCA}&archivadas=false&porPagina=100`);
     for (const fila of cotizaciones.filter((fila) => fila.asunto?.startsWith(MARCA))) {
@@ -377,7 +419,7 @@ async function limpiar(browser: Browser): Promise<void> {
 }
 
 function registrarFlujo(): void {
-  test("Ventas cotiza y envía; Gerencia aprueba; Ventas convierte con etapas", async ({ page }, info) => {
+  test("Atención al cliente cotiza y envía; Operaciones aprueba y convierte con etapas; Gerencia solo consulta", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(180000);
     await prepararMaterial(page);
@@ -386,28 +428,38 @@ function registrarFlujo(): void {
     await aprobarYConvertir(page);
   });
 
-  test("Producción planifica, ejecuta, omite, restaura y reabre por retrabajo", async ({ page }, info) => {
+  test("Operaciones planifica, Producción ejecuta, Administración omite, restaura, reabre y consume", async ({ page }, info) => {
     soloPortatil(info.project.name);
-    test.setTimeout(180000);
-    await entrarComo(page, PRODUCCION);
+    test.setTimeout(240000);
+    await entrarComo(page, OPERACIONES);
     await abrirOrden(page);
     await planificar(page);
+    // Operaciones planifica y asigna, pero no ejecuta etapas.
+    await expect(page.getByRole("button", { name: /^(Iniciar|Completar):/ })).toHaveCount(0);
+    await entrarComo(page, PRODUCCION);
+    await abrirOrden(page);
+    // Producción ejecuta, pero no planifica ni asigna.
+    await expect(page.getByRole("button", { name: /^(Asignar responsable|Planificar fechas):/ })).toHaveCount(0);
     await ejecutarPrimera(page);
+    await entrarComo(page, ADMINISTRACION);
+    await abrirOrden(page);
     await cerrarYReabrir(page);
     await consumir(page);
+    await entrarComo(page, PRODUCCION);
     await verificarTablero(page);
   });
 
   test("captura tablero y etapas; verifica axe y desbordes", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(180000);
-    await entrarComo(page, PRODUCCION);
+    // Administración ejecuta etapas y ve los materiales consumidos.
+    await entrarComo(page, ADMINISTRACION);
     await capturasProduccion(page);
   });
 }
 
 function registrarConsultaYCancelacion(): void {
-  test("Ventas y Gerencia consultan la cadena sin acciones de producción", async ({ page }, info) => {
+  test("Atención al cliente y Gerencia consultan la cadena sin acciones de producción", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
     for (const actor of [ATENCION_CLIENTE, GERENCIA]) await consultarSinAcciones(page, actor);
@@ -416,6 +468,7 @@ function registrarConsultaYCancelacion(): void {
       await abrirOrden(page);
       await verificarCadena(page);
       await verificarHistorial(page);
+      await abrirPestana(page, "Materiales consumidos");
       await expect(page.getByRole("table", { name: "Materiales de la orden" })).toContainText("2.000 PLIEGO");
       await sinDesbordeHorizontal(page);
       await capturar(page, `CF-09-orden-${vista.nombre}`);
@@ -428,7 +481,14 @@ function registrarConsultaYCancelacion(): void {
     await verificarTablero(page);
     await page.getByRole("button", { name: `Iniciar: ${RETRABAJO}`, exact: true }).click();
     await expect(page.getByRole("table", { name: "Etapas: Marco López", exact: true })).toContainText("En curso");
+    // Gerencia solo consulta: la API rechaza la cancelación.
     await entrarComo(page, GERENCIA);
+    const vigente = await leer<Orden>(page, `/ordenes/${orden.id}`);
+    const rechazo = await page.request.post(`/api/v1/ordenes/${orden.id}/cancelar`, {
+      headers: { Origin: ORIGIN }, data: { version: vigente.actualizadoEn, motivo: `${MARCA}-gerencia` },
+    });
+    expect(rechazo.status()).toBe(403);
+    await entrarComo(page, OPERACIONES);
     await cancelar(page, orden);
     const cancelada = await leer<Orden>(page, `/ordenes/${orden.id}`);
     expect(cancelada.estado).toBe("CANCELADA");
@@ -453,7 +513,7 @@ test.describe("Producción de una orden E2E", () => {
   registrarConsultaYCancelacion();
 });
 
-test("Administración recibe sin acceso al abrir producción", async ({ page }) => {
+test("Administración técnica recibe sin acceso al abrir producción", async ({ page }) => {
   await entrarComo(page, perfil("ADMIN"));
   await page.goto("/produccion");
   await expect(page).toHaveURL(/\/sin-acceso$/);

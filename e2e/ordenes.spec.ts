@@ -16,11 +16,11 @@ const ETAPAS = ["Diseño y aprobación de arte", "Impresión", "Laminado y corte
 type Perfil = (typeof PERFILES)[number];
 type Cotizacion = { id: string; numero: string; asunto: string | null; archivada: boolean; actualizadoEn: string };
 type Orden = { id: string; numero: string; estado: string; actualizadoEn: string; cotizacion: { asunto: string | null } };
-type Conversion = { cotizacionId: string; categoriaId: string; responsableId: string; fechaEntrega: string; especificaciones: string };
-const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE")!;
-const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA")!;
-const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION")!;
-const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN")!;
+type Conversion = { cotizacionId: string; categoriaId: string; responsableId?: string | null; fechaEntrega: string; especificaciones: string };
+const buscarPerfil = (codigo: string) => PERFILES.find((fila) => fila.codigo === codigo)!;
+const ATENCION_CLIENTE = buscarPerfil("ATENCION_CLIENTE"), GERENCIA = buscarPerfil("GERENCIA"), PRODUCCION = buscarPerfil("PRODUCCION");
+const ADMIN = buscarPerfil("ADMIN"), OPERACIONES = buscarPerfil("OPERACIONES"), ADMINISTRACION = buscarPerfil("ADMINISTRACION");
+const PESTANAS = ["Especificaciones", "Cliente y cotización", "Consumo estimado", "Materiales consumidos", "Historial"];
 let cotizacion: Cotizacion | undefined;
 let orden: Orden | undefined;
 let conversion: Conversion | undefined;
@@ -57,6 +57,13 @@ async function elegir(campo: Locator, opcion: string | RegExp, page: Page): Prom
     await expect(campo).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
   }).toPass({ timeout: 10000 });
   await page.getByRole("option", { name: opcion, exact: typeof opcion === "string" }).click();
+}
+
+async function abrirPestana(page: Page, nombre: string): Promise<void> {
+  // Solo la pestaña activa está en el DOM: se abre antes de buscar su contenido.
+  const pestana = page.getByRole("tab", { name: nombre, exact: true });
+  await pestana.click();
+  await expect(pestana).toHaveAttribute("aria-selected", "true");
 }
 
 async function crearMixta(page: Page): Promise<void> {
@@ -96,7 +103,12 @@ async function aprobarMixta(page: Page): Promise<void> {
   if (!cotizacion) throw new Error("Falta la cotización mixta.");
   await entrarComo(page, GERENCIA);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
+  await expect(page.getByRole("main")).toContainText("Enviada");
+  await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toHaveCount(0);
+  await entrarComo(page, OPERACIONES);
+  await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("button", { name: "Aprobar", exact: true }).click();
+  await page.getByRole("dialog").getByLabel("Referencia de aprobación").fill(`${MARCA}-referencia`);
   const peticion = page.waitForRequest((solicitud) => solicitud.url().endsWith(`/cotizaciones/${cotizacion!.id}/responder`));
   await page.getByRole("dialog").getByRole("button", { name: "Aprobar cotización" }).click();
   expect((await peticion).postDataJSON()).toMatchObject({ resultado: "APROBADA", version: expect.any(String) });
@@ -117,7 +129,7 @@ async function abrirConversion(page: Page): Promise<void> {
 
 async function convertirMixta(page: Page): Promise<void> {
   await abrirConversion(page);
-  await elegir(page.getByLabel("Responsable"), "Marco López", page);
+  // La orden nace sin responsable: se asigna después.
   await page.getByLabel("Fecha de entrega").fill(fechaFutura(14));
   await page.getByLabel("Especificaciones").fill(ESPECIFICACIONES);
   const respuestaPendiente = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/ordenes") && respuesta.request().method() === "POST");
@@ -129,11 +141,17 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^OT-\d{4}-\d{4}$/);
   await expect(page.getByRole("definition").filter({ hasText: /^Pendiente$/ })).toBeVisible();
-  await expect(page.getByRole("definition").filter({ hasText: /^Marco López$/ })).toBeVisible();
+  expect(conversion.responsableId).toBeFalsy();
+  await expect(page.getByRole("button", { name: "Asignar", exact: true })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: /^Sin responsable$/ })).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: fechaVisible(conversion.fechaEntrega) })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(/siguiente paso/i);
+  await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("main")).toContainText(ESPECIFICACIONES);
+  await abrirPestana(page, "Cliente y cotización");
   await expect(page.getByRole("link", { name: CLIENTE, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: cotizacion!.numero, exact: true })).toBeVisible();
+  await abrirPestana(page, "Especificaciones");
   const items = page.getByRole("region", { name: "Ítems", exact: true });
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
@@ -151,6 +169,7 @@ async function verificarEtapasYEstimado(page: Page): Promise<void> {
     await expect(fila).toContainText("Pendiente");
     await expect(fila).toContainText("Sin responsable");
   }
+  await abrirPestana(page, "Consumo estimado");
   const consumo = page.getByRole("table", { name: "Consumo estimado de materiales" });
   await expect(consumo.getByRole("row")).toHaveCount(3);
   const vinil = consumo.getByRole("row", { name: /Vinil adhesivo blanco brillo/ });
@@ -212,7 +231,7 @@ async function limpiarCreadas(browser: Browser): Promise<void> {
   const page = await contexto.newPage();
   const errores: unknown[] = [];
   try {
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     const respuesta = await page.request.get(`/api/v1/ordenes?q=${MARCA}&terminales=todas&porPagina=100`);
     expect(respuesta.status()).toBe(200);
     const filas = (await respuesta.json()).datos as Orden[];
@@ -239,6 +258,7 @@ async function capturarFicha(page: Page, perfil: Perfil): Promise<void> {
   await entrarComo(page, perfil);
   await page.goto(`/ordenes/${orden.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(orden.numero);
+  await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
   for (const vista of VIEWPORTS) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
@@ -258,12 +278,12 @@ async function capturarFicha(page: Page, perfil: Perfil): Promise<void> {
 }
 
 function registrarPruebasAxe(): void {
-  for (const vista of VIEWPORTS.filter((vista) => ["portatil", "tableta"].includes(vista.nombre))) {
+  for (const vista of VIEWPORTS) {
     test(`lista, ficha y conversión pasan axe en ${vista.nombre}`, async ({ page }, info) => {
       soloPortatil(info.project.name);
       test.setTimeout(120000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
-      await entrarComo(page, ATENCION_CLIENTE);
+      await entrarComo(page, OPERACIONES);
       await page.goto("/ordenes");
       await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
       expect.soft(await violacionesGraves(page), "lista").toEqual([]);
@@ -286,11 +306,55 @@ function registrarCapturas(): void {
   }
 }
 
+function registrarListaYAsignacion(): void {
+  test("la lista enlaza la fila, no tiene Categoría y ofrece Sin responsable", async ({ page }, info) => {
+    soloPortatil(info.project.name);
+    if (!orden) throw new Error("Falta la orden convertida.");
+    await entrarComo(page, OPERACIONES);
+    await page.goto("/ordenes");
+    await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Categoría" })).toHaveCount(0);
+    await page.getByLabel("Buscar", { exact: true }).fill(orden.numero);
+    await page.getByRole("button", { name: "Buscar", exact: true }).click();
+    const fila = page.getByRole("row").filter({ hasText: orden.numero });
+    await expect(fila.getByRole("link", { name: orden.numero, exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}`);
+    await expect(fila.getByRole("link", { name: "Sin responsable" }).first()).toBeVisible();
+  });
+
+  test("Atención al cliente no asigna; Administración asigna el responsable después", async ({ page }, info) => {
+    soloPortatil(info.project.name);
+    if (!orden) throw new Error("Falta la orden convertida.");
+    await entrarComo(page, ATENCION_CLIENTE);
+    await page.goto(`/ordenes/${orden.id}`);
+    await expect(page.getByRole("definition").filter({ hasText: /^Sin responsable$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
+    await entrarComo(page, ADMINISTRACION);
+    await page.goto(`/ordenes/${orden.id}`);
+    await page.getByRole("button", { name: "Asignar", exact: true }).click();
+    const dialogo = page.getByRole("dialog");
+    await elegir(dialogo.getByLabel("Responsable"), "Marco López", page);
+    await dialogo.getByRole("button", { name: /^(Asignar|Guardar cambios)$/ }).click();
+    await expect(dialogo).toHaveCount(0);
+    await expect(page.getByRole("definition").filter({ hasText: /^Marco López$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
+    await abrirPestana(page, "Historial");
+    await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("asignó el responsable");
+  });
+}
+
 function registrarGestion(): void {
-  test("Gerencia cambia responsable y fecha; registra eventos y cancela con motivo", async ({ page }, info) => {
+  test("Gerencia y Administración no cancelan; Operaciones edita, registra eventos y cancela", async ({ page }, info) => {
     soloPortatil(info.project.name);
     if (!orden || !conversion) throw new Error("Falta la orden convertida.");
     await entrarComo(page, GERENCIA);
+    await page.goto(`/ordenes/${orden.id}`);
+    await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^(Cancelar orden|Asignar)$/ })).toHaveCount(0);
+    await entrarComo(page, ADMINISTRACION);
+    await page.goto(`/ordenes/${orden.id}`);
+    await expect(page.getByRole("link", { name: "Editar", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancelar orden", exact: true })).toHaveCount(0);
+    await entrarComo(page, OPERACIONES);
     await page.goto(`/ordenes/${orden.id}`);
     await page.getByRole("link", { name: "Editar", exact: true }).click();
     await elegir(page.getByLabel("Responsable"), "Gabriel Cortez", page);
@@ -300,6 +364,7 @@ function registrarGestion(): void {
     await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
     await expect(page.getByRole("definition").filter({ hasText: /^Gabriel Cortez$/ })).toBeVisible();
     await expect(page.getByRole("definition").filter({ hasText: fechaVisible(nuevaFecha) })).toBeVisible();
+    await abrirPestana(page, "Historial");
     const historial = page.getByRole("list", { name: "Historial de la orden" });
     await expect(historial).toContainText("asignó el responsable");
     await expect(historial).toContainText("editó la orden");
@@ -309,6 +374,7 @@ function registrarGestion(): void {
     await page.getByRole("dialog").getByLabel("Motivo").fill(motivo);
     await page.getByRole("dialog").getByRole("button", { name: "Cancelar orden", exact: true }).click();
     await expect(page.getByRole("definition").filter({ hasText: /^Cancelada$/ })).toBeVisible();
+    await abrirPestana(page, "Historial");
     await expect(page.getByRole("main")).toContainText(motivo);
     const etapas = page.getByRole("table", { name: "Etapas de la orden" });
     for (const nombre of ETAPAS) await expect(etapas.getByRole("row").filter({ hasText: nombre })).toContainText("Omitida");
@@ -325,7 +391,7 @@ test.describe("Conversión y gestión de una orden propia", () => {
     if (info.project.name === "portatil") await limpiarCreadas(browser);
   });
 
-  test("Ventas crea y envía una cotización mixta; Gerencia la aprueba", async ({ page }, info) => {
+  test("Atención al cliente crea y envía una cotización mixta; Operaciones la aprueba y Gerencia no", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
     await entrarComo(page, ATENCION_CLIENTE);
@@ -335,17 +401,20 @@ test.describe("Conversión y gestión de una orden propia", () => {
 
   registrarPruebasAxe();
 
-  test("Ventas convierte sin reingresar ítems y ve etapas y consumo estimado", async ({ page }, info) => {
+  test("Atención al cliente no convierte; Operaciones convierte sin responsable y ve etapas y consumo", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
     await entrarComo(page, ATENCION_CLIENTE);
+    await page.goto(`/cotizaciones/${cotizacion!.id}`);
+    await expect(page.getByRole("link", { name: "Convertir en orden", exact: true })).toHaveCount(0);
+    await entrarComo(page, OPERACIONES);
     await convertirMixta(page);
   });
 
   test("la segunda conversión desaparece y la API responde 409", async ({ page }, info) => {
     soloPortatil(info.project.name);
     if (!cotizacion || !orden || !conversion) throw new Error("Falta la conversión.");
-    await entrarComo(page, ATENCION_CLIENTE);
+    await entrarComo(page, OPERACIONES);
     await page.goto(`/cotizaciones/${cotizacion.id}`);
     await expect(page.getByRole("link", { name: "Convertir en orden" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Convertir en orden" })).toHaveCount(0);
@@ -354,6 +423,8 @@ test.describe("Conversión y gestión de una orden propia", () => {
     expect(respuesta.status()).toBe(409);
     expect((await respuesta.json()).error).toMatchObject({ codigo: "ORDEN_EXISTENTE", mensaje: expect.stringContaining(orden.numero) });
   });
+
+  registrarListaYAsignacion();
 
   registrarCapturas();
 
@@ -369,40 +440,47 @@ test("Producción consulta lista y ficha sin gestión ni dinero", async ({ page 
   await abrirSembrada(page);
   expect(await page.evaluate(() => document.body.innerText)).not.toContain("C$");
   await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar|Entregar|Convertir en orden/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar|Entregar|Convertir en orden|^Asignar$/ })).toHaveCount(0);
+  await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("Cantidad:");
   await expect(page.getByRole("table", { name: "Etapas de la orden" })).toBeVisible();
+  await abrirPestana(page, "Consumo estimado");
   await expect(page.getByRole("table", { name: "Consumo estimado de materiales" })).toBeVisible();
+  const cotizacionTab = page.getByRole("tab", { name: "Cliente y cotización", exact: true });
+  if (await cotizacionTab.count()) await cotizacionTab.click();
   await expect(page.getByRole("link", { name: /^COT-/ })).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.innerText)).not.toContain("C$");
 });
 
-test("Administración termina en sin-acceso al abrir órdenes", async ({ page }) => {
+test("Administración técnica termina en sin-acceso al abrir órdenes", async ({ page }) => {
   await entrarComo(page, ADMIN);
   await page.goto("/ordenes");
   await expect(page).toHaveURL(/\/sin-acceso$/);
 });
 
-for (const perfil of [ATENCION_CLIENTE, GERENCIA]) {
-  test(`${perfil.codigo} ve importes en la ficha sembrada`, async ({ page }) => {
-    await entrarComo(page, perfil);
+for (const actor of [ATENCION_CLIENTE, GERENCIA, OPERACIONES]) {
+  test(`${actor.codigo} ve importes en la ficha sembrada`, async ({ page }) => {
+    await entrarComo(page, actor);
     await abrirSembrada(page);
+    await abrirPestana(page, "Especificaciones");
     await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
+    await abrirPestana(page, "Cliente y cotización");
     await expect(page.getByRole("main")).toContainText("Total");
   });
 }
 
-for (const perfil of [ATENCION_CLIENTE, GERENCIA, PRODUCCION]) {
+for (const actor of [OPERACIONES, ATENCION_CLIENTE, ADMINISTRACION, GERENCIA, PRODUCCION]) {
   for (const estado of ["LISTA", "ENTREGADA"]) {
-    test(`${perfil.codigo} muestra acciones permitidas en una orden ${estado} sin modificarla`, async ({ page }) => {
-      await entrarComo(page, perfil);
+    test(`${actor.codigo} muestra acciones permitidas en una orden ${estado} sin modificarla`, async ({ page }) => {
+      await entrarComo(page, actor);
       const filas = await consultarSembradas(page, estado);
       test.skip(filas.length === 0, `No existe una orden sembrada ${estado}.`);
       await page.goto(`/ordenes/${filas[0].id}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(filas[0].numero);
-      const entregar = estado === "LISTA" && perfil.codigo !== "GERENCIA";
-      const cerrar = estado === "ENTREGADA" && perfil.codigo !== "PRODUCCION";
-      await expect(page.getByRole("button", { name: "Entregar", exact: true })).toHaveCount(entregar ? 1 : 0);
-      await expect(page.getByRole("button", { name: "Cerrar", exact: true })).toHaveCount(cerrar ? 1 : 0);
+      // Entregan y cierran solo Operaciones y Atención al cliente.
+      const puede = ["OPERACIONES", "ATENCION_CLIENTE"].includes(actor.codigo);
+      await expect(page.getByRole("button", { name: "Entregar", exact: true })).toHaveCount(estado === "LISTA" && puede ? 1 : 0);
+      await expect(page.getByRole("button", { name: "Cerrar", exact: true })).toHaveCount(estado === "ENTREGADA" && puede ? 1 : 0);
     });
   }
 }
@@ -410,11 +488,14 @@ for (const perfil of [ATENCION_CLIENTE, GERENCIA, PRODUCCION]) {
 test("lista y ficha no desbordan horizontalmente en el tamaño del proyecto", async ({ page }, info) => {
   const vista = VIEWPORTS.find((vista) => vista.nombre === info.project.name)!;
   await page.setViewportSize({ width: vista.width, height: vista.height });
-  await entrarComo(page, ATENCION_CLIENTE);
+  await entrarComo(page, OPERACIONES);
   await page.goto("/ordenes");
   await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
   await sinDesbordeHorizontal(page);
   await abrirSembrada(page);
   await expect(page.getByRole("region", { name: "Etapas", exact: true })).toBeVisible();
-  await sinDesbordeHorizontal(page);
+  for (const nombre of PESTANAS) {
+    await abrirPestana(page, nombre);
+    await sinDesbordeHorizontal(page);
+  }
 });
