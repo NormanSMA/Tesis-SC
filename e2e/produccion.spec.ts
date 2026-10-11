@@ -58,6 +58,11 @@ function fechaVisible(fecha: string): string {
   return `${dia} ${meses[Number(mes) - 1]} ${anio}`;
 }
 
+// El estado de la orden va en la insignia del encabezado de la ficha, junto al número.
+function estadoOrden(page: Page, estado: string): Locator {
+  return page.getByRole("heading", { level: 1 }).locator("xpath=../..").getByText(estado, { exact: true });
+}
+
 async function abrirPestana(page: Page, nombre: string): Promise<void> {
   // Solo la pestaña activa está en el DOM: se abre antes de buscar su contenido.
   const pestana = page.getByRole("tab", { name: nombre, exact: true });
@@ -100,7 +105,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   cotizacion = (await respuesta.json()).datos as Cotizacion;
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}/editar$`));
   await page.getByRole("button", { name: "Agregar catálogo" }).click();
-  await elegir(page.getByLabel("Producto", { exact: false }), /ROT-VIN-001/, page);
+  await elegir(page.getByRole("combobox", { name: /^Producto\b/, includeHidden: true }), /ROT-VIN-001/, page);
   await page.getByLabel("Ancho (m)").fill("2");
   await page.getByLabel("Alto (m)").fill("1.5");
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
@@ -206,7 +211,7 @@ async function ejecutarPrimera(page: Page): Promise<void> {
   await expect(filaEtapa(page, ETAPAS[1])).toContainText("Pendiente");
   await page.getByRole("button", { name: `Iniciar: ${ETAPAS[0]}`, exact: true }).click();
   await expect(filaEtapa(page, ETAPAS[0])).toContainText("En curso");
-  await expect(page.getByRole("definition").filter({ hasText: /^En producción$/ })).toBeVisible();
+  await expect(estadoOrden(page, "En producción")).toBeVisible();
   await page.getByRole("button", { name: `Completar: ${ETAPAS[0]}`, exact: true }).click();
   await expect(filaEtapa(page, ETAPAS[0])).toContainText("Completada");
   await verificarHistorialEtapa(page, "Marco López");
@@ -245,9 +250,9 @@ async function cerrarYReabrir(page: Page): Promise<void> {
   for (const nombre of [...ETAPAS.slice(1), MANUAL]) await omitir(page, nombre);
   await page.getByRole("button", { name: "Marcar lista", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Marcar lista", exact: true }).click();
-  await expect(page.getByRole("definition").filter({ hasText: /^Lista$/ })).toBeVisible();
+  await expect(estadoOrden(page, "Lista")).toBeVisible();
   await agregar(page, true);
-  await expect(page.getByRole("definition").filter({ hasText: /^En producción$/ })).toBeVisible();
+  await expect(estadoOrden(page, "En producción")).toBeVisible();
   await expect(page.getByRole("table", { name: "Etapas de la orden" }).getByRole("row")).toHaveCount(8);
   await asignar(page, RETRABAJO);
   await verificarHistorial(page);
@@ -285,9 +290,10 @@ async function consumir(page: Page): Promise<void> {
     cuerpo: { lineas: [{ materialId: material.id, cantidad: "2" }] } });
   await abrirOrden(page);
   await abrirPestana(page, "Materiales consumidos");
-  await expect(page.getByRole("button", { name: "Registrar consumo", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Registrar consumo", exact: true })).toBeVisible();
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: MATERIAL });
-  await expect(fila.getByRole("cell")).toHaveText([MATERIAL, "4.000 PLIEGO", "2.000 PLIEGO", "0.000 PLIEGO", "2.000 PLIEGO"]);
+  await expect(fila.getByRole("rowheader")).toHaveText(MATERIAL);
+  await expect(fila.getByRole("cell")).toHaveText(["4.000 PLIEGO", "2.000 PLIEGO", "0.000 PLIEGO", "2.000 PLIEGO"]);
   await abrirPestana(page, "Historial");
   await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("registró un consumo de material");
 }
@@ -348,7 +354,7 @@ async function consultarSinAcciones(page: Page, actor: Perfil): Promise<void> {
   await expect(page.getByRole("button", { name: /^(Iniciar:|Completar:|Asignar responsable:|Planificar fechas:|Omitir:|Restaurar:|Agregar etapa$|Marcar lista$|Reabrir por retrabajo$|Asignar$)/ })).toHaveCount(0);
   const materiales = page.getByRole("tab", { name: "Materiales consumidos", exact: true });
   if (await materiales.count()) await abrirPestana(page, "Materiales consumidos");
-  await expect(page.getByRole("button", { name: "Registrar consumo", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Registrar consumo", exact: true })).toHaveCount(0);
   await page.goto(`/produccion?q=${orden.numero}`);
   await expect(page.getByRole("link", { name: orden.numero, exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^(Iniciar:|Completar:)/ })).toHaveCount(0);

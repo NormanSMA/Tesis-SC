@@ -4,20 +4,20 @@ import type { MesComercial } from "@/modules/panel/tipos";
 
 const mes = (monto: string, fecha = "2034-10-01"): MesComercial => ({ mes: fecha, monto, aprobadas: 0, respondidas: 0 });
 describe("panel: frases y formatos", () => {
-  it.each([["184500.00", "C$ 184,500"], ["184500.25", "C$ 184,500"], ["1174042.59", "C$ 1,174,043"], ["0", "C$ 0"],
-    ["99999999999999.995", "C$ 100,000,000,000,000"]])("formatea exactamente %s", (valor, esperado) => {
+  it.each([["184500.00", "C$\u00A0184,500"], ["184500.25", "C$\u00A0184,500"], ["1174042.59", "C$\u00A01,174,043"], ["0", "C$\u00A00"],
+    ["99999999999999.995", "C$\u00A0100,000,000,000,000"]])("formatea exactamente %s", (valor, esperado) => {
     expect(dineroPanel(valor)).toBe(esperado);
   });
   it("formatea conteos y conserva la meta nombrada", () => {
     expect(cantidadPanel(1234)).toBe("1,234"); expect(META_APROBACION_PCT).toBe(70);
   });
   it("comunica crecimiento, reducción y estabilidad", () => {
-    expect(tituloGerencia(mes("184500"), mes("164700", "2034-09-01"))).toBe("Octubre lleva C$ 184,500 aprobados, 12 % más que septiembre");
-    expect(tituloGerencia(mes("50"), mes("100", "2034-09-01"))).toBe("Octubre lleva C$ 50 aprobados, 50 % menos que septiembre");
-    expect(tituloGerencia(mes("50"), mes("50", "2034-09-01"))).toBe("Octubre lleva C$ 50 aprobados, igual que septiembre");
+    expect(tituloGerencia(mes("184500"), mes("164700", "2034-09-01"))).toBe("Octubre lleva C$\u00A0184,500 aprobados, 12 % más que septiembre");
+    expect(tituloGerencia(mes("50"), mes("100", "2034-09-01"))).toBe("Octubre lleva C$\u00A050 aprobados, 50 % menos que septiembre");
+    expect(tituloGerencia(mes("50"), mes("50", "2034-09-01"))).toBe("Octubre lleva C$\u00A050 aprobados, igual que septiembre");
   });
   it("comunica el mes anterior sin aprobaciones sin dividir entre cero", () => {
-    expect(tituloGerencia(mes("0"), mes("0", "2034-09-01"))).toBe("Octubre lleva C$ 0 aprobados, sin aprobaciones el mes anterior");
+    expect(tituloGerencia(mes("0"), mes("0", "2034-09-01"))).toBe("Octubre lleva C$\u00A00 aprobados, sin aprobaciones el mes anterior");
     expect(tendenciaMonto("100", "0")).toEqual({ direccion: "sube", texto: "sin aprobaciones el mes anterior" });
   });
   it("calcula tendencias exactas con montos fuera del rango seguro de Number", () => {

@@ -70,7 +70,7 @@ async function crearMixta(page: Page): Promise<void> {
   cotizacion = (await respuesta.json()).datos as Cotizacion;
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}/editar$`));
   await page.getByRole("button", { name: "Agregar catálogo" }).click();
-  await elegir(page.getByLabel("Producto", { exact: false }), /ROT-VIN-001/, page);
+  await elegir(page.getByRole("combobox", { name: /^Producto\b/, includeHidden: true }), /ROT-VIN-001/, page);
   await page.getByLabel("Ancho (m)").fill("2");
   await page.getByLabel("Alto (m)").fill("1.5");
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
@@ -116,7 +116,7 @@ async function abrirConversion(page: Page): Promise<void> {
   await expect(page.getByLabel("Categoría principal")).toContainText(CATEGORIA);
   await expect(page.getByRole("main")).toContainText(CLIENTE);
   await expect(page.getByRole("form").getByLabel("Cliente")).toHaveCount(0);
-  await expect(page.getByRole("form").getByLabel("Producto")).toHaveCount(0);
+  await expect(page.getByRole("form").getByRole("combobox", { name: /^Producto\b/, includeHidden: true })).toHaveCount(0);
 }
 
 async function convertirMixta(page: Page): Promise<void> {
@@ -134,10 +134,11 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^OT-\d{4}-\d{4}$/);
   await expect(page.getByRole("main").getByText("Pendiente", { exact: true }).first()).toBeVisible();
   expect(conversion.responsableId).toBeFalsy();
-  await expect(page.getByRole("button", { name: "Asignar", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}/editar`);
   await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: fechaVisible(conversion.fechaEntrega) })).toBeVisible();
-  await expect(page.getByRole("main")).toContainText(/siguiente paso/i);
+  // El siguiente paso de una orden pendiente es iniciar la producción.
+  await expect(page.getByRole("link", { name: "Iniciar producción", exact: true })).toBeVisible();
   await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("main")).toContainText(ESPECIFICACIONES);
   await abrirPestana(page, "Cliente y cotización");
@@ -148,7 +149,7 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
   await expect(items).toContainText(PERSONALIZADO);
-  await expect(items).toContainText("Cantidad: 1.000");
+  await expect(items).toContainText("Cantidad: 1 m²");
   await expect(items).toContainText("Medidas: 2.000 × 1.500 m");
   await verificarEtapasYEstimado(page);
 }
@@ -310,7 +311,7 @@ function registrarListaYAsignacion(): void {
     await page.getByRole("button", { name: "Buscar", exact: true }).click();
     const fila = page.getByRole("row").filter({ hasText: orden.numero });
     await expect(fila.getByRole("link", { name: orden.numero, exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}`);
-    await expect(fila.getByRole("link", { name: "Sin responsable" }).first()).toBeVisible();
+    await expect(fila.getByRole("cell").filter({ hasText: "Sin responsable" }).first()).toBeVisible();
   });
 
   test("Atención al cliente no asigna; Administración asigna el responsable después", async ({ page }, info) => {
@@ -319,16 +320,17 @@ function registrarListaYAsignacion(): void {
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/ordenes/${orden.id}`);
     await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
     await entrarComo(page, ADMINISTRACION);
     await page.goto(`/ordenes/${orden.id}`);
-    await page.getByRole("button", { name: "Asignar", exact: true }).click();
-    const dialogo = page.getByRole("dialog");
-    await elegir(dialogo.getByLabel("Responsable", { exact: true }), "Marco López", page);
-    await dialogo.getByRole("button", { name: /^(Asignar|Guardar cambios)$/ }).click();
-    await expect(dialogo).toHaveCount(0);
+    await page.getByRole("link", { name: "Asignar", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}/editar$`));
+    const formulario = page.getByRole("form", { name: "Editar orden" });
+    await elegir(formulario.getByLabel("Responsable", { exact: true }), "Marco López", page);
+    await formulario.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
     await expect(page.getByRole("main").getByText("Marco López", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Asignar", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
     await abrirPestana(page, "Historial");
     await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("asignó el responsable");
   });
@@ -341,7 +343,8 @@ function registrarGestion(): void {
     await entrarComo(page, GERENCIA);
     await page.goto(`/ordenes/${orden.id}`);
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^(Cancelar orden|Asignar)$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Cancelar orden" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
     await entrarComo(page, ADMINISTRACION);
     await page.goto(`/ordenes/${orden.id}`);
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toBeVisible();
@@ -432,7 +435,8 @@ test("Producción consulta lista y ficha sin gestión ni dinero", async ({ page 
   await abrirSembrada(page);
   expect(await page.evaluate(() => document.body.innerText)).not.toContain("C$");
   await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar|Entregar|Convertir en orden|^Asignar$/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar|Entregar|Convertir en orden/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
   await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("Cantidad:");
   await expect(page.getByRole("table", { name: "Etapas de la orden" })).toBeVisible();

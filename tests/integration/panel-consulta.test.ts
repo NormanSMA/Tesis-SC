@@ -98,11 +98,11 @@ async function mesesConocidos() {
   await crearCotizacionPanel(entorno, { estado: "AJUSTE_SOLICITADO", respuesta: "2048-10-02T12:00:00Z" });
   await crearCotizacionPanel(entorno, { estado: "VENCIDA", vencimiento: "2048-10-03" });
   const actual = await entorno.servicio.obtenerPanel(actor, fecha);
-  expect(actual.titulo).toBe("Octubre lleva C$ 184,500 aprobados, 12 % más que septiembre");
+  expect(actual.titulo).toBe("Octubre lleva C$\u00a0184,500 aprobados, 12 % más que septiembre");
   expect(actual.indicadores.find((fila) => fila.id === "tasa-aprobacion")?.valor).toBe("25 %");
   expect(actual.grafico?.datos.at(-1)).toMatchObject({ valor: 184.5, destacado: true });
   const sinAnterior = await entorno.servicio.obtenerPanel(actor, new Date("2049-01-10T12:00:00Z"));
-  expect(sinAnterior.titulo).toBe("Enero lleva C$ 0 aprobados, sin aprobaciones el mes anterior");
+  expect(sinAnterior.titulo).toBe("Enero lleva C$\u00a00 aprobados, sin aprobaciones el mes anterior");
 }
 async function completadasPorActor() {
   const actor = entorno.sesiones.PRODUCCION.actor;

@@ -14,6 +14,8 @@ const MARCA = `E2E-${SELLO}-inventario-${Math.floor(Math.random() * 100000)}`;
 const PREFIJO_CODIGO = `E2E-${randomUUID().replaceAll("-", "").slice(0, 12)}-`.toUpperCase();
 const NOMBRE = `${MARCA} material`;
 const UNIDAD = "PLIEGO";
+// La ficha muestra la unidad legible en minúscula, con espacio duro tras la cifra.
+const UNIDAD_FICHA = "pliego";
 type Perfil = (typeof PERFILES)[number];
 type Material = { id: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
@@ -97,7 +99,7 @@ async function crearMaterial(page: Page): Promise<Material> {
 async function verFicha(page: Page, material: Material, esperado: { existencia: string; costo: string }): Promise<void> {
   await page.goto(`/inventario/${material.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(NOMBRE);
-  await expect(page.getByRole("definition").filter({ hasText: exacto(`${esperado.existencia} ${UNIDAD}`) })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: exacto(`${esperado.existencia} ${UNIDAD_FICHA}`) })).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: exacto(esperado.costo) })).toBeVisible();
 }
 
@@ -209,6 +211,8 @@ function registrarAxe(): void {
       test.setTimeout(120000);
       await page.setViewportSize({ width: vista.width, height: vista.height });
       const material = await crearMaterial(page);
+      // Sin movimientos la ficha muestra el estado vacío y no la tabla del libro.
+      await registrarEntrada(page, material, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-axe-${vista.nombre}` });
       await page.goto("/inventario");
       await expect(listaMateriales(page)).toBeVisible();
       expect.soft(await violacionesGraves(page), "lista").toEqual([]);
@@ -227,7 +231,7 @@ test.describe("Inventario con un material propio", () => {
   test("Administración crea un material y lo ve con existencia cero", async ({ page }, info) => {
     soloPortatil(info.project.name);
     const material = await crearMaterial(page);
-    await verFicha(page, material, { existencia: "0.000", costo: "5.0000" });
+    await verFicha(page, material, { existencia: "0", costo: "5.0000" });
     await expect(page.getByRole("main")).toContainText("Sin existencia");
   });
 
@@ -236,10 +240,11 @@ test.describe("Inventario con un material propio", () => {
     test.setTimeout(90000);
     const material = await crearMaterial(page);
     await registrarEntrada(page, material, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
-    await verFicha(page, material, { existencia: "10.000", costo: "10.0000" });
+    await verFicha(page, material, { existencia: "10", costo: "10.0000" });
     await expect(page.getByRole("status").filter({ hasText: /^Bajo mínimo$/ })).toBeVisible();
     // El libro vive en una sección details abierta con el total de registros.
-    await expect(page.getByText(/^Movimientos \(\d+ registros?\)$/)).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Movimientos", exact: true })).toBeVisible();
+    await expect(page.getByText(/^\(\d+ registros?\)$/)).toBeVisible();
     await expect(page.locator("details[open]").filter({ has: libro(page) })).toHaveCount(1);
     await expect(filaLibro(page, "ENTRADA")).toContainText(`${MARCA}-FAC-1`);
     await expect(filaLibro(page, "ENTRADA")).toContainText("Unitario: 10.0000");
@@ -253,7 +258,7 @@ test.describe("Inventario con un material propio", () => {
     await registrarEntrada(page, material, { cantidad: "10", costo: "10", referencia: `${MARCA}-FAC-1` });
     await registrarEntrada(page, material, { cantidad: "3", costo: "20", referencia: `${MARCA}-FAC-2` });
     // (10 x 10 + 3 x 20) / 13 = 12.30769...
-    await verFicha(page, material, { existencia: "13.000", costo: "12.3077" });
+    await verFicha(page, material, { existencia: "13", costo: "12.3077" });
     await expect(filaLibro(page, "ENTRADA")).toHaveCount(2);
     await expect(page.getByRole("main")).toContainText("Conciliado");
   });
@@ -279,7 +284,7 @@ test.describe("Inventario con un material propio", () => {
     await expect(page.getByText("Bajo mínimo", { exact: true }).first()).toBeVisible();
     await ajustarACero(page, material);
     await page.goto(`/inventario/${material.id}`);
-    await expect(page.getByRole("definition").filter({ hasText: exacto(`0.000 ${UNIDAD}`) })).toBeVisible();
+    await expect(page.getByRole("definition").filter({ hasText: exacto(`0 ${UNIDAD_FICHA}`) })).toBeVisible();
     await expect(filaLibro(page, "AJUSTE")).toContainText(`${MARCA}-limpieza de existencia`);
     await archivarDesdeFicha(page, material);
     await expect(page.getByText("Archivado", { exact: true })).toBeVisible();

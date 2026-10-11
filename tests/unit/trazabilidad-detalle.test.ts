@@ -75,6 +75,21 @@ describe("resumen legible", () => {
   });
 });
 
+describe("formato de cantidades y dinero", () => {
+  const acceso = { dinero: true, cliente: false };
+  it("presenta dinero con C$ y separador de miles", () => {
+    const detalle = filtrarDetalle("REGISTRAR_ENTRADA", { costoUnitario: "2850", cantidad: "1250.500" }, acceso);
+    expect(resumirDetalle(detalle)).toBe("Cantidad: 1,250.5. Costo unitario: C$\u00A02,850.00");
+  });
+  it("formatea ambos lados de un cambio de dinero", () => {
+    const detalle = filtrarDetalle("EDITAR", { precioBase: { anterior: "100", nuevo: "1200.5" } }, acceso);
+    expect(resumirDetalle(detalle)).toBe("Precio base: C$\u00A0100.00 → C$\u00A01,200.50");
+  });
+  it("quita ceros sobrantes en cantidades enteras", () => {
+    expect(resumirDetalle(filtrarDetalle("AJUSTAR_INVENTARIO", { cantidad: "3.000" }, acceso))).toBe("Cantidad: 3");
+  });
+});
+
 describe("proyectores por tipo", () => {
   const acceso: AccesoDetalle = { dinero: true, cliente: true, nombres: new Map([["persona", "Ana"]]) };
   const casos: { tipo: string; accion: (typeof ACCIONES)[number]; entrada: unknown; esperado: DetalleVisible }[] = [

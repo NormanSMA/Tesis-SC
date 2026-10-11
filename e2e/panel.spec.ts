@@ -125,20 +125,23 @@ function verificarContenidoCsv(entrada: { csv: string; reporte: Reporte; campos:
   expect(filas.slice(esperadas.length + 4).map((fila) => fila[1])).toEqual(Object.values(entrada.reporte.totales).map(String));
 }
 async function descargarReporte(page: Page, reporte: typeof REPORTES[number]) {
-  const enlace = page.getByRole("link", { name: "Exportar CSV" });
+  const enlace = page.getByRole("link", { name: "Exportar a Excel" });
   const destino = await enlace.getAttribute("href");
-  expect(destino).toContain("formato=csv");
-  const rutaJson = destino!.replace("formato=csv", "formato=json");
-  const respuesta = await page.request.get(rutaJson);
+  expect(destino).toContain("formato=xlsx");
+  const respuesta = await page.request.get(destino!.replace("formato=xlsx", "formato=json"));
   expect(respuesta.status()).toBe(200);
   const json = (await respuesta.json()).datos as Reporte;
   const pendiente = page.waitForEvent("download");
   await enlace.click();
   const descarga = await pendiente;
-  expect(descarga.suggestedFilename()).toBe(`${reporte.nombre}-${hoyManagua().replaceAll("-", "")}.csv`);
+  expect(descarga.suggestedFilename()).toBe(`${reporte.nombre}-${hoyManagua().replaceAll("-", "")}.xlsx`);
   const archivo = await descarga.path();
   expect(archivo).not.toBeNull();
-  const bytes = fs.readFileSync(archivo!);
+  expect(fs.readFileSync(archivo!).subarray(0, 2).toString("latin1")).toBe("PK");
+  // El CSV sigue disponible por la API: se valida su contenido con el mismo filtro.
+  const respuestaCsv = await page.request.get(destino!.replace("formato=xlsx", "formato=csv"));
+  expect(respuestaCsv.status()).toBe(200);
+  const bytes = Buffer.from(await respuestaCsv.body());
   expect([...bytes.subarray(0, 3)]).toEqual([239, 187, 191]);
   const csv = bytes.toString("utf8");
   expect(csv).toContain(`"${reporte.encabezado}"`);
@@ -239,7 +242,7 @@ function registrarAccesoYErrores() {
     await page.goto("/reportes?desde=2034-05-02&hasta=2034-05-01");
     await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toBeVisible();
     await expect(page.getByLabel("Hasta", { exact: true })).toHaveAttribute("aria-invalid", "true");
-    await expect(page.getByRole("link", { name: "Exportar CSV" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Exportar a Excel" })).toHaveCount(0);
   });
 }
 

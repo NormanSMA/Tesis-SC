@@ -153,10 +153,10 @@ test.describe("Atención al cliente gestiona clientes", () => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/clientes?q=${encodeURIComponent(CLIENTE_SEMBRADO)}`);
-    for (const columna of ["Nombre", "Código", "Tipo", "Estado", "Cotizaciones"]) {
+    for (const columna of ["Nombre", "Código", "Tipo", "Cotizaciones"]) {
       await expect(page.getByRole("columnheader", { name: columna })).toBeVisible();
     }
-    for (const columna of ["Contacto", "Teléfono"]) {
+    for (const columna of ["Estado", "Contacto", "Teléfono"]) {
       await expect(page.getByRole("columnheader", { name: columna })).toHaveCount(0);
     }
     await expect(page.getByRole("link", { name: CLIENTE_SEMBRADO }).first()).toHaveAttribute(

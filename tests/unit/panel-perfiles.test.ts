@@ -25,7 +25,7 @@ beforeEach(() => {
 
 describe("panel: perfiles, permisos y vacíos", () => {
   it.each([
-    ["GERENCIA", "Mayo lleva C$ 0 aprobados, sin aprobaciones el mes anterior"],
+    ["GERENCIA", "Mayo lleva C$\u00A00 aprobados, sin aprobaciones el mes anterior"],
     ["OPERACIONES", "Ninguna orden necesita su acción"],
     ["ATENCION_CLIENTE", "0 cotizaciones esperan respuesta del cliente"],
     ["PRODUCCION", "0 etapas por atender hoy"],

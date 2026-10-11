@@ -108,7 +108,17 @@ export async function verificarMenuExacto(
   expect(nombresObtenidos).toEqual(nombresEsperados);
 }
 
+// Las entradas animadas (opacidad) alteran el color calculado y producen falsos positivos de contraste.
+async function esperarAnimacionesFinitas(page: Page): Promise<void> {
+  await page.evaluate(() => Promise.all(
+    document.getAnimations()
+      .filter((animacion) => animacion.effect?.getComputedTiming().iterations !== Infinity)
+      .map((animacion) => animacion.finished.catch(() => undefined)),
+  ));
+}
+
 export async function violacionesGraves(page: Page): Promise<string[]> {
+  await esperarAnimacionesFinitas(page);
   const resultado = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

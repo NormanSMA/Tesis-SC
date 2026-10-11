@@ -14,6 +14,8 @@ const MARCA = `E2E-${SELLO}-invorden-${Math.floor(Math.random() * 100000)}`;
 const CODIGO = `E2E-${SELLO.toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`.toUpperCase();
 const NOMBRE = `${MARCA} material`;
 const UNIDAD = "PLIEGO";
+// La ficha muestra la unidad legible en minúscula, con espacio duro tras la cifra sin ceros sobrantes.
+const UNIDAD_FICHA = "pliego";
 const CLIENTE = "Agencia Viajes Tropical";
 const CATEGORIA = "Rotulación y gran formato";
 type Perfil = (typeof PERFILES)[number];
@@ -165,7 +167,9 @@ async function abrirPestana(page: Page, nombre: string): Promise<void> {
 async function verResumen(page: Page, cantidades: string[]): Promise<void> {
   await abrirPestana(page, "Materiales consumidos");
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: NOMBRE });
-  await expect(fila.getByRole("cell")).toHaveText([NOMBRE, ...cantidades.map((valor) => `${valor} ${UNIDAD}`)]);
+  // La primera columna de DataTable es un rowheader; las cantidades son celdas.
+  await expect(fila.getByRole("rowheader")).toHaveText(NOMBRE);
+  await expect(fila.getByRole("cell")).toHaveText(cantidades.map((valor) => `${valor} ${UNIDAD}`));
 }
 
 async function abrirOrden(page: Page): Promise<void> {
@@ -190,7 +194,7 @@ async function enviarMovimiento(page: Page, form: Locator, estado: number): Prom
 
 async function verExistenciaEnFicha(page: Page, existencia: string): Promise<void> {
   await page.goto(`/inventario/${datos(material, "el material").id}`);
-  await expect(page.getByRole("definition").filter({ hasText: exacto(`${existencia} ${UNIDAD}`) })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: exacto(`${existencia} ${UNIDAD_FICHA}`) })).toBeVisible();
 }
 
 async function consumirDesdeFormulario(page: Page): Promise<void> {
@@ -202,7 +206,7 @@ async function consumirDesdeFormulario(page: Page): Promise<void> {
   await expect(form).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
   await abrirOrden(page);
   await verResumen(page, ["4.000", "3.000", "0.000", "3.000"]);
-  await verExistenciaEnFicha(page, "10.000");
+  await verExistenciaEnFicha(page, "10");
 }
 
 async function rechazarExceso(page: Page): Promise<void> {
@@ -212,7 +216,7 @@ async function rechazarExceso(page: Page): Promise<void> {
   await expect(page.locator('[id="lineas.0.cantidad-error"]')).toContainText(/Existencia insuficiente.*solicitado 100\.000, disponible 10\.000/);
   await expect(form.getByRole("alert").filter({ hasText: "Existencia insuficiente" }).first()).toBeVisible();
   await expect(form).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
-  await verExistenciaEnFicha(page, "10.000");
+  await verExistenciaEnFicha(page, "10");
 }
 
 async function devolverParcial(page: Page): Promise<void> {
@@ -223,7 +227,7 @@ async function devolverParcial(page: Page): Promise<void> {
   await expect(form).toContainText(`Existencia disponible: 11.000 ${UNIDAD}`);
   await abrirOrden(page);
   await verResumen(page, ["4.000", "3.000", "1.000", "2.000"]);
-  await verExistenciaEnFicha(page, "11.000");
+  await verExistenciaEnFicha(page, "11");
 }
 
 async function rechazarDevolucionExcesiva(page: Page): Promise<void> {
@@ -231,7 +235,7 @@ async function rechazarDevolucionExcesiva(page: Page): Promise<void> {
   await form.getByLabel("Cantidad").fill("5");
   await enviarMovimiento(page, form, 409);
   await expect(page.locator('[id="lineas.0.cantidad-error"]')).toContainText(/supera lo consumido.*solicitado 5\.000, máximo devolvible 2\.000/);
-  await verExistenciaEnFicha(page, "11.000");
+  await verExistenciaEnFicha(page, "11");
 }
 
 async function totalMovimientos(page: Page): Promise<number> {

@@ -10,7 +10,7 @@ import { CamposUsuario, PerfilesUsuario } from "@/modules/admin/componentes/Camp
 import { ClaveTemporal } from "@/modules/admin/componentes/ClaveTemporal";
 import { FilaConfiguracion, type ParametroDto } from "@/modules/admin/componentes/FilaConfiguracion";
 import {
-  diferenciasPermisos, esquemaValorConfiguracion, estadoUsuario, filtrarUsuarios,
+  diferenciasPermisos, esquemaValorConfiguracion, estadoUsuario, fechaAdministracion, filtrarUsuarios,
   hrefUsuarios, leerFiltrosUsuarios, permisoProtegido,
 } from "@/modules/admin/componentes/interfaz";
 import { peticionAdministracion } from "@/modules/admin/componentes/peticion";
@@ -157,6 +157,8 @@ describe("Matriz de permisos", () => {
     expect(casilla).toContain('aria-checked="true"');
     expect(casilla).toContain('disabled=""');
     expect(casilla).toContain('aria-describedby="permisos-protegidos"');
+    expect(html).toContain("Usuario</th>");
+    expect(html).toContain("Gestionar usuarios");
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain('role="region"');
     expect(html).toContain('tabindex="0"');
@@ -178,6 +180,11 @@ describe("Matriz de permisos", () => {
 });
 
 describe("Configuración", () => {
+  it("formatea fechas de administración en 24 horas", () => {
+    expect(fechaAdministracion("2026-10-06T20:30:00Z")).toBe("06 oct 2026, 14:30");
+    expect(fechaAdministracion(null)).toBe("Sin registro");
+  });
+
   it.each([
     ["iva_porcentaje", "DECIMAL", "0", true], ["iva_porcentaje", "DECIMAL", "100", true],
     ["iva_porcentaje", "DECIMAL", "100.01", false], ["iva_porcentaje", "DECIMAL", "-1", false],
@@ -202,5 +209,20 @@ describe("Configuración", () => {
     expect(html).toContain("cursor-not-allowed");
     expect(html).toContain("Zona horaria del sistema.");
     expect(html).not.toContain('type="submit"');
+    expect(html).toContain('value="Managua (America/Managua)"');
+    expect(html).toContain("text-foreground");
+  });
+
+  it("muestra sufijo de porcentaje y nombre de moneda", () => {
+    const base = { tipo: "TEXTO" as const, actualizadoEn: VERSION, actualizadoPorId: null };
+    const iva = renderToStaticMarkup(createElement(FilaConfiguracion, {
+      inicial: { ...base, clave: "iva_porcentaje", valor: "15", tipo: "DECIMAL" as const, descripcion: "IVA vigente." },
+    }));
+    const moneda = renderToStaticMarkup(createElement(FilaConfiguracion, {
+      inicial: { ...base, clave: "moneda", valor: "NIO", descripcion: "Moneda de los documentos (ISO 4217)" },
+    }));
+    expect(iva).toContain(">%</span>");
+    expect(moneda).toContain("Córdoba (C$)");
+    expect(moneda).not.toContain("ISO 4217");
   });
 });

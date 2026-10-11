@@ -159,6 +159,14 @@ test.describe("ADMIN gestiona usuarios", () => {
 
       const { contexto, page: paginaNueva } = await intentarSesionEnContextoAparte(browser, correo, clave);
       try {
+        // Con clave temporal, el primer acceso obliga a cambiarla antes de ver el menú.
+        await paginaNueva.waitForURL("**/cambiar-clave", { timeout: 15_000 });
+        await expect(paginaNueva.getByRole("heading", { level: 1, name: "Cambiar clave" })).toBeVisible();
+        const claveNueva = `Nueva-${Date.now()}-E2E-clave`;
+        await paginaNueva.locator("#claveActual").fill(clave);
+        await paginaNueva.locator("#claveNueva").fill(claveNueva);
+        await paginaNueva.locator("#confirmacion").fill(claveNueva);
+        await paginaNueva.getByRole("button", { name: "Cambiar clave" }).click();
         await paginaNueva.waitForURL("**/panel", { timeout: 15_000 });
         await verificarMenuExacto(paginaNueva, OPERACIONES.items);
       } finally {
@@ -292,9 +300,14 @@ test.describe("ADMIN gestiona permisos", () => {
       await page.reload();
       await expect(page.getByRole("checkbox", { name: etiqueta, exact: true })).not.toBeChecked();
     } finally {
+      // La API exige la versión vigente (SHA-256 de los permisos actuales): se lee justo antes de restaurar.
+      const vigente = await page.request.get("/api/v1/permisos");
+      const matrizVigente = ((await vigente.json()).datos.matriz ?? []) as { perfil: string; version: string }[];
+      const version = matrizVigente.find((fila) => fila.perfil === "GERENCIA")?.version;
+      if (!version) throw new Error("No se encontró la versión de GERENCIA");
       const restaurar = await page.request.put("/api/v1/permisos/GERENCIA", {
         headers: { Origin: BASE },
-        data: { permisos: permisosOriginales },
+        data: { permisos: permisosOriginales, version },
       });
       expect(restaurar.status()).toBe(200);
     }
@@ -338,7 +351,7 @@ test.describe("ADMIN gestiona la configuración", () => {
     const formulario = page.getByRole("form", { name: "Parámetro IVA (%)" });
     await page.locator("#config-iva_porcentaje").fill("150");
     await formulario.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(page.locator("#config-iva_porcentaje-error")).toContainText("Indique un IVA entre 0 y 100.");
+    await expect(page.locator("#config-iva_porcentaje-error")).toContainText(/Indique un IVA entre 0 y 100, con hasta 2 decimales\./);
     await expect(page.locator("#config-iva_porcentaje")).toHaveAttribute("aria-invalid", "true");
     await expect(page.locator("#config-iva_porcentaje")).toBeFocused();
 

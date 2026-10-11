@@ -31,12 +31,12 @@ describe("periodos de Managua", () => {
 describe("formato visible de reportes", () => {
   const columna = (campo: string) => ({ campo, encabezado: campo, tipo: "decimal" as const });
   it("da formato a importes, cantidades y porcentajes", () => {
-    expect(celdaVisible(columna("importe"), { importe: "262932.59" })).toBe("C$ 262,932.59");
+    expect(celdaVisible(columna("importe"), { importe: "262932.59" })).toBe("C$\u00A0262,932.59");
     expect(celdaVisible(columna("existencia"), { existencia: "64.000", unidad: "Unidad" })).toBe("64");
-    expect(celdaVisible(columna("existencia"), { existencia: "64.000", unidad: "Metro" })).toBe("64.000");
+    expect(celdaVisible(columna("existencia"), { existencia: "64.000", unidad: "Metro" })).toBe("64");
     expect(celdaVisible(columna("alerta"), { alerta: null })).toBe("Sin dato");
     expect(totalVisible("tasaAprobacion", "88.24")).toBe("88.2 %");
-    expect(totalVisible("importe", "1000")).toBe("C$ 1,000.00");
+    expect(totalVisible("importe", "1000")).toBe("C$\u00A01,000.00");
     expect(etiquetaVisible("Importe (C$)")).toBe("Importe");
     expect(etiquetaVisible("Tasa de aprobación (%)")).toBe("Tasa de aprobación");
   });
