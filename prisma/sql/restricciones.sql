@@ -247,6 +247,13 @@ ALTER TABLE contador
   DROP CONSTRAINT IF EXISTS contador_valores,
   ADD CONSTRAINT contador_valores CHECK (anio BETWEEN 2000 AND 9999 AND ultimo >= 0);
 
+-- RB-08: un cambio de etapa en curso o completada conserva siempre su responsable.
+ALTER TABLE historial_etapa
+  DROP CONSTRAINT IF EXISTS historial_etapa_responsable_obligatorio,
+  ADD CONSTRAINT historial_etapa_responsable_obligatorio CHECK (
+    estado_nuevo NOT IN ('EN_CURSO', 'COMPLETADA') OR responsable_id IS NOT NULL
+  );
+
 -- ===========================================================================
 -- 2. Tablas de solo insercion: bitacora, movimiento_inventario, consumo_orden
 -- ===========================================================================

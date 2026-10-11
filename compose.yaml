@@ -83,5 +83,20 @@ services:
       retries: 20
       start_period: 3s
 
+  # Respaldo programado cada 24 horas (RNF-06). Se activa con: docker compose --profile respaldo up -d respaldo
+  respaldo:
+    <<: *entorno
+    image: postgres:17-alpine
+    profiles: ["respaldo"]
+    restart: unless-stopped
+    volumes:
+      - sc_respaldos:/respaldos
+      - ./scripts/respaldo-programado.sh:/usr/local/bin/respaldo-programado.sh:ro
+    entrypoint: ["sh", "/usr/local/bin/respaldo-programado.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   sc_pgdata:
+  sc_respaldos:
