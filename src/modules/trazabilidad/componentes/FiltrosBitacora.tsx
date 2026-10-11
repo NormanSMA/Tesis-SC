@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { FormField } from "@/components/comunes/FormField";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,10 @@ export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBita
       <CampoFiltro campo="desde" etiqueta="Desde" consulta={consulta} />
       <CampoFiltro campo="hasta" etiqueta="Hasta" consulta={consulta} />
     </div>
-    <details open={hayFiltroAvanzado} className="rounded-lg border bg-card px-4 py-2">
-      <summary className="min-h-10 cursor-pointer text-sm font-medium">Más filtros</summary>
+    <details open={hayFiltroAvanzado} className="group rounded-lg border bg-card px-4 py-2">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        Más filtros<ChevronDown aria-hidden="true" className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
       <div className={`${REJILLA} pt-3 pb-2`}>
         <Seleccion nombre="entidad" etiqueta="Entidad" valor={consulta.entidad}
           opciones={ENTIDADES.map((id) => ({ id, nombre: ENTIDAD_TEXTO[id] }))} />

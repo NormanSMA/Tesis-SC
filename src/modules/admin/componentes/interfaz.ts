@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { PERFILES, type PerfilCodigo } from "@/core/permisos";
+import { formatearFechaHora } from "@/lib/formato";
 import { esquemaValorPorClaveConfiguracion } from "@/modules/admin/configuracion-schema";
 import type { UsuarioDto } from "@/modules/admin/tipos";
 
@@ -9,6 +10,16 @@ export type FiltroEstadoUsuario = EstadoUsuario | "TODOS";
 export type FiltrosUsuarios = { q: string; perfil: PerfilCodigo | ""; estado: FiltroEstadoUsuario; pagina: number };
 export const FILTRO_ESTADO_PREDETERMINADO: FiltroEstadoUsuario = "ACTIVO";
 export const PERMISOS_PROTEGIDOS = ["usuario:gestionar", "permiso:gestionar", "configuracion:gestionar"];
+
+const ETIQUETAS_RECURSO: Record<string, string> = {
+  bitacora: "Bitácora", catalogo: "Catálogo", cliente: "Cliente", configuracion: "Configuración",
+  cotizacion: "Cotización", inventario: "Inventario", material: "Material", orden: "Orden de trabajo",
+  panel: "Panel", permiso: "Permiso", produccion: "Producción", reporte: "Reporte", usuario: "Usuario",
+};
+
+export function etiquetaRecurso(recurso: string): string {
+  return ETIQUETAS_RECURSO[recurso] ?? recurso.charAt(0).toUpperCase() + recurso.slice(1);
+}
 
 export function estadoUsuario(usuario: UsuarioDto, ahora: number): EstadoUsuario {
   if (!usuario.activo) return "INACTIVO";
@@ -74,8 +85,5 @@ export function esquemaValorConfiguracion({ clave, tipo }: { clave: string; tipo
 }
 
 export function fechaAdministracion(valor: string | null): string {
-  if (!valor) return "Sin registro";
-  return new Intl.DateTimeFormat("es-NI", {
-    dateStyle: "medium", timeStyle: "short", timeZone: "America/Managua",
-  }).format(new Date(valor));
+  return valor ? formatearFechaHora(valor) || "Sin registro" : "Sin registro";
 }

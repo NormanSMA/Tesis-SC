@@ -9,14 +9,14 @@ type Consulta = { area?: string; responsable?: string; estado?: "PENDIENTE" | "E
 export function FiltrosProduccion({ consulta, opciones }: { consulta: Consulta;
   opciones: { areas: ReferenciaOrden[]; responsables: ReferenciaOrden[] };
 }) {
-  return <FiltrosLista action="/produccion" etiqueta="Filtrar producción" className="mb-0">
-    <CampoFiltro id="filtro-area" etiqueta="Área">{(atributos) => <SelectFiltro {...atributos} name="area" defaultValue={consulta.area ?? ""}>
+  return <FiltrosLista action="/produccion" etiqueta="Filtrar producción" className="mb-3">
+    <CampoFiltro id="filtro-area" etiqueta="Área" className="sm:min-w-56">{(atributos) => <SelectFiltro {...atributos} name="area" defaultValue={consulta.area ?? ""}>
       <option value="">Todas las áreas</option>{opciones.areas.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}
     </SelectFiltro>}</CampoFiltro>
-    <CampoFiltro id="filtro-responsable" etiqueta="Responsable">{(atributos) => <SelectFiltro {...atributos} name="responsable" defaultValue={consulta.responsable ?? ""}>
+    <CampoFiltro id="filtro-responsable" etiqueta="Responsable" className="sm:min-w-56">{(atributos) => <SelectFiltro {...atributos} name="responsable" defaultValue={consulta.responsable ?? ""}>
       <option value="">Todos los responsables</option>{opciones.responsables.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
     </SelectFiltro>}</CampoFiltro>
-    <CampoFiltro id="filtro-estado" etiqueta="Estado">{(atributos) => <SelectFiltro {...atributos} name="estado" defaultValue={consulta.estado ?? ""}>
+    <CampoFiltro id="filtro-estado" etiqueta="Estado" className="sm:min-w-64">{(atributos) => <SelectFiltro {...atributos} name="estado" defaultValue={consulta.estado ?? ""}>
       <option value="">Todos los estados abiertos</option><option value="PENDIENTE">Pendiente</option><option value="EN_CURSO">En curso</option>
     </SelectFiltro>}</CampoFiltro>
     <CampoFiltro id="filtro-orden" etiqueta="Buscar orden">{(atributos) => <Input {...atributos} name="q" defaultValue={consulta.q ?? ""} placeholder="Número de orden" maxLength={120} />}</CampoFiltro>

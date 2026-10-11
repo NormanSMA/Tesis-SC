@@ -41,8 +41,8 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
     indicador({ id: "tasa-aprobacion", etiqueta: "Tasa de aprobación", valor: `${Math.round(tasaAprobacion(actual))} %`,
       contexto: `Meta ${META_APROBACION_PCT} %; ${actual.aprobadas} aprobadas de ${actual.respondidas} respondidas`,
       tendencia: tendenciaTasa(actual, anterior), destino: "/cotizaciones" }));
-    panel.grafico = grafico("Monto aprobado por mes", "Últimos seis meses, en miles de córdobas", mesesConActividad(comercial.meses).map((mes) => ({
-      etiqueta: nombreMesCorto(mes.mes), valor: Number(formatear(dividir(leerDecimal(mes.monto)!, deEntero(1000)), 1)), destacado: mes.mes === actual.mes })));
+    panel.grafico = grafico("Monto aprobado por mes", "Meses con datos (hasta seis)", mesesConActividad(comercial.meses).map((mes) => ({
+      etiqueta: nombreMesCorto(mes.mes), valor: Number(formatear(dividir(leerDecimal(mes.monto)!, deEntero(1000)), 1)), texto: dineroPanel(mes.monto), destacado: mes.mes === actual.mes })));
     if (can(actor, "reporte:ver")) panel.grafico.nota = { texto: "Ver en Reportes", destino: "/reportes" };
   }
   if (ordenes) {

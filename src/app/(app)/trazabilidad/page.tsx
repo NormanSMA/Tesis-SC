@@ -35,8 +35,9 @@ export default async function PaginaTrazabilidad({ searchParams }: { searchParam
     aviso = error.message;
   }
   const [lista, usuarios] = aviso ? [null, []] : await Promise.all([listarBitacora(consulta, actor), opcionesBitacora(actor)]);
-  return <><PageHeader titulo="Trazabilidad" descripcion="Historial de cambios y responsables de los trabajos." />
-    <div className="min-w-0 space-y-4"><p className="text-sm font-medium">Registro de solo lectura</p>
+  return <><PageHeader titulo="Trazabilidad" descripcion="Historial de cambios y responsables de los trabajos."
+      acciones={<p className="text-xs text-muted-foreground">Registro de solo lectura</p>} />
+    <div className="min-w-0 space-y-4">
       {can(actor, "orden:ver") ? <BuscarTrabajo /> : null}
       <FiltrosBitacora consulta={consulta} usuarios={usuarios} />
       <div aria-live="polite">{aviso ? <ErrorState descripcion={aviso} /> : null}</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +8,7 @@ import type { PerfilCodigo } from "@/core/permisos";
 import type { listarPermisos } from "@/modules/admin/permisos-service";
 import { cn } from "@/lib/utils";
 
-import { permisoProtegido } from "./interfaz";
+import { etiquetaRecurso, permisoProtegido } from "./interfaz";
 
 export type MatrizDto = Awaited<ReturnType<typeof listarPermisos>>;
 export type PropiedadesTablaPermisos = {
@@ -28,13 +28,30 @@ function SelectorPerfil({ datos, elegido, alElegir }: { datos: MatrizDto; elegid
   );
 }
 
+function useDesborde() {
+  const region = useRef<HTMLDivElement>(null);
+  const [desborda, setDesborda] = useState(false);
+  useEffect(() => {
+    const elemento = region.current;
+    if (!elemento) return;
+    const medir = () => setDesborda(elemento.scrollWidth > elemento.clientWidth);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(elemento);
+    return () => observador.disconnect();
+  }, []);
+  return { region, desborda };
+}
+
 export function TablaPermisos(props: PropiedadesTablaPermisos) {
   const [elegido, setElegido] = useState(props.datos.perfiles[0]?.codigo ?? "");
+  const { region, desborda } = useDesborde();
   const claseColumna = (codigo: string) => (codigo === elegido ? undefined : OCULTA_EN_MOVIL);
   return (
     <>
       <SelectorPerfil datos={props.datos} elegido={elegido} alElegir={setElegido} />
-      <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-ring"
+      {desborda ? <p className="text-sm text-muted-foreground max-md:hidden">Desplace la matriz horizontalmente para consultar todos los perfiles.</p> : null}
+      <div ref={region} className="mb-4 max-w-full min-w-0 overflow-x-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-ring"
         role="region" aria-label="Matriz de perfiles y permisos" tabIndex={0}>
         <table className="w-full text-left text-sm md:min-w-[1200px]">
           <caption className="sr-only">Permisos agrupados por recurso. Guarde todos los cambios con el botón fijo inferior.</caption>
@@ -44,13 +61,13 @@ export function TablaPermisos(props: PropiedadesTablaPermisos) {
             </tr>
           </thead>
           <tbody>{props.datos.permisos.map((grupo) => <Fragment key={grupo.recurso}>
-            <tr className="border-t bg-muted/50"><th colSpan={props.datos.perfiles.length + 1} scope="rowgroup" className="p-3 font-semibold">{grupo.recurso}</th></tr>
+            <tr className="border-t bg-muted/50"><th colSpan={props.datos.perfiles.length + 1} scope="rowgroup" className="p-3 font-semibold">{etiquetaRecurso(grupo.recurso)}</th></tr>
             {grupo.permisos.map((permiso) => <tr key={permiso.codigo} className="border-t">
-              <th scope="row" className="max-w-80 p-3 font-normal"><span className="block font-medium">{permiso.descripcion}</span><span className="break-all text-muted-foreground">{permiso.codigo}</span></th>
+              <th scope="row" className="max-w-80 p-3 font-normal"><span className="block font-medium">{permiso.descripcion}</span><span className="block text-xs text-muted-foreground [overflow-wrap:anywhere] max-md:hidden">{permiso.codigo}</span></th>
               {props.datos.perfiles.map((perfil) => {
                 const protegido = permisoProtegido(perfil.codigo, permiso.codigo);
                 return <td key={perfil.codigo} className={cn("p-3 text-center", claseColumna(perfil.codigo))}>
-                  <Checkbox className="size-10" aria-label={`Perfil ${perfil.codigo}: permiso ${permiso.codigo}`}
+                  <Checkbox className="relative after:absolute after:-inset-2.5 after:content-['']" aria-label={`Perfil ${perfil.codigo}: permiso ${permiso.codigo}`}
                     aria-describedby={protegido ? "permisos-protegidos" : undefined}
                     checked={protegido || (props.seleccion[perfil.codigo] ?? []).includes(permiso.codigo)}
                     disabled={protegido || props.enviando} onCheckedChange={() => props.alCambiar(perfil.codigo, permiso.codigo)} />

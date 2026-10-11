@@ -20,8 +20,7 @@ export function mesesConActividad<T extends Pick<MesComercial, "monto">>(meses: 
   return meses.slice(primero === -1 ? inicioUltimosDos : Math.min(primero, inicioUltimosDos));
 }
 export function cantidadMaterialPanel(valor: string, unidad: string): string {
-  const texto = formatearCantidadPorUnidad(valor, unidad);
-  return texto.includes(".") ? texto.replace(/0+$/, "").replace(/\.$/, "") : texto;
+  return formatearCantidadPorUnidad(valor, unidad);
 }
 export function dineroPanel(valor: string): string { return formatearMonedaEntera(valor); }
 export function cantidadPanel(valor: number): string { return formatearDecimal(String(valor), 0); }

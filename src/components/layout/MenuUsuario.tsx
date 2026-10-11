@@ -43,7 +43,7 @@ export function MenuUsuario({ usuario }: { usuario: UsuarioSesion }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-10 gap-2 px-2" aria-label={`Menú de usuario: ${usuario.nombre}`}>
           <Avatar className="size-8">
-            <AvatarFallback className="bg-primary-soft text-xs font-semibold text-primary">
+            <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
               {iniciales(usuario.nombre)}
             </AvatarFallback>
           </Avatar>

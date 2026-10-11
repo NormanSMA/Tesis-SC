@@ -11,7 +11,7 @@ export type AtencionPanel = {
 };
 export type GraficoPanel = {
   titulo: string; subtitulo: string; tipo: "barras";
-  datos: { etiqueta: string; valor: number; destacado?: boolean }[];
+  datos: { etiqueta: string; valor: number; texto?: string; destacado?: boolean }[];
   nota?: { texto: string; destino: string };
 };
 export type PanelDto = {

@@ -16,18 +16,18 @@ import { estadoUsuario, hrefUsuarios, type EstadoUsuario, type FiltrosUsuarios }
 export function FiltrosListaUsuarios({ filtros }: { filtros: FiltrosUsuarios }) {
   return (
     <form method="get" action="/admin/usuarios" role="search" aria-label="Buscar usuarios" className="mb-5 flex flex-wrap items-end gap-3">
-      <div className="min-w-0 basis-56 flex-1 space-y-2">
+      <div className="w-full min-w-0 flex-1 space-y-2 sm:basis-56">
         <Label htmlFor="usuarios-q">Buscar</Label>
         <Input id="usuarios-q" name="q" type="search" className="min-h-10" defaultValue={filtros.q} placeholder="Nombre o correo" maxLength={200} />
       </div>
-      <div className="min-w-0 basis-56 space-y-2">
+      <div className="w-full min-w-0 space-y-2 sm:w-auto sm:basis-56">
         <Label htmlFor="usuarios-perfil">Perfil</Label>
         <SelectNativo id="usuarios-perfil" name="perfil" defaultValue={filtros.perfil}>
           <option value="">Todos los perfiles</option>
           {PERFILES.map(({ codigo, nombre }) => <option key={codigo} value={codigo}>{nombre}</option>)}
         </SelectNativo>
       </div>
-      <div className="min-w-0 basis-40 space-y-2">
+      <div className="w-full min-w-0 space-y-2 sm:w-auto sm:basis-40">
         <Label htmlFor="usuarios-estado">Estado</Label>
         <SelectNativo id="usuarios-estado" name="estado" defaultValue={filtros.estado}>
           <option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option>
@@ -98,9 +98,11 @@ function PerfilesUsuario({ perfiles }: { perfiles: UsuarioDto["perfiles"] }) {
 
 function PaginacionUsuarios({ lista, filtros }: { lista: Lista; filtros: FiltrosUsuarios }) {
   const paginas = Math.max(1, Math.ceil(lista.total / lista.porPagina));
+  const desde = lista.total === 0 ? 0 : (lista.pagina - 1) * lista.porPagina + 1;
+  const hasta = Math.min(lista.pagina * lista.porPagina, lista.total);
   return (
     <nav aria-label="Páginas de usuarios" className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-muted-foreground">{lista.total} usuarios. Página {lista.pagina} de {paginas}.</p>
+      <p className="text-sm text-muted-foreground">Mostrando {desde} a {hasta} de {lista.total}</p>
       <div className="flex gap-3">
         {lista.pagina > 1 ? <Button asChild variant="outline" className="min-h-10"><Link href={hrefUsuarios(filtros, lista.pagina - 1)}>Anterior</Link></Button> : null}
         {lista.pagina < paginas ? <Button asChild variant="outline" className="min-h-10"><Link href={hrefUsuarios(filtros, lista.pagina + 1)}>Siguiente</Link></Button> : null}

@@ -1,6 +1,7 @@
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const ZONA_HORARIA = "America/Managua";
 const FECHA_CALENDARIO = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ESPACIO_DURO = " ";
 const DECIMAL = /^(-)?(\d+)(?:\.(\d+))?$/;
 
 const formateadorInstante = new Intl.DateTimeFormat("en-US", {
@@ -40,11 +41,20 @@ export function formatearDecimal(valor: string | number, decimales: number): str
   return decimales > 0 ? `${prefijo}${cuerpo}.${fraccionFinal}` : `${prefijo}${cuerpo}`;
 }
 
+// Espacio duro: el símbolo y la cifra no se separan al cortar línea.
+function conSimboloMoneda(numero: string): string {
+  return numero.startsWith("-") ? `-C$${ESPACIO_DURO}${numero.slice(1)}` : `C$${ESPACIO_DURO}${numero}`;
+}
+
+function quitarCerosFinales(numero: string): string {
+  return numero.includes(".") ? numero.replace(/0+$/, "").replace(/\.$/, "") : numero;
+}
+
 export function formatearMoneda(valor: string | number | null | undefined): string {
   if (valor === null || valor === undefined || valor === "") return "";
   const numero = formatearDecimal(valor, 2);
   if (!numero) return "";
-  return numero.startsWith("-") ? `-C$ ${numero.slice(1)}` : `C$ ${numero}`;
+  return conSimboloMoneda(numero);
 }
 
 export function formatearCantidad(valor: string | number | null | undefined, decimales = 2): string {
@@ -56,20 +66,37 @@ export function formatearMonedaEntera(valor: string | number | null | undefined)
   if (valor === null || valor === undefined || valor === "") return "";
   const numero = formatearDecimal(valor, 0);
   if (!numero) return "";
-  return numero.startsWith("-") ? `-C$ ${numero.slice(1)}` : `C$ ${numero}`;
+  return conSimboloMoneda(numero);
 }
 
 export function formatearPorcentaje(valor: string | number | null | undefined, decimales = 1): string {
   if (valor === null || valor === undefined || valor === "") return "";
-  const numero = formatearDecimal(valor, decimales);
+  const numero = quitarCerosFinales(formatearDecimal(valor, decimales));
   return numero ? `${numero} %` : "";
 }
 
-const UNIDADES_DISCRETAS = new Set(["UNIDAD", "PLIEGO"]);
+const UNIDADES_DISCRETAS = new Set(["UNIDAD", "PLIEGO", "ROLLO"]);
+const NOMBRES_UNIDAD: Record<string, string> = {
+  UNIDAD: "unidad", METRO: "metro", M2: "m²", YARDA: "yarda", PIE: "pie", LITRO: "litro",
+  GALON: "galón", KILOGRAMO: "kilogramo", LIBRA: "libra", PLIEGO: "pliego", ROLLO: "rollo",
+};
 
+/** Nombre legible en minúscula: "M2" -> "m²". Un código desconocido se devuelve en minúscula. */
+export function nombreUnidad(unidad: string): string {
+  const codigo = unidad.trim().toUpperCase();
+  return NOMBRES_UNIDAD[codigo] ?? unidad.trim().toLowerCase();
+}
+
+/** Unidades discretas sin decimales; continuas con hasta `decimales`, sin ceros sobrantes. */
 export function formatearCantidadPorUnidad(valor: string | number | null | undefined, unidad: string, decimales = 3): string {
-  const discreta = UNIDADES_DISCRETAS.has(unidad.toUpperCase());
-  return formatearCantidad(valor, discreta ? 0 : decimales);
+  const discreta = UNIDADES_DISCRETAS.has(unidad.trim().toUpperCase());
+  return quitarCerosFinales(formatearCantidad(valor, discreta ? 0 : decimales));
+}
+
+/** Cantidad con su unidad legible: "1,200 pliego", "2.5 m²". */
+export function formatearCantidadConUnidad(valor: string | number | null | undefined, unidad: string): string {
+  const cantidad = formatearCantidadPorUnidad(valor, unidad);
+  return cantidad ? `${cantidad}${ESPACIO_DURO}${nombreUnidad(unidad)}` : "";
 }
 
 function fechaDesdePartes(dia: string, mes: number, anio: string): string {

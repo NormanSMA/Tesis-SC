@@ -3,13 +3,19 @@ import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Badge } from "@/components/ui/badge";
-import { formatearCantidad, formatearFechaHora } from "@/lib/formato";
+import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, formatearFechaHora, nombreUnidad } from "@/lib/formato";
 import type { ListaMateriales, ListaMovimientos, MaterialDto, MovimientoDto } from "../dto";
 
-const ESTILO_TABLA = "min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed[&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2";
+const ESTILO_TABLA = "min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2";
+/** Vocabulario único de alerta de stock en lista y ficha: "Sin existencia" o "Bajo mínimo". */
+export function etiquetaAlertaMaterial(alerta: MaterialDto["alerta"]): string | null {
+  if (!alerta) return null;
+  return alerta === "Sin existencia" ? "Sin existencia" : "Bajo mínimo";
+}
 export function EstadoMaterial({ material }: { material: Pick<MaterialDto, "activo" | "alerta"> }) {
+  const alerta = etiquetaAlertaMaterial(material.alerta);
   return <div className="flex flex-wrap gap-1"><Badge variant="neutro">{material.activo ? "Activo" : "Archivado"}</Badge>
-    {material.alerta ? <Badge variant="advertencia">{material.alerta}</Badge> : null}</div>;
+    {alerta ? <Badge variant="advertencia">{alerta}</Badge> : null}</div>;
 }
 export function EstadoListaMaterial({ material }: { material: Pick<MaterialDto, "activo" | "alerta"> }) {
   if (!material.activo) return <Badge variant="neutro">Archivado</Badge>;
@@ -21,8 +27,8 @@ const columnasMaterial: ColumnaTabla<MaterialDto>[] = [
   { id: "material", encabezado: "Material", celda: (fila) =>
     <Link className="font-medium text-primary underline" href={`/inventario/${fila.id}`}>{fila.nombre}</Link> },
   { id: "existencia", encabezado: "Existencia", alinear: "derecha", celda: (fila) => <div>
-    {formatearCantidad(fila.existencia, 3)}<span className="block text-xs">{fila.unidad}</span></div> },
-  { id: "minimo", encabezado: "Stock mínimo", alinear: "derecha", celda: (fila) => formatearCantidad(fila.stockMinimo, 3) },
+    {formatearCantidadPorUnidad(fila.existencia, fila.unidad)}<span className="block text-xs">{nombreUnidad(fila.unidad)}</span></div> },
+  { id: "minimo", encabezado: "Stock mínimo", alinear: "derecha", celda: (fila) => formatearCantidadConUnidad(fila.stockMinimo, fila.unidad) },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoListaMaterial material={fila} /> },
 ];
 const columnasLibro: ColumnaTabla<MovimientoDto>[] = [
@@ -32,8 +38,8 @@ const columnasLibro: ColumnaTabla<MovimientoDto>[] = [
   { id: "tipo", encabezado: "Movimiento", celda: (fila) => <div><Badge variant="neutro">{etiquetar(ETIQUETA_MOVIMIENTO, fila.tipo)}</Badge>
     {fila.orden ? <Link className="block text-primary underline" href={`/ordenes/${fila.orden.id}`}>{fila.orden.numero}</Link> : null}
     <span className="block text-xs">{fila.referencia ?? fila.motivo}</span></div> },
-  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidad(fila.cantidad, 3) },
-  { id: "saldo", encabezado: "Existencia resultante", alinear: "derecha", celda: (fila) => formatearCantidad(fila.existenciaResultante, 3) },
+  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidadPorUnidad(fila.cantidad, fila.material.unidad) },
+  { id: "saldo", encabezado: "Existencia resultante", alinear: "derecha", celda: (fila) => formatearCantidadPorUnidad(fila.existenciaResultante, fila.material.unidad) },
   { id: "costo", encabezado: "Costos (C$)", alinear: "derecha", celda: (fila) => fila.costoUnitario === undefined
     ? <span className="text-xs">Sin permiso</span> : <div><span>Unitario: {formatearCantidad(fila.costoUnitario, 4)}</span>
       <span className="block text-xs">Promedio: {formatearCantidad(fila.costoPromedioResultante, 4)}</span></div> },

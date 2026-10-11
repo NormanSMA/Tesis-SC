@@ -14,25 +14,27 @@ import type { ListaProductos, ProductoDto } from "../tipos";
 import { EstadoProducto } from "./EstadoProducto";
 
 function TarjetaProducto({ producto, puedeGestionar }: { producto: ProductoDto; puedeGestionar: boolean }) {
-  return <Card className="relative min-w-0 overflow-hidden pt-0 transition duration-200 hover:-translate-y-0.5 hover:bg-background hover:shadow-md">
-    <Image src={imagenPorCategoria(producto.categoria.nombre)} alt={`Producto: ${producto.nombre}`}
-      width={640} height={640} sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, 50vw"
-      className="aspect-[2/1] w-full object-cover" />
-    <CardHeader>
-      <CardDescription className="flex items-center gap-2">
+  return <Card className="relative flex min-w-0 flex-col overflow-hidden pt-0 transition duration-200 hover:-translate-y-0.5 hover:bg-background hover:shadow-md">
+    <div className="relative flex aspect-[2/1] w-full items-center justify-center bg-muted">
+      <IconoServicio categoria={producto.categoria.nombre} tamano={48} />
+      <Image src={imagenPorCategoria(producto.categoria.nombre)} alt={`Producto: ${producto.nombre}`}
+        fill sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, 50vw" className="object-cover" />
+    </div>
+    <CardHeader className="grid-cols-[minmax(0,1fr)]">
+      <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <IconoServicio categoria={producto.categoria.nombre} tamano={24} className="shrink-0" />
-        <span className="min-w-0 truncate">{producto.categoria.nombre}</span>
-        <span className="shrink-0 whitespace-nowrap">· {producto.codigo}</span>
+        <span className="min-w-0 break-words">{producto.categoria.nombre}</span>
+        <span className="shrink-0 whitespace-nowrap font-mono text-xs">{producto.codigo}</span>
       </CardDescription>
-      <CardTitle><h2 className="text-base leading-normal break-words">
+      <CardTitle><h2 className="min-h-12 text-base leading-normal break-words">
         <Link className="outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset" href={`/catalogo/${producto.id}`}>{producto.nombre}</Link>
       </h2></CardTitle>
     </CardHeader>
-    <CardContent className="flex flex-wrap items-center justify-between gap-2">
+    <CardContent className="mt-auto flex flex-wrap items-center justify-between gap-2">
       <span className="tabular-nums"><Money valor={producto.precioBase} /> / {producto.unidadCobro === "M2" ? "m²" : "unidad"}</span>
       <EstadoProducto activo={producto.activo} />
     </CardContent>
-    {puedeGestionar && producto.activo ? <CardFooter className="mt-auto">
+    {puedeGestionar && producto.activo ? <CardFooter>
       <Button asChild variant="outline" className="relative z-10 w-full"><Link href={`/catalogo/${producto.id}/editar`} aria-label={`Editar ${producto.nombre}`}>Editar</Link></Button>
     </CardFooter> : null}
   </Card>;

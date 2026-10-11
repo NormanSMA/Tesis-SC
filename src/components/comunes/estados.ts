@@ -9,6 +9,7 @@ import {
   Factory,
   FilePen,
   Lock,
+  MessageSquareWarning,
   OctagonX,
   PackageCheck,
   Send,
@@ -36,6 +37,7 @@ export const ESTADOS: Record<TipoEstado, Record<string, DefinicionEstado>> = {
   cotizacion: {
     BORRADOR: { etiqueta: "Borrador", tono: "neutro", icono: FilePen },
     ENVIADA: { etiqueta: "Enviada", tono: "info", icono: Send },
+    AJUSTE_SOLICITADO: { etiqueta: "Ajustes solicitados", tono: "advertencia", icono: MessageSquareWarning },
     APROBADA: { etiqueta: "Aprobada", tono: "exito", icono: CircleCheck },
     RECHAZADA: { etiqueta: "Rechazada", tono: "peligro", icono: CircleX },
     VENCIDA: { etiqueta: "Vencida", tono: "advertencia", icono: TimerOff },

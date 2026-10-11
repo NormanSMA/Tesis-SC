@@ -2,7 +2,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { IconoServicio } from "@/components/comunes/IconoServicio";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
-import { formatearCantidad } from "@/lib/formato";
+import { formatearCantidadPorUnidad } from "@/lib/formato";
 import type { ItemDto, LineaDto } from "../tipos";
 
 type Categorias = ReadonlyMap<string, string>;
@@ -18,7 +18,7 @@ function columnasItems(categorias: Categorias): ColumnaTabla<ItemDto>[] {
       {item.ancho && item.alto ? <p className="text-xs text-muted-foreground">{item.ancho} × {item.alto} m</p> : null}
     </div>;
   } },
-  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (item) => formatearCantidad(item.cantidad, 3) },
+  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (item) => formatearCantidadPorUnidad(item.cantidad, item.unidadCobro === "M2" ? "M2" : "UNIDAD") },
   { id: "unidad", encabezado: "Cobro", celda: (item) => item.unidadCobro === "M2" ? "m²" : "Unidad" },
   { id: "precio", encabezado: "Precio unitario", alinear: "derecha", celda: (item) => <Money valor={item.precioUnitario} /> },
   { id: "importe", encabezado: "Importe", alinear: "derecha", celda: (item) => <Money valor={item.importe} /> },

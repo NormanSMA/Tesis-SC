@@ -62,18 +62,37 @@ const ETIQUETAS: Record<string, string> = {
   empresa_nombre: "Nombre de empresa", zona_horaria: "Zona horaria",
 };
 
+const NOMBRES_MONEDA: Record<string, string> = { NIO: "Córdoba (C$)", USD: "Dólar (US$)" };
+const NOMBRES_ZONA_HORARIA: Record<string, string> = { "America/Managua": "Managua (America/Managua)" };
+
+function sufijoParametro(clave: string, valor: string): string {
+  if (clave === "iva_porcentaje") return "%";
+  if (clave === "moneda") return NOMBRES_MONEDA[valor] ?? "";
+  return "";
+}
+
+function descripcionVisible({ clave, descripcion }: ParametroDto): string | null {
+  return clave === "moneda" ? descripcion?.replace(" (ISO 4217)", "") ?? null : descripcion;
+}
+
 function CampoParametro({ fila }: { fila: ReturnType<typeof useParametro> }) {
   const { parametro, valor, setValor, error } = fila;
   const id = `config-${parametro.clave}`;
   const soloLectura = parametro.clave === "zona_horaria";
+  const sufijo = sufijoParametro(parametro.clave, valor);
   return (
     <div className="min-w-0 space-y-1">
       <Label htmlFor={id} className="sr-only">{ETIQUETAS[parametro.clave] ?? parametro.clave}</Label>
-      <Input id={id} name="valor" value={valor} onChange={(evento: ChangeEvent<HTMLInputElement>) => setValor(evento.target.value)}
-        readOnly={soloLectura} disabled={fila.enviando || fila.conflicto} aria-invalid={Boolean(error)}
-        aria-describedby={`${id}-descripcion${error ? ` ${id}-error` : ""}`}
-        className={cn("min-h-10 w-full", soloLectura && "cursor-not-allowed bg-muted text-muted-foreground")}
-        inputMode={parametro.tipo === "DECIMAL" ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />
+      <div className="relative">
+        <Input id={id} name="valor" value={soloLectura ? NOMBRES_ZONA_HORARIA[valor] ?? valor : valor}
+          onChange={(evento: ChangeEvent<HTMLInputElement>) => setValor(evento.target.value)}
+          readOnly={soloLectura} disabled={fila.enviando || fila.conflicto} aria-invalid={Boolean(error)}
+          aria-describedby={`${id}-descripcion${error ? ` ${id}-error` : ""}`}
+          className={cn("min-h-10 w-full", sufijo && (sufijo.length > 1 ? "pr-32" : "pr-8"),
+            soloLectura && "cursor-not-allowed bg-muted text-foreground disabled:opacity-100")}
+          inputMode={parametro.tipo === "DECIMAL" ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />
+        {sufijo ? <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">{sufijo}</span> : null}
+      </div>
       {error ? <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
@@ -92,7 +111,7 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
           <legend className="sr-only">Editar parámetro</legend>
           <div className="min-w-0">
             <p className="font-medium">{nombre}</p>
-            <p id={`${id}-descripcion`} className="text-sm text-muted-foreground">{fila.parametro.descripcion}</p>
+            <p id={`${id}-descripcion`} className="text-sm text-muted-foreground">{descripcionVisible(fila.parametro)}</p>
             <p className="text-xs text-muted-foreground">Última edición: {fechaAdministracion(fila.parametro.actualizadoEn)}</p>
           </div>
           <CampoParametro fila={fila} />

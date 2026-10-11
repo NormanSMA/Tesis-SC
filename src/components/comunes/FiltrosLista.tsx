@@ -35,8 +35,9 @@ type PropiedadesCampo = {
 
 export function CampoFiltro({ id, etiqueta, className, children }: PropiedadesCampo) {
   return (
-    <div className={cn("w-full min-w-0 space-y-2 sm:w-auto sm:min-w-40 sm:flex-1", className)}>
-      <Label htmlFor={id} className="text-sm">
+    // Flex con gap en lugar de space-y: el select oculto de Radix es el último hijo y recibía margen inferior.
+    <div className={cn("flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:min-w-40 sm:flex-1", className)}>
+      <Label htmlFor={id} className="h-5 text-sm">
         {etiqueta}
       </Label>
       {children({ id })}

@@ -36,20 +36,23 @@ type ColumnaLista = {
   celda: (cliente: ClienteFila) => ReactNode;
 };
 
-// Máximo 5 columnas: contacto, teléfono y demás datos viven en la ficha. La fila entera enlaza a la ficha.
+// Máximo 4 columnas: contacto, teléfono y demás datos viven en la ficha. La fila entera enlaza a la ficha.
 function columnas(conCotizaciones: boolean): ColumnaLista[] {
   const lista: ColumnaLista[] = [
     {
       id: "nombre",
       encabezado: "Nombre",
-      movil: "max-md:col-start-1 max-md:row-start-1",
+      movil: "max-md:col-span-2",
       celda: (cliente) => (
-        <Link
-          href={`/clientes/${cliente.id}`}
-          className="font-medium text-foreground underline-offset-4 outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
-        >
-          {cliente.nombre}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/clientes/${cliente.id}`}
+            className="font-medium text-foreground underline-offset-4 outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+          >
+            {cliente.nombre}
+          </Link>
+          {cliente.activo ? null : <EstadoCliente activo={false} />}
+        </div>
       ),
     },
     {
@@ -59,12 +62,6 @@ function columnas(conCotizaciones: boolean): ColumnaLista[] {
       celda: (cliente) => cliente.codigoCliente,
     },
     { id: "tipo", encabezado: "Tipo", conEtiqueta: true, celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
-    {
-      id: "estado",
-      encabezado: "Estado",
-      movil: "max-md:col-start-2 max-md:row-start-1 max-md:justify-self-end",
-      celda: (cliente) => (cliente.activo ? null : <EstadoCliente activo={false} />),
-    },
   ];
   if (conCotizaciones) {
     lista.push({

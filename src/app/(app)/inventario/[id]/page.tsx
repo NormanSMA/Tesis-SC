@@ -3,10 +3,10 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
-import { formatearCantidad } from "@/lib/formato";
+import { formatearCantidad, formatearCantidadConUnidad, nombreUnidad } from "@/lib/formato";
 import { AccionesMaterial } from "@/modules/inventario/componentes/AccionesMaterial";
 import { FiltrosMovimientos } from "@/modules/inventario/componentes/FiltrosInventario";
-import { EstadoMaterial, TablaMovimientos } from "@/modules/inventario/componentes/TablasInventario";
+import { EstadoMaterial, TablaMovimientos, etiquetaAlertaMaterial } from "@/modules/inventario/componentes/TablasInventario";
 import { cargarMaterial, consultaPagina } from "@/modules/inventario/paginas";
 import { esquemaConsultaMovimientos } from "@/modules/inventario/schema";
 import { listarMovimientosMaterial, opcionesLibro } from "@/modules/inventario/service";
@@ -18,16 +18,16 @@ export default async function PaginaMaterial({ params, searchParams }: { params:
   const material = await cargarMaterial((await params).id, actor);
   const { consulta, error } = consultaPagina(await searchParams, esquemaConsultaMovimientos);
   const [libro, opciones] = await Promise.all([listarMovimientosMaterial(material.id, consulta, actor), opcionesLibro(actor, { ...consulta, material: material.id })]);
-  return <><PageHeader className="[&_h1]:break-words" titulo={material.nombre} descripcion={`${material.codigo} · ${material.unidad}`} acciones={<EstadoMaterial material={material} />} />
+  return <><PageHeader className="[&_h1]:break-words" titulo={material.nombre} descripcion={`${material.codigo} · ${nombreUnidad(material.unidad)}`} acciones={<EstadoMaterial material={material} />} />
     <div className="min-w-0 space-y-6">
       <AccionesMaterial key={material.actualizadoEn} material={material} permisos={{ gestionar: can(actor, "material:gestionar"),
         entrada: can(actor, "inventario:entrada"), ajustar: can(actor, "inventario:ajustar") }} />
       <Card className="min-w-0"><CardHeader><CardTitle><h2>Existencias y conciliación</h2></CardTitle></CardHeader>
         <CardContent className="space-y-4"><dl className="grid gap-4 sm:grid-cols-3">
-          <div><dt className="text-sm text-muted-foreground">Existencia</dt><dd className="text-2xl font-semibold">{formatearCantidad(material.existencia, 3)} {material.unidad}</dd></div>
-          <div><dt className="text-sm text-muted-foreground">Stock mínimo</dt><dd>{formatearCantidad(material.stockMinimo, 3)}</dd></div>
+          <div><dt className="text-sm text-muted-foreground">Existencia</dt><dd className="text-2xl font-semibold">{formatearCantidadConUnidad(material.existencia, material.unidad)}</dd></div>
+          <div><dt className="text-sm text-muted-foreground">Stock mínimo</dt><dd>{formatearCantidadConUnidad(material.stockMinimo, material.unidad)}</dd></div>
           <div><dt className="text-sm text-muted-foreground">Costo promedio (C$)</dt><dd>{formatearCantidad(material.costoPromedio, 4)}</dd></div></dl>
-          {material.alerta ? <p role="status" className="font-medium">{material.alerta}</p> : null}
+          {material.alerta ? <p role="status" className="font-medium">{etiquetaAlertaMaterial(material.alerta)}</p> : null}
           <p role={material.conciliacion.conciliado ? "status" : "alert"} className="text-sm">{material.conciliacion.conciliado ? "Conciliado" : "Diferencia de integridad"}
             : existencia {material.conciliacion.existencia}; suma del libro {material.conciliacion.sumaLibro}.</p>
           {material.descripcion ? <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{material.descripcion}</p> : null}
@@ -36,7 +36,7 @@ export default async function PaginaMaterial({ params, searchParams }: { params:
         <details open className="group min-w-0 space-y-5">
           <summary className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-ring">
             <h2 className="text-xl font-semibold">Movimientos</h2>
-            <span className="text-sm text-muted-foreground">({libro.total} registros)</span></summary>
+            <span className="text-sm text-muted-foreground">({libro.total} {libro.total === 1 ? "registro" : "registros"})</span></summary>
           {error ? <p role="alert">{error}</p> : null}<FiltrosMovimientos consulta={consulta} materialId={material.id} opciones={opciones} />
           <TablaMovimientos lista={libro} consulta={consulta} ruta={`/inventario/${material.id}`} sinMaterial /></details></section>
     </div></>;

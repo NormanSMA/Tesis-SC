@@ -1,4 +1,4 @@
-import { formatearCantidadPorUnidad, formatearMoneda, formatearPorcentaje } from "@/lib/formato";
+import { formatearCantidadPorUnidad, formatearMoneda, formatearPorcentaje, nombreUnidad } from "@/lib/formato";
 import type { NombreReporte } from "./schema";
 import type { ColumnaReporte, FilaReporte, ValorReporte } from "./tipos";
 
@@ -55,6 +55,7 @@ export function celdaVisible(columna: ColumnaReporte, fila: FilaReporte): ValorR
   const valor = fila[columna.campo] ?? null;
   if (valor === null) return "Sin dato";
   if (MONETARIAS.has(columna.campo)) return formatearMoneda(valor);
+  if (columna.campo === "unidad") return nombreUnidad(String(valor));
   if (CANTIDADES.has(columna.campo)) return formatearCantidadPorUnidad(valor, String(fila.unidad ?? ""));
   return valor;
 }

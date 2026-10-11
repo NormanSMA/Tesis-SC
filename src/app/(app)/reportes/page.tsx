@@ -18,9 +18,7 @@ export default async function PaginaReportes({ searchParams }: { searchParams: P
     prisma.area.findMany({ select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
   ]);
   return <><PageHeader titulo="Reportes" descripcion="Consulte indicadores y exporte información de la operación." acciones={
-    reporte && can(actor, "reporte:exportar") ? <div className="flex flex-wrap items-center gap-2">
-      <Button asChild variant="outline"><a href={enlaceExportacion(filtros.nombre, filtros.consulta, "xlsx")}>Exportar a Excel</a></Button>
-      <Button asChild variant="ghost"><a href={enlaceExportacion(filtros.nombre, filtros.consulta, "csv")}>Exportar CSV</a></Button></div> : undefined} />
+    reporte && can(actor, "reporte:exportar") ? <Button asChild variant="outline"><a href={enlaceExportacion(filtros.nombre, filtros.consulta, "xlsx")}>Exportar a Excel</a></Button> : undefined} />
     <div className="min-w-0 space-y-6">
       {!filtros.valido ? <p role="alert" aria-live="assertive">Revise el reporte y los filtros antes de consultar.</p> : null}
       <FiltrosReportes key={JSON.stringify(filtros)} nombre={filtros.nombre} consulta={filtros.consulta} areas={areas} campos={filtros.campos} />

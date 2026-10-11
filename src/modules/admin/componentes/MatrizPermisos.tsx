@@ -67,16 +67,15 @@ export function MatrizPermisos({ datos }: { datos: MatrizDto }) {
   const matriz = useMatrizPermisos(datos);
   const total = matriz.cambios.reduce((suma, cambio) => suma + cambio.altas.length + cambio.bajas.length, 0);
   return (
-    <div className="w-full min-w-0 max-w-full space-y-5">
+    <div className="w-full min-w-0 max-w-full space-y-5 pb-4">
       <p id="permisos-protegidos" className="text-sm text-muted-foreground">
-        ADMIN conserva usuario:gestionar, permiso:gestionar y configuracion:gestionar. Estos permisos están protegidos.
+        ADMIN conserva sus permisos de administración (usuarios, permisos y configuración).
       </p>
-      <p className="text-sm text-muted-foreground max-md:hidden">Desplace la matriz horizontalmente para consultar todos los perfiles.</p>
       {matriz.error ? <AvisoAdmin mensaje={matriz.error}
         alRecargar={matriz.conflicto ? () => window.location.reload() : undefined} /> : null}
       <p role="status">{matriz.mensaje}</p>
       <TablaPermisos datos={datos} seleccion={matriz.seleccion} enviando={matriz.enviando} alCambiar={matriz.cambiar} />
-      <div className="sticky bottom-0 z-30 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-sm">
+      <div className="sticky bottom-0 z-30 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t bg-background px-4 py-3 xl:-mx-6 xl:px-6">
         <p role="status" className="text-sm font-medium">{total ? `${total} ${total === 1 ? "cambio" : "cambios"} sin guardar` : "Sin cambios pendientes"}</p>
         <Button type="button" className="min-h-10" disabled={matriz.enviando || !total} onClick={() => matriz.setConfirmando(true)}>Guardar cambios</Button>
       </div>

@@ -15,7 +15,7 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
     <h2 className="text-lg font-semibold">{TITULOS_REPORTES[nombre]}</h2>
     <p className="text-sm text-muted-foreground">Generado: {formatearFechaHora(reporte.generadoEn)} (Managua).</p>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
-      idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed[&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
+      idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
       vacio={<EmptyState ilustracion="video-marketing" titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />
     <section aria-label="Totales del reporte" className="space-y-3"><h3 className="font-semibold">Totales</h3>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 [&_p]:break-words [&_p]:[overflow-wrap:anywhere]">{Object.entries(reporte.totales).map(([campo, valor]) =>

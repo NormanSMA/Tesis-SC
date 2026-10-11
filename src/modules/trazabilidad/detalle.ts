@@ -1,4 +1,5 @@
 import type { AccionBitacora } from "@/generated/prisma/client";
+import { formatearCantidad, formatearMoneda } from "@/lib/formato";
 import { textoValor } from "./etiquetas";
 
 type Regla = "valor" | "dinero" | "cliente" | { [campo: string]: Regla } | readonly [Regla];
@@ -99,19 +100,38 @@ const ETIQUETAS: Record<string, string> = { nombre: "Nombre", asunto: "Asunto", 
   fechaEmision: "Fecha de emisión", fechaVencimiento: "Fecha de vencimiento", unidad: "Unidad", unidadCobro: "Unidad de cobro",
   ancho: "Ancho", alto: "Alto", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
 
-function textoDato(dato: DetalleVisible[string] | undefined): string {
+const CAMPOS_MONEDA = new Set(["costoUnitario", "costoPromedioResultante", "costoPromedio", "precioBase", "importe",
+  "subtotal", "descuento", "impuesto", "total", "precioUnitario", "costoTotal"]);
+const CAMPOS_PORCENTAJE = new Set(["margenPct", "tasaImpuesto", "mermaPct"]);
+const CAMPOS_CANTIDAD = new Set(["cantidad", "existenciaResultante", "stockMinimo", "ancho", "alto"]);
+
+function sinCerosSobrantes(numero: string): string {
+  return numero.includes(".") ? numero.replace(/\.?0+$/, "") : numero;
+}
+
+function textoNumerico(campo: string, dato: string | number): string | undefined {
+  if (CAMPOS_MONEDA.has(campo)) return formatearMoneda(dato) || undefined;
+  if (CAMPOS_PORCENTAJE.has(campo)) {
+    const numero = sinCerosSobrantes(formatearCantidad(dato, 2));
+    return numero ? `${numero} %` : undefined;
+  }
+  if (CAMPOS_CANTIDAD.has(campo)) return sinCerosSobrantes(formatearCantidad(dato, 3)) || undefined;
+}
+
+function textoDato(dato: DetalleVisible[string] | undefined, campo: string): string {
   if (dato === null || dato === undefined) return "Sin asignar";
   if (typeof dato === "object") return "Datos actualizados";
-  return typeof dato === "boolean" ? dato ? "Sí" : "No" : String(dato);
+  if (typeof dato === "boolean") return dato ? "Sí" : "No";
+  return textoNumerico(campo, dato) ?? String(dato);
 }
 function resumirCampo(campo: string, valor: DetalleVisible[string]): string[] {
   const etiqueta = ETIQUETAS[campo] ?? campo;
   if (valor === null) return [];
-  if (typeof valor !== "object") return [`${etiqueta}: ${textoDato(valor)}`];
+  if (typeof valor !== "object") return [`${etiqueta}: ${textoDato(valor, campo)}`];
   if (Array.isArray(valor)) return valor.flatMap((fila) => resumirCampo(campo, fila));
   if ("anterior" in valor || "nuevo" in valor) {
     if (JSON.stringify(valor.anterior) === JSON.stringify(valor.nuevo)) return [];
-    return [`${etiqueta}: ${textoDato(valor.anterior)} → ${textoDato(valor.nuevo)}`];
+    return [`${etiqueta}: ${textoDato(valor.anterior, campo)} → ${textoDato(valor.nuevo, campo)}`];
   }
   if (campo === "material" && typeof valor.nombre === "string") return [`Material: ${valor.nombre}`];
   return Object.entries(valor).flatMap(([clave, dato]) => resumirCampo(clave, dato));
