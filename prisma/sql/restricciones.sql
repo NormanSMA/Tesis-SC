@@ -247,6 +247,13 @@ ALTER TABLE contador
   DROP CONSTRAINT IF EXISTS contador_valores,
   ADD CONSTRAINT contador_valores CHECK (anio BETWEEN 2000 AND 9999 AND ultimo >= 0);
 
+-- La clave temporal siempre tiene vencimiento.
+ALTER TABLE usuario
+  DROP CONSTRAINT IF EXISTS usuario_clave_temporal_con_vencimiento,
+  ADD CONSTRAINT usuario_clave_temporal_con_vencimiento CHECK (
+    contrasena_temporal = false OR contrasena_temporal_expira_en IS NOT NULL
+  );
+
 -- RB-08: un cambio de etapa en curso o completada conserva siempre su responsable.
 ALTER TABLE historial_etapa
   DROP CONSTRAINT IF EXISTS historial_etapa_responsable_obligatorio,
@@ -414,15 +421,31 @@ CREATE CONSTRAINT TRIGGER trg_movimiento_exige_consumo
 
 -- consumo_orden solo apunta a CONSUMO o DEVOLUCION, y lo devuelto no supera lo consumido
 -- por la misma orden y material. El bloqueo de fila del material serializa la verificacion.
+-- Estado de la orden (misma regla que src/modules/inventario/consumo-calculo.ts): CONSUMO solo en
+-- PENDIENTE, EN_PRODUCCION o LISTA; DEVOLUCION en cualquier estado salvo CERRADA.
+-- Los movimientos con fecha histórica (carga de datos de demostración) no se validan contra el estado actual.
 CREATE OR REPLACE FUNCTION fn_consumo_validar() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
   v_tipo tipo_movimiento;
+  v_creado timestamptz;
+  v_estado estado_orden;
   v_neto numeric;
 BEGIN
-  SELECT tipo INTO v_tipo FROM movimiento_inventario WHERE id = NEW.movimiento_id;
+  SELECT tipo, creado_en INTO v_tipo, v_creado FROM movimiento_inventario WHERE id = NEW.movimiento_id;
   IF v_tipo NOT IN ('CONSUMO', 'DEVOLUCION') THEN
     RAISE EXCEPTION 'consumo_orden solo admite movimientos CONSUMO o DEVOLUCION, recibido %', v_tipo
+      USING ERRCODE = 'SC005';
+  END IF;
+
+  SELECT estado INTO v_estado FROM orden_trabajo WHERE id = NEW.orden_id;
+  IF v_tipo = 'CONSUMO' AND v_creado >= now() - interval '1 hour'
+     AND v_estado NOT IN ('PENDIENTE', 'EN_PRODUCCION', 'LISTA') THEN
+    RAISE EXCEPTION 'La orden en estado % no admite consumo de material', v_estado
+      USING ERRCODE = 'SC005';
+  END IF;
+  IF v_tipo = 'DEVOLUCION' AND v_creado >= now() - interval '1 hour' AND v_estado = 'CERRADA' THEN
+    RAISE EXCEPTION 'La orden en estado % no admite devolucion de material', v_estado
       USING ERRCODE = 'SC005';
   END IF;
 

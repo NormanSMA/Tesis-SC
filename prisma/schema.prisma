@@ -200,6 +200,7 @@ model UsuarioPerfil {
 
   @@id([usuarioId, perfilId])
   @@index([perfilId])
+  @@index([asignadoPorId])
   @@map("usuario_perfil")
 }
 
@@ -228,6 +229,7 @@ model PerfilPermiso {
 
   @@id([perfilId, permisoId])
   @@index([permisoId])
+  @@index([otorgadoPorId])
   @@map("perfil_permiso")
 }
 
@@ -237,6 +239,9 @@ model Usuario {
   // Se guarda en minusculas; CHECK en restricciones.sql.
   correo           String    @unique @db.VarChar(254)
   hashContrasena   String    @map("hash_contrasena")
+  // Clave temporal entregada por un administrador: caduca y obliga a cambiarla en el primer acceso.
+  contrasenaTemporal         Boolean   @default(false) @map("contrasena_temporal")
+  contrasenaTemporalExpiraEn DateTime? @map("contrasena_temporal_expira_en") @db.Timestamptz(6)
   activo           Boolean   @default(true)
   intentosFallidos Int       @default(0) @map("intentos_fallidos")
   bloqueadoHasta   DateTime? @map("bloqueado_hasta") @db.Timestamptz(6)
@@ -429,6 +434,7 @@ model MovimientoInventario {
   @@index([materialId, creadoEn])
   @@index([tipo, creadoEn])
   @@index([usuarioId])
+  @@index([creadoEn, id])
   @@map("movimiento_inventario")
 }
 
@@ -523,6 +529,8 @@ model Cotizacion {
   @@index([creadoPorId, estado])
   @@index([cotizacionOrigenId])
   @@index([usuarioAprobacionId])
+  @@index([creadoEn, id])
+  @@index([fechaRespuesta])
   // Destino de la clave compuesta de orden_trabajo: el cliente de la orden es el de su cotizacion.
   @@unique([id, clienteId])
   @@map("cotizacion")
@@ -620,6 +628,7 @@ model OrdenTrabajo {
   @@index([categoriaId])
   @@index([creadoPorId])
   @@index([clienteId])
+  @@index([creadoEn, id])
   // Requerido por Prisma para la relacion uno a uno con cotizacion (cotizacion_id ya es unico).
   @@unique([cotizacionId, clienteId])
   @@map("orden_trabajo")
@@ -645,6 +654,7 @@ model HistorialEtapa {
   @@index([ordenId, creadoEn])
   @@index([etapaId, creadoEn])
   @@index([usuarioId])
+  @@index([responsableId])
   @@map("historial_etapa")
 }
 
