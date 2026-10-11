@@ -25,17 +25,17 @@ export function AccionesEtapa({ etapa, estadoOrden, permisos, responsables = [],
   }
   return <div className="min-w-0 space-y-2 text-left"><AvisoProduccion {...solicitud} />
     <div className="flex flex-wrap gap-2">
-      {planificar && etapa.estado !== "COMPLETADA" ? <Button size="sm" variant="outline" disabled={solicitud.enviando}
+      {planificar && etapa.estado !== "COMPLETADA" ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
         aria-label={`Asignar responsable: ${etapa.nombre}`} onClick={() => setDialogo("responsable")}>Asignar</Button> : null}
-      {planificar && ["PENDIENTE", "EN_CURSO"].includes(etapa.estado) ? <Button size="sm" variant="outline" disabled={solicitud.enviando}
+      {planificar && ["PENDIENTE", "EN_CURSO"].includes(etapa.estado) ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
         aria-label={`Planificar fechas: ${etapa.nombre}`} onClick={() => setDialogo("fechas")}>Fechas</Button> : null}
-      {iniciar ? <Button size="sm" disabled={solicitud.enviando} aria-label={`Iniciar: ${etapa.nombre}`}
+      {iniciar ? <Button size="sm" className="h-10" disabled={solicitud.enviando} aria-label={`Iniciar: ${etapa.nombre}`}
         onClick={() => ejecutar("iniciar")}>Iniciar</Button> : null}
-      {permisos.ejecutar && etapa.estado === "EN_CURSO" ? <Button size="sm" disabled={solicitud.enviando}
+      {permisos.ejecutar && etapa.estado === "EN_CURSO" ? <Button size="sm" className="h-10" disabled={solicitud.enviando}
         aria-label={`Completar: ${etapa.nombre}`} onClick={() => ejecutar("completar")}>Completar</Button> : null}
-      {planificar && etapa.estado === "PENDIENTE" ? <Button size="sm" variant="outline" disabled={solicitud.enviando}
+      {planificar && etapa.estado === "PENDIENTE" ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
         aria-label={`Omitir: ${etapa.nombre}`} onClick={() => setDialogo("omitir")}>Omitir</Button> : null}
-      {planificar && etapa.estado === "OMITIDA" ? <Button size="sm" variant="outline" disabled={solicitud.enviando}
+      {planificar && etapa.estado === "OMITIDA" ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
         aria-label={`Restaurar: ${etapa.nombre}`} onClick={() => ejecutar("restaurar")}>Restaurar</Button> : null}
     </div>
     {dialogo === "omitir" ? <OmitirEtapa etapa={etapa} cerrar={() => setDialogo(null)} /> : null}

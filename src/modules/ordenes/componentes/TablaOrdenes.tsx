@@ -8,17 +8,24 @@ import type { ConsultaOrdenes } from "../schema";
 import type { ListaOrdenes, OrdenFila } from "../tipos";
 
 const columnas: ColumnaTabla<OrdenFila>[] = [
-  { id: "numero", encabezado: "Número", principal: true, celda: (fila) => <div className="space-y-1">
-    <Link href={`/ordenes/${fila.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{fila.numero}</Link>
-    <span className="block text-xs text-muted-foreground xl:hidden">{fila.categoria.nombre}</span></div> },
-  { id: "cliente", encabezado: "Cliente", celda: (fila) => <div className="space-y-1"><span>{fila.cliente.nombre}</span>
-    <span className="block text-xs text-muted-foreground xl:hidden">Responsable: {fila.responsable?.nombre ?? "Sin responsable"}</span></div> },
-  { id: "categoria", encabezado: "Categoría", celda: (fila) => fila.categoria.nombre },
+  { id: "numero", encabezado: "Número", celda: (fila) => <Link href={`/ordenes/${fila.id}`}
+    className="font-semibold text-foreground underline-offset-4 after:absolute after:inset-0 hover:underline">{fila.numero}</Link> },
+  { id: "cliente", encabezado: "Cliente", celda: (fila) => fila.cliente.nombre },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoBadge tipo="orden" estado={fila.estado} /> },
-  { id: "responsable", encabezado: "Responsable", celda: (fila) => fila.responsable?.nombre ?? "Sin responsable" },
-  { id: "entrega", encabezado: "Entrega", celda: (fila) => <div className="space-y-1"><Fecha valor={fila.fechaEntrega} />
+  { id: "entrega", encabezado: "Entrega", celda: (fila) => <div className="space-y-1">
+    <span><span className="md:sr-only">Entrega: </span><Fecha valor={fila.fechaEntrega} /></span>
     {fila.atrasada ? <span className="flex items-center gap-1 text-xs font-semibold text-danger"><TriangleAlert aria-hidden="true" className="size-4" />Atrasada</span> : null}</div> },
+  { id: "responsable", encabezado: "Responsable", celda: (fila) => <span>
+    <span className="md:sr-only">Responsable: </span>{fila.responsable?.nombre ?? "Sin responsable"}</span> },
 ];
+
+// Escritorio: tabla de 5 columnas. Móvil: cada fila se apila como tarjeta. La fila completa enlaza a la ficha.
+const CLASE_TABLA = [
+  "min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2",
+  "[&_tbody_tr]:relative [&_tbody_tr]:cursor-pointer [&_tbody_tr:hover]:bg-muted/60 [&_tbody_tr:focus-within]:outline-2 [&_tbody_tr:focus-within]:-outline-offset-2 [&_tbody_tr:focus-within]:outline-ring",
+  "max-md:[&_thead]:sr-only max-md:[&_table]:block max-md:[&_tbody]:block max-md:[&_tbody_tr]:block max-md:[&_tbody_tr]:min-h-10 max-md:[&_tbody_tr]:px-1 max-md:[&_tbody_tr]:py-2",
+  "max-md:[&_td]:block max-md:[&_td]:py-1",
+].join(" ");
 
 function hrefPagina(consulta: ConsultaOrdenes, pagina: number) {
   const parametros = new URLSearchParams();
@@ -30,7 +37,7 @@ function hrefPagina(consulta: ConsultaOrdenes, pagina: number) {
 
 export function TablaOrdenes({ lista, consulta }: { lista: ListaOrdenes; consulta: ConsultaOrdenes }) {
   return <DataTable titulo="Listado de órdenes de trabajo" columnas={columnas} filas={lista.datos} idFila={(fila) => fila.id}
-    className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2 [&_th:first-child]:w-32 max-xl:[&_th:nth-child(3)]:hidden max-xl:[&_td:nth-child(3)]:hidden max-xl:[&_th:nth-child(5)]:hidden max-xl:[&_td:nth-child(5)]:hidden"
+    className={CLASE_TABLA}
     vacio={<EmptyState titulo="Sin órdenes" descripcion="Ajuste los filtros o convierta una cotización aprobada." />}
     paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
       hrefPagina: (pagina) => hrefPagina(consulta, pagina) }} />;

@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 
 import { ETIQUETA_TIPO } from "../schema";
 import type { ClienteDto } from "../tipos";
-import { EstadoCliente } from "./EstadoCliente";
 
 function Dato({ etiqueta, children, ancho }: { etiqueta: string; children: ReactNode; ancho?: boolean }) {
   return (
@@ -24,12 +23,9 @@ export function DatosCliente({ cliente, className }: { cliente: ClienteDto; clas
   return (
     <Card className={className} aria-labelledby="datos-cliente">
       <div className="space-y-5 px-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="datos-cliente" className="text-xl font-semibold tracking-tight text-foreground">
-            Datos del cliente
-          </h2>
-          <EstadoCliente activo={cliente.activo} />
-        </div>
+        <h2 id="datos-cliente" className="text-xl font-semibold tracking-tight text-foreground">
+          Datos del cliente
+        </h2>
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
           <Dato etiqueta="Tipo">{ETIQUETA_TIPO[cliente.tipo]}</Dato>
           <Dato etiqueta="RUC">{textoOGuion(cliente.ruc)}</Dato>

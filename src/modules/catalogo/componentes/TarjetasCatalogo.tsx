@@ -6,7 +6,6 @@ import { Paginacion } from "@/components/comunes/Paginacion";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatearCantidad } from "@/lib/formato";
 
 import { imagenPorCategoria } from "../imagenes";
 import type { ConsultaProductos } from "../schema";
@@ -14,26 +13,22 @@ import type { ListaProductos, ProductoDto } from "../tipos";
 import { EstadoProducto } from "./EstadoProducto";
 
 function TarjetaProducto({ producto, puedeGestionar }: { producto: ProductoDto; puedeGestionar: boolean }) {
-  return <Card className="min-w-0 overflow-hidden pt-0">
+  return <Card className="relative min-w-0 overflow-hidden pt-0 transition-colors hover:bg-background">
     <Image src={imagenPorCategoria(producto.categoria.nombre)} alt={`Producto: ${producto.nombre}`}
       width={640} height={640} sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, 50vw"
       className="aspect-[4/3] w-full object-cover" />
     <CardHeader>
       <CardDescription className="break-words">{producto.categoria.nombre} · {producto.codigo}</CardDescription>
       <CardTitle><h2 className="text-base leading-normal break-words">
-        <Link className="hover:underline" href={`/catalogo/${producto.id}`}>{producto.nombre}</Link>
+        <Link className="outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset" href={`/catalogo/${producto.id}`}>{producto.nombre}</Link>
       </h2></CardTitle>
     </CardHeader>
     <CardContent className="flex flex-wrap items-center justify-between gap-2">
       <span className="tabular-nums"><Money valor={producto.precioBase} /> / {producto.unidadCobro === "M2" ? "m²" : "unidad"}</span>
       <EstadoProducto activo={producto.activo} />
-      {producto.costoUnitario !== undefined ? <dl className="w-full">
-        <dt className="text-sm text-muted-foreground">Costo de referencia</dt>
-        <dd className="tabular-nums">{producto.costoUnitario === null ? "Sin costo de referencia" : `C$ ${formatearCantidad(producto.costoUnitario, 4)}`}</dd>
-      </dl> : null}
     </CardContent>
     {puedeGestionar && producto.activo ? <CardFooter className="mt-auto">
-      <Button asChild variant="outline" className="w-full"><Link href={`/catalogo/${producto.id}/editar`} aria-label={`Editar ${producto.nombre}`}>Editar</Link></Button>
+      <Button asChild variant="outline" className="relative z-10 w-full"><Link href={`/catalogo/${producto.id}/editar`} aria-label={`Editar ${producto.nombre}`}>Editar</Link></Button>
     </CardFooter> : null}
   </Card>;
 }

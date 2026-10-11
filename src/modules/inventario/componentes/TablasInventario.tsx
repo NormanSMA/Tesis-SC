@@ -10,15 +10,19 @@ export function EstadoMaterial({ material }: { material: Pick<MaterialDto, "acti
   return <div className="flex flex-wrap gap-1"><Badge variant="neutro">{material.activo ? "Activo" : "Archivado"}</Badge>
     {material.alerta ? <Badge variant="advertencia">{material.alerta}</Badge> : null}</div>;
 }
+export function EstadoListaMaterial({ material }: { material: Pick<MaterialDto, "activo" | "alerta"> }) {
+  if (!material.activo) return <Badge variant="neutro">Archivado</Badge>;
+  if (material.alerta === "Sin existencia") return <Badge variant="peligro">Sin existencia</Badge>;
+  return material.alerta ? <Badge variant="advertencia">Bajo mínimo</Badge> : <Badge variant="neutro">Normal</Badge>;
+}
 const columnasMaterial: ColumnaTabla<MaterialDto>[] = [
-  { id: "material", encabezado: "Material", principal: true, celda: (fila) => <div>
-    <Link className="font-medium text-primary underline" href={`/inventario/${fila.id}`}>{fila.nombre}</Link>
-    <span className="block text-xs text-muted-foreground">{fila.codigo}</span></div> },
+  { id: "codigo", encabezado: "Código", principal: true, celda: (fila) => <span className="font-medium">{fila.codigo}</span> },
+  { id: "material", encabezado: "Material", celda: (fila) =>
+    <Link className="font-medium text-primary underline" href={`/inventario/${fila.id}`}>{fila.nombre}</Link> },
   { id: "existencia", encabezado: "Existencia", alinear: "derecha", celda: (fila) => <div>
     {formatearCantidad(fila.existencia, 3)}<span className="block text-xs">{fila.unidad}</span></div> },
   { id: "minimo", encabezado: "Stock mínimo", alinear: "derecha", celda: (fila) => formatearCantidad(fila.stockMinimo, 3) },
-  { id: "costo", encabezado: "Costo promedio (C$)", alinear: "derecha", celda: (fila) => formatearCantidad(fila.costoPromedio, 4) },
-  { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoMaterial material={fila} /> },
+  { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoListaMaterial material={fila} /> },
 ];
 const columnasLibro: ColumnaTabla<MovimientoDto>[] = [
   { id: "fecha", encabezado: "Fecha (Managua)", principal: true, celda: (fila) => <div>{formatearFechaHora(fila.creadoEn)}
@@ -46,8 +50,10 @@ export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; c
     idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
       tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta: "/inventario", consulta, pagina }) }} />;
 }
-export function TablaMovimientos({ lista, consulta, ruta = "/inventario" }: { lista: ListaMovimientos; consulta: object; ruta?: string }) {
-  return <DataTable titulo="Libro de movimientos del inventario" filas={lista.datos} columnas={columnasLibro}
+export function TablaMovimientos({ lista, consulta, ruta = "/inventario", sinMaterial = false }: {
+  lista: ListaMovimientos; consulta: object; ruta?: string; sinMaterial?: boolean }) {
+  return <DataTable titulo="Libro de movimientos del inventario" filas={lista.datos}
+    columnas={sinMaterial ? columnasLibro.filter((columna) => columna.id !== "material") : columnasLibro}
     idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
       tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta, consulta: { ...consulta, pestana: "movimientos" }, pagina }) }} />;
 }

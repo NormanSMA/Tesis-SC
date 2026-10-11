@@ -18,7 +18,16 @@ function FiltroSeleccion({ nombre, etiqueta, valor, opciones }: {
   </FormField>;
 }
 
+function hrefSinResponsable(consulta: ConsultaOrdenes, activo: boolean) {
+  const parametros = new URLSearchParams();
+  for (const [campo, valor] of Object.entries({ ...consulta, pagina: undefined, responsable: activo ? undefined : "sin-responsable" })) {
+    if (valor !== undefined && valor !== "") parametros.set(campo, String(valor));
+  }
+  return `/ordenes?${parametros}`;
+}
+
 export function FiltrosOrdenes({ consulta, responsables }: { consulta: ConsultaOrdenes; responsables: ReferenciaOrden[] }) {
+  const sinResponsable = consulta.responsable === "sin-responsable";
   return <form action="/ordenes" method="get" role="search" aria-label="Buscar órdenes" className="mb-5 flex flex-wrap items-end gap-3">
     {consulta.cliente ? <input type="hidden" name="cliente" value={consulta.cliente} /> : null}
     <FormField id="filtro-q" etiqueta="Buscar" className="min-w-48 flex-[2]">
@@ -33,5 +42,7 @@ export function FiltrosOrdenes({ consulta, responsables }: { consulta: ConsultaO
     <FiltroSeleccion nombre="vencidas" etiqueta="Atraso" valor={consulta.vencidas}
       opciones={[{ id: "false", nombre: "Todas las fechas" }, { id: "true", nombre: "Atrasadas" }]} />
     <Button type="submit">Buscar</Button><Button asChild variant="outline"><Link href="/ordenes">Limpiar filtros</Link></Button>
+    <Button asChild variant={sinResponsable ? "default" : "outline"}>
+      <Link href={hrefSinResponsable(consulta, sinResponsable)} aria-current={sinResponsable ? "true" : undefined}>Sin responsable</Link></Button>
   </form>;
 }

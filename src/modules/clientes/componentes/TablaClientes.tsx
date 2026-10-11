@@ -1,9 +1,12 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { Paginacion } from "@/components/comunes/Paginacion";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 import { ETIQUETA_TIPO, type ConsultaClientes } from "../schema";
 import type { ClienteFila, ListaClientes } from "../tipos";
@@ -23,37 +26,56 @@ function hrefPagina(consulta: ConsultaClientes, pagina: number): string {
   return texto ? `/clientes?${texto}` : "/clientes";
 }
 
-// DataTable no permite ocultar columnas por ancho: a 820 px las claves (nombre, estado, cotizaciones)
-// van primero y quedan visibles; las secundarias van a la derecha y se alcanzan desplazando la tabla.
-function columnas(conCotizaciones: boolean): ColumnaTabla<ClienteFila>[] {
-  const claves: ColumnaTabla<ClienteFila>[] = [
-    { id: "codigoCliente", encabezado: "Código", celda: (cliente) => cliente.codigoCliente },
+type ColumnaLista = {
+  id: string;
+  encabezado: string;
+  derecha?: boolean;
+  /** Clases de la celda en móvil, donde cada fila se apila como tarjeta. */
+  movil?: string;
+  conEtiqueta?: boolean;
+  celda: (cliente: ClienteFila) => ReactNode;
+};
+
+// Máximo 5 columnas: contacto, teléfono y demás datos viven en la ficha. La fila entera enlaza a la ficha.
+function columnas(conCotizaciones: boolean): ColumnaLista[] {
+  const lista: ColumnaLista[] = [
     {
       id: "nombre",
       encabezado: "Nombre",
-      principal: true,
+      movil: "max-md:col-start-1 max-md:row-start-1",
       celda: (cliente) => (
-        <Link href={`/clientes/${cliente.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href={`/clientes/${cliente.id}`}
+          className="font-medium text-foreground underline-offset-4 outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+        >
           {cliente.nombre}
         </Link>
       ),
     },
-    { id: "estado", encabezado: "Estado", celda: (cliente) => <EstadoCliente activo={cliente.activo} /> },
+    {
+      id: "codigoCliente",
+      encabezado: "Código",
+      conEtiqueta: true,
+      celda: (cliente) => cliente.codigoCliente,
+    },
+    { id: "tipo", encabezado: "Tipo", conEtiqueta: true, celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
+    {
+      id: "estado",
+      encabezado: "Estado",
+      movil: "max-md:col-start-2 max-md:row-start-1 max-md:justify-self-end",
+      celda: (cliente) => <EstadoCliente activo={cliente.activo} />,
+    },
   ];
   if (conCotizaciones) {
-    claves.push({
+    lista.push({
       id: "cotizaciones",
       encabezado: "Cotizaciones",
-      alinear: "derecha",
+      derecha: true,
+      conEtiqueta: true,
       celda: (cliente) => <span className="tabular-nums">{cliente.cotizaciones ?? 0}</span>,
     });
   }
-  return [
-    ...claves,
-    { id: "tipo", encabezado: "Tipo", celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
-    { id: "contacto", encabezado: "Contacto", celda: (cliente) => cliente.contactoPrincipal ?? "—" },
-    { id: "telefono", encabezado: "Teléfono", celda: (cliente) => cliente.telefono ?? "—" },
-  ];
+  return lista;
 }
 
 type PropiedadesSinResultados = { consulta: ConsultaClientes; puedeGestionar: boolean; totalGeneral: number };
@@ -110,20 +132,58 @@ type PropiedadesTabla = {
   conCotizaciones: boolean;
 };
 
-export function TablaClientes({ lista, consulta, puedeGestionar, conCotizaciones }: PropiedadesTabla) {
+function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: ColumnaLista[] }) {
   return (
-    <DataTable
-      titulo="Listado de clientes"
-      columnas={columnas(conCotizaciones)}
-      filas={lista.datos}
-      idFila={(cliente) => cliente.id}
-      vacio={<SinResultados consulta={consulta} puedeGestionar={puedeGestionar} totalGeneral={lista.total} />}
-      paginacion={{
-        pagina: lista.pagina,
-        total: lista.total,
-        tamano: lista.porPagina,
-        hrefPagina: (pagina) => hrefPagina(consulta, pagina),
-      }}
-    />
+    <TableRow className="relative h-12 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-y-1 max-md:px-4 max-md:py-3">
+      {visibles.map((columna) => (
+        <TableCell
+          key={columna.id}
+          data-etiqueta={columna.encabezado}
+          className={cn(
+            "max-md:p-0 max-md:whitespace-normal max-md:break-words",
+            columna.derecha && "text-right",
+            columna.conEtiqueta &&
+              "max-md:col-span-2 max-md:flex max-md:justify-between max-md:text-sm max-md:text-muted-foreground max-md:before:content-[attr(data-etiqueta)]",
+            columna.movil,
+          )}
+        >
+          {columna.celda(cliente)}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+export function TablaClientes({ lista, consulta, puedeGestionar, conCotizaciones }: PropiedadesTabla) {
+  if (lista.datos.length === 0) {
+    return <SinResultados consulta={consulta} puedeGestionar={puedeGestionar} totalGeneral={lista.total} />;
+  }
+  const visibles = columnas(conCotizaciones);
+  return (
+    <div className="overflow-hidden rounded-lg border bg-card">
+      <Table containerProps={{ role: "region", "aria-label": "Listado de clientes", tabIndex: 0 }}>
+        <caption className="sr-only">Listado de clientes</caption>
+        <TableHeader className="max-md:sr-only">
+          <TableRow className="hover:bg-transparent">
+            {visibles.map((columna) => (
+              <TableHead key={columna.id} scope="col" className={cn(columna.derecha && "text-right")}>
+                {columna.encabezado}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lista.datos.map((cliente) => (
+            <FilaCliente key={cliente.id} cliente={cliente} visibles={visibles} />
+          ))}
+        </TableBody>
+      </Table>
+      <Paginacion
+        pagina={lista.pagina}
+        total={lista.total}
+        tamano={lista.porPagina}
+        hrefPagina={(pagina) => hrefPagina(consulta, pagina)}
+      />
+    </div>
   );
 }

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { enviarApi } from "../api";
 import type { ProductoDto } from "../tipos";
 
-export function AccionesEstado({ producto }: { producto: ProductoDto }) {
+export function AccionesEstado({ producto, principal = false }: { producto: ProductoDto; principal?: boolean }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -27,7 +27,7 @@ export function AccionesEstado({ producto }: { producto: ProductoDto }) {
     router.refresh();
   }
   return <>
-    <Button variant="outline" onClick={() => setAbierto(true)}>
+    <Button variant={principal ? "default" : "outline"} onClick={() => setAbierto(true)}>
       {producto.activo ? <Archive aria-hidden="true" /> : <ArchiveRestore aria-hidden="true" />}{accion}
     </Button>
     <ConfirmDialog abierto={abierto} alCambiarAbierto={setAbierto} titulo={`${accion} producto`}

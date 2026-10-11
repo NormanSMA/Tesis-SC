@@ -33,7 +33,7 @@ export default async function PaginaProduccion({ searchParams }: { searchParams:
       <FiltrosProduccion key={JSON.stringify(consulta)} consulta={consulta} opciones={opciones} />
       <p className="text-sm text-muted-foreground">Etapas abiertas: {tablero.total}</p>
       <TableroProduccion porArea={tablero.porArea} porResponsable={tablero.porResponsable} permisos={permisos}
-        vistaInicial={parametros.vista === "area" ? "area" : "responsable"} />
+        vistaInicial={parametros.vista === "area" ? "area" : "responsable"} miId={actor.id} />
     </div>
   </>;
 }

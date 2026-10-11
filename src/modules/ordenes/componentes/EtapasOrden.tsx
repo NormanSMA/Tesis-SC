@@ -24,10 +24,12 @@ export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables 
   etapas: EtapaOrdenDto[]; orden?: Pick<OrdenDto, "id" | "estado" | "actualizadoEn" | "etapas">;
   permisos?: PermisosEtapas; areas?: ReferenciaOrden[]; responsables?: ReferenciaOrden[];
 }) {
+  // "Marcar lista" vive en el encabezado de la ficha (siguiente paso) mientras la orden está en producción.
   const acciones = orden && permisos && (permisos.planificar || permisos.ejecutar);
   return <section aria-labelledby="titulo-etapas"><h2 id="titulo-etapas" className="mb-2 text-xl font-semibold">Etapas</h2>
     <p className="mb-4 text-sm text-muted-foreground">Consulte las etapas y sus fechas.</p>
-    {orden && permisos ? <div className="mb-4"><AccionesProduccionOrden orden={orden} areas={areas} permisos={permisos} /></div> : null}
+    {orden && permisos ? <div className="mb-4"><AccionesProduccionOrden orden={orden} areas={areas}
+      permisos={{ ...permisos, avanzar: permisos.avanzar && orden.estado !== "EN_PRODUCCION" }} /></div> : null}
     <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
       acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
         permisos={permisos} responsables={responsables} /> : undefined}

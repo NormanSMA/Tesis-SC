@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { MaterialesOrden } from "@/modules/inventario/componentes/MaterialesOrden";
-import { AccionesOrden } from "@/modules/ordenes/componentes/AccionesOrden";
 import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
-import { DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { DatosCliente, DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { EncabezadoOrden } from "@/modules/ordenes/componentes/EncabezadoOrden";
 import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
+import { FichaOrden } from "@/modules/ordenes/componentes/FichaOrden";
 import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
 import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
 import { cargarOrden } from "@/modules/ordenes/paginas";
@@ -29,13 +28,15 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
   return <>
     <PageHeader titulo={orden.numero} descripcion={orden.cliente.nombre} acciones={<EstadoBadge tipo="orden" estado={orden.estado} />} />
     <div className="min-w-0 space-y-6" key={orden.actualizadoEn}>
-      <AccionesOrden orden={orden} permisos={permisos} />
-      <Button asChild variant="outline"><Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button>
-      <DatosOrden orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />
-      <ItemsOrden items={orden.items} /><EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
+      <EncabezadoOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+      <EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
         areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
-      <ConsumoEstimadoOrden orden={orden} /><LineaTiempoOrden eventos={orden.eventos} />
-      {can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : null}
+      <FichaOrden
+        especificaciones={<><DatosOrden orden={orden} /><ItemsOrden items={orden.items} /></>}
+        cliente={<DatosCliente orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />}
+        consumo={<ConsumoEstimadoOrden orden={orden} />}
+        materiales={can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : undefined}
+        historial={<LineaTiempoOrden eventos={orden.eventos} />} />
     </div>
   </>;
 }

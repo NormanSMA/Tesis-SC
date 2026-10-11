@@ -8,7 +8,14 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/comunes/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
-type PropiedadesAcciones = { id: string; nombre: string; activo: boolean; version: string };
+type PropiedadesAcciones = {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  version: string;
+  /** Marca la acción como siguiente paso de la ficha (botón con énfasis). */
+  principal?: boolean;
+};
 
 type CuerpoError = { error?: { codigo?: string; mensaje?: string } };
 
@@ -29,7 +36,7 @@ async function enviarCambio(url: string, version: string): Promise<string | null
   }
 }
 
-export function AccionesEstado({ id, nombre, activo, version }: PropiedadesAcciones) {
+export function AccionesEstado({ id, nombre, activo, version, principal = false }: PropiedadesAcciones) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -46,7 +53,7 @@ export function AccionesEstado({ id, nombre, activo, version }: PropiedadesAccio
 
   return (
     <>
-      <Button type="button" variant="outline" onClick={() => setAbierto(true)}>
+      <Button type="button" variant={principal ? "default" : "outline"} onClick={() => setAbierto(true)}>
         {activo ? <Archive aria-hidden="true" /> : <ArchiveRestore aria-hidden="true" />}
         {activo ? "Archivar" : "Reactivar"}
       </Button>

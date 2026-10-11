@@ -25,8 +25,8 @@ const columnasLineas: ColumnaTabla<LineaDto>[] = [
 ];
 
 function CostosItem({ item }: { item: ItemDto }) {
-  return <Card className="px-5"><details>
-    <summary className="cursor-pointer rounded-md py-2 text-base font-semibold focus-visible:outline-2 focus-visible:outline-ring">
+  return <details className="rounded-md border px-4">
+    <summary className="flex min-h-10 cursor-pointer items-center rounded-md py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-ring">
       Costos del ítem {item.secuencia}: {item.descripcion}
     </summary>
     <dl className="my-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
@@ -35,6 +35,20 @@ function CostosItem({ item }: { item: ItemDto }) {
     </dl>
     <p className="mb-3 text-sm text-muted-foreground">Los consumos corresponden al ítem completo.</p>
     <DataTable titulo={`Líneas de costo del ítem ${item.secuencia}`} columnas={columnasLineas} filas={item.lineas} idFila={(linea) => linea.id} />
+  </details>;
+}
+
+/** Sección plegable con los costos y el margen de cada ítem personalizado. Solo uso interno. */
+export function CostosInternosCotizacion({ items, margenPct }: { items: ItemDto[]; margenPct: string | null }) {
+  const personalizados = items.filter((item) => item.tipo === "PERSONALIZADO");
+  if (!personalizados.length) return null;
+  return <Card className="px-5"><details>
+    <summary className="flex min-h-10 cursor-pointer items-center rounded-md text-base font-semibold focus-visible:outline-2 focus-visible:outline-ring">
+      Costos internos
+    </summary>
+    <dl className="my-4 flex justify-between gap-4 text-sm"><dt>Margen de ítems personalizados</dt>
+      <dd>{margenPct === null ? "—" : `${margenPct} %`}</dd></dl>
+    <div className="space-y-3">{personalizados.map((item) => <CostosItem key={item.id} item={item} />)}</div>
   </details></Card>;
 }
 

@@ -15,19 +15,25 @@ function hrefPagina(consulta: ConsultaCotizaciones, pagina: number) {
   return `/cotizaciones?${parametros}`;
 }
 
+/** Enlace extendido: toda la fila navega a la ficha. El resto de las celdas es solo texto. */
+const ENLACE_FILA = "font-medium text-primary underline-offset-4 outline-none after:absolute after:inset-0 after:content-[''] hover:underline";
 const columnas: ColumnaTabla<CotizacionFila>[] = [
-  { id: "numero", encabezado: "Número", principal: true, celda: (fila) =>
-    <div><Link href={`/cotizaciones/${fila.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{fila.numero}</Link>
+  { id: "numero", encabezado: "Número", celda: (fila) =>
+    <div><Link href={`/cotizaciones/${fila.id}`} className={ENLACE_FILA}>{fila.numero}</Link>
       <span className="block text-xs text-muted-foreground">Versión {fila.version}</span></div> },
-  { id: "cliente", encabezado: "Cliente", celda: (fila) => <span className="block max-w-48 truncate" title={fila.cliente.nombre}>{fila.cliente.nombre}</span> },
-  { id: "estado", encabezado: "Estado", celda: (fila) => <div><EstadoCotizacion estado={fila.estado} />
-    {fila.usuarioAprobacion ? <span className="mt-1 block text-xs">{fila.usuarioAprobacion.nombre}</span> : null}
-    {fila.referenciaAprobacion ? <span className="block text-xs">{fila.referenciaAprobacion}</span> : null}</div> },
-  { id: "total", encabezado: "Total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} /> },
-  { id: "asunto", encabezado: "Asunto", celda: (fila) => <span className="block max-w-64 truncate" title={fila.asunto ?? ""}>{fila.asunto ?? "—"}</span> },
-  { id: "emision", encabezado: "Emisión", celda: (fila) => <Fecha valor={fila.fechaEmision} /> },
-  { id: "vencimiento", encabezado: "Vencimiento", celda: (fila) => <Fecha valor={fila.fechaVencimiento} /> },
+  { id: "cliente", encabezado: "Cliente", celda: (fila) => <span className="block max-w-56 truncate max-md:max-w-full" title={fila.cliente.nombre}>{fila.cliente.nombre}</span> },
+  { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoCotizacion estado={fila.estado} /> },
+  { id: "total", encabezado: "Total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} className="font-medium" /> },
+  { id: "vencimiento", encabezado: "Vencimiento", celda: (fila) => <span><span className="text-muted-foreground md:hidden">Vence: </span>
+    <Fecha valor={fila.fechaVencimiento} /></span> },
 ];
+/** Escritorio: tabla. Móvil (menos de 768 px): una tarjeta apilada por fila, sin desplazamiento horizontal. */
+const CLASES_TABLA = [
+  "[&_tbody_tr]:relative [&_tbody_tr]:cursor-pointer [&_tbody_tr:has(a:focus-visible)]:outline-2 [&_tbody_tr:has(a:focus-visible)]:-outline-offset-2 [&_tbody_tr:has(a:focus-visible)]:outline-ring",
+  "max-md:[&_thead]:sr-only max-md:[&_tr]:grid max-md:[&_tr]:h-auto max-md:[&_tr]:grid-cols-2 max-md:[&_tr]:gap-x-3 max-md:[&_tr]:gap-y-1 max-md:[&_tr]:px-4 max-md:[&_tr]:py-3",
+  "max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0 max-md:[&_td]:text-left max-md:[&_td:nth-child(2)]:col-span-2",
+  "max-md:[&_td:nth-child(3)]:col-start-2 max-md:[&_td:nth-child(3)]:row-start-1 max-md:[&_td:nth-child(3)]:justify-self-end",
+].join(" ");
 
 export function TablaCotizaciones({ lista, consulta, puedeGestionar }: {
   lista: ListaCotizaciones; consulta: ConsultaCotizaciones; puedeGestionar: boolean;
@@ -37,7 +43,7 @@ export function TablaCotizaciones({ lista, consulta, puedeGestionar }: {
     accion={<div className="flex flex-wrap gap-3"><Button asChild variant="outline"><Link href={hrefPagina(consulta, 1)}>Primera página</Link></Button>
       {puedeGestionar ? <Button asChild><Link href="/cotizaciones/nueva">Nueva cotización</Link></Button> : null}</div>} />;
   return <DataTable titulo="Listado de cotizaciones" columnas={columnas} filas={lista.datos} idFila={(fila) => fila.id}
-    className="max-xl:[&_th:nth-child(n+5)]:hidden max-xl:[&_td:nth-child(n+5)]:hidden max-xl:[&_th]:px-2 max-xl:[&_td]:px-2 max-xl:[&_table]:table-fixed max-xl:[&_th:first-child]:w-36 max-xl:[&_th:nth-child(3)]:w-32 max-xl:[&_th:nth-child(4)]:w-36 max-xl:[&_td:nth-child(2)>span]:max-w-full"
+    className={CLASES_TABLA}
     vacio={vacio} paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
       hrefPagina: (pagina) => hrefPagina(consulta, pagina) }} />;
 }
