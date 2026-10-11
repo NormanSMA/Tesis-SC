@@ -1,31 +1,21 @@
-import { can, exigir, type Actor } from "@/core/autorizacion";
+import { exigir, type Actor } from "@/core/autorizacion";
+import { PERFILES } from "@/core/permisos";
+import { AppError } from "@/lib/errores";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
-import { obtenerTablero } from "@/modules/produccion/consulta";
-import type { GrupoEtapas } from "@/modules/produccion/tipos";
-import { consultarMaterialesPanel, consultarOperacion, consultarPendientes } from "./repo";
+import { construirPanel } from "./paneles";
+import { consultarPerfilesPanel } from "./repo";
+import type { PanelDto, PerfilPanel } from "./tipos";
 
-function resumirGrupos(grupos: GrupoEtapas[], campo: "area" | "responsable", hoy: string) {
-  const atrasada = (etapa: GrupoEtapas["etapas"][number]) => Boolean(etapa.fechaFinPlan && etapa.fechaFinPlan < hoy);
-  return grupos.map((grupo) => ({ nombre: grupo.nombre, cantidad: grupo.etapas.length,
-    atrasadas: grupo.etapas.filter(atrasada).length,
-    href: grupo.id ? `/produccion?${campo}=${grupo.id}` : "/produccion",
-    etapas: grupo.etapas.map((etapa) => ({ nombre: etapa.nombre, numero: etapa.orden.numero,
-      atrasada: atrasada(etapa), href: `/ordenes/${etapa.orden.id}` })) }));
-}
-export async function obtenerPanel(actor: Actor, instante = new Date()) {
+export async function obtenerPanel(actor: Actor, instante = new Date(), solicitado?: string | null): Promise<PanelDto> {
   exigir(actor, "panel:ver");
+  const concedidos = await consultarPerfilesPanel(actor.perfiles);
+  const perfilesDisponibles = PERFILES.filter((perfil) => perfil.codigo !== "ADMIN" && concedidos.some((fila) => fila.codigo === perfil.codigo))
+    .map(({ codigo, nombre }) => ({ codigo: codigo as PerfilPanel, nombre }));
+  const principal = perfilesDisponibles.find((perfil) => perfil.codigo === actor.perfil) ?? perfilesDisponibles[0];
+  if (!principal) throw new AppError({ codigo: "SIN_PERMISO", mensaje: "No tiene un perfil con acceso al panel.", status: 403 });
+  const perfil = perfilesDisponibles.find((perfil) => perfil.codigo === solicitado)?.codigo ?? principal.codigo;
   const hoy = hoyManagua(instante);
-  const verCarga = can(actor, "orden:ver") && can(actor, "produccion:ver");
-  const [cotizaciones, materiales, operacion, tablero] = await Promise.all([
-    can(actor, "cotizacion:ver") ? consultarPendientes(hoy) : undefined,
-    can(actor, "inventario:ver") ? consultarMaterialesPanel() : undefined,
-    verCarga ? consultarOperacion(hoy) : undefined,
-    verCarga ? obtenerTablero({}, actor) : undefined,
-  ]);
-  return { generadoEn: instante.toISOString(), hoy,
-    ...(cotizaciones && { cotizaciones }), ...(materiales && { materiales }),
-    ...(operacion && tablero && { carga: { porEstado: operacion.porEstado, entregas: operacion.entregas,
-      porResponsable: resumirGrupos(tablero.porResponsable, "responsable", hoy), porArea: resumirGrupos(tablero.porArea, "area", hoy) },
-      resumen: operacion.resumen }) };
+  const contenido = await construirPanel({ perfil, actor, hoy, instante });
+  return { perfil, perfilesDisponibles, generadoEn: instante.toISOString(), ...contenido };
 }
-export type PanelDto = Awaited<ReturnType<typeof obtenerPanel>>;
+export type { PanelDto } from "./tipos";

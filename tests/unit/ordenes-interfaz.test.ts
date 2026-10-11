@@ -9,16 +9,18 @@ import tailwindcss from "@tailwindcss/postcss";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
-import { DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { DatosCliente, DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { EncabezadoOrden } from "@/modules/ordenes/componentes/EncabezadoOrden";
 import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
 import { FiltrosOrdenes } from "@/modules/ordenes/componentes/FiltrosOrdenes";
+import { FichaOrden } from "@/modules/ordenes/componentes/FichaOrden";
 import { FormularioOrden } from "@/modules/ordenes/componentes/FormularioOrden";
+import { ListaAtencion } from "@/components/panel/ListaAtencion";
 import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
 import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
 import { TablaOrdenes } from "@/modules/ordenes/componentes/TablaOrdenes";
 import { esquemaConsultaOrdenes } from "@/modules/ordenes/schema";
 import type { OpcionesOrden, OrdenDto } from "@/modules/ordenes/tipos";
-import { CargaPanel } from "@/modules/panel/componentes/BloquesPanel";
 import { CadenaTrabajo } from "@/modules/trazabilidad/componentes/CadenaTrabajo";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
@@ -27,6 +29,8 @@ const id = "11111111-1111-4111-8111-111111111111";
 const categoria = { id, nombre: "Rotulación y gran formato" };
 const responsable = { id, nombre: "Responsable de producción" };
 const opciones: OpcionesOrden = { responsables: [responsable], categorias: [{ ...categoria, etapas: 2 }] };
+const permisos = { gestionar: true, entregar: true, cerrar: true, cancelar: true };
+const permisosEtapas = { planificar: true, ejecutar: true, avanzar: true };
 const orden: OrdenDto = {
   id, numero: "OT-2026-0001", estado: "PENDIENTE", categoria, responsable,
   cliente: { id, nombre: "Cliente de prueba con nombre extenso", tipo: "EMPRESA", telefono: "8888 0000", correo: "prueba@example.com" },
@@ -51,9 +55,12 @@ function contenido(pantalla: "lista" | "ficha" | "nueva" | "editar"): ReactNode[
     createElement(TablaOrdenes, { key: "lista", consulta: esquemaConsultaOrdenes.parse({}),
       lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20 } })];
   if (pantalla === "ficha") return [encabezado,
-    createElement(DatosOrden, { key: "datos", orden, verCliente: false, verCotizacion: false }),
-    createElement(ItemsOrden, { key: "items", items: orden.items }), createElement(EtapasOrden, { key: "etapas", etapas: orden.etapas }),
-    createElement(ConsumoEstimadoOrden, { key: "estimado", orden }), createElement(LineaTiempoOrden, { key: "tiempo", eventos: orden.eventos })];
+    createElement(EncabezadoOrden, { key: "resumen", orden, permisos, permisosEtapas }),
+    createElement(EtapasOrden, { key: "etapas", etapas: orden.etapas }),
+    createElement(FichaOrden, { key: "ficha",
+      especificaciones: [createElement(DatosOrden, { key: "datos", orden }), createElement(ItemsOrden, { key: "items", items: orden.items })],
+      cliente: createElement(DatosCliente, { orden, verCliente: false, verCotizacion: false }),
+      consumo: createElement(ConsumoEstimadoOrden, { orden }), historial: createElement(LineaTiempoOrden, { eventos: orden.eventos }) })];
   return [encabezado, pantalla === "editar" ? createElement(FormularioOrden, { key: "editar", opciones, hoy: "2026-10-06", orden })
     : createElement(FormularioOrden, { key: "nueva", opciones, hoy: "2026-10-06", propuesta: { cotizacionId: id, numero: "COT-2026-0001",
       cliente: orden.cliente.nombre, categoriaId: id, especificaciones: "Trabajo de prueba", orden: null } })];
@@ -64,9 +71,29 @@ describe("órdenes: responsable opcional en componentes", () => {
   it("muestra Sin responsable en lista y ficha", () => {
     const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { consulta: esquemaConsultaOrdenes.parse({}),
       lista: { datos: [sinResponsable], total: 1, pagina: 1, porPagina: 20 } }));
-    const ficha = renderToStaticMarkup(createElement(DatosOrden, { orden: sinResponsable, verCliente: false, verCotizacion: false }));
+    const ficha = renderToStaticMarkup(createElement(EncabezadoOrden, { orden: sinResponsable, permisos, permisosEtapas }));
     expect(tabla).toContain("Sin responsable");
     expect(ficha).toContain("Sin responsable");
+    expect(ficha).toContain(">Asignar<");
+    expect(renderToStaticMarkup(createElement(EncabezadoOrden, { orden, permisos, permisosEtapas }))).not.toContain(">Asignar<");
+  });
+  it("ofrece un solo siguiente paso según el estado y los permisos", () => {
+    const html = (estado: OrdenDto["estado"], p = permisos, pe = permisosEtapas) =>
+      renderToStaticMarkup(createElement(EncabezadoOrden, { orden: { ...orden, estado }, permisos: p, permisosEtapas: pe }));
+    expect(html("PENDIENTE")).toContain("Iniciar producción");
+    expect(html("EN_PRODUCCION")).toContain("Marcar lista");
+    expect(html("LISTA")).toContain(">Entregar<");
+    expect(html("ENTREGADA")).toContain(">Cerrar<");
+    expect(html("LISTA", { ...permisos, entregar: false })).not.toContain(">Entregar<");
+    expect(html("PENDIENTE", permisos, { planificar: false, ejecutar: false, avanzar: false })).not.toContain("Iniciar producción");
+  });
+  it("lista: 5 columnas, fila enlazada a la ficha y filtro Sin responsable visible", () => {
+    const consulta = esquemaConsultaOrdenes.parse({});
+    const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { consulta, lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20 } }));
+    expect(tabla.match(/<th /g)).toHaveLength(5);
+    expect(tabla).toContain(`href="/ordenes/${id}"`);
+    const filtros = renderToStaticMarkup(createElement(FiltrosOrdenes, { consulta, responsables: [responsable] }));
+    expect(filtros).toContain("responsable=sin-responsable");
   });
   it("renderiza edición sin responsable y restringe los campos al planificar", () => {
     const formulario = renderToStaticMarkup(createElement(FormularioOrden, {
@@ -86,11 +113,9 @@ describe("órdenes: responsable opcional en componentes", () => {
         especificaciones: null, fechaEntrega: orden.fechaEntrega, creadoEn: orden.creadoEn,
         fechaInicioReal: null, fechaEntregaReal: null, fechaCierre: null }, etapas: [],
     } }));
-    const panel = renderToStaticMarkup(createElement(CargaPanel, { datos: {
-      porEstado: [], porResponsable: [], porArea: [], entregas: [{ numero: orden.numero,
-        estado: "Pendiente", fechaEntrega: orden.fechaEntrega, responsable: "Sin responsable",
-        href: `/ordenes/${id}`, atrasada: false }],
-    } }));
+    const panel = renderToStaticMarkup(createElement(ListaAtencion, { atencion: [{
+      id, titulo: orden.numero, detalle: "Sin responsable", gravedad: "alta", destino: `/ordenes/${id}`,
+    }] }));
     expect(cadena).toContain("Sin responsable");
     expect(panel).toContain("Sin responsable");
     expect(panel).toContain(orden.numero);
@@ -111,7 +136,7 @@ describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
   });
   afterAll(async () => { await navegador?.close(); });
 
-  for (const ancho of [820, 1024, 1366, 1920]) {
+  for (const ancho of [390, 768, 1024, 1366, 1920]) {
     it(`lista, ficha y formularios sin desborde ni infracciones axe a ${ancho}px`, async () => {
       const contexto = await navegador.newContext({ viewport: { width: ancho, height: 1000 } });
       const pagina = await contexto.newPage();

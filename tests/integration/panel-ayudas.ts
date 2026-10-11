@@ -6,6 +6,7 @@ import { Client } from "pg";
 import type { TestProject } from "vitest/node";
 import type { EstadoCotizacion, Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { NombreReporte } from "@/modules/reportes/schema";
+import type { PanelDto } from "@/modules/panel/tipos";
 import { nombreBaseDeDatos, urlParaPg, urlPropietario } from "../helpers/entorno-bd";
 
 export type EntornoPanel = Awaited<ReturnType<typeof prepararPanel>>;
@@ -19,6 +20,7 @@ export async function prepararPanel(db: PrismaClient) {
 }
 export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
   estado?: EstadoCotizacion; total?: string; creadoEn?: string; vencimiento?: string; archivada?: boolean;
+  respuesta?: string; origenId?: string; version?: number;
 } = {}) {
   const vence = entrada.vencimiento ?? "2034-05-10";
   const emision = new Date(`${vence}T00:00:00Z`);
@@ -32,6 +34,7 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
       creadoPorId: entorno.sesiones.ATENCION_CLIENTE.usuarioId, asunto: "Prueba panel", subtotal: total, total,
       tasaImpuesto: "0", descuento: "0", impuesto: "0", vigenciaDias: 15,
       fechaEmision: emision, fechaVencimiento: new Date(vence), creadoEn,
+      cotizacionOrigenId: entrada.origenId, version: entrada.version,
     } });
     await tx.itemCotizacion.create({ data: { cotizacionId: nueva.id, tipo: "CATALOGO", secuencia: 1,
       productoId: entorno.ordenes.cotizaciones.referencias.unidad.id, categoriaId: entorno.ordenes.cotizaciones.referencias.categoria.id,
@@ -39,7 +42,7 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
     const destino = entrada.estado ?? "BORRADOR";
     if (destino !== "BORRADOR") await tx.cotizacion.update({ where: { id: nueva.id }, data: { estado: "ENVIADA" } });
     if (destino !== "BORRADOR" && destino !== "ENVIADA") await tx.cotizacion.update({ where: { id: nueva.id },
-      data: { estado: destino, fechaRespuesta: ["APROBADA", "RECHAZADA", "AJUSTE_SOLICITADO"].includes(destino) ? emision : null,
+      data: { estado: destino, fechaRespuesta: ["APROBADA", "RECHAZADA", "AJUSTE_SOLICITADO"].includes(destino) ? new Date(entrada.respuesta ?? emision.toISOString()) : null,
         motivoRechazo: destino === "RECHAZADA" ? "Rechazo de prueba" : null,
         motivoAjuste: destino === "AJUSTE_SOLICITADO" ? "Ajuste de prueba" : null,
         ...(destino === "APROBADA" ? { usuarioAprobacionId: entorno.sesiones.OPERACIONES.usuarioId, referenciaAprobacion: "Correo del cliente" } : {}) } });
@@ -74,6 +77,17 @@ export async function crearEtapaPanel(entorno: EntornoPanel, entrada: Prisma.Eta
     return tx.etapaOrden.findUniqueOrThrow({ where: { id: etapa.id } });
   });
 }
+export async function completarEtapaPanel(entorno: EntornoPanel, entrada: {
+  ordenId: string; areaId: string; responsableId: string; usuarioId: string; secuencia: number; instante: string;
+}) {
+  const etapa = await crearEtapaPanel(entorno, { ordenId: entrada.ordenId, areaId: entrada.areaId,
+    nombre: "Etapa completada", secuencia: entrada.secuencia, responsableId: entrada.responsableId,
+    estado: "COMPLETADA", fechaInicioReal: new Date(entrada.instante), fechaFinReal: new Date(entrada.instante) });
+  await entorno.db.historialEtapa.create({ data: { ordenId: entrada.ordenId, etapaId: etapa.id,
+    usuarioId: entrada.usuarioId, responsableId: entrada.responsableId, estadoAnterior: "EN_CURSO",
+    estadoNuevo: "COMPLETADA", creadoEn: new Date(entrada.instante) } });
+  return etapa;
+}
 export async function crearMaterialPanel(entorno: EntornoPanel, entrada: {
   nombre?: string; existencia?: string; minimo?: string; costo?: string; activo?: boolean;
 } = {}) {
@@ -86,11 +100,17 @@ export async function crearMaterialPanel(entorno: EntornoPanel, entrada: {
   return material;
 }
 export function clavesMonetarias(valor: unknown): string[] {
+  if (typeof valor === "string" && /C\$|córdobas|costo promedio|monto aprobado|valor del inventario/i.test(valor)) return [valor];
   if (!valor || typeof valor !== "object") return [];
   return Object.entries(valor).flatMap(([clave, dato]) => [
     ...(/^(costo\w*|precio\w*|importe\w*|subtotal|descuento|impuesto|total|valorInventario|margen\w*|tasaImpuesto)$/i.test(clave) ? [clave] : []),
     ...clavesMonetarias(dato),
   ]);
+}
+export function valorIndicador(panel: PanelDto, id: string): number {
+  const indicador = panel.indicadores.find((fila) => fila.id === id);
+  if (!indicador) throw new Error(`No existe el indicador ${id}.`);
+  return Number(indicador.valor.replace(/,/g, ""));
 }
 export function solicitarReporte(entorno: EntornoPanel, entrada: { nombre: NombreReporte | string; parametros?: string; cookie?: string }) {
   return entorno.rutaReporte.GET(new Request(`http://localhost/api/v1/reportes/${entrada.nombre}?${entrada.parametros ?? ""}`,
