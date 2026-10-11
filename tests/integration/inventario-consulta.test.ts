@@ -104,7 +104,9 @@ describe("inventario: libro, visibilidad y conciliación", () => {
   it("ofrece nombres en los filtros y aplica permisos", async () => {
     const material = await crearMaterial(entorno);
     const orden = await ordenPropietario();
-    const opciones = await entorno.modulos.servicio.opcionesLibro(entorno.sesiones.ADMINISTRACION.actor, { usuario: entorno.sesiones.ADMINISTRACION.usuarioId });
+    const opciones = await entorno.modulos.servicio.opcionesLibro(entorno.sesiones.ADMINISTRACION.actor, {
+      material: material.id, orden: orden.id, usuario: entorno.sesiones.ADMINISTRACION.usuarioId,
+    });
     expect(opciones.materiales).toContainEqual({ id: material.id, codigo: material.codigo, nombre: material.nombre });
     expect(opciones.ordenes).toContainEqual({ id: orden.id, numero: orden.numero });
     expect(opciones.usuarios).toContainEqual({ id: entorno.sesiones.ADMINISTRACION.usuarioId, nombre: entorno.sesiones.ADMINISTRACION.actor.nombre });

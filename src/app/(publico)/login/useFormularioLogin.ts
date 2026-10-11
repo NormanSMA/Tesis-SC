@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,7 +22,6 @@ function textoCampo(valor: string | string[] | undefined): string | undefined {
 }
 
 export function useFormularioLogin() {
-  const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const formulario = useForm<ValoresLogin>({
@@ -44,7 +42,8 @@ export function useFormularioLogin() {
       });
       const cuerpo = (await respuesta.json().catch(() => ({}))) as CuerpoRespuesta;
       if (respuesta.ok) {
-        router.replace(cuerpo.datos?.destino ?? "/panel");
+        // Navegación completa: el caché del router puede guardar el /panel precargado sin sesión y devolver al login.
+        window.location.replace(cuerpo.datos?.destino ?? "/panel");
         return;
       }
       const campos = cuerpo.error?.campos ?? {};
