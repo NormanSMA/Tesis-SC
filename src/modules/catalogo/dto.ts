@@ -25,11 +25,13 @@ export function aProductoDto(producto: FilaProducto, conCosto = false): Producto
     creadoEn: producto.creadoEn.toISOString(), actualizadoEn: producto.actualizadoEn.toISOString(),
   };
 }
-export function aFichaProducto(producto: FilaFicha, conCosto = false): FichaProducto {
+export function aFichaProducto(producto: FilaFicha, conCosto = false, conCostoMaterial = conCosto): FichaProducto {
   return {
     ...aProductoDto(producto, conCosto),
-    receta: producto.receta.map((fila) => ({
-      materialId: fila.materialId, cantidad: fila.cantidad.toFixed(3), material: aMaterialDto(fila.material),
-    })),
+    receta: producto.receta.map((fila) => {
+      const { costoPromedio, ...material } = aMaterialDto(fila.material);
+      return { materialId: fila.materialId, cantidad: fila.cantidad.toFixed(3),
+        material: { ...material, ...(conCostoMaterial && { costoPromedio }) } };
+    }),
   };
 }

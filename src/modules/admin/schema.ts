@@ -8,14 +8,16 @@ const nombre = z.string().trim().min(1, "Ingrese el nombre.").max(120);
 const correo = z.string().trim().toLowerCase().max(254).pipe(z.email("Ingrese un correo válido."));
 const perfiles = z.array(z.enum(CODIGOS_PERFIL)).min(1, "Asigne al menos un perfil.")
   .refine((valores) => new Set(valores).size === valores.length, "No repita perfiles.");
+const version = z.iso.datetime({ offset: true, error: "Indique la versión del usuario." });
 
 export const esquemaCrearUsuario = z.strictObject({ nombre, correo, perfiles });
 export const esquemaEditarUsuario = z.strictObject({
   nombre: nombre.optional(),
   correo: correo.optional(),
   perfiles: perfiles.optional(),
-  version: z.iso.datetime({ offset: true, error: "Indique la versión del usuario." }),
+  version,
 });
+export const esquemaCambiarActivoUsuario = z.strictObject({ version });
 export const esquemaIdUsuario = z.uuid();
 export const esquemaConsultaUsuarios = z.object({
   q: z.string().trim().max(200).optional(),
@@ -28,4 +30,5 @@ export const esquemaConsultaUsuarios = z.object({
 
 export type EntradaCrearUsuario = z.output<typeof esquemaCrearUsuario>;
 export type EntradaEditarUsuario = z.output<typeof esquemaEditarUsuario>;
+export type EntradaCambiarActivoUsuario = z.output<typeof esquemaCambiarActivoUsuario>;
 export type ConsultaUsuarios = z.output<typeof esquemaConsultaUsuarios>;

@@ -93,7 +93,11 @@ describe("API de usuarios por perfil", () => {
         nombre: "Usuario editado", version: datos.usuario.actualizadoEn,
       } })).status).toBe(200);
       for (const handler of [desbloquear, desactivar, reactivar, reiniciar]) {
-        expect((await ejecutar(handler, { metodo: "POST" })).status).toBe(200);
+        const conVersion = handler === desactivar || handler === reactivar;
+        const cuerpo = conVersion ? { version: (await prisma.usuario.findUniqueOrThrow({
+          where: { id }, select: { actualizadoEn: true },
+        })).actualizadoEn.toISOString() } : undefined;
+        expect((await ejecutar(handler, { metodo: "POST", cuerpo })).status).toBe(200);
       }
       const ficha = await (await ejecutar(ver, { metodo: "GET" })).json();
       expect(ficha.datos).not.toHaveProperty("hashContrasena");

@@ -12,6 +12,13 @@ describeConBase("login: carrera contra cambios del usuario", () => {
   let admin: typeof import("@/modules/admin/service");
   let actor: Awaited<ReturnType<typeof crearAdmin>>;
 
+  async function leerVersionUsuario(id: string): Promise<string> {
+    const usuario = await db.usuario.findUniqueOrThrow({
+      where: { id }, select: { actualizadoEn: true },
+    });
+    return usuario.actualizadoEn.toISOString();
+  }
+
   async function crearAdmin() {
     const usuario = await crearUsuarioPrueba(db, { perfil: "ADMIN" });
     const sesion = await auth.iniciarSesion({ correo: usuario.correo, contrasena: CLAVE_PRUEBA });
@@ -66,7 +73,7 @@ describeConBase("login: carrera contra cambios del usuario", () => {
   it("rechaza la apertura si ADMIN desactiva al usuario después de verificar la clave", async () => {
     const usuario = await crearUsuarioPrueba(db);
     const verificado = await leerVerificado(usuario.id);
-    await admin.desactivarUsuario(usuario.id, actor);
+    await admin.desactivarUsuario(usuario.id, { version: await leerVersionUsuario(usuario.id) }, actor);
 
     await expect(auth.abrirSesion(verificado, new Date())).rejects.toMatchObject(errorCredenciales);
 

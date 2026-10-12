@@ -26,7 +26,11 @@ export function AccionesUsuario(props: Propiedades) {
     if (!accion || enviando) return;
     setEnviando(true);
     setError("");
-    const resultado = await peticionAdministracion<UsuarioDto | UsuarioConClave>(`/api/v1/usuarios/${props.usuario.id}/${accion}`, { metodo: "POST" });
+    const cuerpo = accion === "reactivar" || accion === "desactivar"
+      ? { version: props.usuario.actualizadoEn } : undefined;
+    const resultado = await peticionAdministracion<UsuarioDto | UsuarioConClave>(
+      `/api/v1/usuarios/${props.usuario.id}/${accion}`, { metodo: "POST", cuerpo },
+    );
     if (resultado.error) setError(resultado.error.mensaje);
     else {
       const datos = resultado.datos;

@@ -12,7 +12,10 @@ import {
   actualizarUsuario, bloquearAdministradores, bloquearUsuario, buscarUsuario, consultarUsuarios,
   insertarUsuario, reemplazarPerfiles, revocarSesiones, type UsuarioPublico,
 } from "./repo";
-import { esquemaIdUsuario, type ConsultaUsuarios, type EntradaCrearUsuario, type EntradaEditarUsuario } from "./schema";
+import {
+  esquemaIdUsuario, type ConsultaUsuarios, type EntradaCambiarActivoUsuario,
+  type EntradaCrearUsuario, type EntradaEditarUsuario,
+} from "./schema";
 import type { ListaUsuarios, UsuarioConClave, UsuarioDto } from "./tipos";
 
 function noEncontrado(): AppError {
@@ -107,12 +110,15 @@ export async function editarUsuario(id: string, entrada: EntradaEditarUsuario, a
   }
 }
 
-async function cambiarActivo({ id, activo, actor }: { id: string; activo: boolean; actor: Actor }): Promise<UsuarioDto> {
+async function cambiarActivo({ id, activo, version, actor }: {
+  id: string; activo: boolean; version: string; actor: Actor;
+}): Promise<UsuarioDto> {
   exigir(actor, "usuario:gestionar");
   return prisma.$transaction(async (tx) => {
     const administradoresActivos = await bloquearAdministradores(tx);
     await bloquearUsuario(tx, id);
     const actual = await exigirUsuario(tx, id);
+    validarVersionUsuario(actual.actualizadoEn, version);
     validarCambio({ actual, nuevo: { activo, perfiles: aUsuarioDto(actual).perfiles }, actor, administradoresActivos });
     if (actual.activo === activo) return aUsuarioDto(actual);
     const nuevo = await actualizarUsuario(tx, { id, actualizadoEn: actual.actualizadoEn, cambios: { activo } });
@@ -126,12 +132,12 @@ async function cambiarActivo({ id, activo, actor }: { id: string; activo: boolea
   });
 }
 
-export function desactivarUsuario(id: string, actor: Actor): Promise<UsuarioDto> {
-  return cambiarActivo({ id, activo: false, actor });
+export function desactivarUsuario(id: string, entrada: EntradaCambiarActivoUsuario, actor: Actor): Promise<UsuarioDto> {
+  return cambiarActivo({ id, activo: false, version: entrada.version, actor });
 }
 
-export function reactivarUsuario(id: string, actor: Actor): Promise<UsuarioDto> {
-  return cambiarActivo({ id, activo: true, actor });
+export function reactivarUsuario(id: string, entrada: EntradaCambiarActivoUsuario, actor: Actor): Promise<UsuarioDto> {
+  return cambiarActivo({ id, activo: true, version: entrada.version, actor });
 }
 
 export async function desbloquearUsuario(id: string, actor: Actor): Promise<UsuarioDto> {

@@ -4,7 +4,7 @@ export type CategoriaDto = {
   id: string; nombre: string; descripcion: string | null; activo: boolean; actualizadoEn: string;
 };
 export type MaterialDto = {
-  id: string; codigo: string; nombre: string; unidad: UnidadMaterial; costoPromedio: string; activo: boolean;
+  id: string; codigo: string; nombre: string; unidad: UnidadMaterial; costoPromedio?: string; activo: boolean;
 };
 export type MaterialReceta = { materialId: string; cantidad: string; material: MaterialDto };
 export type ProductoDto = {

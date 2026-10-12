@@ -96,5 +96,6 @@ export async function listarProductos(consulta: ConsultaProductos, actor?: Actor
   return { datos: filas.map((fila) => aProductoDto(fila, !!actor && can(actor, "cotizacion:ver"))), total, pagina: consulta.pagina, porPagina: consulta.porPagina };
 }
 export async function obtenerProducto(id: string, actor?: Actor) {
-  return aFichaProducto(await exigirProducto(prisma, id), !!actor && can(actor, "cotizacion:ver"));
+  return aFichaProducto(await exigirProducto(prisma, id), !!actor && can(actor, "cotizacion:ver"),
+    !!actor && (can(actor, "cotizacion:ver") || can(actor, "inventario:ver")));
 }

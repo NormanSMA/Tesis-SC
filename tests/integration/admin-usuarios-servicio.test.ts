@@ -20,6 +20,13 @@ let adminB: Actor;
 let usuario: UsuarioConClave;
 let ids: string[];
 
+async function leerVersionUsuario(id: string): Promise<string> {
+  const fila = await prisma.usuario.findUniqueOrThrow({
+    where: { id }, select: { actualizadoEn: true },
+  });
+  return fila.actualizadoEn.toISOString();
+}
+
 async function crearActor(perfil: PerfilCodigo): Promise<Actor> {
   const fila = await prisma.usuario.create({
     data: {
@@ -150,16 +157,18 @@ describe("Servicio de usuarios", () => {
 
   it("impide desactivar o degradar el ADMIN propio", async () => {
     const ficha = await obtenerUsuario(adminA.id, adminA);
-    await expect(desactivarUsuario(adminA.id, adminA)).rejects.toMatchObject({ status: 409, codigo: "ADMIN_PROPIO" });
+    await expect(desactivarUsuario(adminA.id, { version: await leerVersionUsuario(adminA.id) }, adminA))
+      .rejects.toMatchObject({ status: 409, codigo: "ADMIN_PROPIO" });
     await expect(editarUsuario(adminA.id, { version: ficha.actualizadoEn, perfiles: ["PRODUCCION"] }, adminA))
       .rejects.toMatchObject({ status: 409, codigo: "ADMIN_PROPIO" });
   });
 
   it("impide degradar y desactivar el último ADMIN", async () => {
     await conAdministradoresFixture(async () => {
-      await desactivarUsuario(adminB.id, adminA);
+      await desactivarUsuario(adminB.id, { version: await leerVersionUsuario(adminB.id) }, adminA);
       const ficha = await obtenerUsuario(adminA.id, adminA);
-      await expect(desactivarUsuario(adminA.id, adminB)).rejects.toMatchObject({ status: 409, codigo: "ULTIMO_ADMIN" });
+      await expect(desactivarUsuario(adminA.id, { version: await leerVersionUsuario(adminA.id) }, adminB))
+        .rejects.toMatchObject({ status: 409, codigo: "ULTIMO_ADMIN" });
       await expect(editarUsuario(adminA.id, { version: ficha.actualizadoEn, perfiles: ["PRODUCCION"] }, adminB))
         .rejects.toMatchObject({ status: 409, codigo: "ULTIMO_ADMIN" });
     });
@@ -167,8 +176,11 @@ describe("Servicio de usuarios", () => {
 
   it("serializa dos desactivaciones simultáneas y conserva un ADMIN", async () => {
     await conAdministradoresFixture(async () => {
+      const versionA = await leerVersionUsuario(adminA.id);
+      const versionB = await leerVersionUsuario(adminB.id);
       const resultados = await Promise.allSettled([
-        desactivarUsuario(adminB.id, adminA), desactivarUsuario(adminA.id, adminB),
+        desactivarUsuario(adminB.id, { version: versionB }, adminA),
+        desactivarUsuario(adminA.id, { version: versionA }, adminB),
       ]);
       expect(resultados.filter(({ status }) => status === "fulfilled")).toHaveLength(1);
       const rechazado = resultados.find((resultado) => resultado.status === "rejected");
@@ -183,11 +195,12 @@ describe("Servicio de usuarios", () => {
     const sesion = await insertarSesion(usuario.usuario.id);
     const solicitud = await solicitudAutenticada(usuario.usuario.correo, usuario.claveTemporal);
     expect((await obtenerSesionDeRequest(solicitud))?.id).toBe(usuario.usuario.id);
-    await desactivarUsuario(usuario.usuario.id, adminA);
+    await desactivarUsuario(usuario.usuario.id, { version: await leerVersionUsuario(usuario.usuario.id) }, adminA);
     expect(await obtenerSesionDeRequest(solicitud)).toBeNull();
     expect((await prisma.sesion.findUniqueOrThrow({ where: { id: sesion.id } })).revocadaEn).not.toBeNull();
     expect((await iniciarSesion(usuario.usuario.correo, usuario.claveTemporal)).status).toBe(401);
-    const reactivado = await reactivarUsuario(usuario.usuario.id, adminA);
+    const reactivado = await reactivarUsuario(usuario.usuario.id,
+      { version: await leerVersionUsuario(usuario.usuario.id) }, adminA);
     expect(reactivado.activo).toBe(true);
     expect(reactivado.perfiles).toEqual(["PRODUCCION"]);
     expect(await obtenerSesionDeRequest(solicitud)).toBeNull();
@@ -234,7 +247,7 @@ describe("Servicio de usuarios", () => {
     expect(lista.total).toBe(1);
     expect(lista.datos.map(({ id }) => id)).toEqual([usuario.usuario.id]);
     expect(lista.datos[0]).not.toHaveProperty("hashContrasena");
-    await desactivarUsuario(usuario.usuario.id, adminA);
+    await desactivarUsuario(usuario.usuario.id, { version: await leerVersionUsuario(usuario.usuario.id) }, adminA);
     expect((await listarUsuarios(consulta, adminA)).total).toBe(0);
     expect((await listarUsuarios({ ...consulta, activo: false }, adminA)).total).toBe(1);
   });
