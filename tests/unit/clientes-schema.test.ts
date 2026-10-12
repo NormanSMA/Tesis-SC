@@ -131,6 +131,17 @@ describe("esquemaCrearCliente: longitudes", () => {
     expect(camposConError(crear({ telefono: "1".repeat(31) }))).toEqual(["telefono"]);
   });
 
+  it("aplica el máximo de 2000 en dirección y notas al crear y editar", () => {
+    for (const campo of ["direccion", "notas"]) {
+      expect(crear({ [campo]: "d".repeat(2000) }).success).toBe(true);
+      expect(editar({ [campo]: "d".repeat(2000) }).success).toBe(true);
+      const excedido = crear({ [campo]: "d".repeat(2001) });
+      expect(camposConError(excedido)).toEqual([campo]);
+      expect(excedido.error?.issues[0].message).toBe("Admite hasta 2000 caracteres.");
+      expect(camposConError(editar({ [campo]: "d".repeat(2001) }))).toEqual([campo]);
+    }
+  });
+
   it("rechaza valores que no son texto", () => {
     expect(camposConError(crear({ notas: 5 }))).toEqual(["notas"]);
   });

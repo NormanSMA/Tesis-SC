@@ -59,7 +59,7 @@ describeConBase("catálogo: listas y concurrencia", () => {
       expect(respuestas.map((respuesta) => respuesta.status).sort()).toEqual([200, 409]);
       expect(respuestas.find((respuesta) => respuesta.status === 409)?.error?.codigo).toBe("CONFLICTO_EDICION");
       const ganador = respuestas.find((respuesta) => respuesta.status === 200)?.datos;
-      const guardado = await modulos.servicio.obtenerProducto(producto.id);
+      const guardado = await modulos.servicio.obtenerProducto(producto.id, operaciones.actor);
       expect(guardado.receta).toEqual(ganador?.receta);
       expect(guardado.actualizadoEn).toBe(ganador?.actualizadoEn);
       expect(await db.bitacora.count({ where: { entidad: "PRODUCTO", entidadId: producto.id, accion: "EDITAR" } })).toBe(1);

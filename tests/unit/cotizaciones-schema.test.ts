@@ -17,6 +17,30 @@ describe("cotizaciones: esquemas", () => {
     }
   });
 
+  it("limita condiciones a 2000, motivo a 500 y descripciones a 200 con error de campo", () => {
+    const mensaje = (resultado: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
+      resultado.error?.issues.map((p) => `${p.path.join(".")}|${p.message}`);
+    for (const condiciones of ["c".repeat(2000), null]) {
+      expect(esquemaCrearCotizacion.safeParse({ clienteId: ID, asunto: "A", condiciones }).success).toBe(true);
+      expect(esquemaEditarCotizacion.safeParse({ version: VERSION, condiciones }).success).toBe(true);
+    }
+    expect(mensaje(esquemaCrearCotizacion.safeParse({ clienteId: ID, asunto: "A", condiciones: "c".repeat(2001) })))
+      .toEqual(["condiciones|Admite hasta 2000 caracteres."]);
+    expect(mensaje(esquemaEditarCotizacion.safeParse({ version: VERSION, condiciones: "c".repeat(2001) })))
+      .toEqual(["condiciones|Admite hasta 2000 caracteres."]);
+    const rechazo = { version: VERSION, resultado: "RECHAZADA" as const };
+    expect(esquemaResponder.safeParse({ ...rechazo, motivo: "m".repeat(500) }).success).toBe(true);
+    expect(mensaje(esquemaResponder.safeParse({ ...rechazo, motivo: "m".repeat(501) })))
+      .toEqual(["motivo|Admite hasta 500 caracteres."]);
+    const linea = { tipo: "TERCERO", descripcion: "d".repeat(200), unidad: "u", costo: "1" };
+    const resultadoItem = (item: object) => esquemaReemplazarItems.safeParse({ version: VERSION, items: [item] });
+    expect(resultadoItem({ ...personalizado, descripcion: "d".repeat(200), lineas: [linea] }).success).toBe(true);
+    expect(mensaje(resultadoItem({ ...personalizado, descripcion: "d".repeat(201) })))
+      .toEqual(["items.0.descripcion|Admite hasta 200 caracteres."]);
+    expect(mensaje(resultadoItem({ ...personalizado, lineas: [{ ...linea, descripcion: "d".repeat(201) }] })))
+      .toEqual(["items.0.lineas.0.descripcion|Admite hasta 200 caracteres."]);
+  });
+
   it("crear no exige versión e ignora montos del cliente", () => {
     expect(esquemaCrearCotizacion.parse({ clienteId: ID, asunto: "A", total: "999", tasaImpuesto: "0" }))
       .toEqual({ clienteId: ID, asunto: "A" });

@@ -11,6 +11,8 @@ const DOS_B = BigInt(2);
 const DIEZ_B = BigInt(10);
 
 const PATRON_DECIMAL = /^-?\d+(\.\d+)?$/;
+// Evita convertir a BigInt cadenas de cientos de miles de dígitos. Los montos reales no pasan de 20 caracteres.
+const LONGITUD_MAXIMA_DECIMAL = 64;
 
 export function deEntero(valor: number): Racional {
   return { num: BigInt(valor), den: UNO_B };
@@ -22,7 +24,7 @@ export const CIEN = deEntero(100);
 
 /** Lee una cadena como "1250.5" o "-3". Devuelve null si no es un decimal con punto. */
 export function leerDecimal(texto: string): Racional | null {
-  if (!PATRON_DECIMAL.test(texto)) return null;
+  if (texto.length > LONGITUD_MAXIMA_DECIMAL || !PATRON_DECIMAL.test(texto)) return null;
   const negativo = texto.startsWith("-");
   const [entero, fraccion = ""] = (negativo ? texto.slice(1) : texto).split(".");
   const num = BigInt(entero + fraccion);

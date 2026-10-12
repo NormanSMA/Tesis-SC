@@ -31,7 +31,7 @@ Consulte [la matriz v9](modulos/09-perfiles-v9.md).
 
 1. Ejecuta `docker compose up -d --build`. El servicio `migrate` siembra solo.
 2. Revisa el resultado con `docker compose logs migrate`.
-3. Para repetir desde cero, ejecuta `docker compose down -v` y vuelve a levantar.
+3. Para repetir desde cero, NO uses `docker compose down -v`: borra los volúmenes de datos y de respaldos. Ejecuta `docker compose rm -sfv app migrate db`, luego `docker volume rm sc-plataforma_sc_pgdata` y `docker compose up -d --build app`. Los respaldos (volumen aparte) se conservan.
 
 Ejecución manual contra una base migrada:
 

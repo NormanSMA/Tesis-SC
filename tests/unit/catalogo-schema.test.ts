@@ -29,6 +29,22 @@ describe("catálogo: esquemas", () => {
     expect(esquemaCrearProducto.parse({ ...producto, codigo: " P-01 ", nombre: " Lona ", descripcion: " " }))
       .toMatchObject({ codigo: "P-01", nombre: "Lona", descripcion: null });
   });
+  it("limita la descripción a 2000 caracteres en producto y categoría", () => {
+    const largo = "d".repeat(2001);
+    const casos = [
+      [esquemaCrearProducto, producto], [esquemaEditarProducto, { version }],
+      [esquemaCrearCategoria, { nombre: "Rótulos" }], [esquemaEditarCategoria, { version }],
+    ] as const;
+    for (const [esquema, base] of casos) {
+      expect(esquema.safeParse({ ...base, descripcion: "d".repeat(2000) }).success).toBe(true);
+      const resultado = esquema.safeParse({ ...base, descripcion: largo });
+      expect(resultado.success).toBe(false);
+      if (!resultado.success) {
+        expect(resultado.error.issues[0].path).toEqual(["descripcion"]);
+        expect(resultado.error.issues[0].message).toBe("Admite hasta 2000 caracteres.");
+      }
+    }
+  });
   it.each(["codigo", "nombre", "categoriaId", "unidadCobro", "precioBase"])("exige %s", (campo) => {
     expect(esquemaCrearProducto.safeParse({ ...producto, [campo]: undefined }).success).toBe(false);
   });

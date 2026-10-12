@@ -62,8 +62,8 @@ const reglasTexto = {
     .max(LIMITES.correo, `El correo admite hasta ${LIMITES.correo} caracteres.`)
     .email("Ingrese un correo electrónico válido.")
     .nullable(),
-  direccion: z.string().nullable(),
-  notas: z.string().nullable(),
+  direccion: z.string().max(2000, "Admite hasta 2000 caracteres.").nullable(),
+  notas: z.string().max(2000, "Admite hasta 2000 caracteres.").nullable(),
 };
 
 const normalizacion: Record<keyof typeof reglasTexto, (valor: string | null | undefined) => string | null | undefined> =

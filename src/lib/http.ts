@@ -97,10 +97,25 @@ function camposDeZod(error: z.ZodError): CamposError {
   return campos;
 }
 
+/** Tope del cuerpo JSON. Las cotizaciones más grandes (200 ítems con 100 líneas) caben con holgura. */
+export const LIMITE_CUERPO_BYTES = 1_000_000;
+
+function exigirCuerpoPequeno(longitud: number): void {
+  if (longitud <= LIMITE_CUERPO_BYTES) return;
+  throw new AppError({
+    codigo: "CUERPO_DEMASIADO_GRANDE",
+    mensaje: "El cuerpo de la solicitud supera el tamaño permitido.",
+    status: 413,
+  });
+}
+
 export async function leerJson<T extends z.ZodType>(req: Request, esquema: T): Promise<z.output<T>> {
   let cuerpo: unknown;
+  exigirCuerpoPequeno(Number(req.headers.get("content-length") ?? 0));
+  const texto = await req.text();
+  exigirCuerpoPequeno(texto.length);
   try {
-    cuerpo = await req.json();
+    cuerpo = JSON.parse(texto);
   } catch {
     throw new AppError({
       codigo: "JSON_INVALIDO",

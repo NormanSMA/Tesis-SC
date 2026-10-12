@@ -13,7 +13,8 @@ function textoObligatorio(maximo: number, etiqueta: string) {
     .min(1, `Ingrese ${etiqueta}.`).max(maximo, `Admite hasta ${maximo} caracteres.`);
 }
 
-const descripcion = z.string().nullish().transform((valor) => valor === undefined ? undefined : valor?.trim() || null).optional();
+const descripcion = z.string().nullish().transform((valor) => valor === undefined ? undefined : valor?.trim() || null)
+  .pipe(z.string().max(2000, "Admite hasta 2000 caracteres.").nullable().optional()).optional();
 const precioBase = z.string({ error: "Ingrese el precio como cadena decimal." }).superRefine((precio, contexto) => {
   const errores = validarItemCatalogo({ unidadCobro: "UNIDAD", precioBase: precio, cantidad: "1" });
   if (errores.precioBase) contexto.addIssue({ code: "custom", message: errores.precioBase });

@@ -5,10 +5,11 @@ export const CONDICIONES_PREDETERMINADAS = "Precios en córdobas. La producción
 export const version = z.iso.datetime({ offset: true, error: "Falta la versión de la cotización. Recargue los datos." });
 const id = z.uuid({ error: "Seleccione un registro válido." });
 const texto = z.string().trim().min(1, "Es obligatorio.");
+const textoCorto = texto.max(200, "Admite hasta 200 caracteres.");
 const decimal = z.string({ error: "Ingrese una cadena decimal con punto." });
 const medidas = { ancho: decimal.nullish(), alto: decimal.nullish() };
 const vigenciaDias = z.number().int().min(1, "Debe ser mayor que 0.").max(36500, "Admite hasta 36500 días.");
-const condiciones = z.string().trim().nullable();
+const condiciones = z.string().trim().max(2000, "Admite hasta 2000 caracteres.").nullable();
 
 export const esquemaCrearCotizacion = z.object({
   clienteId: id,
@@ -26,7 +27,7 @@ export const esquemaCambioEstado = z.object({ version });
 export const esquemaResponder = z.object({
   version,
   resultado: z.enum(["APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"]),
-  motivo: z.string().trim().optional(),
+  motivo: z.string().trim().max(500, "Admite hasta 500 caracteres.").optional(),
   referenciaAprobacion: z.string().trim().min(3, "Ingrese al menos 3 caracteres.").max(200).optional(),
   motivoAjuste: z.string().trim().min(3, "Ingrese al menos 3 caracteres.").max(500).optional(),
 }).superRefine((entrada, contexto) => {
@@ -41,7 +42,7 @@ export const esquemaResponder = z.object({
   }
 });
 
-const baseLinea = { lineaId: id.optional(), descripcion: texto, unidad: texto.max(20) };
+const baseLinea = { lineaId: id.optional(), descripcion: textoCorto, unidad: texto.max(20) };
 export const esquemaLinea = z.discriminatedUnion("tipo", [
   z.object({ ...baseLinea, tipo: z.literal("MATERIAL"), materialId: id.nullish(), cantidad: decimal,
     costoUnitario: decimal.optional(), mermaPct: decimal }),
@@ -51,7 +52,7 @@ export const esquemaLinea = z.discriminatedUnion("tipo", [
 const baseItem = { itemId: id.optional(), actualizarPrecio: z.boolean().optional(), cantidad: decimal, ...medidas };
 export const esquemaItem = z.discriminatedUnion("tipo", [
   z.object({ ...baseItem, tipo: z.literal("CATALOGO"), productoId: id }),
-  z.object({ ...baseItem, tipo: z.literal("PERSONALIZADO"), categoriaId: id, descripcion: texto,
+  z.object({ ...baseItem, tipo: z.literal("PERSONALIZADO"), categoriaId: id, descripcion: textoCorto,
     unidadCobro: z.enum(["UNIDAD", "M2"]), margenPct: decimal, lineas: z.array(esquemaLinea).min(1).max(100) }),
 ]);
 export const esquemaReemplazarItems = z.object({ version, items: z.array(esquemaItem).max(200) })

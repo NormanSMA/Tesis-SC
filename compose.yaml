@@ -11,7 +11,7 @@ x-entorno: &entorno
 services:
   db:
     <<: *entorno
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
     restart: unless-stopped
     # JIT apagado: con volumen alto añade más de un segundo a la consulta del panel comercial (docs/auditoria/2-3).
     command: ["postgres", "-c", "jit=off"]
@@ -68,7 +68,7 @@ services:
 
   db_test:
     <<: *entorno
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
     profiles: ["test"]
     environment:
       POSTGRES_DB: sc_test
@@ -89,7 +89,7 @@ services:
   # Bitacora de intentos: docker compose exec respaldo cat /respaldos/registro.log
   respaldo:
     <<: *entorno
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
     restart: unless-stopped
     healthcheck:
       # Sano si el ultimo intento registrado fue exitoso y ocurrio hace menos de 26 horas.
