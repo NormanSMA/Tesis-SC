@@ -50,7 +50,7 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
     panel.indicadores.push(indicador({ id: "en-produccion", etiqueta: "Órdenes en producción", valor: ordenes.enProduccion,
       contexto: `${ordenes.pendientes} por iniciar`, destino: "/ordenes?estado=EN_PRODUCCION" }),
     indicador({ id: "ordenes-atrasadas", etiqueta: "Órdenes atrasadas", valor: ordenes.atrasadas,
-      contexto: "Fecha de entrega anterior a hoy", destino: "/ordenes?atrasadas=true", alerta: ordenes.atrasadas > 0 }));
+      contexto: "Fecha de entrega anterior a hoy", destino: "/ordenes?vencidas=true", alerta: ordenes.atrasadas > 0 }));
     panel.atencion.push(...atencionOrdenes(ordenes)); panel.atencionTotal += ordenes.accion;
   }
   if (materiales) { panel.atencion.push(...atencionMateriales(materiales)); panel.atencionTotal += materiales.bajoMinimo; }
@@ -69,7 +69,7 @@ async function operaciones(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   return { titulo: tituloOperaciones(datos.accion), pregunta,
     indicadores: [
       indicador({ id: "por-iniciar", etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Órdenes pendientes", destino: "/ordenes?estado=PENDIENTE" }),
-      indicador({ id: "sin-responsable", etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Órdenes activas", destino: "/ordenes?responsable=sin-asignar", alerta: datos.sinResponsable > 0 }),
+      indicador({ id: "sin-responsable", etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Órdenes activas", destino: "/ordenes?responsable=sin-responsable", alerta: datos.sinResponsable > 0 }),
       indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Trabajo en curso", destino: "/ordenes?estado=EN_PRODUCCION" }),
       indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, contexto: "Desde hoy hasta dentro de siete días", destino: "/ordenes" }),
     ], grafico: grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
@@ -116,7 +116,7 @@ async function administracion(actor: Actor, hoy: string): Promise<ContenidoPanel
   if (!can(actor, "inventario:ver")) return { ...vacio(), pregunta };
   const [datos, movimientos] = await Promise.all([consultarMaterialesPanel(can(actor, "cotizacion:ver")), consultarMovimientos(hoy)]);
   const indicadores = [indicador({ id: "materiales-bajo-minimo", etiqueta: "Materiales bajo el mínimo", valor: datos.bajoMinimo,
-    contexto: "Materiales activos con mínimo definido", destino: "/inventario?soloAlertas=true", alerta: datos.bajoMinimo > 0 }),
+    contexto: "Materiales activos con mínimo definido", destino: "/inventario?bajoMinimo=true", alerta: datos.bajoMinimo > 0 }),
   indicador({ id: "consumos-hoy", etiqueta: "Consumos de hoy", valor: movimientos.consumosHoy, contexto: "Cantidad de consumos registrados", destino: "/inventario" })];
   if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), contexto: "Existencia por costo promedio", destino: "/inventario" }));
   indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Desde el lunes hasta hoy", destino: "/inventario" }));

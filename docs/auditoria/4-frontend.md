@@ -30,5 +30,14 @@ Herramientas: prueba E2E de auditoría (`e2e/auditoria-frontend.spec.ts`, Playwr
 - LCP entre 500 y 900 ms; TBT entre 0 y 26 ms; CLS 0 en todas.
 - Mejores prácticas 92-96: la diferencia viene del 404 del favicon (corregido) y de `inspector-issues` en login, producción y reportes (a revisar en la fase 5 tras la corrección).
 
-## 4.5 y 4.6
-- Regresión visual (4.5) y storytelling (4.6): ver secciones siguientes de este informe.
+## 4.5 Regresión visual
+- `e2e/regresion-visual.spec.ts`: 10 pantallas (login, panel de Gerencia y de Producción, lista y ficha de cliente, lista y ficha de cotización enviada, lista y ficha de orden, inventario) con `toHaveScreenshot` y máscaras para fechas, montos y gráficos variables.
+- Render estable: `scripts/auditoria/visual-docker.sh` corre Playwright 1.63 dentro de la imagen oficial `mcr.microsoft.com/playwright:v1.63.0-noble` contra la app local. Las líneas base viven en `e2e/instantaneas/` (684 KB).
+- Verificado: línea base generada y dos comparaciones seguidas con 10 de 10 verdes. Revisé dos líneas base a ojo (panel de Gerencia, ficha de cotización): máscaras sobre lo volátil y nada más.
+- Defectos de la prueba corregidos: claves de siembra no cargadas dentro del contenedor y un selector ambiguo (`Ítems de cotización` aparecía como título y como caption).
+- Uso: `bash scripts/auditoria/visual-docker.sh` compara; `--update-snapshots` regenera tras un cambio visual aprobado.
+
+## 4.6 Storytelling (Codex `revisar`, 14 pantallas, sin P1)
+- Cumplen las 4 listas (clientes, cotizaciones, órdenes, materiales), las fichas de orden y de material y el alcance del perfil ADMIN. Los 5 paneles cumplen las reglas 1 y 2 (título con conclusión; máximo 4 indicadores, 1 gráfico y la lista de atención).
+- P2 tres indicadores del panel enviaban a listas con filtros que no existen y mostraban la lista sin filtrar: `/ordenes?atrasadas=true`, `/ordenes?responsable=sin-asignar` y `/inventario?soloAlertas=true` (`panel/paneles.ts:53,72,119`). Verificado contra los esquemas de consulta. Corregido a `vencidas=true`, `sin-responsable` y `bajoMinimo=true`. Regresión: `tests/unit/panel-destinos.test.ts` valida que cada filtro de cada destino exista en el esquema de su lista (falla con los nombres viejos, pasa con los nuevos).
+- P3 diferidos: los indicadores de Operaciones, Atención al cliente, Producción y Administración no traen comparación ni meta (regla 3); los gráficos de esos cuatro paneles no llevan enlace (regla 4); la ficha de cliente no preselecciona al cliente en "Nueva cotización"; en una cotización aprobada sin orden, Atención al cliente no sabe que debe intervenir Operaciones.
