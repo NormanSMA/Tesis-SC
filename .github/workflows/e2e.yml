@@ -21,11 +21,11 @@ jobs:
         env:
           POSTGRES_USER: sc_owner
           POSTGRES_PASSWORD: cambiar-en-produccion
-          POSTGRES_DB: sc_e2e
+          POSTGRES_DB: sc_plataforma
         ports:
           - 127.0.0.1:5442:5432
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U sc_owner -d sc_e2e"
+          --health-cmd "pg_isready -h 127.0.0.1 -U sc_owner -d sc_plataforma"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -55,11 +55,10 @@ jobs:
 
           const entorno = parseEnv(readFileSync(".env.example", "utf8"));
           for (const nombre of Object.keys(entorno)) {
-            if (!nombre.endsWith("DATABASE_URL")) continue;
+            if (!nombre.includes("DATABASE_URL") || nombre.startsWith("TEST_")) continue;
             const url = new URL(entorno[nombre]);
             url.hostname = "127.0.0.1";
             url.port = "5442";
-            url.pathname = "/sc_e2e";
             url.username = "sc_owner";
             url.password = "cambiar-en-produccion";
             entorno[nombre] = url.toString();
