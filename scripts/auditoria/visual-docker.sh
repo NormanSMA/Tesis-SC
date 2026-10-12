@@ -7,6 +7,7 @@ cd "$(dirname "$0")/../.."
 mkdir -p e2e/instantaneas
 MSYS_NO_PATHCONV=1 docker run --rm --ipc=host \
   -e E2E_BASE_URL=http://host.docker.internal:3000 \
+  -e E2E_VISUAL=1 \
   -v "$PWD:/src:ro" \
   -v "$PWD/e2e/instantaneas:/out" \
   mcr.microsoft.com/playwright:v1.63.0-noble \

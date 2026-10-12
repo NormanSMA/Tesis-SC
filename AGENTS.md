@@ -57,6 +57,7 @@ docs/              tesis, trazabilidad, decisiones, capturas
 - `pnpm test:seccion --lista` muestra las secciones y `pnpm test:verificar-secciones` falla si un archivo de prueba nuevo no tiene sección (agrégalo en `scripts/pruebas/secciones.mjs`).
 - La sección `interfaz` abre Edge y es la más lenta: córrela solo si tocas componentes.
 - CI corre las secciones en paralelo (un trabajo por sección).
+- Antes de cada push: `pnpm ci:local` (unos 8 minutos). Repite en tu equipo lint de todo el repositorio, tipos, compilación, auditoría de dependencias, ciclos, gitleaks, Squawk y las secciones de pruebas. Si pasa, el CI de GitHub pasa. No subas con pasos en rojo. El flujo E2E de GitHub usa `pnpm e2e:seccion` y `scripts/auditoria/visual-docker.sh` por separado.
 
 ## Definición de terminado
 Un cambio está terminado solo si cumple todo lo que aplica:

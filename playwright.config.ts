@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // La regresión visual solo es válida dentro de la imagen de Playwright (scripts/auditoria/visual-docker.sh).
+  testIgnore: process.env.E2E_VISUAL === "1" ? [] : ["**/regresion-visual.spec.ts"],
   outputDir: "./audit/e2e/artefactos",
   snapshotPathTemplate:
     "./e2e/instantaneas/{testFilePath}/{projectName}/{arg}{ext}",

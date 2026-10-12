@@ -115,8 +115,9 @@ test.describe("regresión visual", () => {
   });
 
   test("lista de clientes de ATENCION_CLIENTE", async ({ page }) => {
+    // Búsqueda por un cliente de siembra: la captura no depende de los clientes que creen otras pruebas.
     await abrirPantalla(page, {
-      perfil: "ATENCION_CLIENTE", ruta: "/clientes", titulo: "Clientes",
+      perfil: "ATENCION_CLIENTE", ruta: `/clientes?q=${encodeURIComponent(CLIENTE_SIEMBRA)}`, titulo: "Clientes",
     });
     await expect(page.getByRole("row").filter({ hasText: CLIENTE_SIEMBRA })).toBeVisible();
     await expect(page).toHaveScreenshot("atencion_cliente-clientes.png", {

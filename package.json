@@ -25,6 +25,7 @@
     "test:cambios": "node scripts/pruebas/secciones.mjs --cambios",
     "test:verificar-secciones": "node scripts/pruebas/secciones.mjs --verificar",
     "e2e:seccion": "node scripts/pruebas/secciones.mjs --e2e",
+    "ci:local": "node scripts/ci-local.mjs",
     "check:types": "tsc --noEmit",
     "check:lint": "eslint",
     "check:unit": "vitest run",
