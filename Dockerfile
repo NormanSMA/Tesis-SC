@@ -43,6 +43,8 @@ ENV NODE_ENV=production \
 WORKDIR /app
 # Aplica solo correcciones de seguridad ya publicadas por Debian a la base fijada por digest.
 RUN apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*
+# La aplicación corre con `node server.js`: npm y npx no se usan y traían 7 HIGH de Trivy.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public

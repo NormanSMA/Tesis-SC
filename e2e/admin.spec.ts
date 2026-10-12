@@ -68,7 +68,10 @@ async function crearUsuarioPorApi(page: Page, perfiles: string[]): Promise<Usuar
 }
 
 async function desactivarPorApi(page: Page, id: string): Promise<void> {
-  const respuesta = await page.request.post(`/api/v1/usuarios/${id}/desactivar`, { headers: { Origin: BASE } });
+  // Desactivar exige la versión vigente del usuario (409 si cambió): se lee justo antes.
+  const ficha = await page.request.get(`/api/v1/usuarios/${id}`);
+  const version = ficha.ok() ? ((await ficha.json()).datos as { actualizadoEn: string }).actualizadoEn : "";
+  const respuesta = await page.request.post(`/api/v1/usuarios/${id}/desactivar`, { headers: { Origin: BASE }, data: { version } });
   expect([200, 409]).toContain(respuesta.status());
 }
 
@@ -205,7 +208,8 @@ test.describe("ADMIN gestiona usuarios", () => {
 
       const activo = await intentarSesionEnContextoAparte(browser, usuario.correo, usuario.claveTemporal);
       try {
-        await activo.page.waitForURL("**/panel", { timeout: 15_000 });
+        // Reactivar no cambia la clave: sigue siendo temporal y el acceso lleva al cambio obligatorio.
+        await activo.page.waitForURL("**/cambiar-clave", { timeout: 15_000 });
       } finally {
         await activo.contexto.close();
       }

@@ -40,3 +40,8 @@ Auditor de lectura: Codex `revisar` (Dockerfile, compose, CI, respaldos). Medici
   - HIGH Node: `brace-expansion`, `http-cache-semantics`, `ip-address`, `tar`, `undici`, todos transitivos de `exceljs` (archiver, unzipper) y de Next. La aplicación solo escribe archivos xlsx; no lee ZIP ni TAR de usuarios.
   - Arreglo aplicado (P2): `apt-get upgrade` en la etapa `runner` para tomar las correcciones ya publicadas de Debian (cierra la de `perl-base`). Se vuelve a escanear en la fase 5. El resto es riesgo aceptado, a revisar cuando se actualice Prisma o Next tras la defensa.
   - Comprobación de aceptación: `trivy image` en la fase 5; CRITICAL con corrección disponible = 0.
+
+## Reescaneo de la imagen final (2026-10-12)
+- Tras `apt-get upgrade`: Trivy (`--ignore-unfixed`, HIGH y CRITICAL) da 0 hallazgos del sistema Debian. Los 7 HIGH restantes estaban en el `npm` incluido en la imagen base de Node (`brace-expansion`, `ip-address`, `tar`, `undici`), que la aplicación no usa. Arreglo: la etapa `runner` borra `npm` y `npx`. Verificado: `ls /usr/local/bin` en el contenedor ya no los lista y la app responde 200 en `/api/v1/salud` y `/login`.
+- Queda un CRITICAL sin corrección publicada: `zlib1g` CVE-2023-45853 (`will_not_fix` de Debian; defecto de minizip, no usado). Registrado en ADR-015.
+- Humo posterior: `auditoria-frontend` y `base` en `portatil`, 137 pruebas verdes.

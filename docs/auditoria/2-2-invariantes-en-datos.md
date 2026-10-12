@@ -22,3 +22,8 @@ Script: `scripts/auditoria/invariantes.sql` (26 consultas INV-01 a INV-26, solo 
 - P3: el modelo de datos documentado (`docs/analisis/05-modelo-datos.md`) difiere del esquema real (varios perfiles por usuario, `usuario_perfil`, aprobación con referencia, `historial_etapa`, consumo con cantidad y costo propios). Actualizar el documento en la fase 5.
 - Limitación: los datos de demostración vienen de una siembra que ya cuadra y de triggers y CHECK de la base. Un 0 prueba que no hay corrupción hoy, no que las consultas detecten cada caso. El script debe repetirse sobre la base después de la suite E2E y de la prueba de concurrencia (2.5).
 - Arreglo propuesto: enlazar el script desde `audit:full` y ejecutarlo en la fase 5.
+
+## Segunda corrida, tras la suite E2E y la prueba de rendimiento (2026-10-12)
+- Base de demostración con 311 clientes, 30 cotizaciones, 12 órdenes, 91 movimientos y 1133 eventos de bitácora. 25 de 26 consultas devuelven 0 filas.
+- INV-13 devuelve 1 fila (`OT-2026-0011`, CANCELADA con una etapa EN_CURSO), creada por una prueba E2E que cancela una orden en producción. No es corrupción: la base no permite EN_CURSO a OMITIDA, por eso cancelar conserva la etapa (`docs/modulos/06-produccion.md:50`), y el tablero y el panel excluyen las órdenes canceladas (`produccion/consulta.ts:17`, `panel/consultas.ts:91`). INV-13 pasa a informativa.
+- P3: la etapa queda EN_CURSO para siempre en una orden cancelada. Si se quiere un cierre limpio, agregar el estado CANCELADA a la etapa (cambio de esquema y de la tabla de transiciones). Diferido.

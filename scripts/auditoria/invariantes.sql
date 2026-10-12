@@ -118,7 +118,7 @@ JOIN etapa_orden e ON e.orden_id = o.id AND e.estado IN ('PENDIENTE', 'EN_CURSO'
 WHERE o.estado IN ('ENTREGADA', 'CERRADA')
 GROUP BY o.id, o.numero, o.estado;
 
--- INV-13: orden CANCELADA con etapas EN_CURSO.
+-- INV-13 (INFORMATIVA, por diseño): orden CANCELADA con etapas EN_CURSO. La base prohíbe EN_CURSO a OMITIDA, así que cancelar conserva la etapa (docs/modulos/06-produccion.md); el tablero y el panel excluyen órdenes canceladas. Una fila no es corrupción.
 SELECT 'INV-13' AS inv, o.id AS orden_id, o.numero, o.estado, COUNT(*) AS en_curso
 FROM orden_trabajo o
 JOIN etapa_orden e ON e.orden_id = o.id AND e.estado = 'EN_CURSO'

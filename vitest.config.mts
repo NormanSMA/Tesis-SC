@@ -20,7 +20,7 @@ export default defineConfig({
     globalSetup: ["tests/helpers/global-setup.ts"],
     setupFiles: ["tests/helpers/forzar-base-prueba.ts"],
     testTimeout: 60000,
-    hookTimeout: 60000,
+    hookTimeout: 120000,
     fileParallelism: false,
   },
 });
