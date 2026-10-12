@@ -116,7 +116,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   await elegir(linea.getByLabel("Material registrado"), new RegExp(CODIGO), page);
   await linea.getByLabel("Descripción de costo").fill(MATERIAL);
   await linea.getByLabel("Cantidad total consumida").fill("4");
-  await linea.getByLabel("Costo unitario (C$)").fill("10");
+  await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
   await linea.getByLabel("Merma (%)").fill("0");
   await page.getByRole("button", { name: "Guardar ítems" }).click();
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}$`));

@@ -32,6 +32,7 @@ function CamposMaterial({ linea, prefijo, materiales, errores, alCambiar }: Prop
       <CampoTexto id={`${prefijo}.cantidad`} etiqueta="Cantidad total consumida" decimal requerido valor={linea.cantidad}
         error={errores[`${prefijo}.cantidad`]} alCambiar={(cantidad) => alCambiar({ ...linea, cantidad })} />
       <CampoTexto id={`${prefijo}.costoUnitario`} etiqueta="Costo unitario (C$)" decimal requerido valor={linea.costoUnitario ?? ""}
+        deshabilitado={Boolean(linea.materialId)} ayuda={linea.materialId ? "Lo fija el inventario." : undefined}
         error={errores[`${prefijo}.costoUnitario`]} alCambiar={(costoUnitario) => alCambiar({ ...linea, costoUnitario })} />
       <CampoTexto id={`${prefijo}.mermaPct`} etiqueta="Merma (%)" decimal requerido valor={linea.mermaPct}
         error={errores[`${prefijo}.mermaPct`]} alCambiar={(mermaPct) => alCambiar({ ...linea, mermaPct })} />

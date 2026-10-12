@@ -82,7 +82,9 @@ async function prepararLinea({ referencias, linea, anterior, duplicando }: Conte
   const existente = guardada?.materialId === linea.materialId;
   const material = referencias.materiales.get(linea.materialId);
   if (!material || (!material.activo && !existente)) throw regla("MATERIAL_ARCHIVADO", "Seleccione un material activo.");
-  const costoUnitario = linea.costoUnitario ?? (existente ? guardada!.costoUnitario.toFixed(4) : material.costoPromedio.toFixed(4));
+  // Con material registrado el costo lo fija el servidor: el guardado si la línea ya existe, o el promedio vigente.
+  // El costo libre solo existe en líneas sin material (compras especiales).
+  const costoUnitario = existente ? guardada!.costoUnitario.toFixed(4) : material.costoPromedio.toFixed(4);
   return { ...linea, lineaId: duplicando ? undefined : linea.lineaId, costoUnitario };
 }
 

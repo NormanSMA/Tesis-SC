@@ -81,7 +81,7 @@ async function crearMixta(page: Page): Promise<void> {
   await elegir(linea.getByLabel("Material registrado"), /VIN-BLA-01/, page);
   await linea.getByLabel("Descripción de costo").fill(`${MARCA}-vinil`);
   await linea.getByLabel("Cantidad total consumida").fill("2");
-  await linea.getByLabel("Costo unitario (C$)").fill("10");
+  await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
   await linea.getByLabel("Merma (%)").fill("10");
   await page.getByRole("button", { name: "Guardar ítems" }).click();
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}$`));
