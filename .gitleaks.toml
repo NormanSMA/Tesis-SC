@@ -1,0 +1,14 @@
+title = "sc-plataforma"
+
+[extend]
+useDefault = true
+
+# Falsos positivos conocidos de la auditoria 2.8: claves ficticias SEED_PASSWORD_*
+# de .env.example y de la prueba del seed. No son secretos reales.
+[[allowlists]]
+description = "Valores ficticios SEED_PASSWORD_* en .env.example y seed.test.ts"
+targetRules = ["generic-api-key"]
+paths = [
+  '''^\.env\.example$''',
+  '''^tests/integration/seed\.test\.ts$''',
+]

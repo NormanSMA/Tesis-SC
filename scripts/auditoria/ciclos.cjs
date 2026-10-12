@@ -62,3 +62,4 @@ for (const [a, deps] of grafo) for (const d of deps) {
   if (ra.startsWith("src/modules/") && rd.startsWith("src/app/")) { console.log(`capa: ${ra} -> ${rd}`); viol++; }
 }
 console.log(`violaciones_de_capa=${viol}`);
+if (sccs.length > 0 || viol > 0) process.exit(1);

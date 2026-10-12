@@ -80,6 +80,12 @@ async function sembrarDatos(bd: PrismaClient): Promise<Datos> {
   return d;
 }
 
+// Lee el SQLSTATE que el adaptador de Prisma deja en meta.driverAdapterError.cause.originalCode.
+function sqlstateDe(e: unknown): string | undefined {
+  const meta = (e as { meta?: { driverAdapterError?: { cause?: { originalCode?: string } } } }).meta;
+  return meta?.driverAdapterError?.cause?.originalCode;
+}
+
 function esperarConflicto(e: unknown, codigo: string): string {
   const { status, cuerpo } = aErrorHttp(e);
   expect(status).toBe(409);
@@ -223,6 +229,18 @@ describeConBase("traduccion de errores contra PostgreSQL real", () => {
     expect(esperarConflicto(e, "REGISTROS_RELACIONADOS")).toBe(
       "El registro tiene datos relacionados y no se puede eliminar.",
     );
+  });
+
+  it("RB-02: cotizacion sin cliente (23502) o con cliente inexistente (23503) no deja filas", async () => {
+    const numero = await numeroNuevo(bd, "COTIZACION");
+    const insertar = (clienteId: string | null) => () => bd.$executeRaw`INSERT INTO cotizacion
+      (id, numero, cliente_id, estado, tasa_impuesto, vigencia_dias, creado_por_id, actualizado_en)
+      VALUES (${randomUUID()}::uuid, ${numero}, ${clienteId}::uuid, 'BORRADOR', 15, 10, ${d.usuarioId}::uuid, now())`;
+
+    expect(sqlstateDe(await capturar(insertar(null)))).toBe("23502");
+    expect(sqlstateDe(await capturar(insertar(randomUUID())))).toBe("23503");
+    const filas = await bd.$queryRaw<{ total: number }[]>`SELECT count(*)::int AS total FROM cotizacion WHERE numero = ${numero}`;
+    expect(filas[0].total).toBe(0);
   });
 
   it("23514: existencia negativa", async () => {

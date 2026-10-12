@@ -12,8 +12,8 @@ import { useSolicitudInventario } from "../useSolicitudInventario";
 import { AvisoSolicitud } from "./AvisoSolicitud";
 import { SelectorMaterial } from "./SelectorMaterial";
 import { CamposLibro } from "./CamposLibro";
+import type { ValoresLibro } from "./tipos-libro";
 
-export type ValoresLibro = { cantidad: string; costoUnitario: string; referencia: string; motivo: string; direccion: "AUMENTAR" | "DISMINUIR" };
 export function FormularioLibro({ tipo, inicial }: { tipo: "entrada" | "ajuste"; inicial?: MaterialDto }) {
   const [material, setMaterial] = useState<MaterialDto | null>(inicial ?? null);
   const [valores, setValores] = useState<ValoresLibro>({ cantidad: "", costoUnitario: "", referencia: "", motivo: "", direccion: "AUMENTAR" });

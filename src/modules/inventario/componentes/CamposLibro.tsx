@@ -3,7 +3,7 @@
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { ValoresLibro } from "./FormularioLibro";
+import type { ValoresLibro } from "./tipos-libro";
 
 export function CamposLibro({ tipo, valores, errores, cambiar }: { tipo: "entrada" | "ajuste"; valores: ValoresLibro;
   errores: Record<string, string>; cambiar: (campo: keyof ValoresLibro, valor: string) => void }) {

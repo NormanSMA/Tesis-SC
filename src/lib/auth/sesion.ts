@@ -5,18 +5,9 @@ import type { PerfilCodigo } from "@/core/permisos";
 import { resolverSesion } from "@/modules/auth/service";
 
 import { leerTokenDeCookies, nombreCookieSesion } from "./cookies";
+import type { UsuarioSesion } from "./tipos";
 
-export type { PerfilCodigo };
-
-export type UsuarioSesion = {
-  id: string;
-  nombre: string;
-  correo: string;
-  perfil: PerfilCodigo;
-  perfiles: PerfilCodigo[];
-  permisos: string[];
-  debeCambiarClave: boolean;
-};
+export type { PerfilCodigo, UsuarioSesion };
 
 // Para páginas y layouts de servidor. Valida contra la base una vez por petición:
 // layout y página comparten el resultado mediante la caché de React.

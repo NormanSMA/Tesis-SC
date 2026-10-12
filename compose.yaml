@@ -13,6 +13,8 @@ services:
     <<: *entorno
     image: postgres:17-alpine
     restart: unless-stopped
+    # JIT apagado: con volumen alto añade más de un segundo a la consulta del panel comercial (docs/auditoria/2-3).
+    command: ["postgres", "-c", "jit=off"]
     volumes:
       - sc_pgdata:/var/lib/postgresql/data
     ports:
@@ -71,7 +73,7 @@ services:
     environment:
       POSTGRES_DB: sc_test
     # fsync apagado: la base de pruebas es desechable y vive en memoria.
-    command: ["postgres", "-c", "fsync=off"]
+    command: ["postgres", "-c", "fsync=off", "-c", "jit=off"]
     tmpfs:
       - /var/lib/postgresql/data
     ports:

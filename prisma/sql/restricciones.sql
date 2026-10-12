@@ -487,8 +487,9 @@ CREATE TRIGGER trg_consumo_validar
 -- 4. Maquinas de estado
 -- ===========================================================================
 
--- Fuente unica de transiciones en la base. src/core/estados.ts debe coincidir;
--- una prueba recorre todos los pares y compara con esta funcion.
+-- Fuente unica de transiciones en la base (esta funcion). Los espejos en TypeScript
+-- viven en src/modules/*/reglas.ts y src/modules/*/estados.ts y deben coincidir;
+-- las pruebas de paridad recorren todos los pares y comparan con esta funcion.
 -- desde = NULL representa el estado inicial al insertar.
 CREATE OR REPLACE FUNCTION transicion_valida(p_maquina text, p_desde text, p_hacia text)
 RETURNS boolean
