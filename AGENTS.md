@@ -49,6 +49,15 @@ docs/              tesis, trazabilidad, decisiones, capturas
 - E2E: Playwright por perfil. Accesibilidad con axe.
 - Cada CF tiene al menos una prueba automatizada y una captura en docs/capturas.
 
+### Pruebas por secciones (no corras todo de golpe)
+- Las pruebas se reparten en 10 secciones por módulo: nucleo, acceso, clientes, catalogo, cotizaciones, ordenes, produccion, inventario, analitica e interfaz. Cada una usa su propia base `seccion_<nombre>_test` (la crea el script).
+- Mientras trabajas: `pnpm test:seccion <nombre>` (de 15 a 120 s) o `pnpm test:cambios` (solo lo afectado por tus cambios).
+- E2E de una sección: `pnpm e2e:seccion <nombre>` (solo ancho portátil). Los 4 anchos con `--anchos`, solo al cerrar el módulo.
+- `pnpm test:secciones` corre todas, una tras otra, con resumen por sección. Es la suite completa de cierre.
+- `pnpm test:seccion --lista` muestra las secciones y `pnpm test:verificar-secciones` falla si un archivo de prueba nuevo no tiene sección (agrégalo en `scripts/pruebas/secciones.mjs`).
+- La sección `interfaz` abre Edge y es la más lenta: córrela solo si tocas componentes.
+- CI corre las secciones en paralelo (un trabajo por sección).
+
 ## Definición de terminado
 Un cambio está terminado solo si cumple todo lo que aplica:
 - TypeScript, ESLint y Vitest limpios. Build de producción limpio.

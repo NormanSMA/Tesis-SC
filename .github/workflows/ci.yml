@@ -72,10 +72,61 @@ jobs:
       - name: Verificar tipos
         run: pnpm typecheck
 
-      - name: Ejecutar pruebas
-        run: pnpm test
+      - name: Verificar el reparto de pruebas por secciones
+        run: pnpm test:verificar-secciones
 
       - name: Compilar aplicación
         run: pnpm build
 
-      # Los E2E requieren navegadores y una aplicación con siembra; necesitan un flujo separado.
+
+  pruebas:
+    needs: verificar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        seccion: [nucleo, acceso, clientes, catalogo, cotizaciones, ordenes, produccion, inventario, analitica]
+    env:
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: sc_owner
+          POSTGRES_PASSWORD: cambiar-en-produccion
+          POSTGRES_DB: sc_test
+        ports:
+          - 127.0.0.1:5443:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U sc_owner -d sc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar pnpm desde packageManager
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar cliente Prisma
+        run: pnpm db:generate
+
+      # Cada sección usa su propia base (seccion_<nombre>_test) en el mismo servidor.
+      - name: Pruebas de la sección ${{ matrix.seccion }}
+        run: pnpm test:seccion ${{ matrix.seccion }}
+
+  # Las pruebas de componentes con navegador (Edge) no corren en CI: la sección interfaz es local (pnpm test:seccion interfaz).
