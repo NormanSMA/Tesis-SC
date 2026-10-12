@@ -19,9 +19,9 @@ describe("cabeceras de seguridad", () => {
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-      "Content-Security-Policy-Report-Only":
+      "Content-Security-Policy":
         "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; " +
-        "script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; " +
+        "script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; " +
         "base-uri 'self'; form-action 'self'",
     });
   });

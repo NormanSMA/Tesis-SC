@@ -89,7 +89,7 @@ export function FormularioCambiarClave({ perfil }: { perfil: PerfilCodigo }) {
   const { formulario, errorGeneral, enviar } = useCambioClave(perfil);
   const { register, formState: { errors, isSubmitting } } = formulario;
   return (
-    <form onSubmit={enviar} noValidate className="space-y-5" aria-label="Cambiar clave" aria-busy={isSubmitting}>
+    <form method="post" onSubmit={enviar} noValidate className="space-y-5" aria-label="Cambiar clave" aria-busy={isSubmitting}>
       <Card className="p-5">
         {errorGeneral ? <p role="alert" className="rounded-md border border-danger-soft-border bg-danger-soft p-3 text-sm text-danger">{errorGeneral}</p> : null}
         <fieldset disabled={isSubmitting} className="min-w-0 space-y-5">

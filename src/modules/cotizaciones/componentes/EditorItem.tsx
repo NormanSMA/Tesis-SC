@@ -14,8 +14,10 @@ import { CampoSeleccion, CampoTexto } from "./CamposEditor";
 import { EditorLinea } from "./EditorLinea";
 import { GrupoCampo } from "./GrupoCampo";
 
-export type PropiedadesItem = { item: EntradaItem; indice: number; original?: ItemDto; selectores: SelectoresEditor;
-  calculado: ItemCalculado | null; errores: CamposError; alCambiar: (item: EntradaItem) => void; alQuitar: () => void };
+export type ItemEditor = EntradaItem & { claveLocal?: string };
+
+export type PropiedadesItem = { item: ItemEditor; indice: number; original?: ItemDto; selectores: SelectoresEditor;
+  calculado: ItemCalculado | null; errores: CamposError; alCambiar: (item: ItemEditor) => void; alQuitar: () => void };
 
 function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
   if (tipo === "MATERIAL") return { tipo, descripcion: "", unidad: "unidad", materialId: null,

@@ -11,26 +11,32 @@ import { esquemaReemplazarItems, type EntradaItem } from "../schema";
 import type { CotizacionDto, SelectoresEditor } from "../tipos";
 import { enfocarError, erroresEsquema, useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
-import { EditorItem } from "./EditorItem";
+import { EditorItem, type ItemEditor } from "./EditorItem";
 import { GrupoCampo } from "./GrupoCampo";
 import { TotalesCotizacion } from "./TotalesCotizacion";
 
-function nuevoItem(tipo: EntradaItem["tipo"]): EntradaItem {
-  if (tipo === "CATALOGO") return { tipo, productoId: "", cantidad: "1", ancho: null, alto: null };
-  return { tipo, categoriaId: "", descripcion: "", unidadCobro: "UNIDAD", cantidad: "1", margenPct: "30", lineas: [] };
+function nuevoItem(tipo: EntradaItem["tipo"]): ItemEditor {
+  const claveLocal = crypto.randomUUID();
+  if (tipo === "CATALOGO") return { claveLocal, tipo, productoId: "", cantidad: "1", ancho: null, alto: null };
+  return { claveLocal, tipo, categoriaId: "", descripcion: "", unidadCobro: "UNIDAD", cantidad: "1", margenPct: "30", lineas: [] };
 }
 
 export function EditorItems({ cotizacion, selectores }: { cotizacion: CotizacionDto; selectores: SelectoresEditor }) {
-  const [items, setItems] = useState<EntradaItem[]>(cotizacion.items.map(aEntradaItem));
+  const [items, setItems] = useState<ItemEditor[]>(cotizacion.items.map(aEntradaItem));
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("items-cotizacion");
   const vista = calcularVista({ items, originales: cotizacion.items, selectores,
     descuento: cotizacion.descuento, tasaImpuesto: cotizacion.tasaImpuesto });
   const campos = { ...errores, ...vista.errores, ...solicitud.campos };
-  const cambiarItem = (indice: number, item: EntradaItem) => setItems(items.map((guardado, posicion) => posicion === indice ? item : guardado));
+  const cambiarItem = (indice: number, item: ItemEditor) => setItems(items.map((guardado, posicion) =>
+    posicion === indice ? { ...item, claveLocal: guardado.claveLocal } : guardado));
   async function guardar(evento: FormEvent) {
     evento.preventDefault();
-    const cuerpo = { version: cotizacion.actualizadoEn, items };
+    const cuerpo = { version: cotizacion.actualizadoEn, items: items.map((item) => {
+      const entrada = { ...item };
+      delete entrada.claveLocal;
+      return entrada;
+    }) };
     const validacion = { ...erroresEsquema(esquemaReemplazarItems, cuerpo), ...vista.errores };
     setErrores(validacion);
     if (Object.keys(validacion).length) { enfocarError("items-cotizacion"); return; }
@@ -41,7 +47,7 @@ export function EditorItems({ cotizacion, selectores }: { cotizacion: Cotizacion
     <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
       <legend className="mb-4 text-xl font-semibold">Ítems de cotización</legend>
       <GrupoCampo id="items" etiqueta="Productos y trabajos" error={campos.items}>
-        {items.map((item, indice) => <EditorItem key={item.itemId ?? indice} item={item} indice={indice}
+        {items.map((item, indice) => <EditorItem key={item.itemId ?? item.claveLocal} item={item} indice={indice}
           original={cotizacion.items.find((original) => original.id === item.itemId)} selectores={selectores}
           calculado={vista.items[indice]} errores={campos} alCambiar={(entrada) => cambiarItem(indice, entrada)}
           alQuitar={() => setItems(items.filter((_, posicion) => posicion !== indice))} />)}

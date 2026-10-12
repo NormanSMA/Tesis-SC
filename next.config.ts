@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           {
-            key: "Content-Security-Policy-Report-Only",
+            key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
               "img-src 'self' data: blob:",
@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline'",
               "connect-src 'self'",
               "frame-ancestors 'none'",
+              "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
             ].join("; "),

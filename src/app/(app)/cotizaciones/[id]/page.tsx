@@ -29,8 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function PaginaDetalleCotizacion({ params }: { params: Promise<{ id: string }> }) {
   const { actor, cotizacion } = await cargarPagina((await params).id);
-  const categorias = await consultarCategoriasSelector();
-  const orden = cotizacion.estado === "APROBADA" ? await ordenDeCotizacion(cotizacion.id, actor) : null;
+  const [categorias, orden] = await Promise.all([
+    consultarCategoriasSelector(),
+    cotizacion.estado === "APROBADA" ? ordenDeCotizacion(cotizacion.id, actor) : null,
+  ]);
   const permisos = { gestionar: can(actor, "cotizacion:gestionar"), enviar: can(actor, "cotizacion:enviar"),
     responder: can(actor, "cotizacion:responder") };
   return <>

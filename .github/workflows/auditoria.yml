@@ -1,0 +1,83 @@
+name: Auditoría
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencias-y-secretos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Obtener código e historial
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configurar pnpm desde packageManager
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Auditar dependencias de producción
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Detectar ciclos y violaciones de capas
+        if: ${{ !cancelled() }}
+        run: node scripts/auditoria/ciclos.cjs
+
+      - name: Escanear secretos
+        if: ${{ !cancelled() }}
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --volume "$PWD:/repo:ro" \
+            zricethezav/gitleaks:latest detect \
+            --source /repo --config /repo/.gitleaks.toml --redact
+
+  migraciones:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Obtener código del PR e historial
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Auditar migraciones nuevas con Squawk
+        shell: bash
+        run: |
+          git diff --name-only origin/main...HEAD -- 'prisma/migrations/**/migration.sql' > "$RUNNER_TEMP/migraciones.txt"
+          mapfile -t archivos < "$RUNNER_TEMP/migraciones.txt"
+          nuevas=()
+          for archivo in "${archivos[@]}"; do
+            if [[ -f "$archivo" ]] && ! git cat-file -e "origin/main:$archivo" 2>/dev/null; then
+              nuevas+=("$archivo")
+            fi
+          done
+          if [[ ${#nuevas[@]} -eq 0 ]]; then
+            echo "No hay migraciones nuevas."
+            exit 0
+          fi
+          docker run --rm --volume "$PWD:/repo:ro" --workdir /repo \
+            ghcr.io/sbdchd/squawk:latest \
+            --exclude=prefer-robust-stmts,prefer-text-field,prefer-bigint-over-int,prefer-bigint-over-smallint,require-enum-value-ordering \
+            "${nuevas[@]}"
+

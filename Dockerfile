@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # glibc (bookworm) en lugar de alpine: @node-rs/argon2 y Prisma traen binarios para glibc.
 
-FROM node:24-bookworm-slim AS base
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS base
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -35,12 +35,14 @@ RUN pnpm exec prisma generate
 ENTRYPOINT ["sh", "/app/scripts/docker/entrypoint.sh", "propietario"]
 CMD ["sh", "/app/scripts/db/preparar.sh"]
 
-FROM node:24-bookworm-slim AS runner
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 WORKDIR /app
+# Aplica solo correcciones de seguridad ya publicadas por Debian a la base fijada por digest.
+RUN apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public

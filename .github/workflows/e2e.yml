@@ -1,0 +1,120 @@
+name: Pruebas E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  portatil:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: sc_owner
+          POSTGRES_PASSWORD: cambiar-en-produccion
+          POSTGRES_DB: sc_e2e
+        ports:
+          - 127.0.0.1:5442:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U sc_owner -d sc_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm desde packageManager
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Cargar variables y claves ficticias de siembra
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from "node:fs";
+          import { parseEnv } from "node:util";
+
+          const entorno = parseEnv(readFileSync(".env.example", "utf8"));
+          for (const nombre of Object.keys(entorno)) {
+            if (!nombre.endsWith("DATABASE_URL")) continue;
+            const url = new URL(entorno[nombre]);
+            url.hostname = "127.0.0.1";
+            url.port = "5442";
+            url.pathname = "/sc_e2e";
+            url.username = "sc_owner";
+            url.password = "cambiar-en-produccion";
+            entorno[nombre] = url.toString();
+          }
+          appendFileSync(process.env.GITHUB_ENV,
+            Object.entries(entorno).map(([nombre, valor]) => `${nombre}=${valor}\n`).join(""));
+          NODE
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar cliente Prisma
+        run: pnpm db:generate
+
+      - name: Instalar cliente PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Migrar y sembrar la base
+        run: sh scripts/db/preparar.sh
+
+      - name: Instalar navegador de Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Compilar aplicación
+        run: pnpm build
+
+      - name: Arrancar aplicación y esperar disponibilidad
+        run: |
+          pnpm start --hostname 127.0.0.1 > "$RUNNER_TEMP/sc-e2e.log" 2>&1 &
+          node --input-type=module <<'NODE'
+          import { setTimeout } from "node:timers/promises";
+
+          for (let intento = 0; intento < 60; intento++) {
+            try {
+              const respuesta = await fetch("http://127.0.0.1:3000", {
+                signal: AbortSignal.timeout(2000),
+              });
+              if (respuesta.ok) process.exit(0);
+            } catch {}
+            await setTimeout(1000);
+          }
+          console.error("La aplicación no respondió en el plazo esperado.");
+          process.exit(1);
+          NODE
+
+      - name: Ejecutar proyecto portátil
+        run: pnpm e2e --project=portatil --retries=1
+
+      - name: Subir informe de Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: audit/e2e/informe
+          if-no-files-found: warn
+          retention-days: 14

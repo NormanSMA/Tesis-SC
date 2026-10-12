@@ -53,7 +53,7 @@ export function FormularioLogin() {
   const { formulario, enviando, errorGeneral, enviar } = useFormularioLogin();
   const { register, formState } = formulario;
   return (
-    <form onSubmit={enviar} noValidate className="space-y-5" aria-label="Inicio de sesión">
+    <form method="post" onSubmit={enviar} noValidate className="space-y-5" aria-label="Inicio de sesión">
       {errorGeneral ? <AlertaLogin mensaje={errorGeneral} /> : null}
       <FormField id="correo" etiqueta="Correo electrónico" error={formState.errors.correo?.message} requerido>
         {(atributos) => (

@@ -18,7 +18,7 @@ export default defineConfig({
     ["html", { outputFolder: "audit/e2e/informe", open: "never" }],
   ],
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "es-NI",
