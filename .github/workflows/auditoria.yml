@@ -39,7 +39,7 @@ jobs:
 
       - name: Detectar ciclos y violaciones de capas
         if: ${{ !cancelled() }}
-        run: node scripts/auditoria/ciclos.cjs
+        run: node scripts/auditoria/ciclos.mjs
 
       - name: Escanear secretos
         if: ${{ !cancelled() }}

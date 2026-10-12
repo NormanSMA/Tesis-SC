@@ -64,6 +64,8 @@ jobs:
             url.password = "cambiar-en-produccion";
             entorno[nombre] = url.toString();
           }
+          // scripts/db/roles.sh se conecta con psql al puerto interno; en CI el servicio escucha en 5442.
+          entorno.DB_PORT_INTERNO = "5442";
           appendFileSync(process.env.GITHUB_ENV,
             Object.entries(entorno).map(([nombre, valor]) => `${nombre}=${valor}\n`).join(""));
           NODE

@@ -94,7 +94,7 @@ flowchart LR
 - Hojas sin imports a otros módulos: `clientes`, `cotizaciones`, `catalogo`, `auth`. `admin` solo importa `clientes` desde UI.
 - `inventario` depende de `ordenes` para errores y resumen (`consumo-bloqueo.ts:4`, `resumen-orden.ts:4`).
 - Los componentes de UI de `inventario`, `ordenes` y `produccion` importan de `cotizaciones`. Ejemplos: `inventario/componentes/FormularioLibro.tsx:8`, `produccion/useSolicitudProduccion.ts:7`.
-- **Brecha:** hay un ciclo de módulos `ordenes` <-> `produccion` (`ordenes/estados.ts:3`, `produccion/estados.ts:2-3`). El análisis por archivo (`scripts/auditoria/ciclos.cjs`) no lo ve como ciclo de archivos.
+- **Brecha:** hay un ciclo de módulos `ordenes` <-> `produccion` (`ordenes/estados.ts:3`, `produccion/estados.ts:2-3`). El análisis por archivo (`scripts/auditoria/ciclos.mjs`) no lo ve como ciclo de archivos.
 - **Brecha:** `core` importa `lib/errores` (`core/autorizacion.ts:1`, `core/costeo.ts:1`). La capa pura depende de `lib`.
 - **Brecha:** `cotizaciones` funciona como librería de UI compartida sin declararlo. Falta verificar qué se comparte.
 - **Brecha:** las páginas con `prisma` directo saltan `modules` y `manejar` (sección 2). Falta verificar cómo autorizan.

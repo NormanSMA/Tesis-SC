@@ -1,8 +1,10 @@
 // Detecta ciclos de imports en src con la API de typescript del proyecto (solo lectura).
-const fs = require("fs");
-const path = require("path");
-const raiz = path.resolve(__dirname, "..", "..");
-const ts = require(path.join(raiz, "node_modules/typescript"));
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
+
+const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const src = path.join(raiz, "src");
 const EXT = [".ts", ".tsx", ".mts"];
 const omitir = (p) => p.includes(path.join("src", "generated")) || /\.test\.tsx?$/.test(p);

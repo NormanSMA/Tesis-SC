@@ -22,4 +22,4 @@
 
 ## Cierre
 - Sin P0, P1 ni P2. Todo es limpieza P3.
-- Corrección propuesta: un solo encargo "limpieza" al final de la fase 2 (archivo sin uso, `export` de más, tipos neutros). Script de ciclos a guardar como `scripts/auditoria/ciclos.cjs` y enlazar desde `audit:code`.
+- Corrección propuesta: un solo encargo "limpieza" al final de la fase 2 (archivo sin uso, `export` de más, tipos neutros). Script de ciclos a guardar como `scripts/auditoria/ciclos.mjs` y enlazar desde `audit:code`.
