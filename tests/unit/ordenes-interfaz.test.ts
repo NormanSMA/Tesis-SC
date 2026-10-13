@@ -11,7 +11,9 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
 import { DatosCliente, DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
 import { EncabezadoOrden } from "@/modules/ordenes/componentes/EncabezadoOrden";
-import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
+import { EtapasOrden, recuperarFocoEtapas } from "@/modules/ordenes/componentes/EtapasOrden";
+import { atributosErrorCliente, enfocarResultadoCliente, FormularioCliente } from "@/modules/clientes/componentes/FormularioCliente";
+import { EditorItem, type PropiedadesItem } from "@/modules/cotizaciones/componentes/EditorItem";
 import { FiltrosOrdenes } from "@/modules/ordenes/componentes/FiltrosOrdenes";
 import { FichaOrden } from "@/modules/ordenes/componentes/FichaOrden";
 import { FormularioOrden } from "@/modules/ordenes/componentes/FormularioOrden";
@@ -156,6 +158,152 @@ describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
           }
         }
       } finally { await contexto.close(); }
+    });
+  }
+});
+
+describe("seguimiento: asociaciones y foco sin navegador", () => {
+  it("asocia el error sin quitar la ayuda ni duplicar identificadores", () => {
+    expect(atributosErrorCliente({ descripcion: "ayuda nombre-error", idError: "nombre-error", invalido: true }))
+      .toEqual({ "aria-invalid": "true", "aria-describedby": "ayuda nombre-error" });
+    expect(atributosErrorCliente({ descripcion: "ayuda nombre-error", idError: "nombre-error", invalido: false }))
+      .toEqual({ "aria-invalid": "false", "aria-describedby": "ayuda" });
+    expect(atributosErrorCliente({ descripcion: null, idError: "nombre-error", invalido: false }))
+      .toEqual({ "aria-invalid": "false", "aria-describedby": undefined });
+  });
+
+  function elementoFoco() {
+    return { focus: vi.fn(), tabIndex: 0 };
+  }
+
+  function formularioFoco({ campo, mensaje, conectado = true }: {
+    campo?: ReturnType<typeof elementoFoco>; mensaje?: ReturnType<typeof elementoFoco>; conectado?: boolean;
+  }) {
+    const boton = elementoFoco();
+    const formulario = { isConnected: conectado, querySelector: vi.fn((selector: string) => {
+      if (selector.startsWith('[aria-invalid')) return campo ?? null;
+      if (selector.startsWith('[role')) return mensaje ?? null;
+      return boton;
+    }) };
+    return { formulario: formulario as unknown as HTMLFormElement, boton };
+  }
+
+  it("enfoca el primer campo inválido antes del mensaje general", () => {
+    const campo = elementoFoco();
+    const mensaje = elementoFoco();
+    const { formulario, boton } = formularioFoco({ campo, mensaje });
+    enfocarResultadoCliente(formulario);
+    expect(campo.focus).toHaveBeenCalledOnce();
+    expect(mensaje.focus).not.toHaveBeenCalled();
+    expect(boton.focus).not.toHaveBeenCalled();
+  });
+
+  it("enfoca el mensaje cuando faltan errores de campo", () => {
+    const mensaje = elementoFoco();
+    const { formulario } = formularioFoco({ mensaje });
+    enfocarResultadoCliente(formulario);
+    expect(mensaje.tabIndex).toBe(-1);
+    expect(mensaje.focus).toHaveBeenCalledOnce();
+  });
+
+  it("recupera el botón y descarta formularios desmontados", () => {
+    const presente = formularioFoco({});
+    enfocarResultadoCliente(presente.formulario);
+    expect(presente.boton.focus).toHaveBeenCalledOnce();
+    const desmontado = formularioFoco({ conectado: false });
+    enfocarResultadoCliente(desmontado.formulario);
+    expect(desmontado.boton.focus).not.toHaveBeenCalled();
+    enfocarResultadoCliente(null);
+  });
+
+  function escenarioEtapas({ conectado = true, deshabilitado = false, focoExterno = false } = {}) {
+    const body = {};
+    const boton = { ...elementoFoco(), isConnected: conectado, disabled: deshabilitado, getAttribute: () => null };
+    const estado = { ...elementoFoco(), textContent: "" };
+    const mensaje = { ...elementoFoco(), textContent: "Etapa guardada." };
+    const seccion = { ownerDocument: { body, activeElement: focoExterno ? {} : body },
+      querySelectorAll: () => [estado, mensaje] };
+    const accion = { boton: boton as unknown as HTMLButtonElement, mensajes: new Map<HTMLElement, string | null>() };
+    return { boton, estado, mensaje, accion, propiedades: { seccion: seccion as unknown as HTMLElement,
+      accion, estado: estado as unknown as HTMLElement } };
+  }
+
+  it("enfoca mensajes nuevos tras perder el foco", () => {
+    const escenario = escenarioEtapas();
+    recuperarFocoEtapas(escenario.propiedades);
+    expect(escenario.mensaje.tabIndex).toBe(-1);
+    expect(escenario.mensaje.focus).toHaveBeenCalledOnce();
+    expect(escenario.boton.focus).not.toHaveBeenCalled();
+  });
+
+  it("enfoca errores del diálogo asociado a la acción", () => {
+    const escenario = escenarioEtapas();
+    const error = { ...elementoFoco(), textContent: "No se pudo guardar." };
+    recuperarFocoEtapas({ ...escenario.propiedades, accion: { ...escenario.accion,
+      dialogo: { isConnected: true, querySelectorAll: () => [error] } as unknown as HTMLElement } });
+    expect(error.tabIndex).toBe(-1);
+    expect(error.focus).toHaveBeenCalledOnce();
+    expect(escenario.mensaje.focus).not.toHaveBeenCalled();
+  });
+
+  it("revisa mensajes de la sección al desmontar el diálogo", () => {
+    const escenario = escenarioEtapas();
+    recuperarFocoEtapas({ ...escenario.propiedades, accion: { ...escenario.accion,
+      dialogo: { isConnected: false, querySelectorAll: vi.fn() } as unknown as HTMLElement } });
+    expect(escenario.mensaje.focus).toHaveBeenCalledOnce();
+  });
+
+  it("ignora avisos previos y recupera el botón disponible", () => {
+    const escenario = escenarioEtapas();
+    escenario.accion.mensajes.set(escenario.mensaje as unknown as HTMLElement, escenario.mensaje.textContent);
+    recuperarFocoEtapas(escenario.propiedades);
+    expect(escenario.mensaje.focus).not.toHaveBeenCalled();
+    expect(escenario.boton.focus).toHaveBeenCalledOnce();
+  });
+
+  it("enfoca el estado persistente tras desmontar el botón", () => {
+    const escenario = escenarioEtapas({ conectado: false });
+    escenario.accion.mensajes.set(escenario.mensaje as unknown as HTMLElement, escenario.mensaje.textContent);
+    recuperarFocoEtapas(escenario.propiedades);
+    expect(escenario.estado.textContent).toBe("Etapas actualizadas.");
+    expect(escenario.estado.focus).toHaveBeenCalledOnce();
+  });
+
+  it("preserva el foco externo y espera botones deshabilitados", () => {
+    for (const opciones of [{ focoExterno: true }, { deshabilitado: true }]) {
+      const escenario = escenarioEtapas(opciones);
+      escenario.accion.mensajes.set(escenario.mensaje as unknown as HTMLElement, escenario.mensaje.textContent);
+      recuperarFocoEtapas(escenario.propiedades);
+      expect(escenario.boton.focus).not.toHaveBeenCalled();
+      expect(escenario.estado.focus).not.toHaveBeenCalled();
+    }
+  });
+
+  it("conserva etiquetas y el nombre del botón de clientes", () => {
+    const html = renderToStaticMarkup(createElement(FormularioCliente, { modo: "crear" }));
+    expect(html).toContain("Guardar cliente");
+    expect(html).toMatch(/<label[^>]+for="[^"]+"[^>]*>[^<]*Nombre/);
+    for (const etiqueta of html.matchAll(/<label[^>]*for="([^"]+)"/g)) {
+      expect(html).toContain(`id="${etiqueta[1]}"`);
+    }
+  });
+
+  for (const tipo of ["CATALOGO", "PERSONALIZADO"] as const) {
+    it(`conserva la etiqueta y describe actualizar precio de ${tipo}`, () => {
+      const propiedades = { indice: 0, item: tipo === "CATALOGO"
+        ? { tipo, productoId: id, cantidad: "1" }
+        : { tipo, categoriaId: id, unidadCobro: "UNIDAD", descripcion: "Trabajo", margenPct: "10", cantidad: "1", lineas: [] },
+      original: { productoActivo: true, productoId: null, categoriaId: id, unidadCobro: "UNIDAD", descripcion: "Trabajo",
+        precioUnitario: "10" } as PropiedadesItem["original"], selectores: { productos: [], categorias: [], materiales: [] },
+      calculado: null, errores: {}, alCambiar: vi.fn(), alQuitar: vi.fn() } satisfies PropiedadesItem;
+      const html = renderToStaticMarkup(createElement(EditorItem, propiedades));
+      expect(html).toContain('for="items.0.actualizarPrecio"');
+      expect(html).toMatch(/role="checkbox"[^>]*id="items\.0\.actualizarPrecio"|id="items\.0\.actualizarPrecio"[^>]*role="checkbox"/);
+      const descripcion = html.match(/<button[^>]*id="items\.0\.actualizarPrecio"[^>]*aria-describedby="([^"]+)"/);
+      expect(descripcion).not.toBeNull();
+      for (const identificador of descripcion![1].split(" ")) expect(html).toContain(`id="${identificador}"`);
+      expect(html).toContain(tipo === "CATALOGO" ? "Aplicar producto y precio vigentes" : "Aplicar cambios de costos y margen");
+      expect(html).toContain(tipo === "CATALOGO" ? "precio vigentes del catálogo" : "recalcule el precio");
     });
   }
 });

@@ -1,6 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import PaginaNuevaCotizacion from "@/app/(app)/cotizaciones/nueva/page";
 import type { EstadoCotizacion } from "@/modules/cotizaciones/tipos";
 import { accionesDisponibles, type PermisosCotizacion } from "@/modules/cotizaciones/componentes/accionesDisponibles";
+
+const pagina = vi.hoisted(() => ({
+  exigirPermiso: vi.fn(), clientes: vi.fn(), configuracion: vi.fn(), consultarCliente: vi.fn(),
+}));
+vi.mock("@/lib/auth/guardia", () => ({ exigirPermisoPagina: pagina.exigirPermiso }));
+vi.mock("@/lib/db", () => ({ prisma: { cliente: { findFirst: pagina.consultarCliente } } }));
+vi.mock("@/modules/cotizaciones/repo", () => ({
+  consultarClientesSelector: pagina.clientes, configuracionCotizacion: pagina.configuracion,
+}));
+vi.mock("@/components/comunes/PageHeader", () => ({ PageHeader: () => null }));
+vi.mock("@/modules/cotizaciones/componentes/NuevaCotizacion", () => ({
+  NuevaCotizacion: ({ clienteId }: { clienteId: string }) => createElement("input", { value: clienteId, readOnly: true }),
+}));
 
 const estados: EstadoCotizacion[] = ["BORRADOR", "ENVIADA", "AJUSTE_SOLICITADO", "APROBADA", "RECHAZADA", "VENCIDA"];
 const gestion = [["editar", "duplicar", "archivar"], ["duplicar", "archivar"],
@@ -50,7 +66,8 @@ const pasos: { estado: EstadoCotizacion; items?: unknown[];
   { estado: "ENVIADA", permisos: permisos[4], texto: "Registre la respuesta del cliente: aprobación, rechazo o ajustes." },
   { estado: "AJUSTE_SOLICITADO", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de gestión." },
   { estado: "AJUSTE_SOLICITADO", permisos: permisos[1], texto: "Cree la versión corregida con los ajustes pedidos." },
-  { estado: "APROBADA", permisos: permisos[0], texto: "Cotización aprobada. Continúe en la orden de producción." },
+  { estado: "APROBADA", permisos: permisos[0], texto: "Cotización aprobada. Espere a que Operaciones la convierta en orden." },
+  { estado: "APROBADA", permisos: permisos[7], texto: "Cotización aprobada. Espere a que Operaciones la convierta en orden." },
   { estado: "RECHAZADA", permisos: permisos[1], texto: "Cotización cerrada. Puede duplicarla para preparar una nueva." },
   { estado: "VENCIDA", permisos: permisos[0], texto: "Cotización cerrada. Solo consulta." },
 ];
@@ -62,5 +79,33 @@ describe("acciones de cotización: siguiente paso", () => {
   it.each(estados)("prioriza archivo en %s", (estado) => {
     expect(accionesDisponibles({ cotizacion: { estado, archivada: true, items: [{}], cliente: { activo: true } }, permisos: permisos[7] })
       .siguientePaso).toBe("La cotización está archivada. Solo consulta.");
+  });
+});
+
+describe("nueva cotización: cliente desde la ficha", () => {
+  const clienteId = "12345678-1234-4234-8234-123456789abc";
+  beforeEach(() => {
+    vi.clearAllMocks();
+    pagina.clientes.mockResolvedValue([{ id: clienteId, nombre: "Cliente activo" }]);
+    pagina.configuracion.mockResolvedValue({ condiciones: "Condiciones" });
+    pagina.consultarCliente.mockResolvedValue({ id: clienteId });
+  });
+  it("preselecciona un UUID existente y activo", async () => {
+    const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId }) });
+    expect(renderToStaticMarkup(resultado)).toContain(`value="${clienteId}"`);
+    expect(pagina.exigirPermiso).toHaveBeenCalledWith("cotizacion:gestionar");
+    expect(pagina.consultarCliente).toHaveBeenCalledWith({
+      where: { id: clienteId, activo: true }, select: { id: true },
+    });
+  });
+  it.each([undefined, "", "invalido", [clienteId, clienteId]])("ignora el parámetro inválido %s", async (valor) => {
+    const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId: valor }) });
+    expect(renderToStaticMarkup(resultado)).toContain('value=""');
+    expect(pagina.consultarCliente).not.toHaveBeenCalled();
+  });
+  it.each(["inexistente", "archivado"])("ignora un cliente %s", async () => {
+    pagina.consultarCliente.mockResolvedValue(null);
+    const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId }) });
+    expect(renderToStaticMarkup(resultado)).toContain('value=""');
   });
 });

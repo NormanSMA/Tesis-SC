@@ -68,11 +68,12 @@ async function operaciones(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const datos = await consultarOperacion(hoy);
   return { titulo: tituloOperaciones(datos.accion), pregunta,
     indicadores: [
-      indicador({ id: "por-iniciar", etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Órdenes pendientes", destino: "/ordenes?estado=PENDIENTE" }),
-      indicador({ id: "sin-responsable", etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Órdenes activas", destino: "/ordenes?responsable=sin-responsable", alerta: datos.sinResponsable > 0 }),
-      indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Trabajo en curso", destino: "/ordenes?estado=EN_PRODUCCION" }),
-      indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, contexto: "Desde hoy hasta dentro de siete días", destino: "/ordenes" }),
-    ], grafico: grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
+      indicador({ id: "por-iniciar", etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Meta: 0 órdenes pendientes de iniciar", destino: "/ordenes?estado=PENDIENTE" }),
+      indicador({ id: "sin-responsable", etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Meta: 0 órdenes activas sin responsable", destino: "/ordenes?responsable=sin-responsable", alerta: datos.sinResponsable > 0 }),
+      indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Meta: completar todas las órdenes en producción", destino: "/ordenes?estado=EN_PRODUCCION" }),
+      indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, contexto: "Meta: entregar a tiempo el 100 %; próximos siete días", destino: "/ordenes" }),
+    ], grafico: { ...grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
+      nota: { texto: "Ver órdenes", destino: "/ordenes" } },
     atencion: atencionOrdenes(datos), atencionTotal: datos.accion };
 }
 
@@ -82,16 +83,17 @@ async function atencionCliente(actor: Actor, hoy: string): Promise<ContenidoPane
     can(actor, "cliente:ver") ? consultarClientesNuevos(hoy) : undefined]);
   if (datos) {
     panel.titulo = `${datos.enviadas} cotizaciones esperan respuesta del cliente`;
-    panel.indicadores.push(indicador({ id: "enviadas", etiqueta: "Enviadas sin respuesta", valor: datos.enviadas, contexto: "Cotizaciones vigentes", destino: "/cotizaciones?estado=ENVIADA" }),
-      indicador({ id: "por-vencer", etiqueta: "Por vencer", valor: datos.porVencer, contexto: "Vencen desde hoy hasta dentro de tres días", destino: "/cotizaciones?estado=ENVIADA", alerta: datos.porVencer > 0 }),
-      indicador({ id: "aprobadas-mes", etiqueta: "Aprobadas del mes", valor: datos.meses[5].aprobadas, contexto: "Respuestas registradas este mes", destino: "/cotizaciones?estado=APROBADA" }));
+    panel.indicadores.push(indicador({ id: "enviadas", etiqueta: "Enviadas sin respuesta", valor: datos.enviadas, contexto: "Meta: 0 cotizaciones vigentes sin respuesta", destino: "/cotizaciones?estado=ENVIADA" }),
+      indicador({ id: "por-vencer", etiqueta: "Por vencer", valor: datos.porVencer, contexto: "Meta: 0 cotizaciones por vencer en los próximos tres días", destino: "/cotizaciones?estado=ENVIADA", alerta: datos.porVencer > 0 }),
+      indicador({ id: "aprobadas-mes", etiqueta: "Aprobadas del mes", valor: datos.meses[5].aprobadas, contexto: `Mes anterior: ${datos.meses[4].aprobadas} aprobadas`, destino: "/cotizaciones?estado=APROBADA" }));
     panel.grafico = grafico("Cotizaciones por estado", "Creadas en los últimos treinta días", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta })));
+    panel.grafico.nota = { texto: "Ver cotizaciones", destino: "/cotizaciones" };
     panel.atencionTotal = datos.atencionTotal;
     panel.atencion = datos.filas.map((fila) => ({ id: fila.id, titulo: fila.numero,
       detalle: fila.estado === "AJUSTE_SOLICITADO" ? "Ajuste solicitado sin versión corregida" : `Vence el ${formatearFecha(fila.vencimiento)}`,
       gravedad: fila.estado === "AJUSTE_SOLICITADO" ? "alta" : "media", destino: `/cotizaciones/${fila.id}` }));
   }
-  if (clientes !== undefined) panel.indicadores.push(indicador({ id: "clientes-nuevos", etiqueta: "Clientes nuevos", valor: clientes, contexto: "Registrados este mes", destino: "/clientes" }));
+  if (clientes !== undefined) panel.indicadores.push(indicador({ id: "clientes-nuevos", etiqueta: "Clientes nuevos", valor: clientes, contexto: "Meta: al menos 1 cliente nuevo al mes", destino: "/clientes" }));
   return panel;
 }
 
@@ -101,11 +103,12 @@ async function produccion(actor: Actor, hoy: string, instante: Date): Promise<Co
   const datos = await consultarProduccion({ hoy, instante, actorId: actor.id });
   return { titulo: `${datos.enCurso + datos.pendientes} etapas por atender hoy`, pregunta,
     indicadores: [
-      indicador({ id: "mis-etapas-en-curso", etiqueta: "Mis etapas en curso", valor: datos.enCurso, contexto: "En órdenes activas", destino: "/produccion" }),
-      indicador({ id: "mis-etapas-pendientes", etiqueta: "Mis etapas pendientes", valor: datos.pendientes, contexto: "Asignadas a usted", destino: "/produccion" }),
-      indicador({ id: "completadas-hoy", etiqueta: "Completadas hoy por mí", valor: datos.completadasHoy, contexto: "Transiciones registradas hoy", destino: "/produccion" }),
-      indicador({ id: "mis-etapas-atrasadas", etiqueta: "Mis etapas atrasadas", valor: datos.atrasadas, contexto: "Fecha de fin planificada anterior a hoy", destino: "/produccion", alerta: datos.atrasadas > 0 }),
-    ], grafico: grafico("Etapas que completé", "Últimos siete días", datos.porDia.map((fila) => ({ ...fila, etiqueta: etiquetaDia(fila.etiqueta) }))),
+      indicador({ id: "mis-etapas-en-curso", etiqueta: "Mis etapas en curso", valor: datos.enCurso, contexto: "Meta: 1 etapa en curso a la vez", destino: "/produccion" }),
+      indicador({ id: "mis-etapas-pendientes", etiqueta: "Mis etapas pendientes", valor: datos.pendientes, contexto: "Meta: 0 etapas asignadas pendientes", destino: "/produccion" }),
+      indicador({ id: "completadas-hoy", etiqueta: "Completadas hoy por mí", valor: datos.completadasHoy, contexto: "Meta: al menos 1 etapa completada al día", destino: "/produccion" }),
+      indicador({ id: "mis-etapas-atrasadas", etiqueta: "Mis etapas atrasadas", valor: datos.atrasadas, contexto: "Meta: 0 etapas con fecha de fin vencida", destino: "/produccion", alerta: datos.atrasadas > 0 }),
+    ], grafico: { ...grafico("Etapas que completé", "Últimos siete días", datos.porDia.map((fila) => ({ ...fila, etiqueta: etiquetaDia(fila.etiqueta) }))),
+      nota: { texto: "Ver producción", destino: "/produccion" } },
     atencion: datos.filas.map((fila) => ({ id: fila.id, titulo: `${fila.numero}: ${fila.nombre}`,
       detalle: fila.dias > 0 ? `Atrasada ${fila.dias} días` : "En curso desde hace más de dos días",
       gravedad: fila.dias > 0 ? "alta" : "media", destino: `/ordenes/${fila.ordenId}` })), atencionTotal: datos.atencionTotal };
@@ -116,12 +119,13 @@ async function administracion(actor: Actor, hoy: string): Promise<ContenidoPanel
   if (!can(actor, "inventario:ver")) return { ...vacio(), pregunta };
   const [datos, movimientos] = await Promise.all([consultarMaterialesPanel(can(actor, "cotizacion:ver")), consultarMovimientos(hoy)]);
   const indicadores = [indicador({ id: "materiales-bajo-minimo", etiqueta: "Materiales bajo el mínimo", valor: datos.bajoMinimo,
-    contexto: "Materiales activos con mínimo definido", destino: "/inventario?bajoMinimo=true", alerta: datos.bajoMinimo > 0 }),
-  indicador({ id: "consumos-hoy", etiqueta: "Consumos de hoy", valor: movimientos.consumosHoy, contexto: "Cantidad de consumos registrados", destino: "/inventario" })];
-  if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), contexto: "Existencia por costo promedio", destino: "/inventario" }));
-  indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Desde el lunes hasta hoy", destino: "/inventario" }));
+    contexto: "Meta: 0 materiales activos bajo el mínimo", destino: "/inventario?bajoMinimo=true", alerta: datos.bajoMinimo > 0 }),
+  indicador({ id: "consumos-hoy", etiqueta: "Consumos de hoy", valor: movimientos.consumosHoy, contexto: "Meta: registrar el 100 % de los consumos del día", destino: "/inventario" })];
+  if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), contexto: "Meta: valorar el 100 % de las existencias al costo promedio", destino: "/inventario" }));
+  indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Meta: registrar el 100 % de los movimientos; desde el lunes hasta hoy", destino: "/inventario" }));
   return { titulo: datos.bajoMinimo ? `${datos.bajoMinimo} materiales bajo el mínimo` : "El inventario está al día", pregunta, indicadores,
-    grafico: grafico("Consumos por semana", "Cantidad de consumos; últimas seis semanas", movimientos.semanas.map((fila) => ({ ...fila, etiqueta: etiquetaSemana(fila.etiqueta) }))),
+    grafico: { ...grafico("Consumos por semana", "Cantidad de consumos; últimas seis semanas", movimientos.semanas.map((fila) => ({ ...fila, etiqueta: etiquetaSemana(fila.etiqueta) }))),
+      nota: { texto: "Ver inventario", destino: "/inventario" } },
     atencion: atencionMateriales(datos), atencionTotal: datos.bajoMinimo };
 }
 

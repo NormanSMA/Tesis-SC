@@ -8,11 +8,12 @@ Convenciones:
 - Modelos en PascalCase y campos en camelCase, en español sin tildes.
 - Tablas y columnas en snake_case mediante `@@map` y `@map`.
 - Claves primarias UUID generadas por `gen_random_uuid()` en el servidor.
-- Excepción: asociaciones puras (`PerfilPermiso`) y `Contador` usan clave compuesta natural.
+- Excepciones: `UsuarioPerfil` y `PerfilPermiso` usan claves compuestas; `Contador` usa `(tipo, anio)`.
+- Use `solicitud_idempotente.clave` como clave primaria UUID proporcionada, sin valor predeterminado.
 - Instantes en `timestamptz`. Fechas de calendario en `date` (ver D-13).
 - Dinero `Decimal(14,2)`. Cantidades `Decimal(14,3)`. Porcentajes `Decimal(5,2)`.
-- Costo unitario de material `Decimal(14,4)` (ver D-14).
-- Claves foráneas con `ON DELETE RESTRICT`. Sin borrado físico de datos con historial.
+- Costos unitarios y `material.costo_promedio`: `Decimal(14,4)` (ver D-14).
+- Claves foráneas con `ON DELETE RESTRICT`, salvo `usuario_perfil.usuario_id` con `CASCADE`.
 
 Fuentes citadas: secciones 1.7 y 2.6 del documento V6, Anexo C (P1 a P11, Tablas C2 y C3), Anexo D (CF-01 a CF-11).
 Supuestos S-01 a S-11 vienen del plan. SD-12 a SD-25 son supuestos de datos de este documento. Su relación con docs/supuestos.md está en ese archivo.
@@ -23,7 +24,9 @@ Supuestos S-01 a S-11 vienen del plan. SD-12 a SD-25 son supuestos de datos de e
 
 ```mermaid
 erDiagram
-    Perfil ||--o{ Usuario : "asigna"
+    Perfil ||--o{ UsuarioPerfil : "asigna"
+    Usuario ||--o{ UsuarioPerfil : "tiene"
+    Usuario |o--o{ UsuarioPerfil : "asigna"
     Perfil ||--o{ PerfilPermiso : "concede"
     Permiso ||--o{ PerfilPermiso : "se concede en"
     Usuario |o--o{ PerfilPermiso : "otorga"
@@ -43,7 +46,8 @@ erDiagram
 
     Cotizacion ||--o| OrdenTrabajo : "genera"
     Categoria ||--o{ OrdenTrabajo : "tipifica"
-    Usuario ||--o{ OrdenTrabajo : "responde por"
+    Cliente ||--o{ OrdenTrabajo : "solicita"
+    Usuario |o--o{ OrdenTrabajo : "responde por"
     OrdenTrabajo ||--o{ EtapaOrden : "se ejecuta en"
     Categoria ||--o{ EtapaPlantilla : "define"
     Area ||--o{ EtapaPlantilla : "ejecuta"
@@ -82,12 +86,17 @@ erDiagram
         uuid otorgadoPorId FK
         timestamptz creadoEn
     }
+    UsuarioPerfil {
+        uuid usuarioId PK,FK
+        uuid perfilId PK,FK
+        uuid asignadoPorId FK
+        timestamptz creadoEn
+    }
     Usuario {
         uuid id PK
         varchar nombre
         varchar correo UK
         text hashContrasena
-        uuid perfilId FK
         boolean activo
         int intentosFallidos
         timestamptz bloqueadoHasta
@@ -239,6 +248,7 @@ erDiagram
         uuid id PK
         varchar numero UK
         uuid cotizacionId FK,UK
+        uuid clienteId FK
         uuid categoriaId FK
         EstadoOrden estado
         uuid responsableId FK
@@ -317,11 +327,11 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 
 | Enum | Valores | Origen |
 |---|---|---|
-| CodigoPerfil | GERENCIA, VENTAS, PRODUCCION, ADMIN | 1.7; S-01 |
+| CodigoPerfil | GERENCIA, ATENCION_CLIENTE, PRODUCCION, ADMIN, ADMINISTRACION, OPERACIONES | ADR-014 |
 | TipoCliente | PERSONA, EMPRESA | SD-12 |
 | UnidadCobro | UNIDAD, M2 | 2.6 (medidas); SD-15 |
 | UnidadMaterial | UNIDAD, METRO, M2, YARDA, PIE, LITRO, GALON, KILOGRAMO, LIBRA, PLIEGO, ROLLO | SD-15 |
-| EstadoCotizacion | BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA | S-06 |
+| EstadoCotizacion | BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA, AJUSTE_SOLICITADO | S-06; ADR-014 |
 | TipoItem | CATALOGO, PERSONALIZADO | 1.1, 2.6; R-03 |
 | TipoLineaCosto | MATERIAL, MANO_OBRA, TERCERO | R-03; SD-14 |
 | EstadoOrden | PENDIENTE, EN_PRODUCCION, LISTA, ENTREGADA, CERRADA, CANCELADA | S-07 |
@@ -330,7 +340,7 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 | OrigenEstimado | RECETA, COTIZACION, MANUAL | S-08 |
 | TipoDocumento | COTIZACION, ORDEN_TRABAJO | SD-18 |
 | TipoValorConfig | TEXTO, ENTERO, DECIMAL, BOOLEANO | S-04, S-11 |
-| EntidadBitacora | CLIENTE, PRODUCTO, MATERIAL, COTIZACION, ORDEN_TRABAJO, ETAPA_ORDEN, MOVIMIENTO_INVENTARIO, USUARIO, PERFIL_PERMISO, CONFIGURACION | R-07 |
+| EntidadBitacora | CLIENTE, CATEGORIA, AREA, PRODUCTO, MATERIAL, COTIZACION, ORDEN_TRABAJO, ETAPA_ORDEN, MOVIMIENTO_INVENTARIO, USUARIO, PERFIL_PERMISO, CONFIGURACION | R-07 |
 | AccionBitacora | CREAR, EDITAR, CAMBIAR_ESTADO, ASIGNAR_RESPONSABLE, CONVERTIR_EN_ORDEN, REGISTRAR_ENTRADA, AJUSTAR_INVENTARIO, CONSUMIR_MATERIAL, DEVOLVER_MATERIAL, ARCHIVAR, REACTIVAR, OTORGAR_PERMISO, REVOCAR_PERMISO | R-07; P8 |
 
 ### Perfil (`perfil`)
@@ -338,7 +348,7 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 | Columna | Tipo | N | Restricciones | Origen |
 |---|---|---|---|---|
 | id | uuid | no | PK | convención |
-| codigo | CodigoPerfil | no | UNIQUE. Cuatro filas fijas en el seed | 1.7; S-01 |
+| codigo | CodigoPerfil | no | UNIQUE. Seis valores admitidos por el enum | ADR-014 |
 | nombre | varchar(60) | no | | 1.7 |
 | descripcion | text | sí | | S-01 |
 
@@ -360,7 +370,8 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 | otorgadoPorId | uuid | sí | FK usuario. Nulo en el seed | S-01 |
 | creadoEn | timestamptz | no | default now() | CF-05 |
 
-Revocar un permiso borra la fila. La bitácora registra `REVOCAR_PERMISO`. Es la única asociación con borrado físico.
+Revocar un permiso borra la fila. La bitácora registra `REVOCAR_PERMISO`.
+La asociación `usuario_perfil` también admite borrado físico.
 
 ### Usuario (`usuario`)
 
@@ -370,7 +381,6 @@ Revocar un permiso borra la fila. La bitácora registra `REVOCAR_PERMISO`. Es la
 | nombre | varchar(120) | no | | 1.7 |
 | correo | varchar(254) | no | UNIQUE. CHECK minúsculas y contiene `@` | F21; SD-21 |
 | hashContrasena | text | no | argon2id, generado en el servicio | 2.4.4 (NIST); F21 |
-| perfilId | uuid | no | FK perfil. Índice (perfilId, activo) | 1.7; S-01, S-03 |
 | activo | boolean | no | default true. Sustituye al borrado | convención |
 | intentosFallidos | int | no | default 0. CHECK >= 0 | 2.4.4 (OWASP A07); SD-21 |
 | bloqueadoHasta | timestamptz | sí | Bloqueo temporal tras intentos fallidos | SD-21 |
@@ -490,7 +500,8 @@ Une orden, material y movimiento. Registra CONSUMO y DEVOLUCION de una orden. So
 | materialId | uuid | no | FK material. Índice | CF-03 |
 | movimientoId | uuid | no | UNIQUE. FK compuesta (movimientoId, materialId) → movimiento_inventario(id, materialId) | CF-03 + CF-04 |
 
-Cantidad y costo se leen del movimiento. Consumo neto por orden y material = `-SUM(m.cantidad)`.
+Copie `cantidad = abs(m.cantidad)` y `costo_unitario` mediante `trg_consumo_copiar_movimiento`.
+Calcule consumo neto por orden y material con `-SUM(m.cantidad)`.
 
 ### ConsumoEstimado (`consumo_estimado`) — adición
 
@@ -515,7 +526,7 @@ Justificación: el estimado no tiene movimiento. Mezclarlo en `ConsumoOrden` har
 | asunto | varchar(200) | sí | | |
 | condiciones | text | sí | Texto impreso en la proforma | F11 |
 | cotizacionOrigenId | uuid | sí | FK cotizacion (duplicado). Índice | R-02; F13 |
-| moneda | char(3) | no | default 'NIO'. CHECK ISO 4217 | S-04 |
+| moneda | char(3) | no | default 'NIO'. CHECK `^[A-Z]{3}$`; no valida pertenencia a ISO 4217 | S-04 |
 | tasaImpuesto | decimal(5,2) | no | CHECK 0..100. Copia del IVA vigente | S-04 |
 | subtotal | decimal(14,2) | no | CHECK >= 0. Igual a Σ ítems al enviar | R-03; snapshot |
 | descuento | decimal(14,2) | no | CHECK 0..subtotal. Monto global | SD-14; F14 |
@@ -525,12 +536,13 @@ Justificación: el estimado no tiene movimiento. Mezclarlo en `ConsumoOrden` har
 | vigenciaDias | int | no | CHECK > 0. Copia de configuración (15) | S-11 |
 | fechaEmision | date | sí | Obligatoria fuera de BORRADOR | S-11; D-13 |
 | fechaVencimiento | date | sí | CHECK = fechaEmision + vigenciaDias fuera de BORRADOR | S-11; F15 |
-| fechaRespuesta | timestamptz | sí | Obligatoria en APROBADA y RECHAZADA | CF-05 |
+| fechaRespuesta | timestamptz | sí | Obligatoria en APROBADA, RECHAZADA y AJUSTE_SOLICITADO | CF-05 |
 | motivoRechazo | text | sí | | |
 | archivada | boolean | no | default false. Oculta borradores abandonados | convención |
 | creadoPorId | uuid | no | FK usuario (vendedor). Índice (creadoPorId, estado). Inmutable | CF-05 |
 
-Fuera de BORRADOR solo cambian `estado`, `fechaRespuesta`, `motivoRechazo` y `archivada`.
+Fuera de BORRADOR, `trg_cotizacion_congelar` permite cambiar estos campos:
+`estado`, `fechaRespuesta`, `motivoRechazo`, `archivada`, `actualizadoEn`, `usuarioAprobacionId`, `referenciaAprobacion` y `motivoAjuste`.
 
 ### ItemCotizacion (`item_cotizacion`)
 
@@ -578,10 +590,10 @@ Fórmulas (núcleo en `src/core/costeo.ts`):
 |---|---|---|---|---|
 | id | uuid | no | PK | convención |
 | numero | varchar(20) | no | UNIQUE. CHECK `OT-AAAA-NNNN`. Inmutable | F12; SD-18 |
-| cotizacionId | uuid | no | UNIQUE. FK cotizacion. Inmutable. Trigger exige APROBADA | 2.6; CF-01; RN-02 |
+| cotizacionId | uuid | no | UNIQUE. FK compuesta (cotizacionId, clienteId). Inmutable. Trigger exige APROBADA | 2.6; CF-01; RN-02 |
 | categoriaId | uuid | no | FK categoria. Índice. Define la plantilla de etapas | 2.6; SD-23 |
 | estado | EstadoOrden | no | default PENDIENTE. Índice (estado, fechaEntrega). Trigger de transición | S-07; CF-02 |
-| responsableId | uuid | no | FK usuario. Índice (responsableId, estado) | CF-02 |
+| responsableId | uuid | sí | FK usuario. Índice (responsableId, estado) | CF-02; ADR-014 |
 | especificaciones | text | sí | Instrucciones para producción | 1.6 |
 | fechaEntrega | date | no | Fecha comprometida con el cliente | CF-02; F22 |
 | fechaInicioReal | timestamptz | sí | Obligatoria desde EN_PRODUCCION | CF-02 |
@@ -590,7 +602,9 @@ Fórmulas (núcleo en `src/core/costeo.ts`):
 | motivoCancelacion | text | sí | Obligatorio en CANCELADA | CF-05 |
 | creadoPorId | uuid | no | FK usuario. Inmutable | CF-05 |
 
-Cliente e ítems se leen a través de la cotización. No se copian: la cotización aprobada está congelada.
+Use `orden_trabajo.cliente_id` para relacionar directamente el cliente.
+La FK compuesta garantiza el mismo cliente de la cotización.
+Lea los ítems desde la cotización aprobada.
 
 ### EtapaPlantilla (`etapa_plantilla`)
 
@@ -677,7 +691,7 @@ Solo se escribe con `siguiente_numero(tipo)`.
 | SD-21 | Inicio de sesión por correo. Bloqueo temporal tras intentos fallidos |
 | SD-22 | Fechas comprometidas y planificadas como fecha de calendario |
 | SD-23 | Cada orden tiene una categoría principal que define sus etapas. Se agregan etapas a mano si hace falta |
-| SD-24 | Matriz de permisos por defecto de la sección (c) |
+| SD-24 | Matriz inicial de la sección (c), sustituida por ADR-014 |
 | SD-25 | Cotización enviada no se edita. Se corrige con un duplicado |
 
 ---
@@ -689,9 +703,10 @@ Fuente única en la base: función `transicion_valida(maquina, desde, hacia)`.
 El servicio verifica permiso y condiciones. La base rechaza toda transición fuera del grafo (SQLSTATE SC002).
 Toda transición escribe una fila en `bitacora` en la misma transacción, con actor y estados.
 
-### Catálogo de permisos por defecto (SD-24)
+### Catálogo inicial de permisos por defecto (SD-24, sustituido por ADR-014)
 
-G = GERENCIA, V = VENTAS, P = PRODUCCION, A = ADMIN. ADMIN edita la matriz.
+Conserve esta matriz como referencia histórica; consulte ADR-014 para el reparto v9.
+G = GERENCIA, V = VENTAS (código anterior), P = PRODUCCION, A = ADMIN.
 
 | Permiso | G | V | P | A |
 |---|---|---|---|---|
@@ -733,11 +748,13 @@ La línea de tiempo de una orden se ve con `orden:ver`. No requiere `bitacora:ve
 |---|---|---|---|---|---|
 | (alta) | BORRADOR | cotizacion:gestionar | Cliente activo | `numero = siguiente_numero('COTIZACION')`. Copia IVA y vigencia | CREAR, estadoNuevo BORRADOR |
 | BORRADOR | ENVIADA | cotizacion:enviar | Al menos un ítem. Totales recalculados | fechaEmision = hoy. fechaVencimiento = hoy + vigencia | CAMBIAR_ESTADO |
-| ENVIADA | APROBADA | cotizacion:responder | hoy ≤ fechaVencimiento | fechaRespuesta = ahora | CAMBIAR_ESTADO, detalle.medio |
+| ENVIADA | APROBADA | cotizacion:responder | hoy ≤ fechaVencimiento | fechaRespuesta, usuarioAprobacionId, referenciaAprobacion no vacía | CAMBIAR_ESTADO, detalle.medio |
 | ENVIADA | RECHAZADA | cotizacion:responder | | fechaRespuesta, motivoRechazo | CAMBIAR_ESTADO |
 | ENVIADA | VENCIDA | cotizacion:responder | hoy > fechaVencimiento | | CAMBIAR_ESTADO |
+| ENVIADA | AJUSTE_SOLICITADO | cotizacion:responder | Motivo no vacío | fechaRespuesta, motivoAjuste | CAMBIAR_ESTADO |
 
-APROBADA, RECHAZADA y VENCIDA son terminales. La base rechaza cualquier otra.
+APROBADA, RECHAZADA, VENCIDA y AJUSTE_SOLICITADO son terminales.
+La base rechaza transiciones fuera del grafo.
 Duplicar crea un BORRADOR nuevo con `cotizacionOrigenId`. Bitácora: CREAR con detalle.origen.
 
 ### Orden de trabajo
@@ -750,7 +767,7 @@ Duplicar crea un BORRADOR nuevo con `cotizacionOrigenId`. Bitácora: CREAR con d
 | LISTA | EN_PRODUCCION | orden:avanzar | Retrabajo. Motivo obligatorio. Se agrega etapa | | CAMBIAR_ESTADO, detalle.motivo |
 | LISTA | ENTREGADA | orden:entregar | | fechaEntregaReal = ahora | CAMBIAR_ESTADO |
 | ENTREGADA | CERRADA | orden:cerrar | Cierre administrativo | fechaCierre = ahora | CAMBIAR_ESTADO |
-| PENDIENTE, EN_PRODUCCION, LISTA | CANCELADA | orden:cancelar | Motivo obligatorio | Etapas abiertas a OMITIDA. Sobrante se devuelve con DEVOLUCION | CAMBIAR_ESTADO, detalle.motivo |
+| PENDIENTE, EN_PRODUCCION, LISTA | CANCELADA | orden:cancelar | Motivo obligatorio | motivoCancelacion. EN_CURSO no admite transición a OMITIDA | CAMBIAR_ESTADO, detalle.motivo |
 
 CERRADA y CANCELADA son terminales.
 Cambio de responsable o de fecha de entrega: ASIGNAR_RESPONSABLE o EDITAR, con valores antes y después.
@@ -786,19 +803,19 @@ La columna Prueba remite a la sección Verificación.
 | ID | Invariante | Dónde | Mecanismo | Prueba |
 |---|---|---|---|---|
 | I-01 | La existencia nunca es negativa | BD | CHECK `material_existencia_no_negativa` | T15, concurrencia |
-| I-02 | Existencia = suma del libro | BD | Trigger `fn_movimiento_aplicar` es el único escritor. `fn_material_proteger_saldo` bloquea escritura directa | T12, T13, conciliación |
+| I-02 | Existencia = suma del libro | BD | Trigger `trg_movimiento_aplicar` es el único escritor. `trg_material_proteger_saldo` bloquea escritura directa | T12, T13, conciliación |
 | I-03 | Consumos concurrentes no sobregiran | BD | El UPDATE del material toma bloqueo de fila. El segundo espera y revalida | Concurrencia |
-| I-04 | El libro no se edita ni se borra | BD | Trigger `fn_solo_insercion` en movimiento y consumo_orden | T19, T20 |
+| I-04 | El libro no se edita ni se borra | BD | Triggers `trg_movimiento_solo_insercion` y `trg_consumo_solo_insercion`; función `fn_solo_insercion` | T19, T20 |
 | I-05 | Todo CONSUMO y DEVOLUCION está ligado a una orden | BD | Constraint trigger diferido al COMMIT | T14, control diferido |
 | I-06 | Consumo y movimiento usan el mismo material | BD | FK compuesta (movimiento_id, material_id) | T18 |
-| I-07 | consumo_orden solo apunta a CONSUMO o DEVOLUCION | BD | Trigger `fn_consumo_validar` | T17 |
-| I-08 | Lo devuelto no supera lo consumido por orden y material | BD | Trigger `fn_consumo_validar` | T16 |
-| I-09 | La orden nace de una cotización APROBADA | BD | Trigger `fn_orden_exige_aprobada` | T06 |
+| I-07 | consumo_orden solo apunta a CONSUMO o DEVOLUCION | BD | Trigger `trg_consumo_validar` | T17 |
+| I-08 | Lo devuelto no supera lo consumido por orden y material | BD | Trigger `trg_consumo_validar` | T16 |
+| I-09 | La orden nace de una cotización APROBADA | BD | Trigger `trg_orden_exige_aprobada` | T06 |
 | I-10 | Una cotización genera como máximo una orden | BD | UNIQUE `orden_trabajo.cotizacion_id` | T07 |
-| I-11 | La orden no cambia de cotización ni de número | BD | Trigger `fn_columnas_inmutables` | T09 |
-| I-12 | Cotización fuera de BORRADOR no cambia montos, ítems ni líneas | BD | Triggers `fn_cotizacion_congelar`, `fn_item_exige_borrador`, `fn_linea_exige_borrador` | T04, T05, T28, T29 |
+| I-11 | La orden no cambia de cotización, cliente ni número | BD | Trigger `trg_orden_inmutables`; función `fn_columnas_inmutables` | T09 |
+| I-12 | Cotización fuera de BORRADOR no cambia montos, ítems ni líneas | BD | Triggers `trg_cotizacion_congelar`, `trg_item_exige_borrador`, `trg_linea_exige_borrador` | T04, T05, T28, T29 |
 | I-13 | Totales coherentes | BD | CHECK de impuesto, total, importe de catálogo e importe de línea. Trigger verifica Σ ítems y Σ líneas al enviar | T03, T03b, T26, T27 |
-| I-14 | Solo transiciones válidas | BD + servicio | Trigger `fn_validar_transicion` + `src/core/estados.ts` | T02, T08, T11 |
+| I-14 | Solo transiciones válidas | BD + servicio | Triggers `trg_cotizacion_transicion`, `trg_orden_transicion`, `trg_etapa_transicion`; función `fn_validar_transicion` | T02, T08, T11 |
 | I-15 | Fechas coherentes con el estado | BD | CHECK por estado en cotización, orden y etapa | T10, T18b |
 | I-16 | La bitácora no se edita, no se borra ni se vacía | BD | Trigger de fila y de TRUNCATE | T21, T22, T23 |
 | I-17 | Evento de orden o cotización enlazado a su registro | BD | CHECK `bitacora_enlace_orden` y `bitacora_enlace_cotizacion` | T24 |
@@ -806,7 +823,7 @@ La columna Prueba remite a la sección Verificación.
 | I-19 | Cada cambio genera su evento en la misma transacción | Servicio | Repositorio escribe bitácora dentro de `$transaction` | Pruebas de integración (Fase 3) |
 | I-20 | Solo el perfil autorizado ejecuta la acción | Servicio | `can(usuario, recurso, accion)` en cada handler | Matriz perfil × acción (CF-07) |
 | I-21 | Orden pasa a LISTA solo con etapas cerradas | Servicio | Regla en `src/core/estados.ts` | Fase 3 |
-| I-22 | Consumo solo en orden PENDIENTE, EN_PRODUCCION o LISTA | Servicio | Regla de inventario | Fase 3 |
+| I-22 | Consumo solo en orden PENDIENTE, EN_PRODUCCION o LISTA | BD + servicio | `trg_consumo_validar` verifica movimientos creados desde hace una hora; exceptúa movimientos anteriores. SC005 | Fase 3 |
 | I-23 | Aprobación dentro de vigencia | Servicio | Compara con fecha local de Managua | Fase 3 |
 | I-24 | Sin interbloqueo en consumos de varios materiales | Servicio | Bloquea materiales en orden ascendente de id | Prueba de concurrencia (Fase 3) |
 
@@ -820,15 +837,15 @@ Así las pruebas de base no dependen del reloj.
 | CF | Entidades | Claves y mecanismos que lo garantizan |
 |---|---|---|
 | CF-01 | Cotizacion, ItemCotizacion, OrdenTrabajo, ConsumoEstimado, EtapaOrden | `orden_trabajo.cotizacion_id` UNIQUE NOT NULL. Trigger exige APROBADA. Ítems congelados: la orden los lee sin copiarlos. Etapas y consumo estimado se precargan en la conversión |
-| CF-02 | OrdenTrabajo, EtapaOrden, Usuario | `estado`, `responsable_id` NOT NULL, `fecha_entrega` NOT NULL, fechas reales con CHECK por estado. Etapas con responsable y fechas plan y real |
+| CF-02 | OrdenTrabajo, EtapaOrden, Usuario | `estado` y `fecha_entrega` NOT NULL. Responsable de orden opcional. Fechas reales con CHECK por estado. Etapas con responsable obligatorio en EN_CURSO y COMPLETADA |
 | CF-03 | ConsumoOrden, MovimientoInventario, Material | FK `consumo_orden.orden_id`. Índice (orden_id, material_id). Consulta posterior por orden o por material |
 | CF-04 | MovimientoInventario, Material, ConsumoOrden | Libro con signo. Trigger actualiza existencia en la misma transacción. CHECK >= 0. FK compuesta consumo → movimiento. Constraint trigger diferido |
 | CF-05 | Bitacora, MovimientoInventario | Bitácora de solo inserción con actor obligatorio, estados y detalle. Índice (orden_id, creado_en) para la línea de tiempo. El libro de inventario también es inmutable |
 | CF-06 | Cotizacion, Material, EtapaOrden, OrdenTrabajo, Area | Índices: cotizacion(estado, fecha_vencimiento); material(activo, nombre) con existencia y stock_minimo; etapa_orden(responsable_id, estado) y (area_id, estado); orden_trabajo(responsable_id, estado) y (estado, fecha_entrega) |
-| CF-07 | Perfil, Permiso, PerfilPermiso, Usuario, Sesion | Matriz recurso:acción en tabla. Un perfil por usuario. Sesión con token en hash. Decisión en el servidor |
+| CF-07 | Perfil, Permiso, PerfilPermiso, Usuario, UsuarioPerfil, Sesion | Matriz recurso:acción en tabla. Varios perfiles por usuario mediante usuario_perfil. Sesión con token en hash. Decisión en el servidor |
 | CF-09 | Todas las anteriores | Cadena de FK: cliente → cotizacion → orden_trabajo → etapa_orden y consumo_orden → movimiento_inventario → material. Todas con RESTRICT. Sin borrado físico |
 | CF-10 | ItemCotizacion, LineaCosto, Producto, RecetaProducto | `tipo` CATALOGO o PERSONALIZADO con CHECK de coherencia. Líneas por tipo con merma. CHECK de fórmulas. Snapshot de precios, costos, IVA y totales |
-| CF-11 | Cliente, Cotizacion, OrdenTrabajo | Índice cotizacion(cliente_id, creado_en). Trabajos del cliente vía cotizacion → orden_trabajo |
+| CF-11 | Cliente, Cotizacion, OrdenTrabajo | Índices cotizacion(cliente_id, creado_en) y orden_trabajo(cliente_id). Relación directa del cliente con sus órdenes |
 
 CF-08 (dispositivo) no depende del modelo de datos.
 
@@ -846,7 +863,8 @@ La existencia es una suma directa. Un CHECK por tipo impide signos erróneos.
 Se descarta tipo + cantidad positiva: AJUSTE necesitaría un campo de dirección y la suma un CASE.
 
 **D-03. Saldo mantenido por trigger.**
-El trigger del movimiento es el único escritor de `existencia` y `costo_promedio`.
+Use `trg_movimiento_aplicar` para modificar `existencia` y actualizar `costo_promedio`.
+Permita editar `costo_promedio` directamente cuando la existencia anterior sea cero.
 El bloqueo de fila del UPDATE serializa consumos concurrentes. El CHECK aborta el sobregiro.
 Se descarta mantener el saldo solo en el servicio: un error de código podría descuadrar el inventario.
 El servicio igual bloquea con `FOR UPDATE` para dar mensajes claros antes del CHECK.
@@ -854,8 +872,9 @@ El servicio igual bloquea con `FOR UPDATE` para dar mensajes claros antes del CH
 **D-04. ConsumoEstimado en tabla aparte.**
 Mantiene `consumo_orden.movimiento_id` obligatorio. Se descarta un campo `estimado` en ConsumoOrden.
 
-**D-05. ConsumoOrden sin cantidad propia.**
-Cantidad y costo se leen del movimiento. Se evita una segunda fuente de verdad.
+**D-05. ConsumoOrden con cantidad y costo copiados del movimiento.**
+Copie `abs(movimiento_inventario.cantidad)` y `costo_unitario` mediante `trg_consumo_copiar_movimiento`.
+Conserve el movimiento como fuente de cantidad y costo.
 
 **D-06. Clave foránea compuesta consumo → movimiento.**
 La base garantiza que el material del consumo es el del movimiento.
@@ -890,7 +909,8 @@ Se descarta `timestamptz` para estas fechas: medianoche UTC se muestra como el d
 Es una precisión a la decisión "todas las marcas de tiempo timestamptz". Requiere aprobación (P-04).
 
 **D-14. Costo unitario con cuatro decimales.**
-Aplica a `costoPromedio`, `costoUnitario` del movimiento y de la línea de costo. Montos y totales siguen con dos.
+Use cuatro decimales en `material.costo_promedio` y los costos unitarios de producto, movimiento, consumo y línea.
+Conserve dos decimales en montos y totales.
 El promedio ponderado con dos decimales acumula error de redondeo en cada entrada.
 Es una desviación de la decisión "dinero Decimal(14,2)". Requiere aprobación (P-04).
 
@@ -906,8 +926,8 @@ Los índices que Prisma no conoce generarían deriva en migraciones futuras.
 **D-17. Unidades de material como enum.**
 Evita "m2", "M2" y "metro cuadrado" para lo mismo (ISO/IEC 25012, consistencia). Ampliar exige migración.
 
-**D-18. Claves compuestas en PerfilPermiso y Contador.**
-Son asociaciones o tablas técnicas sin referencias entrantes. Un UUID no aporta.
+**D-18. Claves compuestas en UsuarioPerfil, PerfilPermiso y Contador.**
+Use `(usuarioId, perfilId)`, `(perfilId, permisoId)` y `(tipo, anio)`, respectivamente.
 
 **D-19. Devolución valorizada al costo promedio vigente.**
 Simple y auditable. Se descarta valorar al costo del consumo original: exige rastrear lotes.
@@ -938,7 +958,7 @@ Integración en Fase 2:
 | ID | Tipo | Asunto | Propuesta |
 |---|---|---|---|
 | P-01 | Pregunta | ¿Soluciones Creativas calcula margen sobre precio o recargo sobre costo? | Margen sobre precio (D-15). Si es recargo, el límite 0..100 no sirve |
-| P-02 | Pregunta | ¿Quién registra ajustes de inventario? | Gerencia (control). Producción hace el conteo |
+| P-02 | Pregunta | ¿Quién registra ajustes de inventario? | Propuesta inicial sustituida por ADR-014: Administración |
 | P-03 | Pregunta | ¿Hace falta estado BLOQUEADA en etapas por falta de material? | No por ahora (D-10) |
 | P-04 | Pregunta | ¿Se aprueban las desviaciones D-13 (date) y D-14 (cuatro decimales)? | Sí. Ambas evitan errores verificables |
 | P-05 | Pregunta | ¿Las órdenes suelen mezclar categorías con etapas distintas? | Categoría principal + etapas manuales (D-12) |
@@ -1065,3 +1085,44 @@ docker stop sc-modelo-tmp
 docker ps -a --filter name=sc-modelo-tmp  -> 0 contenedores
 Contenedores ajenos intactos: omniroute, ruta-local-pgadmin, ruta-local-cache, ruta-local-db.
 ```
+
+## Actualización v9 y auditoría (2026-10)
+
+Compruebe estas diferencias en `prisma/schema.prisma` y `prisma/sql/restricciones.sql`.
+Consulte ADR-014 y `docs/auditoria/2-2-invariantes-en-datos.md` para el contexto.
+
+- Asigne varios perfiles mediante `usuario_perfil`, con PK `(usuario_id, perfil_id)`.
+  Registre `asignado_por_id` opcional y `creado_en`; retire la referencia a `usuario.perfil_id`.
+  Use GERENCIA, ATENCION_CLIENTE, PRODUCCION, ADMIN, ADMINISTRACION y OPERACIONES en `perfil.codigo`.
+- Identifique clientes mediante `cliente.codigo_cliente`: `varchar(20)`, obligatorio y único.
+  Use su valor predeterminado `siguiente_codigo_cliente()`, declarado en el esquema.
+- Registre `producto.costo_unitario`: `decimal(14,4)`, admite nulo.
+- Registre aprobación en `cotizacion.usuario_aprobacion_id`, FK opcional, y `referencia_aprobacion`, `varchar(200)` opcional.
+  Exija ambos valores en APROBADA mediante `cotizacion_aprobacion_registrada`; rechace referencia vacía con SQLSTATE `23514`.
+- Admita ENVIADA → AJUSTE_SOLICITADO mediante `trg_cotizacion_transicion`; rechace transiciones inválidas con `SC002`.
+  Exija `cotizacion.fecha_respuesta` y `motivo_ajuste` mediante `cotizacion_respuesta_fechada` y `cotizacion_ajuste_motivado` (`23514`).
+  Conserve AJUSTE_SOLICITADO como terminal; cree la versión corregida en otro BORRADOR.
+  Use `cotizacion.version`: `smallint`, predeterminado 1; exija `cotizacion_origen_id` cuando supere 1.
+  Aplique `cotizacion_version_valida` (`23514`); conserve montos e ítems mediante `trg_cotizacion_congelar` (`SC003`).
+- Vincule `orden_trabajo.cliente_id` obligatorio con `cliente.id`; permita `responsable_id` nulo.
+  Aplique FK `(cotizacion_id, cliente_id)` → `cotizacion(id, cliente_id)` para garantizar el mismo cliente.
+  Exija APROBADA mediante `trg_orden_exige_aprobada` (`SC004`).
+  Proteja `cliente_id` mediante `trg_orden_inmutables` (`SC007`); conserve `cotizacion_id` único.
+- Registre `consumo_orden.cantidad`, `decimal(14,3)`, y `costo_unitario`, `decimal(14,4)`, obligatorios.
+  Copie `abs(movimiento_inventario.cantidad)` y su costo mediante `trg_consumo_copiar_movimiento`.
+  Admita `consumo_orden.idempotency_key` UUID nulo; aplique UNIQUE `(idempotency_key, material_id)`.
+  Valide consumo y devolución mediante `trg_consumo_validar` y `trg_movimiento_exige_consumo` diferido (`SC005`).
+- Conserve `historial_etapa` con `orden_id`, `etapa_id`, `usuario_id`, estados, `responsable_id` y `creado_en`.
+  Bloquee UPDATE, DELETE y TRUNCATE mediante `trg_historial_etapa_solo_insercion` y `trg_historial_etapa_sin_truncate` (`SC001`).
+  Exija responsable en EN_CURSO y COMPLETADA mediante `historial_etapa_responsable_obligatorio` (`23514`).
+- Registre reintentos en `solicitud_idempotente`: `clave` UUID primaria, `usuario_id`, `operacion`, `huella`, `respuesta` JSON, `creado_en`.
+  Bloquee UPDATE, DELETE y TRUNCATE mediante `trg_solicitud_solo_insercion` y `trg_solicitud_sin_truncate` (`SC001`).
+- Registre `usuario.contrasena_temporal`, predeterminado false, y `contrasena_temporal_expira_en`, `timestamptz` opcional.
+  Exija caducidad cuando sea temporal mediante `usuario_clave_temporal_con_vencimiento` (`23514`).
+- Consulte índices `(creado_en, id)` en `cotizacion`, `orden_trabajo` y `movimiento_inventario`.
+  Consulte índices `cotizacion(fecha_respuesta)` y `cotizacion(usuario_aprobacion_id)`.
+  Consulte índices `historial_etapa(orden_id, creado_en)`, `(etapa_id, creado_en)`, `(usuario_id)` y `(responsable_id)`.
+  Consulte índices `solicitud_idempotente(usuario_id, creado_en)` y `perfil_permiso(otorgado_por_id)`.
+  Consulte índices `usuario_perfil(perfil_id)` y `usuario_perfil(asignado_por_id)`.
+  Conserve índices de `bitacora`: `(orden_id, creado_en)`, `(cotizacion_id, creado_en)`, `(entidad, entidad_id, creado_en)`.
+  Conserve también índices `bitacora(usuario_id, creado_en)` y `bitacora(creado_en)`.

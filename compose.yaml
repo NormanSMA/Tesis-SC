@@ -15,6 +15,9 @@ services:
     restart: unless-stopped
     # JIT apagado: con volumen alto añade más de un segundo a la consulta del panel comercial (docs/auditoria/2-3).
     command: ["postgres", "-c", "jit=off"]
+    # Límites medidos el 2026-10-12: la base usa unos 60 MiB en reposo. El margen evita que un error la deje sin memoria al equipo.
+    mem_limit: 1g
+    cpus: 2
     volumes:
       - sc_pgdata:/var/lib/postgresql/data
     ports:
@@ -48,6 +51,9 @@ services:
       target: runner
     image: sc-plataforma-app
     restart: unless-stopped
+    # La app usa unos 340 MiB en reposo (medido el 2026-10-12). Se verifica con scripts/rendimiento.mjs bajo carga.
+    mem_limit: 1g
+    cpus: 2
     environment:
       DB_HOST: db
     ports:
@@ -102,6 +108,8 @@ services:
       - sc_respaldos:/respaldos
       - ./scripts/respaldo-programado.sh:/usr/local/bin/respaldo-programado.sh:ro
     entrypoint: ["sh", "/usr/local/bin/respaldo-programado.sh"]
+    mem_limit: 256m
+    cpus: 1
     depends_on:
       db:
         condition: service_healthy

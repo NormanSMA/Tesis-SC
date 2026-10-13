@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import { FormField } from "@/components/comunes/FormField";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
@@ -107,14 +109,20 @@ function LineasItem({ item, indice, original, selectores, calculado, errores, al
 }
 
 function ActualizarInstantanea({ item, indice, original, alCambiar }: PropiedadesItem) {
+  const idDescripcion = useId();
   if (!original) return null;
   const etiqueta = item.tipo === "CATALOGO" ? "Aplicar producto y precio vigentes" : "Aplicar cambios de costos y margen";
-  return <FormField id={`items.${indice}.actualizarPrecio`} etiqueta={etiqueta}
+  return <><FormField id={`items.${indice}.actualizarPrecio`} etiqueta={etiqueta}
     ayuda="Sin marcar, conserve los precios y costos guardados.">
-    {(atributos) => <Checkbox {...atributos} checked={item.actualizarPrecio ?? false}
+    {(atributos) => <Checkbox {...atributos}
+      aria-describedby={[atributos["aria-describedby"], idDescripcion].filter(Boolean).join(" ")}
+      checked={item.actualizarPrecio ?? false}
       onCheckedChange={(valor) => alCambiar(valor === true ? { ...item, actualizarPrecio: true }
         : { ...item, actualizarPrecio: false })} />}
-  </FormField>;
+  </FormField><span id={idDescripcion} className="sr-only">
+    {item.tipo === "CATALOGO" ? "Al marcar, aplique el producto y precio vigentes del catálogo."
+      : "Al marcar, recalcule el precio con los cambios de costos y margen."}
+  </span></>;
 }
 
 export function EditorItem(propiedades: PropiedadesItem) {

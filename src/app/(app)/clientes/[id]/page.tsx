@@ -41,7 +41,7 @@ function AccionesFicha({ ficha, puedeCotizar }: PropiedadesAcciones) {
     <>
       {cotizar ? (
         <Button asChild>
-          <Link href="/cotizaciones/nueva">
+          <Link href={`/cotizaciones/nueva?clienteId=${ficha.id}`}>
             <FilePlus2 aria-hidden="true" />
             Nueva cotización
           </Link>

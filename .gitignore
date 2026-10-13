@@ -16,3 +16,6 @@ docs/capturas/_wip/
 output/
 .claude/
 .dev-lock/
+
+# Archivos locales con claves de demostración
+*.local.md

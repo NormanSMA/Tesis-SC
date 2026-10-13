@@ -9,8 +9,10 @@ import { enfocarError, erroresEsquema, useSolicitudCotizacion } from "../useSoli
 import { AvisoGuardado } from "./AvisoGuardado";
 import { CampoArea, CampoSeleccion, CampoTexto } from "./CamposEditor";
 
-export function NuevaCotizacion({ clientes, condiciones }: { clientes: { id: string; nombre: string }[]; condiciones: string }) {
-  const [entrada, setEntrada] = useState({ clienteId: "", asunto: "", condiciones });
+export function NuevaCotizacion({ clientes, condiciones, clienteId = "" }: {
+  clientes: { id: string; nombre: string }[]; condiciones: string; clienteId?: string;
+}) {
+  const [entrada, setEntrada] = useState({ clienteId, asunto: "", condiciones });
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("nueva-cotizacion");
   const campos = { ...errores, ...solicitud.campos };
