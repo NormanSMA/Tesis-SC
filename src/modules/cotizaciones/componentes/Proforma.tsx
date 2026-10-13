@@ -1,5 +1,6 @@
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { Fecha } from "@/components/comunes/ValorFormateado";
+import { nombreMoneda } from "../moneda";
 import type { CotizacionDto } from "../tipos";
 import { ItemsCotizacion } from "./ItemsCotizacion";
 import { TotalesCotizacion } from "./TotalesCotizacion";
@@ -23,14 +24,17 @@ export function Proforma({ cotizacion, empresaNombre }: { cotizacion: Cotizacion
       </section>
       <dl className="space-y-2 text-sm">
         <div><dt>Emisión</dt><dd><Fecha valor={cotizacion.fechaEmision} /></dd></div>
+        <div className="flex gap-1"><dt>Moneda:</dt>
+          <dd>{nombreMoneda(cotizacion.moneda)}</dd></div>
+        {cotizacion.moneda !== "NIO" ? <div className="flex gap-1"><dt>Tipo de cambio:</dt>
+          <dd>C$ {cotizacion.tipoCambio} por US$ 1</dd></div> : null}
         <div><dt>Vencimiento</dt><dd><Fecha valor={cotizacion.fechaVencimiento} /></dd></div>
         <div><dt>Vigencia</dt><dd>{cotizacion.vigenciaDias} días</dd></div>
-        <div><dt>Moneda</dt><dd>Córdobas (C$)</dd></div>
       </dl>
     </div>
     <h2 className="text-xl font-semibold">{cotizacion.asunto}</h2>
-    <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} />
-    <div className="ml-auto max-w-sm"><TotalesCotizacion totales={cotizacion} mostrarMargen={false} /></div>
+    <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} moneda={cotizacion.moneda} />
+    <div className="ml-auto max-w-sm"><TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} /></div>
     <section className="space-y-2" aria-label="Condiciones comerciales">
       <h2 className="text-base font-semibold">Condiciones comerciales</h2>
       <p className="whitespace-pre-wrap text-sm">{cotizacion.condiciones || "Sin condiciones adicionales."}</p>

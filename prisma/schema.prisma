@@ -167,6 +167,11 @@ enum AccionBitacora {
   REACTIVAR
   OTORGAR_PERMISO
   REVOCAR_PERMISO
+  INICIAR_SESION
+  INICIO_SESION_FALLIDO
+  BLOQUEAR_CUENTA
+  CERRAR_SESION
+  CAMBIAR_CLAVE
 
   @@map("accion_bitacora")
 }
@@ -492,6 +497,7 @@ model Cotizacion {
   // Duplicado de otra cotizacion (reutilizacion, R-02).
   cotizacionOrigenId String?          @map("cotizacion_origen_id") @db.Uuid
   moneda             String           @default("NIO") @db.Char(3)
+  tipoCambio         Decimal          @default(1) @db.Decimal(10, 4) @map("tipo_cambio")
   // Snapshot de valores calculados: cambios de precio o de IVA no alteran cotizaciones pasadas.
   tasaImpuesto       Decimal          @map("tasa_impuesto") @db.Decimal(5, 2)
   subtotal           Decimal          @default(0) @db.Decimal(14, 2)

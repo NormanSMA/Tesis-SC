@@ -143,7 +143,7 @@ export async function generarXlsx(entrada: EntradaXlsx): Promise<Buffer> {
   const columnas = columnasReporte(entrada.nombre, entrada.dinero);
   const dorado = argb(await leerDorado());
   const libro = new ExcelJS.Workbook();
-  libro.creator = "Soluciones Creativas";
+  libro.creator = "TRACORE";
   libro.created = entrada.generadoEn;
   libro.title = TITULOS_REPORTES[entrada.nombre];
   const hoja = libro.addWorksheet(TITULOS_REPORTES[entrada.nombre].slice(0, 31), {

@@ -2,6 +2,7 @@ import { can, exigir, type Actor } from "@/core/autorizacion";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
 import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
+import { registro } from "@/lib/registro";
 import { aMaterialDto, aMovimientoDto, type ListaMateriales, type ListaMovimientos } from "./dto";
 import { conflictoEdicion, exigirVersion, noEncontrado, regla, traducirError } from "./errores";
 import { actualizarCondicionado, bloquearMaterial, consultarConciliacion, consultarMateriales, consultarMovimientos, consultarOpcionesLibro,
@@ -24,7 +25,10 @@ export async function obtenerMaterial(id: string, actor: Actor) {
   const actual = await prisma.material.findUnique({ where: { id } });
   if (!actual) throw noEncontrado();
   const conciliacion = await consultarConciliacion(id);
-  if (!conciliacion.conciliado) console.error("Diferencia de integridad del libro de inventario", { materialId: id, conciliacion });
+  if (!conciliacion.conciliado) {
+    registro.error({ codigo: "INVENTARIO_NO_CONCILIADO", materialId: id, conciliacion },
+      "Diferencia de integridad del libro de inventario");
+  }
   const datos = { ...aMaterialDto(actual), existencia: conciliacion.existencia };
   return { ...datos, alerta: alertaMaterial(datos), conciliacion };
 }

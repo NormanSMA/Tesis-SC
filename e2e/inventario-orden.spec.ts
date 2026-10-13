@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Locator, type Page, type Request } from "@playwright/test";
 import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
@@ -189,6 +189,9 @@ async function abrirMovimiento(page: Page, tipo: "consumo" | "devolucion"): Prom
 async function enviarMovimiento(page: Page, form: Locator, estado: number): Promise<void> {
   const enviada = page.waitForResponse((r) => /\/api\/v1\/ordenes\/[^/]+\/(consumos|devoluciones)$/.test(r.url()) && r.request().method() === "POST");
   await form.getByRole("button", { name: /^(Registrar consumo|Devolver sobrante)$/ }).click();
+  if (await form.getAttribute("aria-label") === "Registrar consumo") {
+    await page.getByRole("dialog", { name: "Confirmar consumo" }).getByRole("button", { name: "Confirmar consumo", exact: true }).click();
+  }
   expect((await enviada).status()).toBe(estado);
 }
 
@@ -202,8 +205,32 @@ async function consumirDesdeFormulario(page: Page): Promise<void> {
   await expect(form.getByLabel("Cantidad")).toHaveValue("4.000");
   await expect(form).toContainText(`Existencia disponible: 13.000 ${UNIDAD}`);
   await form.getByLabel("Cantidad").fill("3");
-  await enviarMovimiento(page, form, 201);
-  await expect(form).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
+  const movimientosAntes = await totalMovimientos(page);
+  const peticiones: string[] = [];
+  const observar = (peticion: Request) => {
+    if (peticion.method() === "POST" && peticion.url().endsWith(`/ordenes/${datos(orden, "la orden").id}/consumos`)) peticiones.push(peticion.url());
+  };
+  page.on("request", observar);
+  await form.getByRole("button", { name: "Registrar consumo", exact: true }).click();
+  const dialogo = page.getByRole("dialog", { name: "Confirmar consumo" });
+  await expect(dialogo).toContainText(datos(orden, "la orden").numero);
+  await expect(dialogo).toContainText(CODIGO);
+  await expect(dialogo).toContainText(NOMBRE);
+  await expect(dialogo).toContainText(`3 ${UNIDAD}`);
+  await expect(dialogo).not.toContainText(/C\$|Unitario/);
+  await dialogo.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(dialogo).toBeHidden();
+  await expect(form.getByRole("button", { name: "Registrar consumo", exact: true })).toBeFocused();
+  await expect(form).toContainText(`Existencia disponible: 13.000 ${UNIDAD}`);
+  expect(await totalMovimientos(page)).toBe(movimientosAntes);
+  await verExistenciaEnFicha(page, "13");
+  expect(peticiones).toEqual([]);
+  page.off("request", observar);
+  const confirmado = await abrirMovimiento(page, "consumo");
+  await confirmado.getByLabel("Cantidad").fill("3");
+  await enviarMovimiento(page, confirmado, 201);
+  await expect(confirmado.getByRole("status").filter({ hasText: "Consumo registrado" })).toBeVisible();
+  await expect(confirmado).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
   await abrirOrden(page);
   await verResumen(page, ["4.000", "3.000", "0.000", "3.000"]);
   await verExistenciaEnFicha(page, "10");

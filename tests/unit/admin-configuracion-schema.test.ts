@@ -32,6 +32,14 @@ describe("valores y versión de configuración", () => {
     expect(validarValorConfiguracion({ clave: "cotizacion_vigencia_dias", tipo: "ENTERO", valor })).toBe(valor);
   });
 
+  it.each(["1", "36.6243", "1000", "1000.0000"])("acepta tipo de cambio %s", (valor) => {
+    expect(validarValorConfiguracion({ clave: "tipo_cambio_usd", tipo: "DECIMAL", valor })).toBe(valor);
+  });
+
+  it.each(["NIO", "USD"])("acepta moneda %s", (valor) => {
+    expect(validarValorConfiguracion({ clave: "moneda", tipo: "TEXTO", valor })).toBe(valor);
+  });
+
   const invalidos: { clave: string; tipo: TipoValorConfig; valor: string }[] = [
     ...["-0.01", "100.01", "100.000000000000000001", "99.999999999999999999999999",
       "15.001", "15.000", "101", "NaN", "Infinity", "1e2", "15,5", ""].map(
@@ -40,7 +48,12 @@ describe("valores y versión de configuración", () => {
     ...["0", "366", "1.5", "1e2", "", "999999999999999999999999"].map(
       (valor) => ({ clave: "cotizacion_vigencia_dias", tipo: "ENTERO" as const, valor }),
     ),
-    ...["nio", "NI", "NIOS", "N1O", " NIO"].map((valor) => ({ clave: "moneda", tipo: "TEXTO" as const, valor })),
+    ...["0", "0.9999", "1000.0001", "36.62430", "texto", "-36.6243", "0000036", "1e2", "36,6243", ""].map(
+      (valor) => ({ clave: "tipo_cambio_usd", tipo: "DECIMAL" as const, valor }),
+    ),
+    ...["nio", "NI", "NIOS", "N1O", " NIO", "EUR"].map(
+      (valor) => ({ clave: "moneda", tipo: "TEXTO" as const, valor }),
+    ),
     ...["", "   ", "a".repeat(121)].map((valor) => ({ clave: "empresa_nombre", tipo: "TEXTO" as const, valor })),
     { clave: "otro", tipo: "ENTERO", valor: "2.5" },
     { clave: "otro", tipo: "DECIMAL", valor: "texto" },
@@ -78,6 +91,16 @@ describe("valores y versión de configuración", () => {
 });
 
 describe("validación compartida de configuración", () => {
+  it.each([
+    ["1", true], ["36.6243", true], ["1000", true], ["1000.0000", true],
+    ["0", false], ["1000.0001", false], ["36.62430", false], ["texto", false],
+  ])("valida tipo de cambio %s igual en interfaz y servidor", (valor, valido) => {
+    const datos = { clave: "tipo_cambio_usd", tipo: "DECIMAL" as const, valor };
+    expect(esquemaValorConfiguracion(datos).safeParse(valor).success).toBe(valido);
+    if (valido) expect(validarValorConfiguracion(datos)).toBe(valor);
+    else expect(() => validarValorConfiguracion(datos)).toThrow(expect.objectContaining({ status: 422 }));
+  });
+
   it.each([
     ["0", true], ["100", true], ["100.00", true], ["100.01", false],
     ["100.000000000000000001", false], ["-0.01", false], ["15.5", true],

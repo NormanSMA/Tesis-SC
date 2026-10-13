@@ -46,4 +46,4 @@ Revise el registro mediante `docker compose exec respaldo cat /respaldos/registr
 ## Limitaciones
 - Volumen de datos de demostración (cientos de filas). El tiempo crece con el tamaño; el margen frente a 4 horas es amplio.
 - Se probó en la misma máquina y volumen de Docker. Para operación real, copiar el volumen `sc_respaldos` a otro equipo o disco.
-- La verificación de las 24 horas depende de que el servicio `respaldo` esté activo; el registro es la evidencia.
+- El intervalo programado es de 23 horas (`INTERVALO_HORAS`) para dejar margen frente a las 24 horas de RNF-06. La verificación depende de que el servicio `respaldo` esté activo; el registro es la evidencia.

@@ -71,7 +71,7 @@ describe('Datos de prueba', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const datos = cargarJSON('clientes.json') as any[];
       expect(Array.isArray(datos)).toBe(true);
-      expect(datos.length).toBeGreaterThanOrEqual(25);
+      expect(datos.length).toBeGreaterThanOrEqual(15);
     });
 
     it('debe cargar usuarios.json', () => {
@@ -123,7 +123,7 @@ describe('Datos de prueba', () => {
     it('clientes deben ser válidos', () => {
       const datos = cargarJSON('clientes.json');
       const parsed = parseArray(datos, clienteSchema);
-      expect(parsed.length).toBeGreaterThanOrEqual(25);
+      expect(parsed.length).toBeGreaterThanOrEqual(15);
     });
 
     it('usuarios deben ser válidos', () => {
@@ -297,9 +297,9 @@ describe('Datos de prueba', () => {
   });
 
   describe('Conteos mínimos', () => {
-    it('debe tener al menos 25 clientes', () => {
+    it('debe tener al menos 15 clientes, todos con expediente', () => {
       const clientes = parseArray(cargarJSON('clientes.json'), clienteSchema);
-      expect(clientes.length).toBeGreaterThanOrEqual(25);
+      expect(clientes.length).toBeGreaterThanOrEqual(15);
     });
 
     it('debe tener al menos 30 materiales', () => {

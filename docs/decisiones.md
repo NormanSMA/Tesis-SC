@@ -21,6 +21,9 @@ Material para el Capítulo IV.
 | ADR-014 | 2026-10-10 | Seis perfiles, varios perfiles por usuario y migración mediante expansión y contracción | Aplicar la tesis v9 y conservar los datos | Perfil único y matriz anterior |
 | ADR-015 | 2026-10-12 | Riesgos aceptados tras la auditoría (ver sección ADR-015) | Auditoría de backend, DevOps y frontend con evidencia en docs/auditoria. Cada riesgo tiene su razón de no corregirse hoy | Corregirlos antes de la defensa |
 | ADR-016 | 2026-10-12 | CSP obligatoria con `'unsafe-inline'` en scripts y estilos; zod sin JIT en el cliente; PostgreSQL con `jit=off`; imágenes base fijadas por digest | ZAP, Lighthouse y la prueba de volumen. Next inyecta scripts en línea; sin `unsafe-eval`, zod no puede sondear `new Function` | CSP con nonce (obliga a renderizado dinámico en todas las páginas) |
+| ADR-017 | 2026-10-13 | Límite de tasa en memoria, proxy HTTPS con Caddy y bitácora de accesos | Cierra RNF-04 y la bitácora de seguridad de la tesis 4.8 sin cambiar URL de E2E, CI ni RNF-01. Diseño del agente arquitecto | Límite en Caddy (plugin propio), límite en proxy.ts de Next, usuario falso de sistema para fallos |
+| ADR-018 | 2026-10-13 | Dos monedas (NIO y USD) por cotización con tipo de cambio congelado | Norman pidió manejar córdobas y dólares. Cada cotización guarda sus montos en su moneda; el motor de costeo no cambia | Montos siempre en NIO con conversión al mostrar; moneda por ítem |
+| ADR-019 | 2026-10-13 | Confirmación de consumo y importación CSV por fila | La tesis enfatiza «Confirmar consumo» (predefensa lámina 11) y la importación piloto (4.10). La importación valida en seco y crea fila por fila con bitácora | Una sola transacción para todo el archivo; tocar los servicios de alta |
 
 ## ADR-014: perfiles v9 y migraciones de datos
 
@@ -71,8 +74,8 @@ Cada punto cita el informe de `docs/auditoria/`. Se revisan al terminar la tesis
 - Costo de línea de material en cotizaciones (`cotizaciones/costear.ts:85`, 2-7): resuelto el 2026-10-12. Con material registrado el servidor fija el costo (el guardado si la línea ya existe, o el promedio vigente) y la pantalla muestra el campo de solo lectura. El costo libre queda solo en líneas sin material (compras especiales), validado por rango y precisión y registrado en bitácora. Prueba: `tests/integration/cotizaciones-costo-material.test.ts`.
 - `cotizacion:responder` sin `cotizacion:ver` devuelve dinero en la respuesta (2-6): solo ocurre si Administración edita la matriz por defecto. Se acepta.
 - Reportes sin presupuesto de filas, DTO completos hacia acciones de ficha, claves de índice en listas de solo lectura, comparación y meta en los indicadores de cuatro paneles (2-7, 4-frontend): P3 sin impacto a la escala de la empresa.
-- Respaldos en el mismo equipo que la base, sin cifrado y con intervalo de 24 h más la duración (3-devops): copia externa y cifrado son tareas operativas de Norman al desplegar.
-- Límites de CPU y memoria sin fijar en `compose.yaml`: sin medición de carga real.
+- Respaldos en el mismo equipo que la base, sin cifrado y con intervalo de 23 h (3-devops): copia externa y cifrado son tareas operativas de Norman al desplegar.
+- Límites de CPU y memoria: fijados el 2026-10-13 en `compose.yaml` (app y migración 1 g y 2 CPU; respaldo 256 m; proxy 128 m). Revisar con carga real de producción.
 - Índices sin uso (55 en la demostración): no se borran; la medición de uso depende del tráfico.
 - `Content-Type` no verificado en el cuerpo JSON: la verificación de origen cubre CSRF.
 
@@ -83,3 +86,33 @@ Cada punto cita el informe de `docs/auditoria/`. Se revisan al terminar la tesis
 - `Dockerfile` y `compose.yaml`: `node:24-bookworm-slim` y `postgres:17-alpine` fijadas por digest. La etapa final aplica `apt-get upgrade` para tomar las correcciones de Debian publicadas.
 - Los formularios de login y de cambio de clave declaran `method="post"`: sin JavaScript hidratado no envían la contraseña por GET.
 - Cuerpo JSON limitado a 1 000 000 de bytes (413) y decimales a 64 caracteres.
+
+## ADR-017: límite de tasa, proxy HTTPS y bitácora de accesos (2026-10-13)
+Límite de tasa (`src/lib/limite-tasa.ts`, `rate-limiter-flexible` en memoria, una sola instancia):
+- `usuario:lectura` 6000 por 60 s (GET, HEAD); `usuario:escritura` 1200 por 60 s; `ip:publica` 120 por 60 s (login y logout); `ip:login-fallo` 30 por 900 s (solo 401 o 423).
+- Márgenes frente a RNF-01 (unas 1300 operaciones por usuario y minuto). `scripts/rendimiento.mjs` cuenta cualquier 429 como NO CUMPLE: sirve de detector.
+- 429 con formato de error del proyecto (`DEMASIADAS_SOLICITUDES`) y cabecera `Retry-After`. Pruebas con límites inyectables (`configurarLimites`, `reiniciarLimites`). Sin interruptor de desactivar en producción.
+- IP del cliente: solo se confía en `X-Forwarded-For` si llega `X-Proxy-Clave` igual a `PROXY_CLAVE` (32 caracteres o más, comparación en tiempo constante). Si no, clave fija "local". Docker Desktop no conserva la IP: el límite por IP actúa como límite por equipo.
+Proxy HTTPS: servicio `proxy` (Caddy, imagen por digest) en el perfil `proxy` de compose, puertos 127.0.0.1:8443 (TLS 1.2 y 1.3, `tls internal`, HSTS) y 127.0.0.1:8080 (redirección 308). Sitio `tracore.localhost`. La app sigue en 127.0.0.1:3000 para E2E, CI y rendimiento. Cookie `Secure` por petición (proxy y `x-forwarded-proto` https). Verificación con `scripts/verificar-tls.mjs` (TLS 1.0 y 1.1 rechazados con alerta del servidor, 1.2 y 1.3 aceptados, HSTS, 308).
+Bitácora de accesos (tesis 4.8): valores nuevos de `accion_bitacora`: INICIAR_SESION, INICIO_SESION_FALLIDO, BLOQUEAR_CUENTA, CERRAR_SESION, CAMBIAR_CLAVE; entidad USUARIO. Migración propia con `ADD VALUE IF NOT EXISTS`. Sin contraseña, token, hash ni user-agent; IP truncada (IPv4 a /24, IPv6 a /48). Correo inexistente: sin fila (solo log cuando salta el límite). Riesgo aceptado: Gerencia ve IP truncada y correos de fallos; si Norman lo pide, el filtro de acciones de acceso queda solo para ADMIN.
+Riesgos y detección: IP compartida por Docker Desktop (30 fallos bloquean el login de todo el equipo; log `LIMITE_TASA`); límite mal medido (rendimiento.mjs); redirecciones con `req.url` detrás de Caddy (E2E base con `E2E_BASE_URL=https://tracore.localhost:8443`); filtración de `PROXY_CLAVE` (alcance local); enum en la misma transacción (migrate deploy desde cero y Squawk); falso rechazo de TLS 1.0 (el script exige la alerta del servidor).
+
+## ADR-018: dos monedas por cotización (2026-10-13)
+
+Estado: aceptado por Norman (pedido directo). Diseño del agente arquitecto.
+- La moneda de la cotización rige precio, costo, importe, descuento y totales.
+- Columna `cotizacion.tipo_cambio NUMERIC(10,4)`: córdobas por 1 USD. En NIO vale 1. En USD se copia de la clave `tipo_cambio_usd` al crear y no se edita.
+- Moneda y tipo de cambio no cambian después de crear. Duplicar y crear versión corregida los copian.
+- Catálogo: `round(precioBase / tc, 2)`. Material con `materialId`: `round(costoPromedio / tc, 4)`. Los valores ya guardados no se convierten otra vez.
+- CHECK de base: moneda en NIO o USD; tipo de cambio mayor que cero; en NIO igual a 1.
+- Configuración: `tipo_cambio_usd` entre 1 y 1000 con hasta 4 decimales. Sin valor válido, crear en USD responde 409.
+- Panel y reportes suman en córdobas equivalentes con `sum(round(total * tipo_cambio, 2))`. Los listados muestran la moneda original.
+- Migración de expansión `20261013120000_cotizacion_moneda_tipo_cambio`. La reversión aborta si existen cotizaciones en USD.
+- Riesgo aceptado: un redondeo de conversión de hasta 0.005 por precio de catálogo.
+
+## ADR-019: confirmación de consumo e importación CSV (2026-10-13)
+
+- Consumo: un diálogo «Confirmar consumo» lista material, cantidad y unidad. La petición con su clave de idempotencia se envía solo al confirmar. Las devoluciones no cambian.
+- Importación CSV de clientes y materiales con `papaparse` y zod. Validación en seco, confirmación explícita, 500 filas y 1 MB como máximo.
+- Cada fila se crea con el servicio de alta existente, en su propia transacción y con su evento CREAR en bitácora. Una fila inválida o duplicada se informa y no detiene las demás.
+- No se modifican `crearCliente` ni `crearMaterial`.

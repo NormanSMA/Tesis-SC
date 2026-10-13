@@ -11,6 +11,7 @@ type OpcionesAppError = {
   mensaje: string;
   status: number;
   campos?: CamposError;
+  reintentarEnSegundos?: number;
 };
 
 export class AppError extends Error {
@@ -18,14 +19,16 @@ export class AppError extends Error {
   readonly mensaje: string;
   readonly status: number;
   readonly campos?: CamposError;
+  readonly reintentarEnSegundos?: number;
 
-  constructor({ codigo, mensaje, status, campos }: OpcionesAppError) {
+  constructor({ codigo, mensaje, status, campos, reintentarEnSegundos }: OpcionesAppError) {
     super(mensaje);
     this.name = "AppError";
     this.codigo = codigo;
     this.mensaje = mensaje;
     this.status = status;
     this.campos = campos;
+    this.reintentarEnSegundos = reintentarEnSegundos;
   }
 }
 

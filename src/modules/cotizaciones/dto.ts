@@ -19,7 +19,7 @@ export function aCotizacionFila(fila: Cotizacion & {
 }): CotizacionFila {
   return { ...aTotalesDto(fila), id: fila.id, numero: fila.numero, clienteId: fila.clienteId,
     cliente: aClienteDto(fila.cliente), estado: fila.estado, asunto: fila.asunto, condiciones: fila.condiciones,
-    cotizacionOrigenId: fila.cotizacionOrigenId, moneda: fila.moneda, vigenciaDias: fila.vigenciaDias,
+    cotizacionOrigenId: fila.cotizacionOrigenId, moneda: fila.moneda, tipoCambio: fila.tipoCambio.toFixed(4), vigenciaDias: fila.vigenciaDias,
     fechaEmision: fila.fechaEmision?.toISOString().slice(0, 10) ?? null,
     fechaVencimiento: fila.fechaVencimiento?.toISOString().slice(0, 10) ?? null,
     fechaRespuesta: fila.fechaRespuesta?.toISOString() ?? null, motivoRechazo: fila.motivoRechazo,

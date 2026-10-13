@@ -290,7 +290,7 @@ describe("seguimiento: asociaciones y foco sin navegador", () => {
 
   for (const tipo of ["CATALOGO", "PERSONALIZADO"] as const) {
     it(`conserva la etiqueta y describe actualizar precio de ${tipo}`, () => {
-      const propiedades = { indice: 0, item: tipo === "CATALOGO"
+      const propiedades = { moneda: "NIO" as const, indice: 0, item: tipo === "CATALOGO"
         ? { tipo, productoId: id, cantidad: "1" }
         : { tipo, categoriaId: id, unidadCobro: "UNIDAD", descripcion: "Trabajo", margenPct: "10", cantidad: "1", lineas: [] },
       original: { productoActivo: true, productoId: null, categoriaId: id, unidadCobro: "UNIDAD", descripcion: "Trabajo",

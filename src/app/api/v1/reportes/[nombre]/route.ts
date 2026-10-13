@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
+
 import { can, exigir } from "@/core/autorizacion";
 import { AppError } from "@/lib/errores";
 import { manejar, ok } from "@/lib/http";
+import { registro } from "@/lib/registro";
 import { leerConsulta } from "@/modules/inventario/consulta";
 import { nombreArchivo, serializarCsv } from "@/modules/reportes/csv";
 import { esquemaConsulta, esquemaNombre } from "@/modules/reportes/schema";
@@ -18,8 +21,15 @@ export const GET = manejar({ permiso: "reporte:ver" }, async ({ req, actor, para
   if (consulta.formato === "json") return ok(reporte);
   const generadoEn = new Date(reporte.generadoEn);
   const dinero = can(actor, "cotizacion:ver");
-  // eslint-disable-next-line no-console -- La exportación requiere un registro informativo sin persistencia de negocio.
-  console.info(consulta.formato === "csv" ? "Exportación CSV" : "Exportación XLSX", { usuario: actor.id, reporte: nombre.data, filtros: consulta });
+  registro.info({
+    codigo: "REPORTE_EXPORTADO",
+    ruta: new URL(req.url).pathname,
+    metodo: req.method,
+    peticionId: randomUUID(),
+    usuario: actor.id,
+    reporte: nombre.data,
+    filtros: consulta,
+  }, consulta.formato === "csv" ? "Exportación CSV" : "Exportación XLSX");
   const esXlsx = consulta.formato === "xlsx";
   const cuerpo = esXlsx
     ? new Uint8Array(await generarXlsx({ nombre: nombre.data, reporte, dinero, periodo: textoPeriodo(consulta.desde, consulta.hasta), generadoEn }))

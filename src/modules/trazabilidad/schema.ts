@@ -6,7 +6,8 @@ export const ENTIDADES = ["CLIENTE", "CATEGORIA", "AREA", "PRODUCTO", "MATERIAL"
   "ETAPA_ORDEN", "MOVIMIENTO_INVENTARIO", "USUARIO", "PERFIL_PERMISO", "CONFIGURACION"] as const;
 export const ACCIONES = ["CREAR", "EDITAR", "CAMBIAR_ESTADO", "ASIGNAR_RESPONSABLE", "CONVERTIR_EN_ORDEN",
   "REGISTRAR_ENTRADA", "AJUSTAR_INVENTARIO", "CONSUMIR_MATERIAL", "DEVOLVER_MATERIAL", "ARCHIVAR", "REACTIVAR",
-  "OTORGAR_PERMISO", "REVOCAR_PERMISO"] as const;
+  "OTORGAR_PERMISO", "REVOCAR_PERMISO", "INICIAR_SESION", "INICIO_SESION_FALLIDO", "BLOQUEAR_CUENTA",
+  "CERRAR_SESION", "CAMBIAR_CLAVE"] as const;
 export const esquemaId = z.uuid({ error: "Seleccione un identificador válido." });
 export const esquemaConsultaBitacora = z.object({
   entidad: z.enum(ENTIDADES).optional(), accion: z.enum(ACCIONES).optional(), usuario: esquemaId.optional(),

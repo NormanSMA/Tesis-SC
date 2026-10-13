@@ -19,7 +19,7 @@ describe("CSV de reportes", () => {
     const reporte: ReporteDto = { filas: [{ estado: "Enviada", cantidad: 2, importe: "0.30" }],
       totales: { cantidad: 2, importe: "0.30", tasaAprobacion: "66.67" }, generadoEn: "2034-05-01T06:00:00Z" };
     const csv = serializarCsv({ nombre: "cotizaciones-por-estado", reporte, dinero: true });
-    expect(csv).toBe('\uFEFF"Estado","Cantidad","Importe (C$)"\r\n"Enviada","2","0.30"\r\n\r\n"Totales"\r\n"Indicador","Valor"\r\n"Cantidad","2"\r\n"Importe (C$)","0.30"\r\n"Tasa de aprobación (%)","66.67"\r\n');
+    expect(csv).toBe('\uFEFF"Estado","Cantidad","Importe (C$ equivalente)"\r\n"Enviada","2","0.30"\r\n\r\n"Totales"\r\n"Indicador","Valor"\r\n"Cantidad","2"\r\n"Importe (C$ equivalente)","0.30"\r\n"Tasa de aprobación (%)","66.67"\r\n');
     expect(Buffer.from(csv).subarray(0, 3)).toEqual(Buffer.from([239, 187, 191]));
     expect(csv.replaceAll("\r\n", "")).not.toContain("\n");
   });

@@ -850,5 +850,116 @@
         }
       ]
     }
+  },
+  {
+    "clave": "cot-ajuste-001",
+    "cliente": "Colegio San Ignacio",
+    "asunto": "Camisetas para feria escolar",
+    "estadoFinal": "AJUSTE_SOLICITADO",
+    "motivoAjuste": "Reducir la cantidad de camisetas de 60 a 40 para ajustar el presupuesto.",
+    "diasAtras": 25,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ART-CAM-001",
+        "cantidad": 60
+      }
+    ]
+  },
+  {
+    "clave": "cot-ajuste-002",
+    "cliente": "Colegio San Ignacio",
+    "origen": "cot-ajuste-001",
+    "asunto": "Camisetas para feria escolar: cantidad corregida",
+    "estadoFinal": "ENVIADA",
+    "diasAtras": 2,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ART-CAM-001",
+        "cantidad": 40
+      }
+    ]
+  },
+  {
+    "clave": "cot-borrador-003",
+    "cliente": "Panadería Los Andes",
+    "asunto": "Reposición de bolsas impresas",
+    "estadoFinal": "BORRADOR",
+    "diasAtras": 1,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-BOL-001",
+        "cantidad": 1
+      }
+    ]
+  },
+  {
+    "clave": "cot-enviada-003",
+    "cliente": "Hotel Gran Centrómera",
+    "asunto": "Señalética adicional para habitaciones",
+    "estadoFinal": "ENVIADA",
+    "diasAtras": 1,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ROT-VIN-001",
+        "cantidad": 2,
+        "ancho": 1,
+        "alto": 1
+      }
+    ]
+  },
+  {
+    "clave": "cot-persona-001",
+    "cliente": "Juan Pérez García",
+    "asunto": "Rótulo para negocio de barrio",
+    "estadoFinal": "ENVIADA",
+    "diasAtras": 4,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "IMP-FOL-001",
+        "cantidad": 5
+      }
+    ]
+  },
+  {
+    "clave": "cot-persona-002",
+    "cliente": "María López Morales",
+    "asunto": "Tarjetas de presentación y volantes",
+    "estadoFinal": "RECHAZADA",
+    "diasAtras": 9,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ART-CAM-001",
+        "cantidad": 50
+      }
+    ]
+  },
+  {
+    "clave": "cot-persona-003",
+    "cliente": "Carlos Mendoza Reyes",
+    "asunto": "Letrero de taller",
+    "estadoFinal": "BORRADOR",
+    "diasAtras": 1,
+    "vigenciaDias": 15,
+    "items": [
+      {
+        "tipo": "CATALOGO",
+        "producto": "ROT-VIN-001",
+        "cantidad": 10,
+        "ancho": 1,
+        "alto": 1
+      }
+    ]
   }
 ]

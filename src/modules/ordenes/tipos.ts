@@ -30,7 +30,7 @@ export type EventoOrden = {
   actor: string; creadoEn: string; detalle: Prisma.JsonValue;
 };
 export type DineroCotizacion = {
-  moneda: string; subtotal: string; descuento: string; tasaImpuesto: string; impuesto: string; total: string; margenPct: string | null;
+  moneda: string; tipoCambio: string; subtotal: string; descuento: string; tasaImpuesto: string; impuesto: string; total: string; margenPct: string | null;
 };
 export type OrdenDto = OrdenFila & {
   especificaciones: string | null; fechaInicioReal: string | null; fechaEntregaReal: string | null;

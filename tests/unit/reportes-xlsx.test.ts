@@ -24,13 +24,13 @@ describe("XLSX de reportes", () => {
     const libro = await leerLibro(await generarXlsx({ nombre: "cotizaciones-por-estado", reporte: cotizaciones, dinero: true,
       periodo: textoPeriodo("2034-01-01", "2034-05-01"), generadoEn }));
     const hoja = libro.worksheets[0];
-    expect(libro.creator).toBe("Soluciones Creativas");
+    expect(libro.creator).toBe("TRACORE");
     expect(hoja.getCell("B1").value).toBe("Soluciones Creativas");
     expect(hoja.getCell("B2").value).toBe("Cotizaciones por estado");
     expect(hoja.getCell("B3").value).toBe("Periodo: 2034-01-01 a 2034-05-01");
     expect(String(hoja.getCell("B4").value)).toContain("01/05/2034");
     expect(String(hoja.getCell("B4").value)).toContain("12:30");
-    expect(hoja.getRow(6).values).toEqual([undefined, "Estado", "Cantidad", "Importe (C$)"]);
+    expect(hoja.getRow(6).values).toEqual([undefined, "Estado", "Cantidad", "Importe (C$ equivalente)"]);
     const encabezado = hoja.getCell("A6");
     expect(encabezado.font?.bold).toBe(true);
     expect(encabezado.font?.color?.argb).toBe("FFFFFFFF");

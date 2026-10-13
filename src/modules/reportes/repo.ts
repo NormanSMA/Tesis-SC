@@ -4,9 +4,16 @@ import { limitesFecha } from "@/modules/inventario/reglas";
 import { TERMINALES } from "@/modules/ordenes/reglas";
 import type { ConsultaReporte } from "./schema";
 
+// El importe se expresa en córdobas equivalentes: nunca se suman monedas distintas (ADR-018).
 export function consultarCotizaciones(consulta: ConsultaReporte) {
-  return prisma.cotizacion.groupBy({ by: ["estado"], where: { creadoEn: limitesFecha(consulta) },
-    _count: { _all: true }, _sum: { total: true }, orderBy: { estado: "asc" } });
+  const { gte, lt } = limitesFecha(consulta);
+  return prisma.$queryRaw<{ estado: string; cantidad: number; importe: string }[]>`
+    SELECT estado::text AS estado, count(*)::int AS cantidad,
+      coalesce(sum(round(total * tipo_cambio, 2)), 0)::text AS importe
+    FROM cotizacion
+    WHERE (${gte ?? null}::timestamptz IS NULL OR creado_en >= ${gte ?? null}::timestamptz)
+      AND (${lt ?? null}::timestamptz IS NULL OR creado_en < ${lt ?? null}::timestamptz)
+    GROUP BY estado ORDER BY estado`;
 }
 type MaterialReporte = { codigo: string; material: string; unidad: string; existencia: string;
   stockMinimo: string; costoPromedio?: string; valorExacto?: string };

@@ -19,7 +19,7 @@ export function ResumenCliente({ resumen, className }: { resumen: ResumenCotizac
             <dd className="text-xl font-semibold tabular-nums text-foreground">{resumen.cotizaciones}</dd>
           </div>
           <div className="flex items-baseline justify-between gap-3">
-            <dt className="text-sm font-medium text-muted-foreground">Total aprobado</dt>
+            <dt className="text-sm font-medium text-muted-foreground">Total aprobado (C$ equivalente)</dt>
             <dd className="text-xl font-semibold whitespace-nowrap text-foreground">
               <Money valor={resumen.totalAprobado} />
             </dd>

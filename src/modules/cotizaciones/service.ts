@@ -1,6 +1,8 @@
 import { exigir, type Actor } from "@/core/autorizacion";
 import { totalizarCotizacion } from "@/core/costeo";
+import { type Moneda } from "@/core/moneda";
 import { prisma, type Tx } from "@/lib/db";
+import { AppError } from "@/lib/errores";
 
 import { detalleCabecera, detalleItems } from "./auditoria";
 import { costearItems } from "./costear";
@@ -23,15 +25,31 @@ async function exigirClienteActivo(tx: Tx, clienteId: string): Promise<void> {
 
 type DatosNuevoBorrador = EntradaCrearCotizacion & { origen?: FichaGuardada; items?: EntradaItem[]; version?: number };
 
+type ConfiguracionCotizacion = Awaited<ReturnType<typeof configuracionCotizacion>>;
+
+/** La moneda y el tipo de cambio se fijan al crear. Duplicar y corregir copian los del origen. */
+function monedaYTipoCambio(entrada: DatosNuevoBorrador, configuracion: ConfiguracionCotizacion): { moneda: Moneda; tipoCambio: string } {
+  if (entrada.origen) return { moneda: entrada.origen.moneda as Moneda, tipoCambio: entrada.origen.tipoCambio.toFixed(4) };
+  const moneda = entrada.moneda ?? configuracion.moneda;
+  if (moneda === "NIO") return { moneda, tipoCambio: "1" };
+  if (!configuracion.tipoCambioUsd) {
+    throw new AppError({ codigo: "CONFIGURACION_INVALIDA", status: 409,
+      mensaje: "Revise el tipo de cambio USD en la configuración." });
+  }
+  return { moneda, tipoCambio: configuracion.tipoCambioUsd };
+}
+
 async function insertarBorrador(tx: Tx, entrada: DatosNuevoBorrador, actor: Actor): Promise<FichaGuardada> {
   await exigirClienteActivo(tx, entrada.clienteId);
   const configuracion = await configuracionCotizacion(tx);
-  const items = await costearItems(tx, { items: entrada.items ?? [], anteriores: entrada.origen?.items ?? [], duplicando: true });
+  const { moneda, tipoCambio } = monedaYTipoCambio(entrada, configuracion);
+  const items = await costearItems(tx, { items: entrada.items ?? [], anteriores: entrada.origen?.items ?? [], tipoCambio, duplicando: true });
   const totales = totalizarCotizacion({ items, descuento: entrada.origen?.descuento.toFixed(2) ?? "0", tasaImpuesto: configuracion.tasaImpuesto });
   const nuevo = await tx.cotizacion.create({ data: {
     numero: await siguienteNumero(tx), clienteId: entrada.clienteId, asunto: entrada.asunto,
     condiciones: entrada.condiciones === undefined ? configuracion.condiciones : entrada.condiciones,
     vigenciaDias: configuracion.vigenciaDias, creadoPorId: actor.id, cotizacionOrigenId: entrada.origen?.id,
+    moneda, tipoCambio,
     version: entrada.version ?? 1, ...totales,
   } });
   await guardarItems(tx, nuevo.id, items);
@@ -67,7 +85,7 @@ export async function reemplazarItems(id: string, entrada: EntradaReemplazarItem
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, entrada.version);
     exigirBorrador(actual);
-    const items = await costearItems(tx, { items: entrada.items, anteriores: actual.items });
+    const items = await costearItems(tx, { items: entrada.items, anteriores: actual.items, tipoCambio: actual.tipoCambio.toFixed(4) });
     const totales = totalizarCotizacion({ items, descuento: actual.descuento.toFixed(2), tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
     await guardarItems(tx, id, items);
     await guardarCabecera(tx, actual, totales);

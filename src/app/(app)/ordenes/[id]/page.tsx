@@ -10,6 +10,7 @@ import { DatosCliente, DatosOrden } from "@/modules/ordenes/componentes/DatosOrd
 import { EncabezadoOrden } from "@/modules/ordenes/componentes/EncabezadoOrden";
 import { EtapasOrden } from "@/modules/ordenes/componentes/EtapasOrden";
 import { FichaOrden } from "@/modules/ordenes/componentes/FichaOrden";
+import { monedaDe } from "@/modules/cotizaciones/moneda";
 import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
 import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
 import { cargarOrden } from "@/modules/ordenes/paginas";
@@ -40,7 +41,7 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
       <EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
         areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
       <FichaOrden
-        especificaciones={<><DatosOrden orden={orden} /><ItemsOrden items={orden.items} /></>}
+        especificaciones={<><DatosOrden orden={orden} /><ItemsOrden items={orden.items} moneda={monedaDe(orden.cotizacion.moneda)} /></>}
         cliente={<DatosCliente orden={orden} verCliente={can(actor, "cliente:ver")} verCotizacion={can(actor, "cotizacion:ver")} />}
         consumo={<ConsumoEstimadoOrden orden={orden} />}
         materiales={can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : undefined}

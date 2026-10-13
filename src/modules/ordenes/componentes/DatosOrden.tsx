@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
+import { monedaDe } from "@/modules/cotizaciones/moneda";
 import type { OrdenDto } from "../tipos";
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
@@ -10,6 +11,7 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
 }
 
 export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: OrdenDto; verCliente: boolean; verCotizacion: boolean }) {
+  const moneda = monedaDe(orden.cotizacion.moneda);
   return <Card className="min-w-0 px-5"><h2 className="text-lg font-semibold">Cliente y cotización</h2>
     <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
       <Dato etiqueta="Cliente">{verCliente ? <Link href={`/clientes/${orden.cliente.id}`} className="text-primary underline">
@@ -22,10 +24,10 @@ export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: Orde
       <Dato etiqueta="Asunto">{orden.cotizacion.asunto}</Dato>
     </dl>
     {orden.cotizacion.total !== undefined ? <dl className="grid gap-4 sm:grid-cols-2">
-      <Dato etiqueta="Subtotal"><Money valor={orden.cotizacion.subtotal} /></Dato>
-      <Dato etiqueta="Descuento"><Money valor={orden.cotizacion.descuento} /></Dato>
-      <Dato etiqueta={`IVA (${orden.cotizacion.tasaImpuesto} %)`}><Money valor={orden.cotizacion.impuesto} /></Dato>
-      <Dato etiqueta="Total"><Money valor={orden.cotizacion.total} /></Dato></dl> : null}
+      <Dato etiqueta="Subtotal"><Money valor={orden.cotizacion.subtotal} moneda={moneda} /></Dato>
+      <Dato etiqueta="Descuento"><Money valor={orden.cotizacion.descuento} moneda={moneda} /></Dato>
+      <Dato etiqueta={`IVA (${orden.cotizacion.tasaImpuesto} %)`}><Money valor={orden.cotizacion.impuesto} moneda={moneda} /></Dato>
+      <Dato etiqueta="Total"><Money valor={orden.cotizacion.total} moneda={moneda} /></Dato></dl> : null}
   </Card>;
 }
 

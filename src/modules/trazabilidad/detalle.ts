@@ -43,6 +43,11 @@ export const LISTA_DETALLE: Record<AccionBitacora, Record<string, Regla>> = {
   REACTIVAR: { motivo: "valor", activo: cambio, cambios: { activo: cambio } },
   OTORGAR_PERMISO: { recurso: "valor", accion: "valor", perfil: "valor" },
   REVOCAR_PERMISO: { recurso: "valor", accion: "valor", perfil: "valor" },
+  INICIAR_SESION: { ip: "valor" },
+  INICIO_SESION_FALLIDO: { ip: "valor", correoIntentado: "valor", motivo: "valor" },
+  BLOQUEAR_CUENTA: { ip: "valor", correoIntentado: "valor", minutos: "valor" },
+  CERRAR_SESION: { ip: "valor" },
+  CAMBIAR_CLAVE: { ip: "valor", sesionesRevocadas: "valor" },
 };
 
 function permiteDetalle(regla: "valor" | "dinero" | "cliente", acceso: AccesoDetalle): boolean {
@@ -88,7 +93,7 @@ export function filtrarDetalle(accion: AccionBitacora, valor: unknown, acceso: A
 
 const ETIQUETAS: Record<string, string> = { nombre: "Nombre", asunto: "Asunto", responsableId: "Responsable",
   fechaEntrega: "Fecha de entrega", especificaciones: "Especificaciones", fechaInicioPlan: "Inicio planificado",
-  fechaFinPlan: "Fin planificado", areaId: "Área", motivo: "Motivo", cantidad: "Cantidad", referencia: "Referencia",
+  fechaFinPlan: "Fin planificado", areaId: "Área", ip: "IP aproximada", correoIntentado: "Correo usado", minutos: "Minutos de bloqueo", sesionesRevocadas: "Sesiones revocadas", motivo: "Motivo", cantidad: "Cantidad", referencia: "Referencia",
   costoUnitario: "Costo unitario", costoPromedioResultante: "Costo promedio", material: "Material", total: "Total",
   importe: "Importe", subtotal: "Subtotal", descuento: "Descuento", impuesto: "Impuesto", margenPct: "Margen",
   tasaImpuesto: "Tasa de impuesto", precioBase: "Precio base", costoPromedio: "Costo promedio", cotizacionNumero: "Cotización",

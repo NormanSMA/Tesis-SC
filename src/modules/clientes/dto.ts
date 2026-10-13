@@ -11,6 +11,7 @@ import type {
 type FilaCotizacion = {
   id: string;
   numero: string;
+  moneda: string;
   asunto: string | null;
   estado: string;
   total: { toFixed(decimales: number): string };
@@ -77,6 +78,7 @@ export function aCotizacionDeCliente(cotizacion: FilaCotizacion): CotizacionDeCl
     asunto: cotizacion.asunto,
     estado: cotizacion.estado,
     total: cotizacion.total.toFixed(2),
+    moneda: cotizacion.moneda,
     // El CHECK de la base deja informar fechaEmision en un borrador: ahí manda la fecha de creación.
     fecha:
       cotizacion.estado !== "BORRADOR" && cotizacion.fechaEmision

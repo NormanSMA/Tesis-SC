@@ -87,22 +87,50 @@ function claveTemporalVencida(usuario: { contrasenaTemporal: boolean; contrasena
 }
 
 // Un solo UPDATE condicionado: dos fallos simultáneos no pueden saltarse el conteo ni el bloqueo.
-async function registrarFallo(usuarioId: string, ahora: Date): Promise<Date | null> {
+async function registrarFallo(usuario: { id: string; correo: string }, ahora: Date, ip?: string): Promise<Date | null> {
   const hasta = new Date(ahora.getTime() + BLOQUEO_MINUTOS * MS_POR_MINUTO);
-  const filas = await prisma.$queryRaw<{ bloqueada: boolean; bloqueado_hasta: Date | null }[]>`
-    UPDATE usuario SET
-      intentos_fallidos = CASE WHEN intentos_fallidos + 1 >= ${INTENTOS_MAXIMOS}::int THEN 0 ELSE intentos_fallidos + 1 END,
-      bloqueado_hasta = CASE WHEN intentos_fallidos + 1 >= ${INTENTOS_MAXIMOS}::int THEN ${hasta}::timestamptz ELSE bloqueado_hasta END,
-      actualizado_en = ${ahora}::timestamptz
-    WHERE id = ${usuarioId}::uuid AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= ${ahora}::timestamptz)
-    RETURNING (bloqueado_hasta > ${ahora}::timestamptz) AS bloqueada, bloqueado_hasta`;
-  if (filas.length > 0) return filas[0].bloqueada && filas[0].bloqueado_hasta ? new Date(filas[0].bloqueado_hasta) : null;
-  // Sin filas: otro intento fallido bloqueó la cuenta entre la lectura y este UPDATE.
-  const actual = await prisma.usuario.findUnique({ where: { id: usuarioId }, select: { bloqueadoHasta: true } });
-  return actual?.bloqueadoHasta && actual.bloqueadoHasta > ahora ? actual.bloqueadoHasta : null;
+  return prisma.$transaction(async (tx) => {
+    const filas = await tx.$queryRaw<{ bloqueada: boolean; bloqueado_hasta: Date | null }[]>`
+      UPDATE usuario SET
+        intentos_fallidos = CASE WHEN intentos_fallidos + 1 >= ${INTENTOS_MAXIMOS}::int THEN 0 ELSE intentos_fallidos + 1 END,
+        bloqueado_hasta = CASE WHEN intentos_fallidos + 1 >= ${INTENTOS_MAXIMOS}::int THEN ${hasta}::timestamptz ELSE bloqueado_hasta END,
+        actualizado_en = ${ahora}::timestamptz
+      WHERE id = ${usuario.id}::uuid AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= ${ahora}::timestamptz)
+      RETURNING (bloqueado_hasta > ${ahora}::timestamptz) AS bloqueada, bloqueado_hasta`;
+    if (filas.length > 0) {
+      await registrarEvento(tx, {
+        entidad: "USUARIO", entidadId: usuario.id, accion: "INICIO_SESION_FALLIDO", actorId: usuario.id,
+        detalle: { ip, correoIntentado: usuario.correo, motivo: "CLAVE_INCORRECTA" },
+      });
+      if (filas[0].bloqueada && filas[0].bloqueado_hasta) {
+        await registrarEvento(tx, {
+          entidad: "USUARIO", entidadId: usuario.id, accion: "BLOQUEAR_CUENTA", actorId: usuario.id,
+          detalle: { ip, correoIntentado: usuario.correo, minutos: BLOQUEO_MINUTOS },
+        });
+        return new Date(filas[0].bloqueado_hasta);
+      }
+      return null;
+    }
+    // Sin filas: otro intento fallido bloqueó la cuenta entre la lectura y este UPDATE.
+    const actual = await tx.usuario.findUnique({ where: { id: usuario.id }, select: { bloqueadoHasta: true } });
+    return actual?.bloqueadoHasta && actual.bloqueadoHasta > ahora ? actual.bloqueadoHasta : null;
+  });
 }
 
-export async function abrirSesion(usuario: UsuarioConPerfiles & { hashContrasena: string }, ahora: Date): Promise<ResultadoLogin> {
+async function registrarRechazo(
+  usuario: { id: string; correo: string },
+  motivo: "CUENTA_INACTIVA" | "SIN_PERFILES" | "CLAVE_TEMPORAL_VENCIDA",
+  ip?: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await registrarEvento(tx, {
+      entidad: "USUARIO", entidadId: usuario.id, accion: "INICIO_SESION_FALLIDO", actorId: usuario.id,
+      detalle: { ip, correoIntentado: usuario.correo, motivo },
+    });
+  });
+}
+
+export async function abrirSesion(usuario: UsuarioConPerfiles & { hashContrasena: string }, ahora: Date, ip?: string): Promise<ResultadoLogin> {
   const token = generarToken();
   const expiraEn = new Date(ahora.getTime() + ttlSesionHoras() * MS_POR_HORA);
   const debeCambiarClave = await prisma.$transaction(async (tx) => {
@@ -124,6 +152,10 @@ export async function abrirSesion(usuario: UsuarioConPerfiles & { hashContrasena
     await tx.sesion.create({ data: { tokenHash: hashearToken(token), usuarioId: usuario.id, expiraEn } });
     // Las sesiones vencidas no tienen historial de negocio: se purgan al abrir una nueva.
     await tx.sesion.deleteMany({ where: { usuarioId: usuario.id, expiraEn: { lt: ahora } } });
+    await registrarEvento(tx, {
+      entidad: "USUARIO", entidadId: usuario.id, accion: "INICIAR_SESION", actorId: usuario.id,
+      detalle: { ip },
+    });
     return actual.contrasena_temporal;
   });
   const acceso = resumenAcceso(usuario);
@@ -136,7 +168,7 @@ export async function abrirSesion(usuario: UsuarioConPerfiles & { hashContrasena
   };
 }
 
-export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date()): Promise<ResultadoLogin> {
+export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date(), ip?: string): Promise<ResultadoLogin> {
   const correo = entrada.correo.trim().toLowerCase();
   const usuario = await prisma.usuario.findUnique({ where: { correo }, include: INCLUIR_PERFILES });
   if (!usuario) {
@@ -145,24 +177,42 @@ export async function iniciarSesion(entrada: CredencialesLogin, ahora = new Date
   }
   if (claveTemporalVencida(usuario, ahora)) {
     await verificarContrasena(usuario.hashContrasena, entrada.contrasena);
+    if (!usuario.bloqueadoHasta || usuario.bloqueadoHasta <= ahora) {
+      await registrarRechazo(usuario, "CLAVE_TEMPORAL_VENCIDA", ip);
+    }
     throw credencialesInvalidas();
   }
   if (usuario.bloqueadoHasta && usuario.bloqueadoHasta > ahora) throw cuentaBloqueada(usuario.bloqueadoHasta);
 
   const correcta = await verificarContrasena(usuario.hashContrasena, entrada.contrasena);
+  if (!usuario.activo) {
+    await registrarRechazo(usuario, "CUENTA_INACTIVA", ip);
+    throw credencialesInvalidas();
+  }
   if (!correcta) {
-    const bloqueadaHasta = usuario.activo ? await registrarFallo(usuario.id, ahora) : null;
+    const bloqueadaHasta = await registrarFallo(usuario, ahora, ip);
     throw bloqueadaHasta ? cuentaBloqueada(bloqueadaHasta) : credencialesInvalidas();
   }
-  if (!usuario.activo || usuario.perfiles.length === 0) throw credencialesInvalidas();
-  return abrirSesion(usuario, ahora);
+  if (usuario.perfiles.length === 0) {
+    await registrarRechazo(usuario, "SIN_PERFILES", ip);
+    throw credencialesInvalidas();
+  }
+  return abrirSesion(usuario, ahora, ip);
 }
 
-export async function cerrarSesion(token: string | null, ahora = new Date()): Promise<void> {
+export async function cerrarSesion(token: string | null, ahora = new Date(), ip?: string): Promise<void> {
   if (!token) return;
-  await prisma.sesion.updateMany({
-    where: { tokenHash: hashearToken(token), revocadaEn: null },
-    data: { revocadaEn: ahora },
+  await prisma.$transaction(async (tx) => {
+    const filas = await tx.$queryRaw<{ usuario_id: string }[]>`
+      UPDATE sesion SET revocada_en = ${ahora}::timestamptz
+      WHERE token_hash = ${hashearToken(token)} AND revocada_en IS NULL
+      RETURNING usuario_id`;
+    for (const fila of filas) {
+      await registrarEvento(tx, {
+        entidad: "USUARIO", entidadId: fila.usuario_id, accion: "CERRAR_SESION", actorId: fila.usuario_id,
+        detalle: { ip },
+      });
+    }
   });
 }
 
@@ -182,8 +232,9 @@ export async function resolverSesion(token: string, ahora = new Date()): Promise
 }
 
 export async function cambiarClave(
-  entrada: EntradaCambiarClave, actor: Actor, token: string | null,
+  entrada: EntradaCambiarClave, actor: Actor, contexto: { token: string | null; ip?: string },
 ): Promise<{ debeCambiarClave: false }> {
+  const { token, ip } = contexto;
   const tokenHash = token ? hashearToken(token) : null;
   const sinSesion = () => new AppError({ codigo: "SIN_SESION", mensaje: "Debe iniciar sesión para continuar.", status: 401 });
   if (!tokenHash) throw sinSesion();
@@ -209,8 +260,8 @@ export async function cambiarClave(
       where: { usuarioId: actor.id, tokenHash: { not: tokenHash }, revocadaEn: null }, data: { revocadaEn: ahora },
     });
     await registrarEvento(tx, {
-      entidad: "USUARIO", entidadId: actor.id, accion: "EDITAR", actorId: actor.id,
-      detalle: { operacion: "CAMBIAR_CLAVE", sesionesRevocadas: true },
+      entidad: "USUARIO", entidadId: actor.id, accion: "CAMBIAR_CLAVE", actorId: actor.id,
+      detalle: { ip, sesionesRevocadas: true },
     });
     return { debeCambiarClave: false };
   });

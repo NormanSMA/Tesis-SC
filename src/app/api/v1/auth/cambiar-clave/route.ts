@@ -1,10 +1,11 @@
 import { leerTokenDeCookies } from "@/lib/auth/cookies";
 import { leerJson, manejar, ok } from "@/lib/http";
+import { ipCliente, ipTruncada } from "@/lib/ip-cliente";
 import { esquemaCambiarClave } from "@/modules/auth/schema";
 import { cambiarClave } from "@/modules/auth/service";
 
 export const POST = manejar({}, async ({ req, actor }) => {
   const entrada = await leerJson(req, esquemaCambiarClave);
   const token = leerTokenDeCookies(req.headers.get("cookie"));
-  return ok(await cambiarClave(entrada, actor, token));
+  return ok(await cambiarClave(entrada, actor, { token, ip: ipTruncada(ipCliente(req)) }));
 });

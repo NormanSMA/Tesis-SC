@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { validarCotizacion } from "@/core/costeo";
 import { esquemaEditarCotizacion } from "../schema";
+import { monedaDe, simboloMoneda } from "../moneda";
 import type { CotizacionDto } from "../tipos";
 import { enfocarError, erroresEsquema, useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
@@ -33,7 +34,7 @@ export function EditorCabecera({ cotizacion }: { cotizacion: CotizacionDto }) {
       <CampoTexto id="cabecera-asunto" etiqueta="Asunto" requerido valor={entrada.asunto} error={campos.asunto} alCambiar={(valor) => actualizar("asunto", valor)} />
       <CampoArea id="cabecera-condiciones" etiqueta="Condiciones comerciales" valor={entrada.condiciones} error={campos.condiciones} alCambiar={(valor) => actualizar("condiciones", valor)} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto id="cabecera-descuento" etiqueta="Descuento global (C$)" decimal valor={entrada.descuento} error={campos.descuento} alCambiar={(valor) => actualizar("descuento", valor)} />
+        <CampoTexto id="cabecera-descuento" etiqueta={`Descuento global (${simboloMoneda(monedaDe(cotizacion.moneda))})`} decimal valor={entrada.descuento} error={campos.descuento} alCambiar={(valor) => actualizar("descuento", valor)} />
         <CampoTexto id="cabecera-vigencia" etiqueta="Vigencia (días)" decimal valor={entrada.vigenciaDias} error={campos.vigenciaDias} alCambiar={(valor) => actualizar("vigenciaDias", valor)} />
       </div>
       <p className="text-sm text-muted-foreground">Guarde los ítems antes de aplicar un descuento sobre su nuevo subtotal.</p>

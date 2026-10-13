@@ -70,7 +70,7 @@ describe("clave temporal durante login", () => {
 
 describe("cambio de clave", () => {
   it("verifica la clave actual y guarda únicamente el hash nuevo", async () => {
-    expect(await cambiarClave(entrada, actor, "token-actual")).toEqual({ debeCambiarClave: false });
+    expect(await cambiarClave(entrada, actor, { token: "token-actual" })).toEqual({ debeCambiarClave: false });
     expect(dobles.verificar).toHaveBeenCalledWith("hash-actual", entrada.claveActual);
     expect(dobles.hashear).toHaveBeenCalledWith(entrada.claveNueva);
     expect(dobles.actualizarUsuario).toHaveBeenCalledWith(expect.objectContaining({
@@ -82,7 +82,7 @@ describe("cambio de clave", () => {
       where: { usuarioId: actor.id, tokenHash: { not: expect.any(String) }, revocadaEn: null },
     }));
     const evento = dobles.evento.mock.calls[0][1];
-    expect(evento).toMatchObject({ entidad: "USUARIO", accion: "EDITAR", actorId: actor.id });
+    expect(evento).toMatchObject({ entidad: "USUARIO", accion: "CAMBIAR_CLAVE", actorId: actor.id });
     for (const secreto of [entrada.claveActual, entrada.claveNueva, "hash-actual", "hash-nuevo", "token-actual"]) {
       expect(JSON.stringify(evento)).not.toContain(secreto);
     }
@@ -90,7 +90,7 @@ describe("cambio de clave", () => {
 
   it("rechaza la clave actual incorrecta sin escrituras", async () => {
     dobles.verificar.mockResolvedValue(false);
-    await expect(cambiarClave(entrada, actor, "token-actual"))
+    await expect(cambiarClave(entrada, actor, { token: "token-actual" }))
       .rejects.toMatchObject({ codigo: "CREDENCIALES_INVALIDAS", status: 401 });
     expect(dobles.actualizarUsuario).not.toHaveBeenCalled();
     expect(dobles.revocarSesiones).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe("cambio de clave", () => {
     { usuarioId: actor.id, revocadaEn: null, expiraEn: new Date(0) },
   ])("rechaza sesiones inválidas dentro de la transacción: %j", async (sesion) => {
     dobles.buscarSesion.mockResolvedValue(sesion);
-    await expect(cambiarClave(entrada, actor, "token-actual")).rejects.toMatchObject({ codigo: "SIN_SESION" });
+    await expect(cambiarClave(entrada, actor, { token: "token-actual" })).rejects.toMatchObject({ codigo: "SIN_SESION" });
     expect(dobles.verificar).not.toHaveBeenCalled();
     expect(dobles.actualizarUsuario).not.toHaveBeenCalled();
   });

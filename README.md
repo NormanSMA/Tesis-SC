@@ -1,4 +1,4 @@
-# Tesis SC
+# TRACORE
 
 Plataforma web de gestión para Soluciones Creativas (Estelí, Nicaragua).
 Es el piloto de la tesis PCE de la UAM.
@@ -48,7 +48,7 @@ Comprueba el estado en http://127.0.0.1:3000/api/v1/salud.
 
 El comando levanta la base de datos, aplica las migraciones, carga datos de demostración e inicia la aplicación.
 También inicia el servicio `respaldo` con `docker compose up -d`, sin perfil adicional.
-El servicio respalda al arrancar y cada 24 horas por defecto.
+El servicio respalda al arrancar y cada 23 horas por defecto. Así RNF-06 (un respaldo exitoso cada 24 horas) se cumple aunque el respaldo tarde.
 Consulte el registro mediante `docker compose exec respaldo cat /respaldos/registro.log`.
 
 ## Usuarios de prueba

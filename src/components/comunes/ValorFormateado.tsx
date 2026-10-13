@@ -1,8 +1,11 @@
+import type { Moneda } from "@/core/moneda";
 import { formatearFecha, formatearMoneda } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
-export function Money({ valor, className }: { valor: string | number | null | undefined; className?: string }) {
-  const texto = formatearMoneda(valor);
+export function Money({ valor, className, moneda = "NIO" }: {
+  valor: string | number | null | undefined; className?: string; moneda?: Moneda;
+}) {
+  const texto = formatearMoneda(valor, moneda);
   return <span className={cn("tabular-nums", className)}>{texto || "—"}</span>;
 }
 

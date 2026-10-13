@@ -38,6 +38,7 @@ export type CotizacionDeCliente = {
   asunto: string | null;
   estado: string;
   total: string;
+  moneda: string;
   /** AAAA-MM-DD: fechaEmision, o la fecha de creación mientras es BORRADOR. */
   fecha: string;
 };

@@ -10,6 +10,7 @@ import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { aEventoTimeline } from "../textoEvento";
 import type { CotizacionDeCliente, EventoActividad, SeccionLimitada, TrabajoDeCliente } from "../tipos";
 import { SeccionFicha, textoMostrando } from "./SeccionFicha";
+import { monedaDe } from "@/modules/cotizaciones/moneda";
 
 const enlaceNumero = "font-medium text-primary underline-offset-4 hover:underline";
 
@@ -42,7 +43,7 @@ const COLUMNAS_COTIZACIONES: ColumnaTabla<CotizacionDeCliente>[] = [
     id: "total",
     encabezado: "Total",
     alinear: "derecha",
-    celda: (cotizacion) => <Money valor={cotizacion.total} />,
+    celda: (cotizacion) => <Money valor={cotizacion.total} moneda={monedaDe(cotizacion.moneda)} />,
   },
   { id: "fecha", encabezado: "Fecha", celda: (cotizacion) => <Fecha valor={cotizacion.fecha} /> },
 ];

@@ -6,7 +6,9 @@ import { useState, type FormEvent } from "react";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { convertirDesdeCordobas } from "@/core/moneda";
 import { aEntradaItem, calcularVista } from "../calculo";
+import { monedaDe, nombreMoneda } from "../moneda";
 import { esquemaReemplazarItems, type EntradaItem } from "../schema";
 import type { CotizacionDto, SelectoresEditor } from "../tipos";
 import { enfocarError, erroresEsquema, useSolicitudCotizacion } from "../useSolicitudCotizacion";
@@ -21,7 +23,15 @@ function nuevoItem(tipo: EntradaItem["tipo"]): ItemEditor {
   return { claveLocal, tipo, categoriaId: "", descripcion: "", unidadCobro: "UNIDAD", cantidad: "1", margenPct: "30", lineas: [] };
 }
 
-export function EditorItems({ cotizacion, selectores }: { cotizacion: CotizacionDto; selectores: SelectoresEditor }) {
+function aMonedaCotizacion(selectores: SelectoresEditor, tipoCambio: string): SelectoresEditor {
+  return { ...selectores,
+    productos: selectores.productos.map((producto) => ({ ...producto, precioBase: convertirDesdeCordobas(producto.precioBase, tipoCambio, 2) })),
+    materiales: selectores.materiales.map((material) => ({ ...material, costoPromedio: convertirDesdeCordobas(material.costoPromedio, tipoCambio, 4) })) };
+}
+
+export function EditorItems({ cotizacion, selectores: selectoresCordobas }: { cotizacion: CotizacionDto; selectores: SelectoresEditor }) {
+  const moneda = monedaDe(cotizacion.moneda);
+  const selectores = aMonedaCotizacion(selectoresCordobas, cotizacion.tipoCambio);
   const [items, setItems] = useState<ItemEditor[]>(cotizacion.items.map(aEntradaItem));
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("items-cotizacion");
@@ -46,8 +56,9 @@ export function EditorItems({ cotizacion, selectores }: { cotizacion: Cotizacion
     <AvisoGuardado {...solicitud} />
     <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
       <legend className="mb-4 text-xl font-semibold">Ítems de cotización</legend>
+      <p className="text-sm">Moneda: {nombreMoneda(cotizacion.moneda)}</p>
       <GrupoCampo id="items" etiqueta="Productos y trabajos" error={campos.items}>
-        {items.map((item, indice) => <EditorItem key={item.itemId ?? item.claveLocal} item={item} indice={indice}
+        {items.map((item, indice) => <EditorItem key={item.itemId ?? item.claveLocal} moneda={moneda} item={item} indice={indice}
           original={cotizacion.items.find((original) => original.id === item.itemId)} selectores={selectores}
           calculado={vista.items[indice]} errores={campos} alCambiar={(entrada) => cambiarItem(indice, entrada)}
           alQuitar={() => setItems(items.filter((_, posicion) => posicion !== indice))} />)}
@@ -59,7 +70,7 @@ export function EditorItems({ cotizacion, selectores }: { cotizacion: Cotizacion
         <Button type="button" variant="outline" disabled={items.length >= 200 || !selectores.categorias.length}
           onClick={() => setItems([...items, nuevoItem("PERSONALIZADO")])}>Agregar personalizado</Button>
       </div>
-      {vista.totales ? <div><TotalesCotizacion totales={vista.totales} /></div> : <Alert>
+      {vista.totales ? <div><TotalesCotizacion totales={vista.totales} moneda={cotizacion.moneda} /></div> : <Alert>
         <CircleAlert aria-hidden="true" /><AlertTitle>Revise los campos para calcular los totales</AlertTitle>
         <AlertDescription>{campos.descuento ?? "Complete productos, cantidades y líneas de costo."}</AlertDescription>
       </Alert>}

@@ -10,7 +10,7 @@ const COLUMNAS: Record<NombreReporte, ColumnaReporte[]> = {
   "cotizaciones-por-estado": [
     { campo: "estado", encabezado: "Estado", tipo: "texto" },
     { campo: "cantidad", encabezado: "Cantidad", tipo: "numero" },
-    { campo: "importe", encabezado: "Importe (C$)", tipo: "decimal" },
+    { campo: "importe", encabezado: "Importe (C$ equivalente)", tipo: "decimal" },
   ],
   existencias: [
     { campo: "codigo", encabezado: "Código", tipo: "texto" },
@@ -38,7 +38,7 @@ const COLUMNAS: Record<NombreReporte, ColumnaReporte[]> = {
   ],
 };
 export const ETIQUETAS_TOTALES: Record<string, string> = {
-  cantidad: "Cantidad", importe: "Importe (C$)", tasaAprobacion: "Tasa de aprobación (%)",
+  cantidad: "Cantidad", importe: "Importe (C$ equivalente)", tasaAprobacion: "Tasa de aprobación (%)",
   materiales: "Materiales", enAlerta: "Materiales en alerta", sinExistencia: "Materiales sin existencia",
   valorInventario: "Valor del inventario (C$)", pendientes: "Etapas pendientes", enCurso: "Etapas en curso",
   completadas: "Completadas en el periodo", atrasadas: "Atrasadas", ordenes: "Órdenes a cargo",

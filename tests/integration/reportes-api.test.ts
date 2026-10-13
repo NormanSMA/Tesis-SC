@@ -116,12 +116,14 @@ function registrarExportaciones() {
     expect(filas[1][1]).toBe(`'=FÓRMULA ${marca}`); expect(filas[1][3]).toBe("1.001");
   });
   it("registra usuario, reporte y filtros sin contenido ni bitácora", async () => {
-    const registro = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    // La base de pruebas reinicia los módulos: toma el registro de la misma instancia que usa la ruta.
+    const { registro: registroApp } = await import("@/lib/registro");
+    const registro = vi.spyOn(registroApp, "info").mockImplementation(() => undefined);
     const antes = await db.bitacora.count();
     try {
       await solicitarReporte(entorno, { nombre: "existencias", parametros: "texto=registrado&formato=csv", cookie: entorno.sesiones.GERENCIA.cookie });
-      expect(registro).toHaveBeenCalledExactlyOnceWith("Exportación CSV", { usuario: entorno.sesiones.GERENCIA.usuarioId,
-        reporte: "existencias", filtros: { texto: "registrado", formato: "csv", soloAlertas: "false" } });
+      expect(registro).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ codigo: "REPORTE_EXPORTADO", usuario: entorno.sesiones.GERENCIA.usuarioId,
+        reporte: "existencias", filtros: { texto: "registrado", formato: "csv", soloAlertas: "false" } }), "Exportación CSV");
       expect(await db.bitacora.count()).toBe(antes);
     } finally { registro.mockRestore(); }
   });

@@ -4,7 +4,7 @@ import { iniciarSesion, PERFILES } from "./ayudas";
 
 dotenv.config();
 
-const CLIENTE_SIEMBRA = "Academia de Danza Ritmo";
+const CLIENTE_SIEMBRA = "Panadería Los Andes";
 const CLIENTE_COTIZACION_SIEMBRA = "Restaurante La Ceiba";
 const CLIENTE_ORDEN_SIEMBRA = "Hotel Gran Centrómera";
 

@@ -67,7 +67,7 @@ describeConBase("POST /api/v1/auth/login", () => {
     expect(respuesta.status).toBe(200);
   });
 
-  it("marca la cookie Secure solo si SESSION_COOKIE_SECURE es true", async () => {
+  it("marca la cookie Secure cuando SESSION_COOKIE_SECURE es true", async () => {
     const usuario = await crearUsuarioPrueba(db);
     vi.stubEnv("SESSION_COOKIE_SECURE", "true");
     const respuesta = await login(usuario.correo, CLAVE_PRUEBA);

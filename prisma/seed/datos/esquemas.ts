@@ -13,7 +13,7 @@ export const UnidadMaterial = z.enum([
   'GALON', 'KILOGRAMO', 'LIBRA', 'PLIEGO', 'ROLLO'
 ]);
 export const EstadoCotizacion = z.enum([
-  'BORRADOR', 'ENVIADA', 'APROBADA', 'RECHAZADA', 'VENCIDA'
+  'BORRADOR', 'ENVIADA', 'APROBADA', 'RECHAZADA', 'VENCIDA', 'AJUSTE_SOLICITADO'
 ]);
 export const EstadoOrden = z.enum([
   'PENDIENTE', 'EN_PRODUCCION', 'LISTA', 'ENTREGADA', 'CERRADA', 'CANCELADA'
@@ -153,11 +153,19 @@ export const escenarioSchema = z.object({
   clave: z.string().min(1),
   cliente: z.string().min(1),
   asunto: z.string().optional(),
+  origen: z.string().min(1).optional(),
+  motivoAjuste: z.string().trim().min(3).optional(),
   estadoFinal: EstadoCotizacion,
   diasAtras: z.number().nonnegative(),
   vigenciaDias: z.number().positive(),
   items: z.array(itemCotizacionSchema).min(1),
   orden: ordenSchema.optional()
+}).refine(escenario => escenario.estadoFinal !== 'AJUSTE_SOLICITADO' || escenario.motivoAjuste, {
+  message: 'AJUSTE_SOLICITADO requiere motivoAjuste de al menos tres caracteres',
+  path: ['motivoAjuste']
+}).refine(escenario => !escenario.origen || ['BORRADOR', 'ENVIADA'].includes(escenario.estadoFinal), {
+  message: 'La versión corregida debe quedar en BORRADOR o ENVIADA',
+  path: ['estadoFinal']
 });
 
 export const entradaInventarioSchema = z.object({

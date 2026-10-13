@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
+import { monedaDe } from "@/modules/cotizaciones/moneda";
 import type { TrazabilidadOrden } from "../tipos";
 
 function Dato({ nombre, valor }: { nombre: string; valor: ReactNode }) {
@@ -25,7 +26,7 @@ export function CadenaTrabajo({ cadena }: { cadena: TrazabilidadOrden["cadena"] 
       <Dato nombre="Emisión" valor={formatearFecha(cadena.cotizacion.fechaEmision)} />
       <Dato nombre="Vencimiento" valor={formatearFecha(cadena.cotizacion.fechaVencimiento)} />
       <Dato nombre="Respuesta" valor={formatearFechaHora(cadena.cotizacion.fechaRespuesta)} />
-      {"total" in cadena.cotizacion ? <Dato nombre="Total" valor={formatearMoneda(cadena.cotizacion.total)} /> : null}
+      {"total" in cadena.cotizacion ? <Dato nombre="Total" valor={formatearMoneda(cadena.cotizacion.total, monedaDe(cadena.cotizacion.moneda))} /> : null}
     </dl></CardContent></Card>
     <Card className="min-w-0"><CardHeader><CardTitle><h2>Orden de trabajo</h2></CardTitle></CardHeader><CardContent><dl className="space-y-3">
       <Dato nombre="Número" valor={<Link href={`/ordenes/${cadena.orden.id}`} className="text-primary underline">{cadena.orden.numero}</Link>} />

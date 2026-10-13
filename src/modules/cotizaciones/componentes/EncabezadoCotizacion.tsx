@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Fecha } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
+import { nombreMoneda } from "../moneda";
 import type { CotizacionDto } from "../tipos";
 import { EstadoCotizacion } from "./EstadoCotizacion";
 
@@ -10,6 +11,10 @@ export function EncabezadoCotizacion({ cotizacion, children }: { cotizacion: Cot
   return <Card className="px-5" aria-label="Resumen de la cotización">
     <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
       <div className="min-w-0"><dt className="text-muted-foreground">Cliente</dt><dd className="break-words font-medium">{cotizacion.cliente.nombre}</dd></div>
+      <div className="flex gap-1"><dt className="text-muted-foreground">Moneda:</dt>
+        <dd>{nombreMoneda(cotizacion.moneda)}</dd></div>
+      {cotizacion.moneda !== "NIO" ? <div className="flex gap-1"><dt className="text-muted-foreground">Tipo de cambio:</dt>
+        <dd>C$ {cotizacion.tipoCambio} por US$ 1</dd></div> : null}
       <div><dt className="text-muted-foreground">Estado</dt><dd className="mt-1"><EstadoCotizacion estado={cotizacion.estado} /></dd></div>
       <div><dt className="text-muted-foreground">Versión</dt><dd>Versión {cotizacion.version}</dd></div>
       <div><dt className="text-muted-foreground">Vencimiento</dt><dd><Fecha valor={cotizacion.fechaVencimiento} /></dd></div>

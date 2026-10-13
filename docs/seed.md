@@ -15,11 +15,11 @@ Modelo: `docs/analisis/05-modelo-datos.md`.
 | Usuarios | 10, según `prisma/seed/datos/usuarios.json` |
 | Materiales | 33, con costo y stock mínimo |
 | Productos y recetas | 34 productos, 29 líneas de receta |
-| Clientes | 28, entre personas y empresas |
-| Cotizaciones | 15, con 17 ítems y 35 líneas de costo |
+| Clientes | 15 empresas, todas con al menos una cotización |
+| Cotizaciones | 19, con 21 ítems y 35 líneas de costo |
 | Órdenes de trabajo | 8, con 35 etapas y 21 consumos estimados |
 | Libro de inventario | 65 movimientos y 17 enlaces a órdenes |
-| Bitácora | 229 eventos |
+| Bitácora | Conteo calculado por `verificar.ts` |
 
 Los totales salen de los JSON y de la lógica de siembra. `verificar.ts` los comprueba.
 Cuente las concesiones en `PERMISOS_POR_PERFIL` de `src/core/permisos.ts`.
@@ -84,6 +84,10 @@ El modelo no tiene columnas para el cargo ni el área del usuario. La siembra no
 - La numeración usa `siguiente_numero()`. Sigue el orden de creación de cada documento.
 - Cada transición de cotización, orden y etapa escribe su evento con actor y fecha pasada.
 - Las cotizaciones nacen en BORRADOR. Luego avanzan por transiciones válidas.
+- Cada cliente conserva al menos una cotización en su expediente.
+- AJUSTE_SOLICITADO conserva motivo y fecha de respuesta. Ese estado es terminal.
+- La corrección crea otra cotización con versión 2 y `cotizacionOrigenId`.
+- La corrección recibe numeración propia y eventos de creación y envío.
 
 ## Cálculos de costeo
 
@@ -113,6 +117,8 @@ El redondeo es mitad hacia arriba en valor absoluto. Es el de `round` en Postgre
 | Fechas de emisión | `diasAtras` fija la emisión. La cotización se crea a las 08:00 y se envía a las 09:00. |
 | Aprobada | Se aprueba el día de emisión. La orden se crea 30 minutos después. |
 | Rechazada | Se rechaza dos días después de la emisión. |
+| Ajuste solicitado | Se solicita dos días después de la emisión; registra motivo y fecha de respuesta. |
+| Versión corregida | `origen` identifica el escenario original. La versión 2 queda en BORRADOR o ENVIADA. |
 | Vencida | Vence al día siguiente de la fecha de vencimiento. |
 | Categoría principal | Es la categoría del primer ítem. Define la plantilla de etapas. |
 | Etapas del escenario | La etapa i del escenario corresponde a la etapa i de la plantilla. Se conserva el nombre del escenario. |
@@ -176,32 +182,56 @@ Cinco materiales quedan justo en el mínimo. No cuentan como bajo mínimo.
 
 ## Escenarios
 
-Los números salen de la última corrida. El año es el de la ejecución. Aquí es 2026.
-Las cotizaciones se numeran por antigüedad: la más antigua recibe 0001.
+La numeración sigue la antigüedad y el año de creación de cada cotización.
+Conserve las ocho órdenes existentes y sus fechas.
 
-| Escenario | Cotización | Estado | Total (C$) | Orden | Estado de la orden | Demuestra |
-|---|---|---|---|---|---|---|
-| `cot-vencida-001` | COT-2026-0001 | VENCIDA | 3,565.00 | - | - | CF-05: transición a vencida en bitácora. CF-06: cotizaciones fuera de plazo. |
-| `cot-personalizado-001` | COT-2026-0002 | APROBADA | 49,543.05 | OT-2026-0001 | EN_PRODUCCION | CF-10: ítem personalizado de mobiliario con merma, tercero y margen 45%. CF-01 y CF-02: orden con etapa en curso atrasada. CF-03 y CF-04: consumos de aluminio y vinil. CF-06: carga de carpintería. |
-| `cot-aprobada-005` | COT-2026-0003 | APROBADA | 33,005.33 | OT-2026-0002 | PENDIENTE | CF-01: orden recién convertida con cinco etapas sin iniciar. CF-02: orden sin responsables de etapa. CF-10: letras corpóreas con LED. |
-| `cot-aprobada-001` | COT-2026-0004 | APROBADA | 5,474.00 | OT-2026-0003 | ENTREGADA | CF-05: línea de tiempo completa de una orden. CF-03: consumo igual al estimado. CF-11: trabajos de Panadería Los Andes. |
-| `cot-mixta-001` | COT-2026-0005 | APROBADA | 16,496.59 | OT-2026-0004 | LISTA | CF-10: ítem de catálogo por m2 y ítem personalizado en una cotización. CF-03 y CF-04: cinco consumos de materiales. |
-| `cot-rechazada-002` | COT-2026-0006 | RECHAZADA | 4,554.00 | - | - | CF-05: motivo de rechazo en bitácora. CF-11: historial del cliente. |
-| `cot-aprobada-006` | COT-2026-0007 | APROBADA | 7,935.00 | OT-2026-0005 | CANCELADA | CF-02: cancelación con motivo y etapas omitidas. CF-05: evento de cancelación con actor. |
-| `cot-rechazada-001` | COT-2026-0008 | RECHAZADA | 26,450.00 | - | - | CF-06: cotización de monto alto rechazada. CF-11: historial del cliente. |
-| `cot-aprobada-002` | COT-2026-0009 | APROBADA | 1,518.00 | OT-2026-0006 | CERRADA | CF-01 a CF-05: recorrido completo hasta el cierre. CF-03 y CF-04: consumo y devolución del sobrante. |
-| `cot-aprobada-003` | COT-2026-0010 | APROBADA | 10,695.00 | OT-2026-0007 | EN_PRODUCCION | CF-02, CF-03 y CF-04: orden en producción con consumo. CF-06: etapa en curso asignada a un operario. |
-| `cot-enviada-002` | COT-2026-0011 | ENVIADA | 54,028.92 | - | - | CF-10: stand con líneas de material, mano de obra y tercero. CF-06: cotización pendiente de respuesta. |
-| `cot-aprobada-004` | COT-2026-0012 | APROBADA | 35,202.32 | OT-2026-0008 | LISTA | CF-10: cotización mixta. CF-06: orden lista para entregar y alerta de VIN-BLA-01. |
-| `cot-enviada-001` | COT-2026-0013 | ENVIADA | 17,825.00 | - | - | CF-06: cotización pendiente. Sirve para aprobar y convertir en orden. |
-| `cot-borrador-001` | COT-2026-0014 | BORRADOR | 18,975.00 | - | - | CF-10: ítem de catálogo por m2. Sirve para editar y enviar. |
-| `cot-borrador-002` | COT-2026-0015 | BORRADOR | 31,812.19 | - | - | CF-10: ítem personalizado en edición con margen 35%. Sirve para duplicar. |
+| Escenario | Estado | Total (C$) | Estado de la orden | Demuestra |
+|---|---|---|---|---|
+| `cot-vencida-001` | VENCIDA | 3,565.00 | - | CF-05: transición a vencida en bitácora. CF-06: cotizaciones fuera de plazo. |
+| `cot-personalizado-001` | APROBADA | 49,543.05 | EN_PRODUCCION | CF-10: ítem personalizado de mobiliario con merma, tercero y margen 45%. CF-01 y CF-02: orden con etapa en curso atrasada. CF-03 y CF-04: consumos de aluminio y vinil. CF-06: carga de carpintería. |
+| `cot-aprobada-005` | APROBADA | 33,005.33 | PENDIENTE | CF-01: orden recién convertida con cinco etapas sin iniciar. CF-02: orden sin responsables de etapa. CF-10: letras corpóreas con LED. |
+| `cot-aprobada-001` | APROBADA | 5,474.00 | ENTREGADA | CF-05: línea de tiempo completa de una orden. CF-03: consumo igual al estimado. CF-11: trabajos de Panadería Los Andes. |
+| `cot-mixta-001` | APROBADA | 16,496.59 | LISTA | CF-10: ítem de catálogo por m2 y ítem personalizado en una cotización. CF-03 y CF-04: cinco consumos de materiales. |
+| `cot-rechazada-002` | RECHAZADA | 4,554.00 | - | CF-05: motivo de rechazo en bitácora. CF-11: historial del cliente. |
+| `cot-aprobada-006` | APROBADA | 7,935.00 | CANCELADA | CF-02: cancelación con motivo y etapas omitidas. CF-05: evento de cancelación con actor. |
+| `cot-rechazada-001` | RECHAZADA | 26,450.00 | - | CF-06: cotización de monto alto rechazada. CF-11: historial del cliente. |
+| `cot-aprobada-002` | APROBADA | 1,518.00 | CERRADA | CF-01 a CF-05: recorrido completo hasta el cierre. CF-03 y CF-04: consumo y devolución del sobrante. |
+| `cot-aprobada-003` | APROBADA | 10,695.00 | EN_PRODUCCION | CF-02, CF-03 y CF-04: orden en producción con consumo. CF-06: etapa en curso asignada a un operario. |
+| `cot-enviada-002` | ENVIADA | 54,028.92 | - | CF-10: stand con líneas de material, mano de obra y tercero. CF-06: cotización pendiente de respuesta. |
+| `cot-aprobada-004` | APROBADA | 35,202.32 | LISTA | CF-10: cotización mixta. CF-06: orden lista para entregar y alerta de VIN-BLA-01. |
+| `cot-enviada-001` | ENVIADA | 17,825.00 | - | CF-06: cotización pendiente. Sirve para aprobar y convertir en orden. |
+| `cot-borrador-001` | BORRADOR | 18,975.00 | - | CF-10: ítem de catálogo por m2. Sirve para editar y enviar. |
+| `cot-borrador-002` | BORRADOR | 31,812.19 | - | CF-10: ítem personalizado en edición con margen 35%. Sirve para duplicar. |
+| `cot-ajuste-001` | AJUSTE_SOLICITADO | 31,740.00 | - | Colegio San Ignacio: solicitud antigua para reducir 60 camisetas a 40. |
+| `cot-ajuste-002` | ENVIADA | 21,160.00 | - | Colegio San Ignacio: versión 2 corregida, enlazada a `cot-ajuste-001` y vigente. |
+| `cot-borrador-003` | BORRADOR | 2,737.00 | - | Panadería Los Andes: reposición en edición junto al trabajo entregado. |
+| `cot-enviada-003` | ENVIADA | 3,795.00 | - | Hotel Gran Centrómera: señalética adicional enviada junto al trabajo listo. |
 
 Cobertura de estados:
 
-- Cotizaciones: BORRADOR 2, ENVIADA 2, APROBADA 8, RECHAZADA 2, VENCIDA 1.
+- Cotizaciones: BORRADOR 3, ENVIADA 4, APROBADA 8, RECHAZADA 2, VENCIDA 1, AJUSTE_SOLICITADO 1.
 - Órdenes: PENDIENTE 1, EN_PRODUCCION 2, LISTA 2, ENTREGADA 1, CERRADA 1, CANCELADA 1.
 - CF-07 se recorre iniciando sesión con cada perfil de la tabla de usuarios.
+
+## Expedientes de los 15 clientes
+
+| Cliente | Caso de demostración |
+|---|---|
+| Distribuidora Los Pinos | Edite la señalización de fachada en BORRADOR. |
+| Clínica Dental Sonrisa Plena | Revise el logo personalizado en BORRADOR con margen y materiales. |
+| Restaurante La Ceiba | Apruebe los menús enviados y convierta la cotización en orden. |
+| Constructora Horizonte | Revise el stand enviado con materiales, mano de obra y tercero. |
+| Colegio San Ignacio | Revise el rechazo anterior, el ajuste antiguo y la versión 2 enviada. |
+| ONG Visión Comunitaria | Consulte la campaña rechazada y su motivo. |
+| Farmacia del Centro | Consulte las etiquetas con cotización VENCIDA. |
+| Panadería Los Andes | Consulte las bolsas entregadas y edite la reposición en BORRADOR. |
+| Estudio Fotográfico Luz Perfecta | Consulte las tarjetas con orden CERRADA y devolución de sobrante. |
+| Agencia Viajes Tropical | Revise los folletos EN_PRODUCCION y la etapa de impresión. |
+| Hotel Gran Centrómera | Consulte la orden LISTA y la señalética adicional ENVIADA. |
+| Óptica Visión 20/20 | Planifique las letras corpóreas con orden PENDIENTE. |
+| Centro de Belleza Iris | Revise los uniformes con orden CANCELADA y etapas OMITIDA. |
+| Policlínica San Carlos | Consulte la señalización mixta con orden LISTA y consumos registrados. |
+| Supermercado La Frontera | Revise el mobiliario EN_PRODUCCION con etapa atrasada y consumos. |
 
 ## Choques con la base
 
@@ -236,3 +266,5 @@ Cobertura de estados:
 - `tests/unit/seed-calculos.test.ts`: fórmulas, redondeo, descuento e IVA.
 - `tests/integration/seed.test.ts`: siembra una base aislada `sc_test_seed` y la destruye al terminar.
 - La prueba comprueba lo mismo que `verificar.ts`. También prueba la segunda ejecución y las claves.
+- Compruebe 15 clientes con expediente y los conteos de los seis estados de cotización.
+- Compruebe el motivo del ajuste, su bitácora y la versión 2 enviada dentro de vigencia.

@@ -21,6 +21,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
+    // Solo para probar el proxy local con su certificado interno (docs/despliegue-https.md).
+    ignoreHTTPSErrors: process.env.E2E_IGNORAR_TLS === "1",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "es-NI",

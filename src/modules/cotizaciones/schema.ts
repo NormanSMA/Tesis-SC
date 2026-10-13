@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+import { MONEDAS } from "@/core/moneda";
+
 export const ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"] as const;
-export const CONDICIONES_PREDETERMINADAS = "Precios en córdobas. La producción inicia después de aprobar la cotización.";
+export const CONDICIONES_PREDETERMINADAS = "Precios expresados en la moneda de la cotización. La producción inicia después de aprobar la cotización.";
 export const version = z.iso.datetime({ offset: true, error: "Falta la versión de la cotización. Recargue los datos." });
 const id = z.uuid({ error: "Seleccione un registro válido." });
 const texto = z.string().trim().min(1, "Es obligatorio.");
@@ -15,6 +17,7 @@ export const esquemaCrearCotizacion = z.object({
   clienteId: id,
   asunto: texto.max(200, "El asunto admite hasta 200 caracteres."),
   condiciones: condiciones.optional(),
+  moneda: z.enum(MONEDAS, { error: "Indique NIO o USD." }).optional(),
 });
 export const esquemaEditarCotizacion = z.object({
   version,

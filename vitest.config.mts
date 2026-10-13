@@ -12,7 +12,10 @@ for (const archivo of [".env", ".env.example"]) {
 
 export default defineConfig({
   resolve: {
-    alias: { "@": path.resolve(raiz, "src") },
+    alias: {
+      "@": path.resolve(raiz, "src"),
+      "server-only": path.resolve(raiz, "tests/helpers/server-only-vacio.ts"),
+    },
   },
   test: {
     environment: "node",

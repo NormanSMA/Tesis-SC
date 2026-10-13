@@ -13,7 +13,7 @@ export default function PaginaLogin() {
         <div className="flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:py-10">
           <Image
             src="/brand/isotipo.png"
-            alt="Soluciones Creativas"
+            alt="TRACORE"
             width={544}
             height={512}
             priority
@@ -23,11 +23,11 @@ export default function PaginaLogin() {
             <div className="w-full max-w-sm">
               <h1 className="text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-4xl">Iniciar sesión</h1>
               <p className="mt-4 mb-8 text-base text-muted-foreground">
-                Ingrese con su cuenta para acceder a la plataforma de gestión.
+                Ingrese con su cuenta para acceder a TRACORE.
               </p>
               <FormularioLogin />
               <p className="mt-10 border-t border-border pt-4 text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Soluciones Creativas
+                © {new Date().getFullYear()} TRACORE · Soluciones Creativas
               </p>
             </div>
           </div>

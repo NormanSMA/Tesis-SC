@@ -9,6 +9,8 @@ export const ACCION_TEXTO: Record<AccionBitacora, string> = {
   CONSUMIR_MATERIAL: "Registró un consumo de material", DEVOLVER_MATERIAL: "Registró una devolución de material",
   ARCHIVAR: "Archivó el registro", REACTIVAR: "Reactivó el registro",
   OTORGAR_PERMISO: "Otorgó un permiso", REVOCAR_PERMISO: "Revocó un permiso",
+  INICIAR_SESION: "Inició sesión", INICIO_SESION_FALLIDO: "Intento de acceso fallido", BLOQUEAR_CUENTA: "Cuenta bloqueada por intentos",
+  CERRAR_SESION: "Cerró sesión", CAMBIAR_CLAVE: "Cambió la clave",
 };
 export const ENTIDAD_TEXTO: Record<EntidadBitacora, string> = {
   CLIENTE: "Cliente", CATEGORIA: "Categoría", AREA: "Área", PRODUCTO: "Producto", MATERIAL: "Material",

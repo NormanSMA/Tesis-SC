@@ -3,6 +3,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
+import { monedaDe } from "../moneda";
 import type { ConsultaCotizaciones } from "../schema";
 import type { CotizacionFila, ListaCotizaciones } from "../tipos";
 import { EstadoCotizacion } from "./EstadoCotizacion";
@@ -24,7 +25,7 @@ const columnas: ColumnaTabla<CotizacionFila>[] = [
       <span className="text-xs text-muted-foreground"><span aria-hidden="true">v{fila.version}</span><span className="sr-only">Versión {fila.version}</span></span></div> },
   { id: "cliente", encabezado: "Cliente", celda: (fila) => <span className="block max-w-56 truncate max-md:max-w-full" title={fila.cliente.nombre}>{fila.cliente.nombre}</span> },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoCotizacion estado={fila.estado} /> },
-  { id: "total", encabezado: "Total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} className="font-medium" /> },
+  { id: "total", encabezado: "Total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} moneda={monedaDe(fila.moneda)} className="font-medium" /> },
   { id: "vencimiento", encabezado: "Vencimiento", celda: (fila) => <span><span className="text-muted-foreground md:hidden">Vence: </span>
     <Fecha valor={fila.fechaVencimiento} /></span> },
 ];

@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
 import { AppError } from "@/lib/errores";
 import { manejar, ok } from "@/lib/http";
+import { registro } from "@/lib/registro";
 
 vi.mock("@/lib/auth/sesion", () => ({ obtenerSesionDeRequest: vi.fn() }));
 
 beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  vi.spyOn(registro, "error").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -35,7 +36,7 @@ async function provocarError(error: unknown) {
 }
 
 describe("registro de errores HTTP", () => {
-  it("escribe solamente los cinco campos permitidos", async () => {
+  it("escribe solamente los campos permitidos y un error sin datos sensibles", async () => {
     const error = Object.assign(new Error("Bearer secreto; contrasena=secreto"), {
       headers: { authorization: "Bearer secreto" },
       cookies: { sesion: "secreto" },
@@ -49,14 +50,15 @@ describe("registro de errores HTTP", () => {
     expect(await respuesta.json()).toEqual({
       error: { codigo: "ERROR_INTERNO", mensaje: "Error interno del servidor" },
     });
-    expect(console.error).toHaveBeenCalledExactlyOnceWith({
+    expect(registro.error).toHaveBeenCalledExactlyOnceWith({
       codigo: "ERROR_INTERNO",
       mensaje: "Error interno del servidor",
       ruta: "/api/v1/clientes",
       metodo: "POST",
       peticionId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      err: expect.objectContaining({ message: "Error interno del servidor" }),
     });
-    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/secreto|clave|dato-sensible/);
+    expect(JSON.stringify(vi.mocked(registro.error).mock.calls)).not.toMatch(/secreto|clave|dato-sensible/);
   });
 
   it("omite campos y propiedades adicionales de errores controlados", async () => {
@@ -68,12 +70,13 @@ describe("registro de errores HTTP", () => {
     }), { token: "secreto", cuerpo: { clave: "secreto" } });
     const respuesta = await provocarError(error);
     expect(respuesta.status).toBe(503);
-    expect(console.error).toHaveBeenCalledExactlyOnceWith({
+    expect(registro.error).toHaveBeenCalledExactlyOnceWith({
       codigo: "SERVICIO_NO_DISPONIBLE",
       mensaje: "Servicio no disponible.",
       ruta: "/api/v1/clientes",
       metodo: "POST",
       peticionId: expect.any(String),
+      err: expect.objectContaining({ message: "Servicio no disponible." }),
     });
   });
 
@@ -81,12 +84,13 @@ describe("registro de errores HTTP", () => {
     "filtra errores de cualquier forma: %s",
     async (error) => {
       await provocarError(error);
-      expect(console.error).toHaveBeenCalledExactlyOnceWith({
+      expect(registro.error).toHaveBeenCalledExactlyOnceWith({
         codigo: "ERROR_INTERNO",
         mensaje: "Error interno del servidor",
         ruta: "/api/v1/clientes",
         metodo: "POST",
         peticionId: expect.any(String),
+        err: expect.objectContaining({ message: "Error interno del servidor" }),
       });
     },
   );
@@ -94,21 +98,24 @@ describe("registro de errores HTTP", () => {
   it("genera identificadores distintos sin aceptar identificadores de cabeceras", async () => {
     await provocarError(new Error("secreto"));
     await provocarError(new Error("secreto"));
-    const llamadas = vi.mocked(console.error).mock.calls;
-    expect(llamadas[0][0].peticionId).not.toBe(llamadas[1][0].peticionId);
-    expect(llamadas[0][0].peticionId).not.toBe("token-secreto");
+    const llamadas = vi.mocked(registro.error).mock.calls.map(
+      ([entrada]) => entrada as unknown as { peticionId: string },
+    );
+    expect(llamadas[0].peticionId).not.toBe(llamadas[1].peticionId);
+    expect(llamadas[0].peticionId).not.toBe("token-secreto");
   });
 
   it("filtra errores durante la carga de sesión", async () => {
     vi.mocked(obtenerSesionDeRequest).mockRejectedValueOnce(new Error("cookie=secreto"));
     const respuesta = await manejar({}, () => ok(null))(peticion());
     expect(respuesta.status).toBe(500);
-    expect(console.error).toHaveBeenCalledExactlyOnceWith({
+    expect(registro.error).toHaveBeenCalledExactlyOnceWith({
       codigo: "ERROR_INTERNO",
       mensaje: "Error interno del servidor",
       ruta: "/api/v1/clientes",
       metodo: "POST",
       peticionId: expect.any(String),
+      err: expect.objectContaining({ message: "Error interno del servidor" }),
     });
   });
 
@@ -121,13 +128,13 @@ describe("registro de errores HTTP", () => {
     expect(await respuesta.json()).toEqual({
       error: { codigo: "VALIDACION", mensaje: "Hay campos con errores.", campos: { nombre: "Requerido" } },
     });
-    expect(console.error).not.toHaveBeenCalled();
+    expect(registro.error).not.toHaveBeenCalled();
   });
 
   it("conserva respuestas exitosas sin agregar registros", async () => {
     const respuesta = await manejar({ publica: true }, () => ok({ id: "cliente" }))(peticion());
     expect(respuesta.status).toBe(200);
     expect(await respuesta.json()).toEqual({ datos: { id: "cliente" } });
-    expect(console.error).not.toHaveBeenCalled();
+    expect(registro.error).not.toHaveBeenCalled();
   });
 });

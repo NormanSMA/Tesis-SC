@@ -37,7 +37,7 @@ const cotizacion: CotizacionDto = {
   id, numero: "C-01", clienteId: id, estado: "BORRADOR", asunto: null, condiciones: null,
   cliente: { id, nombre: "Cliente", ruc: null, contactoPrincipal: null, telefono: null,
     correo: null, direccion: null, activo: true },
-  cotizacionOrigenId: null, moneda: "NIO", vigenciaDias: 15, fechaEmision: null,
+  cotizacionOrigenId: null, moneda: "NIO", tipoCambio: "1.0000", vigenciaDias: 15, fechaEmision: null,
   fechaVencimiento: null, fechaRespuesta: null, motivoRechazo: null, archivada: false,
   version: 1, motivoAjuste: null, referenciaAprobacion: null, usuarioAprobacionId: null,
   usuarioAprobacion: null, creadoEn: version, actualizadoEn: version, items: [], avisos: [],

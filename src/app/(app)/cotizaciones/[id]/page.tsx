@@ -10,6 +10,7 @@ import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AccionesCotizacion } from "@/modules/cotizaciones/componentes/AccionesCotizacion";
 import { DatosCotizacion } from "@/modules/cotizaciones/componentes/DatosCotizacion";
 import { EncabezadoCotizacion } from "@/modules/cotizaciones/componentes/EncabezadoCotizacion";
+import { monedaDe } from "@/modules/cotizaciones/moneda";
 import { CostosInternosCotizacion, ItemsCotizacion } from "@/modules/cotizaciones/componentes/ItemsCotizacion";
 import { TotalesCotizacion } from "@/modules/cotizaciones/componentes/TotalesCotizacion";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
@@ -54,10 +55,10 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
       <div className="grid items-start gap-5 lg:grid-cols-3">
         <section aria-labelledby="titulo-items" className="min-w-0 lg:col-span-2">
           <h2 id="titulo-items" className="mb-4 text-xl font-semibold">Ítems de cotización</h2>
-          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} /></section>
-        <TotalesCotizacion totales={cotizacion} mostrarMargen={false} /></div>
+          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} /></section>
+        <TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} /></div>
       <DatosCotizacion cotizacion={cotizacion} />
-      <CostosInternosCotizacion items={cotizacion.items} margenPct={cotizacion.margenPct} />
+      <CostosInternosCotizacion items={cotizacion.items} margenPct={cotizacion.margenPct} moneda={monedaDe(cotizacion.moneda)} />
     </div>
   </>;
 }

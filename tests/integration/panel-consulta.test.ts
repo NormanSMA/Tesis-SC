@@ -104,6 +104,15 @@ async function mesesConocidos() {
   const sinAnterior = await entorno.servicio.obtenerPanel(actor, new Date("2049-01-10T12:00:00Z"));
   expect(sinAnterior.titulo).toBe("Enero lleva C$\u00a00 aprobados, sin aprobaciones el mes anterior");
 }
+async function montoEnCordobasEquivalentes() {
+  const actor = entorno.sesiones.GERENCIA.actor;
+  const respuesta = "2052-10-05T12:00:00Z";
+  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "1000", respuesta });
+  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "100", moneda: "USD", tipoCambio: "36.6243", respuesta });
+  const actual = await entorno.servicio.obtenerPanel(actor, new Date("2052-10-10T12:00:00Z"));
+  expect(actual.titulo).toBe("Octubre lleva C$ 4,662 aprobados, sin aprobaciones el mes anterior");
+  expect(actual.grafico?.datos.at(-1)).toMatchObject({ valor: 4.7, destacado: true });
+}
 async function completadasPorActor() {
   const actor = entorno.sesiones.PRODUCCION.actor;
   const anterior = await entorno.servicio.obtenerPanel(actor, instante);
@@ -220,6 +229,7 @@ describeConBase("panel: consultas y perfiles v9", () => {
   it("cuenta órdenes distintas y entregas incluyendo una orden sin responsable", accionSinDuplicados);
   it("limita producción a las etapas del actor", produccionPropia);
   it("calcula meses, dinero exacto y tasa sobre todas las respuestas", mesesConocidos);
+  it("suma el monto aprobado en córdobas equivalentes con dos monedas", montoEnCordobasEquivalentes);
   it("cuenta completadas por el actor y detecta etapas largas", completadasPorActor);
   it("omite ajustes corregidos y respeta treinta días por creación", ajustesYCreacion);
   it("ordena alertas, excluye inactivos y oculta dinero sin permiso", alertasYDinero);

@@ -155,7 +155,12 @@ describeConBase("siembra de datos de demostración", () => {
   it("cubre todos los estados de cotización y de orden", async () => {
     const cotizaciones = await db.cotizacion.groupBy({ by: ["estado"], _count: true });
     const ordenes = await db.ordenTrabajo.groupBy({ by: ["estado"], _count: true });
-    expect(cotizaciones.map((c) => c.estado).sort()).toEqual(["APROBADA", "BORRADOR", "ENVIADA", "RECHAZADA", "VENCIDA"]);
+    expect(cotizaciones.map((c) => c.estado).sort()).toEqual([
+      "AJUSTE_SOLICITADO", "APROBADA", "BORRADOR", "ENVIADA", "RECHAZADA", "VENCIDA",
+    ]);
+    expect(Object.fromEntries(cotizaciones.map((c) => [c.estado, c._count]))).toEqual({
+      AJUSTE_SOLICITADO: 1, APROBADA: 8, BORRADOR: 4, ENVIADA: 5, RECHAZADA: 3, VENCIDA: 1,
+    });
     expect(ordenes.map((o) => o.estado).sort()).toEqual([
       "CANCELADA",
       "CERRADA",
@@ -164,6 +169,34 @@ describeConBase("siembra de datos de demostración", () => {
       "LISTA",
       "PENDIENTE",
     ]);
+  });
+
+  it("deja a cada cliente con al menos una cotización", async () => {
+    expect(await db.cliente.count()).toBe(18);
+    expect(await db.cotizacion.count()).toBe(22);
+    const filas = await db.$queryRaw<{ total: bigint }[]>`
+      SELECT count(*) AS total FROM cliente c
+       WHERE NOT EXISTS (SELECT 1 FROM cotizacion cot WHERE cot.cliente_id = c.id)`;
+    expect(Number(filas[0].total)).toBe(0);
+  });
+
+  it("conserva el ajuste y enlaza su versión corregida vigente", async () => {
+    const original = await db.cotizacion.findFirstOrThrow({ where: { estado: "AJUSTE_SOLICITADO" } });
+    expect(original.version).toBe(1);
+    expect(original.motivoAjuste?.trim().length).toBeGreaterThanOrEqual(3);
+    expect(original.fechaRespuesta).not.toBeNull();
+    const corregida = await db.cotizacion.findFirstOrThrow({ where: { cotizacionOrigenId: original.id } });
+    expect(corregida.version).toBe(2);
+    expect(corregida.estado).toBe("ENVIADA");
+    expect(corregida.clienteId).toBe(original.clienteId);
+    expect(corregida.creadoEn.getTime()).toBeGreaterThan(original.fechaRespuesta!.getTime());
+    expect(corregida.fechaVencimiento!.getTime()).toBeGreaterThan(Date.now());
+    const evento = await db.bitacora.findFirstOrThrow({
+      where: { cotizacionId: original.id, estadoAnterior: "ENVIADA", estadoNuevo: "AJUSTE_SOLICITADO" },
+    });
+    expect(evento.accion).toBe("CAMBIAR_ESTADO");
+    expect(evento.detalle).toMatchObject({ motivo: original.motivoAjuste });
+    expect(evento.creadoEn).toEqual(original.fechaRespuesta);
   });
 
   it("numera cotizaciones y órdenes en orden cronológico de creación", async () => {

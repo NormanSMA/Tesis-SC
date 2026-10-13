@@ -1,3 +1,5 @@
+import type { Moneda } from "@/core/moneda";
+
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const ZONA_HORARIA = "America/Managua";
 const FECHA_CALENDARIO = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -42,19 +44,21 @@ export function formatearDecimal(valor: string | number, decimales: number): str
 }
 
 // Espacio duro: el símbolo y la cifra no se separan al cortar línea.
-function conSimboloMoneda(numero: string): string {
-  return numero.startsWith("-") ? `-C$${ESPACIO_DURO}${numero.slice(1)}` : `C$${ESPACIO_DURO}${numero}`;
+function conSimboloMoneda(numero: string, moneda: Moneda): string {
+  const simbolo = moneda === "USD" ? "US$" : "C$";
+  return numero.startsWith("-")
+    ? `-${simbolo}${ESPACIO_DURO}${numero.slice(1)}` : `${simbolo}${ESPACIO_DURO}${numero}`;
 }
 
 function quitarCerosFinales(numero: string): string {
   return numero.includes(".") ? numero.replace(/0+$/, "").replace(/\.$/, "") : numero;
 }
 
-export function formatearMoneda(valor: string | number | null | undefined): string {
+export function formatearMoneda(valor: string | number | null | undefined, moneda: Moneda = "NIO"): string {
   if (valor === null || valor === undefined || valor === "") return "";
   const numero = formatearDecimal(valor, 2);
   if (!numero) return "";
-  return conSimboloMoneda(numero);
+  return conSimboloMoneda(numero, moneda);
 }
 
 export function formatearCantidad(valor: string | number | null | undefined, decimales = 2): string {
@@ -62,11 +66,11 @@ export function formatearCantidad(valor: string | number | null | undefined, dec
   return formatearDecimal(valor, decimales);
 }
 
-export function formatearMonedaEntera(valor: string | number | null | undefined): string {
+export function formatearMonedaEntera(valor: string | number | null | undefined, moneda: Moneda = "NIO"): string {
   if (valor === null || valor === undefined || valor === "") return "";
   const numero = formatearDecimal(valor, 0);
   if (!numero) return "";
-  return conSimboloMoneda(numero);
+  return conSimboloMoneda(numero, moneda);
 }
 
 export function formatearPorcentaje(valor: string | number | null | undefined, decimales = 1): string {

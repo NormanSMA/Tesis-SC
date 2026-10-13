@@ -98,7 +98,10 @@ ALTER TABLE cotizacion
   DROP CONSTRAINT IF EXISTS cotizacion_numero_formato,
   ADD CONSTRAINT cotizacion_numero_formato CHECK (numero ~ '^COT-[0-9]{4}-[0-9]{4,}$'),
   DROP CONSTRAINT IF EXISTS cotizacion_moneda_formato,
-  ADD CONSTRAINT cotizacion_moneda_formato CHECK (moneda ~ '^[A-Z]{3}$'),
+  DROP CONSTRAINT IF EXISTS cotizacion_moneda_valida,
+  ADD CONSTRAINT cotizacion_moneda_valida CHECK (moneda IN ('NIO', 'USD')),
+  DROP CONSTRAINT IF EXISTS cotizacion_tipo_cambio_valido,
+  ADD CONSTRAINT cotizacion_tipo_cambio_valido CHECK (tipo_cambio > 0 AND (moneda <> 'NIO' OR tipo_cambio = 1)),
   DROP CONSTRAINT IF EXISTS cotizacion_porcentajes,
   ADD CONSTRAINT cotizacion_porcentajes CHECK (
     tasa_impuesto BETWEEN 0 AND 100

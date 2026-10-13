@@ -36,6 +36,8 @@ export default async function PaginaInventario({ searchParams }: { searchParams:
   const parametros = await searchParams;
   const seleccion = parametros.pestana === "movimientos" ? "movimientos" : "materiales";
   return <><PageHeader titulo="Inventario" descripcion="Consulte materiales, existencias y movimientos." acciones={<>
+    {seleccion === "materiales" && can(actor, "material:gestionar") ? <Button asChild variant="outline">
+      <Link href="/importar?tipo=materiales">Importar CSV</Link></Button> : null}
     {can(actor, "material:gestionar") ? <Button asChild><Link href="/inventario/nuevo">Nuevo material</Link></Button> : null}
     {can(actor, "inventario:entrada") ? <Button asChild variant="outline"><Link href="/inventario/entrada">Registrar entrada</Link></Button> : null}
     {can(actor, "inventario:ajustar") ? <Button asChild variant="outline"><Link href="/inventario/ajuste">Ajustar</Link></Button> : null}</>} />

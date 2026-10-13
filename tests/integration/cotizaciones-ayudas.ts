@@ -128,10 +128,10 @@ export function entradaExistente(item: ItemDto): EntradaItem {
   };
 }
 
-export async function crearBorrador(entorno: EntornoCotizaciones, opciones: { asunto?: string; items?: EntradaItem[] } = {}) {
+export async function crearBorrador(entorno: EntornoCotizaciones, opciones: { asunto?: string; items?: EntradaItem[]; moneda?: "NIO" | "USD" } = {}) {
   const { servicio } = entorno.modulos;
   const cotizacion = await servicio.crearCotizacion({
-    clienteId: entorno.referencias.cliente.id, asunto: opciones.asunto ?? nombreUnico(),
+    clienteId: entorno.referencias.cliente.id, asunto: opciones.asunto ?? nombreUnico(), moneda: opciones.moneda,
   }, entorno.ventas.actor);
   if (!opciones.items) return cotizacion;
   return servicio.reemplazarItems(cotizacion.id, { version: cotizacion.actualizadoEn, items: opciones.items }, entorno.ventas.actor);

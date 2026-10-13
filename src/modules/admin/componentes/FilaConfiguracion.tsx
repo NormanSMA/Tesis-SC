@@ -59,6 +59,7 @@ function useParametro(inicial: ParametroDto) {
 const ETIQUETAS: Record<string, string> = {
   iva_porcentaje: "IVA (%)", cotizacion_vigencia_dias: "Vigencia de cotización (días)",
   cotizacion_condiciones: "Condiciones de cotización", moneda: "Moneda",
+  tipo_cambio_usd: "Tipo de cambio USD (córdobas por dólar)",
   empresa_nombre: "Nombre de empresa", zona_horaria: "Zona horaria",
 };
 

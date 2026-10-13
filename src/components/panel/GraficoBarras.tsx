@@ -33,7 +33,7 @@ export function GraficoBarras({ grafico }: { grafico: GraficoPanel }) {
               <div key={`${etiqueta}-${indice}`} aria-hidden="true" className="flex h-full min-w-0 flex-col items-center justify-end gap-2">
                 <div className="flex w-full min-h-0 flex-1 items-end justify-center">
                   <div
-                    className={`barra-crece relative w-full max-w-16 rounded-t-xl rounded-b-md border ${destacado ? "border-primary bg-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-slate-500 bg-slate-400"}`}
+                    className={`barra-crece relative w-full max-w-16 rounded-t-xl rounded-b-md border ${destacado ? "border-primary bg-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-[var(--chart-series-border)] bg-[var(--chart-series)]"}`}
                     style={{ height: `${maximo > 0 ? Math.max(0, valor) / maximo * 80 : 0}%` }}
                   >
                     <span className={`absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-center text-[11px] font-semibold tabular-nums sm:text-xs ${destacado ? "text-primary underline underline-offset-2" : "text-muted-foreground"}`}>

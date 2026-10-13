@@ -1,4 +1,4 @@
-# SC Plataforma: guía para agentes
+# TRACORE (repositorio sc-plataforma): guía para agentes
 
 Piloto de la tesis PCE de Norman Smith Martínez Acevedo y Jorge Alí Rodríguez (UAM).
 Caso de estudio: Soluciones Creativas, Estelí.

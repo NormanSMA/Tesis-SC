@@ -9,7 +9,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         neutro: "border-border bg-secondary text-neutral-strong",
-        neutroFuerte: "border-neutral-strong bg-neutral-strong text-white",
+        neutroFuerte: "border-neutral-strong bg-neutral-strong text-neutral-strong-foreground",
         acento: "border-primary-soft-border bg-primary-soft text-primary",
         info: "border-info-soft-border bg-info-soft text-info",
         exito: "border-success-soft-border bg-success-soft text-success",

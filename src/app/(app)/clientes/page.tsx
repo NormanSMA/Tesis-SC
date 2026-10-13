@@ -33,12 +33,15 @@ export default async function PaginaClientes({ searchParams }: PropiedadesPagina
         descripcion="Personas y empresas que solicitan trabajos."
         acciones={
           puedeGestionar ? (
+            <>
+            <Button asChild variant="outline"><Link href="/importar?tipo=clientes">Importar CSV</Link></Button>
             <Button asChild>
               <Link href="/clientes/nuevo">
                 <Plus aria-hidden="true" />
                 Nuevo cliente
               </Link>
             </Button>
+            </>
           ) : null
         }
       />

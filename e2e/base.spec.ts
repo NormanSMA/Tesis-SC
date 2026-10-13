@@ -84,7 +84,7 @@ test.describe("login - pantalla dividida", () => {
       page.getByRole("heading", { name: "Cotice, produzca y controle en un solo lugar" }),
     ).toBeVisible();
 
-    const logos = page.getByRole("img", { name: "Soluciones Creativas" });
+    const logos = page.getByRole("img", { name: "TRACORE" });
     await expect(logos).toHaveCount(1);
     await expect(logos).toBeVisible();
   });
@@ -98,7 +98,7 @@ test.describe("login - pantalla dividida", () => {
       page.getByRole("heading", { name: "Cotice, produzca y controle en un solo lugar" }),
     ).toBeHidden();
 
-    const logos = page.getByRole("img", { name: "Soluciones Creativas" });
+    const logos = page.getByRole("img", { name: "TRACORE" });
     await expect(logos).toHaveCount(1);
     await expect(logos).toBeVisible();
     await sinDesbordeHorizontal(page);

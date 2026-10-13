@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TipoLineaCosto } from "@/core/costeo";
+import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
 import type { ItemCalculado } from "../calculo";
 import type { EntradaItem, EntradaLineaEditor } from "../schema";
@@ -18,7 +19,7 @@ import { GrupoCampo } from "./GrupoCampo";
 
 export type ItemEditor = EntradaItem & { claveLocal?: string };
 
-export type PropiedadesItem = { item: ItemEditor; indice: number; original?: ItemDto; selectores: SelectoresEditor;
+export type PropiedadesItem = { moneda: Moneda; item: ItemEditor; indice: number; original?: ItemDto; selectores: SelectoresEditor;
   calculado: ItemCalculado | null; errores: CamposError; alCambiar: (item: ItemEditor) => void; alQuitar: () => void };
 
 function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
@@ -28,7 +29,7 @@ function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
   return { tipo, descripcion: "Servicio de tercero", unidad: "servicio", costo: "0" };
 }
 
-function CamposCatalogo({ item, indice, original, selectores, errores, alCambiar }: PropiedadesItem) {
+function CamposCatalogo({ moneda, item, indice, original, selectores, errores, alCambiar }: PropiedadesItem) {
   if (item.tipo !== "CATALOGO") return null;
   const conservar = Boolean(original && !item.actualizarPrecio);
   const producto = selectores.productos.find((registro) => registro.id === item.productoId);
@@ -42,7 +43,7 @@ function CamposCatalogo({ item, indice, original, selectores, errores, alCambiar
     <CampoSeleccion id={`items.${indice}.productoId`} etiqueta="Producto" valor={item.productoId} requerido opciones={opciones}
       deshabilitado={conservar} error={errores[`items.${indice}.productoId`]}
       alCambiar={(productoId) => alCambiar({ ...item, productoId })} />
-    <p className="text-sm text-muted-foreground">Cobro: {unidad === "M2" ? "m²" : "unidad"}. Precio: <Money valor={precio} />.</p>
+    <p className="text-sm text-muted-foreground">Cobro: {unidad === "M2" ? "m²" : "unidad"}. Precio: <Money valor={precio} moneda={moneda} />.</p>
     {conservar ? <p className="text-sm">Conserve {original?.descripcion} con su precio guardado.</p> : null}
     {original?.productoActivo === false ? <p role="status" className="text-sm">El producto está archivado. Puede conservar su instantánea.</p> : null}
     {unidad === "M2" ? <MedidasItem item={item} indice={indice} errores={errores} alCambiar={alCambiar} /> : null}
@@ -82,7 +83,7 @@ function CamposPersonalizado({ item, indice, original, selectores, errores, alCa
   </>;
 }
 
-function LineasItem({ item, indice, original, selectores, calculado, errores, alCambiar }: PropiedadesItem) {
+function LineasItem({ moneda, item, indice, original, selectores, calculado, errores, alCambiar }: PropiedadesItem) {
   if (item.tipo !== "PERSONALIZADO") return null;
   const bloqueada = Boolean(original && !item.actualizarPrecio);
   const lineas = calculado?.tipo === "PERSONALIZADO" ? calculado.lineas : [];
@@ -94,7 +95,7 @@ function LineasItem({ item, indice, original, selectores, calculado, errores, al
     <GrupoCampo id={`items.${indice}.lineas`} etiqueta="Consumos del ítem" className="space-y-4"
       error={errores[`items.${indice}.lineas`]}>
       {item.lineas.map((linea, posicion) => <EditorLinea key={linea.lineaId ?? posicion}
-        linea={linea} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
+        moneda={moneda} linea={linea} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
         errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
         alCambiar={(entrada) => cambiarLinea(posicion, entrada)}
         alQuitar={() => alCambiar({ ...item, lineas: item.lineas.filter((_, actual) => actual !== posicion) })} />)}
@@ -126,7 +127,7 @@ function ActualizarInstantanea({ item, indice, original, alCambiar }: Propiedade
 }
 
 export function EditorItem(propiedades: PropiedadesItem) {
-  const { item, indice, calculado, errores, alCambiar, alQuitar } = propiedades;
+  const { moneda, item, indice, calculado, errores, alCambiar, alQuitar } = propiedades;
   return <Card className="px-5"><div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-xl font-semibold">Ítem {indice + 1}: {item.tipo === "CATALOGO" ? "Catálogo" : "Personalizado"}</h2>
@@ -138,9 +139,9 @@ export function EditorItem(propiedades: PropiedadesItem) {
       error={errores[`items.${indice}.cantidad`]} alCambiar={(cantidad) => alCambiar({ ...item, cantidad })} />
     <LineasItem {...propiedades} />
     <dl className="flex flex-wrap gap-x-8 gap-y-3 border-t pt-4 text-sm">
-      <div><dt>Precio unitario</dt><dd><Money valor={calculado?.precioUnitario} /></dd></div>
-      {item.tipo === "PERSONALIZADO" ? <div><dt>Costo total</dt><dd><Money valor={calculado?.costoTotal} /></dd></div> : null}
-      <div><dt>Importe del ítem</dt><dd className="font-semibold"><Money valor={calculado?.importe} /></dd></div>
+      <div><dt>Precio unitario</dt><dd><Money valor={calculado?.precioUnitario} moneda={moneda} /></dd></div>
+      {item.tipo === "PERSONALIZADO" ? <div><dt>Costo total</dt><dd><Money valor={calculado?.costoTotal} moneda={moneda} /></dd></div> : null}
+      <div><dt>Importe del ítem</dt><dd className="font-semibold"><Money valor={calculado?.importe} moneda={moneda} /></dd></div>
     </dl>
   </div></Card>;
 }

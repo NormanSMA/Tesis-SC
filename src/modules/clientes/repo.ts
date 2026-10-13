@@ -95,7 +95,7 @@ export async function cotizacionesDeCliente(clienteId: string) {
       where: { clienteId },
       orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
       take: LIMITE_HISTORIAL,
-      select: { id: true, numero: true, asunto: true, estado: true, total: true, fechaEmision: true, creadoEn: true },
+      select: { id: true, numero: true, asunto: true, estado: true, total: true, moneda: true, fechaEmision: true, creadoEn: true },
     }),
     prisma.cotizacion.count({ where: { clienteId } }),
   ]);
@@ -116,13 +116,12 @@ export async function ordenesDeCliente(clienteId: string) {
   return { filas, total };
 }
 
+/** Cotizaciones por estado; el importe se expresa en córdobas equivalentes (total por tipo de cambio de cada cotización). */
 export function agregadoCotizaciones(clienteId: string) {
-  return prisma.cotizacion.groupBy({
-    by: ["estado"],
-    where: { clienteId },
-    _count: { _all: true },
-    _sum: { total: true },
-  });
+  return prisma.$queryRaw<{ estado: string; cantidad: number; importe: string }[]>`
+    SELECT estado::text AS estado, count(*)::int AS cantidad,
+      coalesce(sum(round(total * tipo_cambio, 2)), 0)::text AS importe
+    FROM cotizacion WHERE cliente_id = ${clienteId}::uuid GROUP BY estado`;
 }
 
 export function eventosDeCliente(clienteId: string) {

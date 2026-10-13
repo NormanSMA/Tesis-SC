@@ -123,10 +123,10 @@ describeConBase("cambio obligatorio de clave temporal", () => {
     expect((await yo(otra.cookie)).status).toBe(401);
     expect((await yo(ajena.cookie)).status).toBe(200);
     expect((await (await yo(actual.cookie)).json()).datos.usuario.debeCambiarClave).toBe(false);
-    const eventos = await db.bitacora.findMany({ where: { entidad: "USUARIO", entidadId: usuario.id, accion: "EDITAR" } });
+    const eventos = await db.bitacora.findMany({ where: { entidad: "USUARIO", entidadId: usuario.id, accion: "CAMBIAR_CLAVE" } });
     expect(eventos).toHaveLength(1);
     expect(eventos[0].usuarioId).toBe(usuario.id);
-    expect(eventos[0].detalle).toEqual({ operacion: "CAMBIAR_CLAVE", sesionesRevocadas: true });
+    expect(eventos[0].detalle).toEqual({ ip: "local", sesionesRevocadas: true });
     for (const secreto of [CLAVE_PRUEBA, CLAVE_NUEVA, usuario.hashContrasena, guardado.hashContrasena]) {
       expect(JSON.stringify(eventos)).not.toContain(secreto);
     }
@@ -139,24 +139,26 @@ describeConBase("cambio obligatorio de clave temporal", () => {
     const actual = await iniciarSesionPrueba(auth, usuario.correo);
     const otra = await iniciarSesionPrueba(auth, usuario.correo);
     const antes = await db.usuario.findUniqueOrThrow({ where: { id: usuario.id } });
+    const eventosAntes = await db.bitacora.count({ where: { entidadId: usuario.id } });
     const respuesta = await cambiar(actual.cookie, "Clave-incorrecta-123");
     expect(respuesta.status).toBe(401);
     expect((await respuesta.json()).error.codigo).toBe("CREDENCIALES_INVALIDAS");
     expect(await db.usuario.findUniqueOrThrow({ where: { id: usuario.id } })).toEqual(antes);
     expect(await db.sesion.count({ where: { usuarioId: usuario.id, revocadaEn: null } })).toBe(2);
     expect((await yo(otra.cookie)).status).toBe(200);
-    expect(await db.bitacora.count({ where: { entidadId: usuario.id } })).toBe(0);
+    expect(await db.bitacora.count({ where: { entidadId: usuario.id } })).toBe(eventosAntes);
   });
 
   it.each(["corta", CLAVE_PRUEBA])("rechaza una clave débil o repetida: %s", async (claveNueva) => {
     const usuario = await temporal();
     const { cookie } = await iniciarSesionPrueba(auth, usuario.correo);
     const antes = await db.usuario.findUniqueOrThrow({ where: { id: usuario.id } });
+    const eventosAntes = await db.bitacora.count({ where: { entidadId: usuario.id } });
     const respuesta = await cambiar(cookie, CLAVE_PRUEBA, claveNueva);
     expect(respuesta.status).toBe(422);
     expect((await respuesta.json()).error.campos.claveNueva).toBeDefined();
     expect(await db.usuario.findUniqueOrThrow({ where: { id: usuario.id } })).toEqual(antes);
-    expect(await db.bitacora.count({ where: { entidadId: usuario.id } })).toBe(0);
+    expect(await db.bitacora.count({ where: { entidadId: usuario.id } })).toBe(eventosAntes);
   });
 
   it("exige sesión para cambiar la clave", async () => {

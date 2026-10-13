@@ -22,7 +22,7 @@ describeConBase("cotizaciones: lecturas de costeo por lotes", () => {
         vi.spyOn(tx.categoria, "findMany"), vi.spyOn(tx.categoria, "findUnique"),
       ];
       try {
-        const costeados = await costearItems(tx, { items, anteriores: [] });
+        const costeados = await costearItems(tx, { items, anteriores: [], tipoCambio: "1" });
         return { costeados, lecturas: espias.map((espia) => espia.mock.calls.length),
           filtros: espias.map((espia) => espia.mock.calls.map(([consulta]) => consulta?.where)) };
       } finally { espias.forEach((espia) => espia.mockRestore()); }

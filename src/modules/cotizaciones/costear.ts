@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { costearItemCatalogo, costearItemPersonalizado, validarItemCatalogo } from "@/core/costeo";
+import { convertirDesdeCordobas } from "@/core/moneda";
 import type { Tx } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 
@@ -21,7 +22,7 @@ export type ItemCalculado = {
   costoTotal: string | null; margenPct: string | null; importe: string; lineas: LineaCalculada[];
 };
 type ReferenciasCosteo = Awaited<ReturnType<typeof cargarReferencias>>;
-type ContextoItem = { referencias: ReferenciasCosteo; entrada: EntradaItem; anterior?: ItemGuardado; secuencia: number; duplicando?: boolean };
+type ContextoItem = { referencias: ReferenciasCosteo; entrada: EntradaItem; anterior?: ItemGuardado; secuencia: number; tipoCambio: string; duplicando?: boolean };
 
 async function cargarReferencias(tx: Tx, items: EntradaItem[], anteriores: Map<string, ItemGuardado>) {
   const productoIds = new Set<string>();
@@ -51,7 +52,7 @@ async function cargarReferencias(tx: Tx, items: EntradaItem[], anteriores: Map<s
   };
 }
 
-async function precioCatalogo({ referencias, entrada, anterior }: ContextoItem) {
+async function precioCatalogo({ referencias, entrada, anterior, tipoCambio }: ContextoItem) {
   if (entrada.tipo !== "CATALOGO") throw regla("ITEM_INVALIDO", "Seleccione un producto de catálogo.");
   if (anterior && anterior.productoId !== entrada.productoId) {
     throw regla("ITEM_IDENTIDAD", "Quite el ítem y agregue otro para cambiar su producto.");
@@ -63,7 +64,8 @@ async function precioCatalogo({ referencias, entrada, anterior }: ContextoItem) 
   const producto = referencias.productos.get(entrada.productoId);
   if (!producto?.activo) throw regla("PRODUCTO_ARCHIVADO", "Seleccione un producto activo.");
   return { productoId: producto.id, categoriaId: producto.categoriaId, descripcion: producto.nombre,
-    unidadCobro: producto.unidadCobro, precioBase: producto.precioBase.toFixed(2) };
+    unidadCobro: producto.unidadCobro,
+    precioBase: convertirDesdeCordobas(producto.precioBase.toFixed(2), tipoCambio, 2) };
 }
 
 async function catalogo(contexto: ContextoItem): Promise<ItemCalculado> {
@@ -74,8 +76,8 @@ async function catalogo(contexto: ContextoItem): Promise<ItemCalculado> {
     productoId: producto.productoId, categoriaId: producto.categoriaId, descripcion: producto.descripcion, lineas: [] };
 }
 
-type ContextoLinea = { referencias: ReferenciasCosteo; linea: EntradaLineaEditor; anterior?: ItemGuardado; duplicando?: boolean };
-async function prepararLinea({ referencias, linea, anterior, duplicando }: ContextoLinea): Promise<EntradaLineaEditor> {
+type ContextoLinea = { referencias: ReferenciasCosteo; linea: EntradaLineaEditor; anterior?: ItemGuardado; tipoCambio: string; duplicando?: boolean };
+async function prepararLinea({ referencias, linea, anterior, tipoCambio, duplicando }: ContextoLinea): Promise<EntradaLineaEditor> {
   const guardada = anterior?.lineasCosto.find(({ id }) => id === linea.lineaId);
   if (linea.lineaId && !guardada) throw regla("LINEA_AJENA", "La línea no pertenece al ítem.");
   if (linea.tipo !== "MATERIAL" || !linea.materialId) return linea;
@@ -83,8 +85,10 @@ async function prepararLinea({ referencias, linea, anterior, duplicando }: Conte
   const material = referencias.materiales.get(linea.materialId);
   if (!material || (!material.activo && !existente)) throw regla("MATERIAL_ARCHIVADO", "Seleccione un material activo.");
   // Con material registrado el costo lo fija el servidor: el guardado si la línea ya existe, o el promedio vigente.
+  // El promedio está en córdobas: se convierte solo al tomarlo, nunca el costo ya guardado.
   // El costo libre solo existe en líneas sin material (compras especiales).
-  const costoUnitario = existente ? guardada!.costoUnitario.toFixed(4) : material.costoPromedio.toFixed(4);
+  const costoUnitario = existente ? guardada!.costoUnitario.toFixed(4)
+    : convertirDesdeCordobas(material.costoPromedio.toFixed(4), tipoCambio, 4);
   return { ...linea, lineaId: duplicando ? undefined : linea.lineaId, costoUnitario };
 }
 
@@ -96,12 +100,12 @@ async function exigirCategoria(contexto: ContextoItem): Promise<void> {
 }
 
 async function lineasPersonalizadas(contexto: ContextoItem): Promise<EntradaLineaEditor[]> {
-  const { entrada, anterior, referencias, duplicando } = contexto;
+  const { entrada, anterior, referencias, tipoCambio, duplicando } = contexto;
   if (entrada.tipo !== "PERSONALIZADO") return [];
   if (anterior && !entrada.actualizarPrecio) return anterior.lineasCosto.map((linea) => aEntradaLinea(aLineaDto(linea)));
   const lineas: EntradaLineaEditor[] = [];
   for (const [indice, linea] of entrada.lineas.entries()) {
-    try { lineas.push(await prepararLinea({ referencias, linea, anterior, duplicando })); }
+    try { lineas.push(await prepararLinea({ referencias, linea, anterior, tipoCambio, duplicando })); }
     catch (error) { prefijarError(error, `lineas.${indice}.`); }
   }
   return lineas;
@@ -127,7 +131,7 @@ async function personalizado(contexto: ContextoItem): Promise<ItemCalculado> {
       materialId: lineas[indice].tipo === "MATERIAL" ? lineas[indice].materialId ?? null : null })) };
 }
 
-export async function costearItems(tx: Tx, peticion: { items: EntradaItem[]; anteriores: ItemGuardado[]; duplicando?: boolean }) {
+export async function costearItems(tx: Tx, peticion: { items: EntradaItem[]; anteriores: ItemGuardado[]; tipoCambio: string; duplicando?: boolean }) {
   const anteriores = new Map(peticion.anteriores.map((item) => [item.id, item]));
   const referencias = await cargarReferencias(tx, peticion.items, anteriores);
   const costeados: ItemCalculado[] = [];
@@ -137,7 +141,7 @@ export async function costearItems(tx: Tx, peticion: { items: EntradaItem[]; ant
     if (entrada.itemId && (!anterior || usados.has(entrada.itemId))) throw regla("ITEM_AJENO", "El ítem no pertenece a la cotización o está repetido.");
     if (entrada.itemId) usados.add(entrada.itemId);
     if (anterior && anterior.tipo !== entrada.tipo) throw regla("ITEM_IDENTIDAD", "Quite el ítem y agregue otro para cambiar su tipo.");
-    const contexto = { referencias, entrada, anterior, secuencia: indice + 1, duplicando: peticion.duplicando };
+    const contexto = { referencias, entrada, anterior, secuencia: indice + 1, tipoCambio: peticion.tipoCambio, duplicando: peticion.duplicando };
     try { costeados.push(await (entrada.tipo === "CATALOGO" ? catalogo(contexto) : personalizado(contexto))); }
     catch (error) { prefijarError(error, `items.${indice}.`); }
   }

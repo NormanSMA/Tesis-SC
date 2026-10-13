@@ -18,7 +18,7 @@ export type ClienteCotizacion = {
 };
 export type CotizacionDto = TotalesCotizacion & {
   id: string; numero: string; clienteId: string; cliente: ClienteCotizacion; estado: EstadoCotizacion;
-  asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string;
+  asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string; tipoCambio: string;
   vigenciaDias: number; fechaEmision: string | null; fechaVencimiento: string | null;
   fechaRespuesta: string | null; motivoRechazo: string | null; archivada: boolean;
   version: number; motivoAjuste: string | null; referenciaAprobacion: string | null;

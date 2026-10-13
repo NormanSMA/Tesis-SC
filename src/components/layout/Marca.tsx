@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { NOMBRE_EMPRESA, NOMBRE_PLATAFORMA } from "@/core/marca";
 import { cn } from "@/lib/utils";
 
 export function Isotipo({ className }: { className?: string }) {
@@ -27,8 +28,8 @@ export function Marca({ mostrarNombre = true, grande = false, className }: Propi
       <Isotipo className={grande ? "h-14" : undefined} />
       {mostrarNombre ? (
         <span className="flex flex-col leading-tight">
-          <span className={cn("font-semibold text-foreground", grande ? "text-base" : "text-sm")}>Soluciones Creativas</span>
-          <span className="text-xs text-muted-foreground">Plataforma de gestión</span>
+          <span className={cn("font-semibold text-foreground", grande ? "text-base" : "text-sm")}>{NOMBRE_PLATAFORMA}</span>
+          <span className="text-xs text-muted-foreground">{NOMBRE_EMPRESA}</span>
         </span>
       ) : null}
     </span>

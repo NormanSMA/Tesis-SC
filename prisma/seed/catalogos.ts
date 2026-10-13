@@ -14,12 +14,13 @@ const CONFIGURACION = [
   { clave: "iva_porcentaje", tipo: "DECIMAL", valor: TASA_IVA_PCT, descripcion: "IVA vigente en porcentaje" },
   { clave: "cotizacion_vigencia_dias", tipo: "ENTERO", valor: "15", descripcion: "Días de vigencia de una cotización" },
   { clave: "moneda", tipo: "TEXTO", valor: MONEDA, descripcion: "Moneda de los documentos (ISO 4217)" },
+  { clave: "tipo_cambio_usd", tipo: "DECIMAL", valor: "36.6243", descripcion: "Córdobas por 1 USD para cotizaciones en dólares" },
   { clave: "empresa_nombre", tipo: "TEXTO", valor: "Soluciones Creativas", descripcion: "Nombre impreso en las proformas" },
   { clave: "zona_horaria", tipo: "TEXTO", valor: "America/Managua", descripcion: "Zona horaria de las fechas de calendario" },
 ] as const;
 
 export async function sembrarConfiguracion(db: Tx): Promise<void> {
-  await db.configuracion.createMany({ data: CONFIGURACION.map((fila) => ({ ...fila })) });
+  await db.configuracion.createMany({ data: CONFIGURACION.map((fila) => ({ ...fila })), skipDuplicates: true });
 }
 
 export type OpcionesCatalogos = {

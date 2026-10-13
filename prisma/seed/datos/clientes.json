@@ -110,54 +110,6 @@
     "notas": "Señalética hotel, rótulos, placas"
   },
   {
-    "nombre": "Juan Pérez García",
-    "tipo": "PERSONA",
-    "contactoPrincipal": "Juan Pérez",
-    "telefono": "+505 8723-4567",
-    "correo": "juan.perez@example.com",
-    "direccion": "De la Catedral 2 c. al oeste, Estelí",
-    "notas": "Cotizaciones personales ocasionales"
-  },
-  {
-    "nombre": "María López Morales",
-    "tipo": "PERSONA",
-    "contactoPrincipal": "María López",
-    "telefono": "+505 8745-1234",
-    "correo": "maria.lopez@example.com",
-    "direccion": "Costado oeste de la Panamericana, 3 c. arriba, Estelí",
-    "notas": "Piezas de arte personalizadas"
-  },
-  {
-    "nombre": "Escuela Técnica Vocacional",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000134",
-    "contactoPrincipal": "Director",
-    "telefono": "+505 8712-5678",
-    "correo": "director@etv.test",
-    "direccion": "Frente al mercado, 4 c. al sur, Estelí",
-    "notas": "Materiales educativos, certificados"
-  },
-  {
-    "nombre": "Tienda de Ropa Elegancia",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000135",
-    "contactoPrincipal": "Directora",
-    "telefono": "+505 8756-9012",
-    "correo": "info@elegancia.test",
-    "direccion": "Contiguo a la gasolinera, 5 c. al este, Estelí",
-    "notas": "Bolsas, etiquetas, rótulos tienda"
-  },
-  {
-    "nombre": "Taller de Carpintería Maestro",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000136",
-    "contactoPrincipal": "Maestro Pérez",
-    "telefono": "+505 8723-7890",
-    "correo": "maestro@carpinteria.test",
-    "direccion": "Del Banpro 1 c. al oeste, Estelí",
-    "notas": "Rótulo taller, señalética"
-  },
-  {
     "nombre": "Óptica Visión 20/20",
     "tipo": "EMPRESA",
     "ruc": "J0310000000137",
@@ -178,26 +130,6 @@
     "notas": "Rótulos, tarjetas, uniforme estampado"
   },
   {
-    "nombre": "Deportes Extremo",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000139",
-    "contactoPrincipal": "Gerente Tienda",
-    "telefono": "+505 8756-4567",
-    "correo": "gerente@extremo.test",
-    "direccion": "De la Catedral 4 c. al este, Estelí",
-    "notas": "Ropa deportiva personalizada, mochilas"
-  },
-  {
-    "nombre": "Cafetería Aroma",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000140",
-    "contactoPrincipal": "Propietario",
-    "telefono": "+505 8723-9876",
-    "correo": "aroma@cafe.test",
-    "direccion": "De la Catedral 5 c. al oeste, Estelí",
-    "notas": "Menú impresos, rotulación interior"
-  },
-  {
     "nombre": "Policlínica San Carlos",
     "tipo": "EMPRESA",
     "ruc": "J0310000000141",
@@ -206,25 +138,6 @@
     "correo": "admin@sancarlos.test",
     "direccion": "Costado oeste de la Panamericana, 1 c. arriba, Estelí",
     "notas": "Señalética clínica, cartelería médica"
-  },
-  {
-    "nombre": "Agencia Publicidad Sierra",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000142",
-    "contactoPrincipal": "Director Creativo",
-    "telefono": "+505 8734-7890",
-    "correo": "creativo@sierra.test",
-    "direccion": "Frente al mercado, 2 c. al sur, Estelí",
-    "notas": "Cliente referenciador, comisiones"
-  },
-  {
-    "nombre": "Carlos Mendoza Reyes",
-    "tipo": "PERSONA",
-    "contactoPrincipal": "Carlos Mendoza",
-    "telefono": "+505 8723-2345",
-    "correo": "carlos.mendoza@example.com",
-    "direccion": "Contiguo a la gasolinera, 3 c. al este, Estelí",
-    "notas": "Proyectos personales diversos"
   },
   {
     "nombre": "Supermercado La Frontera",
@@ -237,43 +150,30 @@
     "notas": "Rótulos, vitrinas, cartelería promocional"
   },
   {
-    "nombre": "Consultorio Veterinario Mascotas Felices",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000144",
-    "contactoPrincipal": "Dr. Fernando",
-    "telefono": "+505 8745-8901",
-    "correo": "fernando@mascotasfelices.test",
-    "direccion": "Del parque central 5 c. al norte, Estelí",
-    "notas": "Rótulo clínica, tarjetas profesionales"
-  },
-  {
-    "nombre": "Academia de Danza Ritmo",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000145",
-    "contactoPrincipal": "Directora",
-    "telefono": "+505 8723-6789",
-    "correo": "directora@ritmo.test",
-    "direccion": "Del parque central 1 c. al sur, Estelí",
-    "notas": "Camisetas grupo, banners eventos"
-  },
-  {
-    "nombre": "Taller Textil Fiesta",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000146",
-    "contactoPrincipal": "Rocío Jiménez",
-    "telefono": "+505 8734-5612",
-    "correo": "rocio@fiesta.test",
-    "direccion": "De la Catedral 2 c. al este, Estelí",
-    "notas": "Personalización de textiles y uniformes"
-  },
-  {
-    "nombre": "Librería El Conocimiento",
-    "tipo": "EMPRESA",
-    "ruc": "J0310000000147",
-    "contactoPrincipal": "Luis Mendoza",
+    "nombre": "Juan Pérez García",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "Juan Pérez",
     "telefono": "+505 8723-4567",
-    "correo": "luis@conocimiento.test",
-    "direccion": "De la Catedral 3 c. al oeste, Estelí",
-    "notas": "Impresión de libros y material educativo"
+    "correo": "juan.perez@example.com",
+    "direccion": "De la Catedral 2 c. al oeste, Estelí",
+    "notas": "Cotizaciones personales ocasionales"
+  },
+  {
+    "nombre": "María López Morales",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "María López",
+    "telefono": "+505 8745-1234",
+    "correo": "maria.lopez@example.com",
+    "direccion": "Costado oeste de la Panamericana, 3 c. arriba, Estelí",
+    "notas": "Piezas de arte personalizadas"
+  },
+  {
+    "nombre": "Carlos Mendoza Reyes",
+    "tipo": "PERSONA",
+    "contactoPrincipal": "Carlos Mendoza",
+    "telefono": "+505 8723-2345",
+    "correo": "carlos.mendoza@example.com",
+    "direccion": "Contiguo a la gasolinera, 3 c. al este, Estelí",
+    "notas": "Proyectos personales diversos"
   }
 ]

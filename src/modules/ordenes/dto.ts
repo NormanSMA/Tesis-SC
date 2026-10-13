@@ -66,7 +66,7 @@ export function aOrdenDto(ficha: FichaGuardada, actor: Actor): OrdenDto {
   return { ...base, especificaciones: ficha.especificaciones, motivoCancelacion: ficha.motivoCancelacion,
     fechaInicioReal: ficha.fechaInicioReal?.toISOString() ?? null, fechaEntregaReal: ficha.fechaEntregaReal?.toISOString() ?? null,
     fechaCierre: ficha.fechaCierre?.toISOString() ?? null,
-    cotizacion: verDinero ? { ...base.cotizacion, moneda: cotizacion.moneda, subtotal: cotizacion.subtotal.toFixed(2),
+    cotizacion: verDinero ? { ...base.cotizacion, moneda: cotizacion.moneda, tipoCambio: cotizacion.tipoCambio.toFixed(4), subtotal: cotizacion.subtotal.toFixed(2),
       descuento: cotizacion.descuento.toFixed(2), tasaImpuesto: cotizacion.tasaImpuesto.toFixed(2),
       impuesto: cotizacion.impuesto.toFixed(2), total: cotizacion.total.toFixed(2), margenPct: cotizacion.margenPct?.toFixed(2) ?? null } : base.cotizacion,
     items: cotizacion.items.map((item) => itemDto(item, verDinero)), etapas: ficha.etapas.map(etapaDto),

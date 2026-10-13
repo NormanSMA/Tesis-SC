@@ -220,12 +220,12 @@ export async function obtenerCliente(id: string): Promise<ClienteDto> {
 async function seccionResumen(clienteId: string): Promise<ResumenCotizaciones> {
   const grupos = await agregadoCotizaciones(clienteId);
   const porEstado: Record<string, number> = Object.fromEntries(Object.values(EstadoCotizacion).map((e) => [e, 0]));
-  for (const grupo of grupos) porEstado[grupo.estado] = grupo._count._all;
+  for (const grupo of grupos) porEstado[grupo.estado] = grupo.cantidad;
   const aprobadas = grupos.find((grupo) => grupo.estado === "APROBADA");
   return {
-    cotizaciones: grupos.reduce((suma, grupo) => suma + grupo._count._all, 0),
+    cotizaciones: grupos.reduce((suma, grupo) => suma + grupo.cantidad, 0),
     porEstado,
-    totalAprobado: (aprobadas?._sum.total ?? 0).toFixed(2),
+    totalAprobado: Number(aprobadas?.importe ?? 0).toFixed(2),
   };
 }
 

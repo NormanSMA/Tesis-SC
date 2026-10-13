@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, formatearFecha, formatearFechaHora, formatearMoneda, formatearMonedaEntera, formatearPorcentaje, nombreUnidad } from "@/lib/formato";
 
 describe("formatearMoneda", () => {
+  it("selecciona el símbolo y conserva el espacio duro", () => {
+    expect(formatearMoneda("1234.5", "NIO")).toBe("C$\u00A01,234.50");
+    expect(formatearMoneda("1234.5", "USD")).toBe("US$\u00A01,234.50");
+    expect(formatearMoneda("-2.675", "USD")).toBe("-US$\u00A02.68");
+    expect(formatearMoneda("-0.001", "USD")).toBe("US$\u00A00.00");
+    expect(formatearMoneda(null, "USD")).toBe("");
+  });
+
   it("agrupa miles y fija dos decimales", () => {
     expect(formatearMoneda("1234.5")).toBe("C$\u00A01,234.50");
     expect(formatearMoneda("0")).toBe("C$\u00A00.00");
@@ -58,6 +66,13 @@ describe("formatearFecha", () => {
 });
 
 describe("formatos de reporte y panel", () => {
+  it("selecciona el símbolo para dinero sin decimales", () => {
+    expect(formatearMonedaEntera("1234.5", "NIO")).toBe("C$\u00A01,235");
+    expect(formatearMonedaEntera("1234.5", "USD")).toBe("US$\u00A01,235");
+    expect(formatearMonedaEntera("-1234.5", "USD")).toBe("-US$\u00A01,235");
+    expect(formatearMonedaEntera(null, "USD")).toBe("");
+  });
+
   it("muestra dinero sin decimales con redondeo exacto", () => {
     expect(formatearMonedaEntera("1174042.49")).toBe("C$\u00A01,174,042");
     expect(formatearMonedaEntera("1174042.50")).toBe("C$\u00A01,174,043");

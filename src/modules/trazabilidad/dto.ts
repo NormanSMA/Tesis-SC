@@ -47,7 +47,7 @@ export function aCadenaDto(orden: CadenaGuardada, actor: Actor, historial?: Hist
       fechaVencimiento: cotizacion.fechaVencimiento?.toISOString().slice(0, 10) ?? null,
       fechaRespuesta: cotizacion.fechaRespuesta?.toISOString() ?? null,
       href: can(actor, "cotizacion:ver") ? `/cotizaciones/${cotizacion.id}` : null,
-      ...(can(actor, "cotizacion:ver") ? { subtotal: cotizacion.subtotal.toFixed(2), descuento: cotizacion.descuento.toFixed(2),
+      ...(can(actor, "cotizacion:ver") ? { moneda: cotizacion.moneda, subtotal: cotizacion.subtotal.toFixed(2), descuento: cotizacion.descuento.toFixed(2),
         impuesto: cotizacion.impuesto.toFixed(2), total: cotizacion.total.toFixed(2) } : {}) },
     orden: { id: orden.id, numero: orden.numero, estado: textoEstado(orden.estado), responsable: orden.responsable,
       especificaciones: orden.especificaciones, fechaEntrega: orden.fechaEntrega.toISOString().slice(0, 10),

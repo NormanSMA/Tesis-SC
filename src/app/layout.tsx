@@ -2,15 +2,13 @@ import "@fontsource-variable/inter";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { METADATOS_APP } from "@/core/marca";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: "Soluciones Creativas | Plataforma de gestión", template: "%s | Soluciones Creativas" },
-  description: "Plataforma de gestión integrada de Soluciones Creativas.",
-};
+export const metadata: Metadata = METADATOS_APP;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

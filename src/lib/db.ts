@@ -1,4 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import { env } from "@/env";
 import { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 export type Tx = Prisma.TransactionClient;
@@ -18,6 +19,6 @@ export function crearCliente(connectionString: string | undefined): PrismaClient
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? crearCliente(process.env.DATABASE_URL);
+export const prisma = globalForPrisma.prisma ?? crearCliente(env.DATABASE_URL);
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

@@ -20,13 +20,13 @@ export function PanelInformativo() {
       </div>
       <div className="relative pt-16">
         <div className="mb-8 flex size-16 items-center justify-center rounded-2xl bg-card">
-          <Image src="/brand/isotipo.png" alt="Soluciones Creativas" width={544} height={512} className="h-10 w-auto" />
+          <Image src="/brand/isotipo.png" alt="TRACORE" width={544} height={512} className="h-10 w-auto" />
         </div>
         <h2 id="titulo-plataforma" className="text-4xl leading-tight font-semibold tracking-tight">
           Cotice, produzca y controle en un solo lugar
         </h2>
         <p className="mt-5 text-base leading-relaxed text-border">
-          Clientes, cotizaciones, órdenes de trabajo, inventario y trazabilidad de Soluciones Creativas conectados en una sola plataforma.
+          Clientes, cotizaciones, órdenes de trabajo, inventario y trazabilidad de Soluciones Creativas conectados en TRACORE.
         </p>
         <ul className="mt-8 space-y-4 text-sm leading-relaxed text-border">
           {beneficios.map(({ Icono, texto }) => (

@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 
+import { leerEntorno } from "@/env";
 import { exigir, type Actor } from "@/core/autorizacion";
 import type { Permiso } from "@/core/permisos";
 import { exigirClaveCambiada } from "@/lib/auth/guardia";
 import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
 import { AppError, aErrorHttp, type CamposError } from "@/lib/errores";
+import { ipCliente } from "@/lib/ip-cliente";
+import { limitarPorIp, limitarPorUsuario } from "@/lib/limite-tasa";
+import { registro } from "@/lib/registro";
 
 type Params = Record<string, string | string[] | undefined>;
 type Contexto<A> = { req: Request; actor: A; params: Params };
@@ -21,7 +25,7 @@ const METODOS_QUE_MODIFICAN = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 function origenPermitido(req: Request): boolean {
   if (!METODOS_QUE_MODIFICAN.has(req.method)) return true;
   const origen = req.headers.get("origin");
-  if (!origen) return process.env.NODE_ENV === "test";
+  if (!origen) return leerEntorno().NODE_ENV === "test";
   const host = req.headers.get("host") ?? new URL(req.url).host;
   try {
     return new URL(origen).host === host;
@@ -43,15 +47,20 @@ async function cargarActor(req: Request, permiso: Permiso | undefined): Promise<
 function responderError(e: unknown, req: Request): Response {
   const { status, cuerpo } = aErrorHttp(e);
   if (status >= 500) {
-    console.error({
+    registro.error({
       codigo: cuerpo.error.codigo,
       mensaje: cuerpo.error.mensaje,
       ruta: new URL(req.url).pathname,
       metodo: req.method,
       peticionId: randomUUID(),
+      err: new Error(cuerpo.error.mensaje),
     });
   }
-  return Response.json(cuerpo, { status });
+  const headers = new Headers();
+  if (e instanceof AppError && e.reintentarEnSegundos !== undefined) {
+    headers.set("Retry-After", String(e.reintentarEnSegundos));
+  }
+  return Response.json(cuerpo, { status, headers });
 }
 
 /**
@@ -75,8 +84,10 @@ export function manejar(
           status: 403,
         });
       }
-      const params = (await contexto?.params) ?? {};
+      if (opciones.publica) await limitarPorIp(ipCliente(req));
       const actor = opciones.publica ? null : await cargarActor(req, opciones.permiso);
+      if (actor) await limitarPorUsuario(actor.id, req.method);
+      const params = (await contexto?.params) ?? {};
       return await ejecutar({ req, actor, params });
     } catch (e) {
       return responderError(e, req);

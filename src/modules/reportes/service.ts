@@ -15,11 +15,11 @@ async function cotizaciones(consulta: ConsultaReporte, dinero: boolean) {
   const estados = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"];
   const filas = estados.map((estado) => {
     const grupo = grupos.find((fila) => fila.estado === estado);
-    return { estado: estado === "AJUSTE_SOLICITADO" ? "Ajustes solicitados" : textoEstado(estado)!, cantidad: grupo?._count._all ?? 0,
-      ...(dinero && { importe: grupo?._sum.total?.toFixed(2) ?? "0.00" }) };
+    return { estado: estado === "AJUSTE_SOLICITADO" ? "Ajustes solicitados" : textoEstado(estado)!, cantidad: grupo?.cantidad ?? 0,
+      ...(dinero && { importe: grupo?.importe ?? "0.00" }) };
   });
-  const aprobadas = grupos.find((fila) => fila.estado === "APROBADA")?._count._all ?? 0;
-  const rechazadas = grupos.find((fila) => fila.estado === "RECHAZADA")?._count._all ?? 0;
+  const aprobadas = grupos.find((fila) => fila.estado === "APROBADA")?.cantidad ?? 0;
+  const rechazadas = grupos.find((fila) => fila.estado === "RECHAZADA")?.cantidad ?? 0;
   return { filas, totales: { cantidad: filas.reduce((suma, fila) => suma + fila.cantidad, 0),
     tasaAprobacion: tasaAprobacion(aprobadas, rechazadas),
     ...(dinero && { importe: formatear(filas.reduce((suma, fila) => sumar(suma, leerDecimal(fila.importe!)!), CERO), 2) }) } };

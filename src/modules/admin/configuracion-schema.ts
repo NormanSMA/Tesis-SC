@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { CIEN, CERO, comparar, leerDecimal } from "@/core/decimal";
+import { CIEN, CERO, UNO, comparar, deEntero, leerDecimal } from "@/core/decimal";
+import { MONEDAS } from "@/core/moneda";
 import type { TipoValorConfig } from "@/generated/prisma/client";
 import { AppError } from "@/lib/errores";
 
@@ -18,6 +19,8 @@ const valoresPorTipo = {
   TEXTO: z.string(),
 };
 
+const TIPO_CAMBIO_MAXIMO = deEntero(1000);
+
 const valoresPorClave = new Map<string, z.ZodType<string, string>>([
   ["iva_porcentaje", valoresPorTipo.DECIMAL.pipe(z.string().refine((valor) => {
     const decimal = leerDecimal(valor);
@@ -28,7 +31,12 @@ const valoresPorClave = new Map<string, z.ZodType<string, string>>([
     const dias = BigInt(valor);
     return dias >= BigInt(1) && dias <= BigInt(365);
   }, "Indique una vigencia entre 1 y 365 días."))],
-  ["moneda", z.string().regex(/^[A-Z]{3}$/, "Indique tres letras mayúsculas.")],
+  ["tipo_cambio_usd", valoresPorTipo.DECIMAL.pipe(z.string().refine((valor) => {
+    const decimal = leerDecimal(valor);
+    return /^\d{1,6}(\.\d{1,4})?$/.test(valor) && decimal !== null &&
+      comparar(decimal, UNO) >= 0 && comparar(decimal, TIPO_CAMBIO_MAXIMO) <= 0;
+  }, "Indique un tipo de cambio entre 1 y 1000, con hasta 4 decimales."))],
+  ["moneda", z.enum(MONEDAS, { error: "Indique NIO o USD." })],
   ["empresa_nombre", z.string().trim().min(1, "Ingrese el nombre de empresa.").max(120)],
 ]);
 

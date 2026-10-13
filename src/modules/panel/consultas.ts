@@ -51,7 +51,7 @@ export async function consultarComercial(hoy: string): Promise<ComercialPanel> {
         OR c.fecha_vencimiento >= (SELECT mes FROM fechas) - interval '12 months'),
     meses AS (SELECT generate_series((SELECT mes FROM fechas) - interval '5 months',
       (SELECT mes FROM fechas), interval '1 month')::date AS mes),
-    resumen AS (SELECT m.mes::text, coalesce(sum(c.total) FILTER (WHERE estado = 'APROBADA'), 0)::text AS monto,
+    resumen AS (SELECT m.mes::text, coalesce(sum(round(c.total * c.tipo_cambio, 2)) FILTER (WHERE estado = 'APROBADA'), 0)::text AS monto,
       count(c.id) FILTER (WHERE estado = 'APROBADA')::int AS aprobadas,
       count(c.id) FILTER (WHERE estado IN ('APROBADA','RECHAZADA','AJUSTE_SOLICITADO','VENCIDA'))::int AS respondidas
       FROM meses m LEFT JOIN cotizaciones c ON c.respuesta >= m.mes AND c.respuesta < m.mes + interval '1 month'

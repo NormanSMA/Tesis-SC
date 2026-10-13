@@ -65,7 +65,7 @@ describe("mapeos del historial", () => {
     const fila = aCotizacionDeCliente({
       id: "c",
       numero: "COT-2026-0001",
-      asunto: null,
+      asunto: null, moneda: "NIO",
       estado: "ENVIADA",
       total,
       fechaEmision: new Date("2026-10-01T00:00:00.000Z"),
@@ -78,7 +78,7 @@ describe("mapeos del historial", () => {
     const fila = aCotizacionDeCliente({
       id: "c",
       numero: "COT-2026-0002",
-      asunto: "Rótulo",
+      asunto: "Rótulo", moneda: "NIO",
       estado: "BORRADOR",
       total,
       fechaEmision: null,
@@ -91,7 +91,7 @@ describe("mapeos del historial", () => {
     const fila = aCotizacionDeCliente({
       id: "c",
       numero: "COT-2026-0003",
-      asunto: null,
+      asunto: null, moneda: "NIO",
       estado: "BORRADOR",
       total,
       fechaEmision: new Date("2026-09-01T00:00:00.000Z"),

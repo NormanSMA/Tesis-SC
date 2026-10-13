@@ -1,3 +1,5 @@
+import "server-only";
+
 import { redirect } from "next/navigation";
 
 import { can } from "@/core/autorizacion";

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Prisma } from "../../src/generated/prisma/client";
-import { registrar } from "./bitacora";
+import { cotizacionPorEscenario, registrar } from "./bitacora";
 import { margenResultante, totalesCotizacion } from "./calculos";
 import { MONEDA, TASA_IVA_PCT } from "./catalogos";
 import type { Escenario } from "./datos/esquemas";
@@ -48,7 +48,7 @@ function exigirVigencia(escenario: Escenario): void {
   }
 }
 
-// diasAtras fija la emisión. Aprobar ocurre el mismo día, rechazar dos días después y vencer al día siguiente del plazo.
+// diasAtras fija la emisión. Rechazar o solicitar ajuste ocurre dos días después.
 export function planificarCotizacion(reloj: Reloj, escenario: Escenario): PlanCotizacion {
   const { diasAtras, vigenciaDias, estadoFinal } = escenario;
   const creadaEn = instante(reloj, diasAtras, 8);
@@ -61,6 +61,7 @@ export function planificarCotizacion(reloj: Reloj, escenario: Escenario): PlanCo
     ENVIADA: null,
     APROBADA: instante(reloj, diasAtras, 11),
     RECHAZADA: instante(reloj, diasAtras - 2, 15),
+    AJUSTE_SOLICITADO: instante(reloj, diasAtras - 2, 15),
     VENCIDA: instante(reloj, diasAtras - vigenciaDias - 1, 8),
   }[estadoFinal];
   return {
@@ -105,8 +106,11 @@ async function insertarBorrador(ctx: Contexto, cotizacion: CotizacionSembrada): 
       numero,
       clienteId: catalogos.clientes.get(escenario.cliente) as string,
       asunto: escenario.asunto,
+      version: escenario.origen ? 2 : 1,
+      cotizacionOrigenId: escenario.origen ? cotizacionPorEscenario(ctx.bitacora, escenario.origen) : null,
       condiciones: CONDICIONES,
       moneda: MONEDA,
+      tipoCambio: "1",
       tasaImpuesto: TASA_IVA_PCT,
       ...totales,
       margenPct: margenResultante(personalizados),
@@ -124,7 +128,7 @@ async function insertarBorrador(ctx: Contexto, cotizacion: CotizacionSembrada): 
 
 type Cambio = {
   desde: string;
-  hacia: "ENVIADA" | "APROBADA" | "RECHAZADA" | "VENCIDA";
+  hacia: "ENVIADA" | "APROBADA" | "RECHAZADA" | "VENCIDA" | "AJUSTE_SOLICITADO";
   cuando: Date;
   datos: Prisma.CotizacionUncheckedUpdateInput;
   detalle: Prisma.InputJsonObject;
@@ -161,7 +165,15 @@ function cambiosDeCotizacion(cotizacion: CotizacionSembrada, indice: number): Ca
     datos: { fechaEmision: plan.fechaEmision, fechaVencimiento: plan.fechaVencimiento },
     detalle: { vigenciaDias: escenario.vigenciaDias },
   };
-  const respuesta = plan.respondidaEn ? respuestaDeCotizacion(escenario.estadoFinal, plan.respondidaEn, indice) : null;
+  const respuesta: Cambio | null = escenario.estadoFinal === "AJUSTE_SOLICITADO"
+    ? {
+        desde: "ENVIADA",
+        hacia: "AJUSTE_SOLICITADO",
+        cuando: plan.respondidaEn as Date,
+        datos: { fechaRespuesta: plan.respondidaEn, motivoAjuste: escenario.motivoAjuste },
+        detalle: { motivo: escenario.motivoAjuste as string },
+      }
+    : plan.respondidaEn ? respuestaDeCotizacion(escenario.estadoFinal, plan.respondidaEn, indice) : null;
   return respuesta ? [envio, respuesta] : [envio];
 }
 
@@ -214,7 +226,10 @@ export async function sembrarCotizacion(
     estadoNuevo: "BORRADOR",
     usuarioId: usuarioPorClave(ctx.catalogos, "ventas").id,
     creadoEn: plan.creadaEn,
-    detalle: { numero, cliente: escenario.cliente, total },
+    detalle: {
+      numero, cliente: escenario.cliente, total, clave: escenario.clave,
+      ...(escenario.origen ? { origen: escenario.origen, version: 2 } : {}),
+    },
   });
   for (const cambio of cambiosDeCotizacion(cotizacion, indice)) await aplicarCambio(ctx, cotizacion, cambio);
   return cotizacion;

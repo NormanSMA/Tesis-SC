@@ -20,7 +20,7 @@ export async function prepararPanel(db: PrismaClient) {
 }
 export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
   estado?: EstadoCotizacion; total?: string; creadoEn?: string; vencimiento?: string; archivada?: boolean;
-  respuesta?: string; origenId?: string; version?: number;
+  respuesta?: string; origenId?: string; version?: number; moneda?: "NIO" | "USD"; tipoCambio?: string;
 } = {}) {
   const vence = entrada.vencimiento ?? "2034-05-10";
   const emision = new Date(`${vence}T00:00:00Z`);
@@ -35,6 +35,7 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
       tasaImpuesto: "0", descuento: "0", impuesto: "0", vigenciaDias: 15,
       fechaEmision: emision, fechaVencimiento: new Date(vence), creadoEn,
       cotizacionOrigenId: entrada.origenId, version: entrada.version,
+      moneda: entrada.moneda, tipoCambio: entrada.tipoCambio,
     } });
     await tx.itemCotizacion.create({ data: { cotizacionId: nueva.id, tipo: "CATALOGO", secuencia: 1,
       productoId: entorno.ordenes.cotizaciones.referencias.unidad.id, categoriaId: entorno.ordenes.cotizaciones.referencias.categoria.id,

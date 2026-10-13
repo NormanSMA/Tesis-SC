@@ -11,7 +11,7 @@ export type ResultadoVerificacion = { comprobaciones: Comprobacion[]; resumen: s
 
 type Lector = Pick<PrismaClient, "$queryRaw">;
 
-const ESTADOS_COTIZACION = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA"];
+const ESTADOS_COTIZACION = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"];
 const ESTADOS_ORDEN = ["PENDIENTE", "EN_PRODUCCION", "LISTA", "ENTREGADA", "CERRADA", "CANCELADA"];
 
 async function numero(db: Lector, consulta: Prisma.Sql): Promise<number> {
@@ -71,6 +71,10 @@ async function comprobarConteos(db: Lector, datos: DatosSiembra): Promise<Compro
     Prisma.sql`SELECT count(*) AS valor FROM configuracion WHERE clave = ${CLAVE_MARCADOR} AND valor = ${VERSION_SIEMBRA}`,
   );
   comprobaciones.push(igual(`Marcador ${CLAVE_MARCADOR} = ${VERSION_SIEMBRA}`, 1, marcador));
+  const clientesSinCotizacion = await numero(db, Prisma.sql`
+    SELECT count(*) AS valor FROM cliente c
+     WHERE NOT EXISTS (SELECT 1 FROM cotizacion cot WHERE cot.cliente_id = c.id)`);
+  comprobaciones.push(igual("Clientes sin cotización", 0, clientesSinCotizacion));
   return comprobaciones;
 }
 

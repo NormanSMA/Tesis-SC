@@ -1,6 +1,8 @@
 import { Prisma } from "@/generated/prisma/client";
+import { esMoneda, type Moneda } from "@/core/moneda";
 import { prisma, type Tx } from "@/lib/db";
 import { AppError } from "@/lib/errores";
+import { esquemaValorPorClaveConfiguracion } from "@/modules/admin/configuracion-schema";
 
 import { CONDICIONES_PREDETERMINADAS, type ConsultaCotizaciones } from "./schema";
 import type { SelectoresEditor } from "./tipos";
@@ -67,7 +69,8 @@ export async function siguienteNumero(tx: Tx): Promise<string> {
 
 export async function configuracionCotizacion(tx: Tx) {
   const filas = await tx.configuracion.findMany({ where: {
-    clave: { in: ["iva_porcentaje", "cotizacion_vigencia_dias", "cotizacion_condiciones", "empresa_nombre"] },
+    clave: { in: ["iva_porcentaje", "cotizacion_vigencia_dias", "cotizacion_condiciones", "empresa_nombre",
+      "moneda", "tipo_cambio_usd"] },
   } });
   const valores = Object.fromEntries(filas.map(({ clave, valor }) => [clave, valor]));
   const vigenciaDias = Number(valores.cotizacion_vigencia_dias);
@@ -75,7 +78,10 @@ export async function configuracionCotizacion(tx: Tx) {
     throw new AppError({ codigo: "CONFIGURACION_INVALIDA", status: 409,
       mensaje: "Revise el IVA y la vigencia en la configuración." });
   }
-  return { tasaImpuesto: valores.iva_porcentaje, vigenciaDias,
+  const moneda: Moneda = esMoneda(valores.moneda) ? valores.moneda : "NIO";
+  const tipoCambio = esquemaValorPorClaveConfiguracion("tipo_cambio_usd")?.safeParse(valores.tipo_cambio_usd);
+  return { tasaImpuesto: valores.iva_porcentaje, vigenciaDias, moneda,
+    tipoCambioUsd: tipoCambio?.success ? tipoCambio.data : null,
     condiciones: valores.cotizacion_condiciones ?? CONDICIONES_PREDETERMINADAS,
     empresaNombre: valores.empresa_nombre ?? "Soluciones Creativas" };
 }

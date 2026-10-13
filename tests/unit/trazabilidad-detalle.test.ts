@@ -17,6 +17,7 @@ const muestra = {
   items: [{ secuencia: 1, descripcion: "Trabajo", importe: "230", secreto: "Oculto" }],
   activo: { anterior: true, nuevo: false }, cotizacionNumero: "COT-2026-0001",
   advertencias: [{ mensaje: "Revisar unidad", secreto: "Oculto" }], perfil: "ADMIN", recurso: "orden", accion: "ver",
+  ip: "192.168.1.0/24", correoIntentado: "alguien@ejemplo.test", minutos: 15, sesionesRevocadas: true,
 };
 const esperados: Record<(typeof ACCIONES)[number], string[]> = {
   CREAR: ["nombre", "material", "totales", "items"], EDITAR: ["motivo", "cambios", "totales"],
@@ -24,6 +25,8 @@ const esperados: Record<(typeof ACCIONES)[number], string[]> = {
   REGISTRAR_ENTRADA: ["cantidad", "material", "costoUnitario"], AJUSTAR_INVENTARIO: ["cantidad", "motivo", "costoUnitario"],
   CONSUMIR_MATERIAL: ["cantidad", "material", "costoUnitario"], DEVOLVER_MATERIAL: ["cantidad", "material", "costoUnitario"],
   ARCHIVAR: ["activo", "motivo"], REACTIVAR: ["activo", "motivo"], OTORGAR_PERMISO: ["perfil", "recurso"], REVOCAR_PERMISO: ["perfil", "recurso"],
+  INICIAR_SESION: ["ip"], INICIO_SESION_FALLIDO: ["ip", "correoIntentado", "motivo"], BLOQUEAR_CUENTA: ["ip", "correoIntentado", "minutos"],
+  CERRAR_SESION: ["ip"], CAMBIAR_CLAVE: ["ip", "sesionesRevocadas"],
 };
 function sinClavesRestringidas(valor: unknown): void {
   if (!valor || typeof valor !== "object") return;

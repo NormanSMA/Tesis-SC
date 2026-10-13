@@ -21,8 +21,8 @@ const require = createRequire(import.meta.url);
 export const SECCIONES = {
   nucleo: {
     descripcion: "reglas puras, errores, cabeceras, siembra, transiciones y concurrencia cruzada",
-    unit: ["costeo", "permisos", "autorizacion", "errores", "http", "limites", "cabeceras", "api", "diseno", "rendimiento", "seed", "respaldo", "secciones"],
-    integracion: ["costeo", "errores", "transiciones", "seed", "salud", "roles", "dto", "concurrencia"],
+    unit: ["costeo", "permisos", "autorizacion", "errores", "http", "limites", "cabeceras", "api", "diseno", "rendimiento", "seed", "respaldo", "secciones", "env", "ip", "limite", "registro", "marca", "moneda"],
+    integracion: ["costeo", "errores", "transiciones", "seed", "salud", "roles", "dto", "concurrencia", "limite"],
     e2e: ["base", "diseno"],
   },
   acceso: {
@@ -33,7 +33,7 @@ export const SECCIONES = {
   },
   clientes: {
     descripcion: "clientes y su ficha",
-    unit: ["clientes", "cliente"], integracion: ["clientes", "cliente"], e2e: ["clientes"],
+    unit: ["clientes", "cliente", "importacion"], integracion: ["clientes", "cliente", "importacion"], e2e: ["clientes", "importacion"],
   },
   catalogo: {
     descripcion: "catálogo, recetas, categorías y plantillas",
@@ -41,7 +41,7 @@ export const SECCIONES = {
   },
   cotizaciones: {
     descripcion: "cotizaciones, costeo de líneas y estados",
-    unit: ["cotizaciones"], integracion: ["cotizaciones"], e2e: ["cotizaciones"],
+    unit: ["cotizaciones"], integracion: ["cotizaciones"], e2e: ["cotizaciones", "cotizaciones-usd"],
   },
   ordenes: {
     descripcion: "órdenes de trabajo, conversión y cancelación",
@@ -61,7 +61,7 @@ export const SECCIONES = {
   },
   interfaz: {
     descripcion: "pruebas de componentes con navegador (Edge), las más lentas",
-    unit: [], integracion: [], e2e: ["auditoria-frontend"],
+    unit: [], integracion: [], e2e: ["auditoria-frontend", "superposicion"],
   },
 };
 

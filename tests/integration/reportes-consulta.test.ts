@@ -107,6 +107,17 @@ async function bordesCotizaciones() {
   expect(actual.totales.cantidad).toBe(Number(anterior.totales.cantidad) + 2);
   expect(actual.totales.importe).toBe(formatear(sumar(leerDecimal(String(anterior.totales.importe))!, leerDecimal("0.20")!), 2));
 }
+async function dosMonedas() {
+  const filtros = { desde: "2042-03-01", hasta: "2042-03-01" };
+  const anterior = await reporte("cotizaciones-por-estado", filtros);
+  const creadoEn = "2042-03-01T12:00:00Z";
+  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "1000", creadoEn });
+  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "100", moneda: "USD", tipoCambio: "36.6243", creadoEn });
+  const actual = await reporte("cotizaciones-por-estado", filtros);
+  expect(anterior.filas[2].importe).toBe("0.00");
+  expect(actual.filas[2]).toMatchObject({ estado: "Aprobada", cantidad: 2, importe: "4662.43" });
+  expect(actual.totales.importe).toBe("4662.43");
+}
 async function ajustesSolicitados() {
   const cotizaciones = await prepararCotizaciones(db);
   const { servicio } = cotizaciones.modulos;
@@ -176,6 +187,7 @@ describeConBase("reportes: consultas contra PostgreSQL", () => {
   it("omite dinero incluso con reporte:ver concedido", sinDineroConReporte);
   it("consulta existencias con una sola consulta SQL", consultaUnicaInventario);
   it("incluye ajustes solicitados en conteos e importes", ajustesSolicitados);
+  it("suma dos monedas en córdobas equivalentes", dosMonedas);
   it("responde vacío con totales cero", async () => {
     expect(await reporte("existencias", { texto: `inexistente-${entorno.sesiones.GERENCIA.usuarioId}` })).toMatchObject({
       filas: [], totales: { materiales: 0, enAlerta: 0, sinExistencia: 0, valorInventario: formatear(CERO, 2) } });
