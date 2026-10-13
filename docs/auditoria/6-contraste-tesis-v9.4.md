@@ -29,7 +29,7 @@ Regla de lectura: «no consta» significa que no hallé evidencia en el reposito
 | RF-10, RB-10, RNF-03: permisos por rol, evaluados en servidor | `src/core/permisos.ts`; `src/lib/http.ts`; `tests/unit/permisos.test.ts` | Cumple |
 | 4.5 Tabla 14: matriz de operaciones por área | `src/core/permisos.ts` (consumir solo ADM; inventario:ver GER, ADM, OPE; planificar OPE y ADM; ejecutar PRO y ADM; responder OPE y ATC) | Cumple |
 | 1.7 y 4.1: cinco perfiles más administración técnica | enum `CodigoPerfil` con 6 valores en `prisma/schema.prisma`; ADR-014 | Cumple |
-| RNF-01: 95 % en 2 s con 20 sesiones | `scripts/rendimiento.mjs`; `docs/pruebas/resultado-rendimiento.json` (p95 118,65 ms) | Cumple |
+| RNF-01: 95 % en 2 s con 20 sesiones | `scripts/rendimiento.mjs`; `docs/pruebas/resultado-rendimiento.json` (p95 106,54 ms) | Cumple |
 | RNF-02: rechazo sin sesión válida | `src/lib/http.ts` (`manejar`); `tests/integration/auth-http.test.ts` | Cumple |
 | RNF-04: HTTPS con TLS 1.2 o superior | `infra/Caddyfile`; `scripts/verificar-tls.mjs`; `docs/pruebas/tls.md` | Cumple con el perfil `proxy` (ver sección 3) |
 | RNF-05: cero duplicados, huérfanos y saldos negativos | `tests/integration/errores-bd.test.ts`; `scripts/prueba-recuperacion.sh` | Cumple |
@@ -131,7 +131,7 @@ Cada fila se verificó en el repositorio.
 - Las figuras de la tesis (1 a 7, H1 a H7, I1 a I11) son imágenes. Solo leí el texto y las notas.
 - No leí el ERD de la Figura H7. No comparé sus cardinalidades con `prisma/schema.prisma`.
 - No ejecuté el sistema ni las pruebas. Las cifras vienen de `docs/`.
-- No recontamé las 2 580 pruebas unitarias y de integración, las 829 E2E ni las 10 de regresión visual de `docs/capitulo-iv/4-11-evidencias-calidad.md`.
+- Las cifras de 2 740 pruebas unitarias y de integración, 858 E2E y 10 de regresión visual se tomaron de la corrida final del 2026-10-13 y están en `docs/capitulo-iv/4-11-evidencias-calidad.md`.
 - Conté archivos: 76 de integración, 71 unitarios y 19 E2E.
 - No revisé a detalle los Anexos B, C, E y F de la tesis. No afectan este contraste.
 - La tesis no cita versión de PostgreSQL en el cuerpo. Solo la referencia nombra «PostgreSQL 18 documentation».
