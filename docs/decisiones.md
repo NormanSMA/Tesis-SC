@@ -24,6 +24,7 @@ Material para el Capítulo IV.
 | ADR-017 | 2026-10-13 | Límite de tasa en memoria, proxy HTTPS con Caddy y bitácora de accesos | Cierra RNF-04 y la bitácora de seguridad de la tesis 4.8 sin cambiar URL de E2E, CI ni RNF-01. Diseño del agente arquitecto | Límite en Caddy (plugin propio), límite en proxy.ts de Next, usuario falso de sistema para fallos |
 | ADR-018 | 2026-10-13 | Dos monedas (NIO y USD) por cotización con tipo de cambio congelado | Norman pidió manejar córdobas y dólares. Cada cotización guarda sus montos en su moneda; el motor de costeo no cambia | Montos siempre en NIO con conversión al mostrar; moneda por ítem |
 | ADR-019 | 2026-10-13 | Confirmación de consumo y importación CSV por fila | La tesis enfatiza «Confirmar consumo» (predefensa lámina 11) y la importación piloto (4.10). La importación valida en seco y crea fila por fila con bitácora | Una sola transacción para todo el archivo; tocar los servicios de alta |
+| ADR-020 | 2026-10-13 | Diferir la migración de la autenticación a Better Auth hasta validar el piloto | Cubre de forma nativa 5 de 15 requisitos propios (bloqueo, clave temporal, matriz de perfiles, bitácora con IP truncada y cookie Secure por solicitud siguen propios). No mejora la seguridad actual y toca el login cerca de la predefensa | Migrar ahora (30 a 40 h, riesgo alto); spike inmediato (18 h) |
 
 ## ADR-014: perfiles v9 y migraciones de datos
 
@@ -116,3 +117,23 @@ Estado: aceptado por Norman (pedido directo). Diseño del agente arquitecto.
 - Importación CSV de clientes y materiales con `papaparse` y zod. Validación en seco, confirmación explícita, 500 filas y 1 MB como máximo.
 - Cada fila se crea con el servicio de alta existente, en su propia transacción y con su evento CREAR en bitácora. Una fila inválida o duplicada se informa y no detiene las demás.
 - No se modifican `crearCliente` ni `crearMaterial`.
+
+## ADR-020: autenticación propia frente a Better Auth (2026-10-13)
+
+Estado: diferido. Evaluación del agente arquitecto con documentación oficial de Better Auth.
+- La autenticación propia ocupa unas 465 líneas (`src/lib/auth/*`, `src/modules/auth/service.ts` y 4 rutas).
+- Better Auth cubre nativo: argon2id con `password.hash` y `verify`, TTL de sesión, revocación, sin autoservicio, compatibilidad con rol no dueño.
+- Sigue propio: bloqueo a 5 fallos con UPDATE atómico, clave temporal con caducidad, cambio obligatorio, varios perfiles con matriz en base, bitácora con IP truncada, cookie Secure por solicitud, formato de errores de la API.
+- Choques: guarda IP y user-agent de la sesión, y por defecto puede guardar el token en claro (nuestro token solo se guarda como SHA-256). Estos dos puntos no se verificaron en la fuente.
+- Migrar eliminaría unas 120 líneas y agregaría 150 a 200 de configuración y hooks. Las sesiones vivas no se migran.
+- Beneficio único: 2FA y passkeys, fuera del alcance del piloto (`docs/seguridad.md`).
+- Decisión: diferir. Reabrir si la empresa pide 2FA o passkeys tras el piloto.
+- Spike posterior (rama `spike/better-auth`, base `db_spike`, puerto 3100), aceptado solo si cumple todo:
+  1. Pasan sin cambiar aserciones las suites `auth-*` y `e2e/base.spec.ts`.
+  2. El 100 % de los usuarios de la siembra entra con su hash argon2id migrado.
+  3. Ninguna columna guarda el valor de la cookie.
+  4. Con 5 fallos hay 5 filas `INICIO_SESION_FALLIDO` y 1 `BLOQUEAR_CUENTA`, con IP /24 y sin user-agent.
+  5. La cookie lleva Secure en 8443 y no en 3000 en la misma corrida.
+  6. `migrate deploy` con `sc_app` y Squawk pasan; `rendimiento.mjs` da 0 respuestas 429 y p95 a más 10 % como máximo.
+  7. Las líneas propias de autenticación no crecen frente a las 465 actuales.
+- Costo estimado del spike: 18 horas.

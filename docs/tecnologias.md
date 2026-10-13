@@ -56,11 +56,10 @@ Decisiones relacionadas: ADR-017 (límite de tasa, proxy TLS y bitácora de acce
 
 ## Autenticación: Better Auth
 
-Estado: pendiente de evaluación en una rama aparte (Fase 5 del plan).
-Criterio de aceptación: pasan la sección `acceso` y los E2E de acceso con cambios menores, y los datos migran sin pérdida.
-Condiciones propias que debe conservar: bloqueo a cinco intentos, clave temporal con caducidad, argon2id y bitácora de accesos.
-Si no cumple, queda como decisión posterior a la validación del piloto.
-El resultado se registra aquí al cierre de la evaluación.
+Estado: evaluada y diferida (ADR-020, 2026-10-13).
+Cubre de forma nativa 5 de 15 requisitos propios. Los diferenciales (bloqueo a cinco intentos, clave temporal con caducidad, matriz de perfiles, bitácora con IP truncada y cookie Secure por solicitud) seguirían como código propio.
+No mejora la seguridad actual y el beneficio único es 2FA o passkeys, fuera del piloto.
+Se reabre si la empresa pide 2FA o passkeys. Los criterios del spike están en ADR-020.
 
 ## Impacto en la tesis
 
