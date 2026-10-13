@@ -4,6 +4,22 @@ Estado: corrida corregida registrada; resultado `CUMPLE` (2026-10-11).
 Evidencia: [resultado-rendimiento.json](resultado-rendimiento.json), fecha UTC 2026-10-11T16:55:14Z.
 La primera corrida y la corrida intermedia quedan como antecedentes en las secciones siguientes.
 
+## Resultado vigente (2026-10-13)
+
+Fuente única de cifras para el resto de la documentación. Las secciones siguientes conservan el historial.
+Condiciones: 20 sesiones, 60 s, aplicación en `http://127.0.0.1:3000`, límite de tasa de ADR-017 activo, siembra de 18 clientes.
+
+| Tipo | n | p50 (ms) | p95 (ms) | p99 (ms) | Máximo (ms) | ≤ 2000 ms (%) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Consulta | 13245 | 84.62 | 118.26 | 139.05 | 237.44 | 100.00 |
+| Creación | 266 | 90.97 | 121.36 | 148.52 | 180.15 | 100.00 |
+| Actualización | 132 | 95.37 | 127.67 | 139.77 | 145.45 | 100.00 |
+| Global | 13643 | 84.91 | 118.65 | 139.30 | 237.44 | 100.00 |
+
+Decisión RNF-01: CUMPLE. Errores HTTP: 0; 5xx: 0; red: 0; respuestas 429: 0.
+Datos crudos: `docs/pruebas/resultado-rendimiento.json`.
+Esta corrida crea 266 clientes de prueba (archivados al final). Tras correrla, ejecute `pnpm demo:reiniciar` para limpiar la base de demostración.
+
 ## Objetivo
 
 Verifique RNF-01 de la tesis v9 con 20 sesiones concurrentes.

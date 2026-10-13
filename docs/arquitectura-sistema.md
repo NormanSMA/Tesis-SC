@@ -1,4 +1,4 @@
-# Arquitectura del sistema: SC Plataforma
+# Arquitectura del sistema: TRACORE (repositorio sc-plataforma)
 
 Fecha: 2026-10-11. Estado: guía para las auditorías de backend, DevOps y frontend.
 Describe lo que el código hace hoy. No propone rediseño. Cada brecha se marca como **brecha**.
@@ -23,7 +23,7 @@ flowchart LR
   ATC[Atención al cliente] --> SC
   PRO[Producción] --> SC
   TEC[Administración técnica] --> SC
-  SC["SC Plataforma<br/>clientes, cotización, orden,<br/>inventario, producción, trazabilidad"]
+  SC["TRACORE<br/>clientes, cotización, orden,<br/>inventario, producción, trazabilidad"]
 ```
 
 ### Nivel 2: contenedores
@@ -63,8 +63,8 @@ Flujo de una petición en `manejar` (`src/lib/http.ts:63-85`):
 5. Traduce el error con `aErrorHttp`. Escribe log solo en 5xx (`:43-55`).
 
 - **Brecha:** el `peticionId` solo llega al log. No vuelve al cliente (`http.ts:51`).
-- **Brecha:** `origenPermitido` compara contra el encabezado `host` (`http.ts:25`). Detrás de un proxy, verificar `Host` y TLS.
-- **Brecha:** `manejar` no limita la tasa de peticiones. Solo el login tiene bloqueo (`schema.prisma:246-247`).
+- **Cerrada (2026-10-13):** el proxy Caddy conserva `Host`, termina TLS 1.2 y 1.3 y envía HSTS (ADR-017).
+- **Cerrada (2026-10-13):** `manejar` aplica límite de tasa por usuario e IP y responde 429 con `Retry-After` (ADR-017).
 
 ## 3. Límites de módulos y reglas de dependencia
 

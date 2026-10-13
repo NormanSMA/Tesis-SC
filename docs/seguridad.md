@@ -36,9 +36,26 @@ La autorización se decide en el servidor. La interfaz solo oculta opciones.
 | Atributo Secure | `SESSION_COOKIE_SECURE=true` | ver abajo |
 
 ## Cookie Secure
-En Docker local el acceso es por http. Un atributo Secure impediría guardar la cookie.
-Detrás de TLS, define `SESSION_COOKIE_SECURE=true` en el entorno de producción.
-Sin esa variable la cookie no lleva Secure. Es un riesgo aceptado solo en desarrollo.
+La cookie lleva Secure por solicitud (`cookieSegura` en `src/lib/auth/cookies.ts`).
+Lleva Secure si `SESSION_COOKIE_SECURE=true` o si la solicitud llega por el proxy con `X-Forwarded-Proto: https`.
+En http local directo (127.0.0.1:3000) no lleva Secure. Es un riesgo aceptado solo en desarrollo.
+
+## HTTPS y proxy (RNF-04)
+Caddy termina TLS 1.2 y 1.3, rechaza TLS 1.0 y 1.1, envía HSTS y redirige http a https con 308.
+Configuración: `infra/Caddyfile`. Guía: `docs/despliegue-https.md`. Evidencia: `docs/pruebas/tls.md`.
+La aplicación acepta `X-Forwarded-For` solo si el proxy envía `X-Proxy-Clave` igual a `PROXY_CLAVE` (32 caracteres o más, comparación en tiempo constante).
+Sin esa clave la IP del cliente se registra como `local`.
+
+## Límite de tasa
+`src/lib/limite-tasa.ts` usa `rate-limiter-flexible` en memoria (una sola instancia).
+Por usuario: 6000 lecturas y 1200 escrituras por minuto. Por IP en rutas públicas: 120 por minuto. Fallos de login por IP: 30 en 15 minutos.
+Al excederlo responde 429 `DEMASIADAS_SOLICITUDES` con `Retry-After`. Los topes se ajustan con las variables `LIMITE_*`.
+
+## Registro y bitácora de accesos
+`src/lib/registro.ts` usa pino con redacción de contraseñas, cookies, tokens y cabeceras de autorización.
+La bitácora guarda inicio de sesión, fallo, bloqueo, cierre de sesión y cambio de clave con la IP truncada (IPv4 /24, IPv6 /48).
+No guarda contraseñas ni tokens. Un correo desconocido no genera fila.
+`src/env.ts` valida las variables de entorno al arrancar (`@t3-oss/env-nextjs`).
 
 ## Origin ausente
 Los métodos POST, PUT, PATCH y DELETE comparan el encabezado Origin con el Host.
@@ -47,7 +64,7 @@ Si Origin falta, la petición se rechaza salvo que `NODE_ENV` sea `test`.
 Un navegador siempre envía Origin en esos métodos. Su ausencia indica un cliente que no es navegador.
 Las pruebas con Request no tienen Origin. Por eso `NODE_ENV=test` lo permite.
 Un cliente de pruebas con navegador real debe enviar Origin en las llamadas directas a la API.
-El proxy inverso debe conservar el encabezado Host original.
+El proxy inverso debe conservar el encabezado Host original. El Caddyfile del repositorio lo hace.
 
 ## Mapa OWASP Top 10 2021
 | Riesgo | Qué se implementó | Cómo se verifica |
