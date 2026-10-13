@@ -89,7 +89,7 @@ El proxy inverso debe conservar el encabezado Host original. El Caddyfile del re
 | Cookie protegida contra script y envío inseguro (7.1.1) | `httpOnly` y `SameSite=Lax`. Secure por variable en producción. | `auth-login.test.ts` |
 | Vencimiento de sesión (7.2) | Cumple. Expira a las 12 horas por defecto. | `auth-sesion.test.ts` |
 | Terminar la sesión al cerrar (7.1) | Cumple. Logout revoca en la base y borra la cookie. | `auth-sesion.test.ts` |
-| Longitud mínima de contraseña de 8 caracteres (5.1.1.2) | Pendiente. Corresponde al módulo de usuarios al crear o cambiar claves. | Ver pendientes |
+| Longitud mínima de contraseña de 8 caracteres (5.1.1.2) | Cumple. La contraseña exige 14 caracteres o más (`src/modules/auth/schema.ts`). | `auth-cambiar-clave.test.ts` |
 
 ## Riesgos residuales
 - Un correo real bloqueado responde 423. Un correo inexistente responde 401. Eso revela la existencia de la cuenta bloqueada. SD-21 exige el mensaje de bloqueo. Se acepta en el piloto.
