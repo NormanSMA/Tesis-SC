@@ -3,20 +3,16 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { UsuarioSesion } from "@/lib/auth/sesion";
-
 import { Migas } from "./Migas";
-import { MenuUsuario } from "./MenuUsuario";
 
 type PropiedadesBarra = {
-  usuario: UsuarioSesion;
   ruta: string;
   rielExpandido: boolean;
   alAbrirMenuMovil: () => void;
   alAlternarRiel: () => void;
 };
 
-export function BarraSuperior({ usuario, ruta, rielExpandido, alAbrirMenuMovil, alAlternarRiel }: PropiedadesBarra) {
+export function BarraSuperior({ ruta, rielExpandido, alAbrirMenuMovil, alAlternarRiel }: PropiedadesBarra) {
   const IconoRiel = rielExpandido ? PanelLeftClose : PanelLeftOpen;
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card px-4 xl:px-6">
@@ -44,7 +40,6 @@ export function BarraSuperior({ usuario, ruta, rielExpandido, alAbrirMenuMovil, 
       <div className="min-w-0 flex-1">
         <Migas ruta={ruta} />
       </div>
-      <MenuUsuario usuario={usuario} />
     </header>
   );
 }

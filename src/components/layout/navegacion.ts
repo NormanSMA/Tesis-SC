@@ -3,7 +3,6 @@ import {
   Boxes,
   ClipboardList,
   FileText,
-  Factory,
   History,
   LayoutDashboard,
   BarChart3,
@@ -13,6 +12,8 @@ import {
   UserCog,
   type LucideIcon,
 } from "lucide-react";
+
+import { BrazoRobot } from "./IconoBrazoRobot";
 
 export type ItemNavegacion = {
   href: string;
@@ -35,7 +36,7 @@ export const gruposNavegacion: GrupoNavegacion[] = [
       { href: "/clientes", etiqueta: "Clientes", icono: Users, permiso: "cliente:ver" },
       { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: FileText, permiso: "cotizacion:ver" },
       { href: "/ordenes", etiqueta: "Órdenes de trabajo", icono: ClipboardList, permiso: "orden:ver" },
-      { href: "/produccion", etiqueta: "Producción", icono: Factory, permiso: "produccion:ver" },
+      { href: "/produccion", etiqueta: "Producción", icono: BrazoRobot, permiso: "produccion:ver" },
       { href: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: "inventario:ver" },
       { href: "/catalogo", etiqueta: "Catálogo", icono: BookOpen, permiso: "catalogo:ver" },
       { href: "/trazabilidad", etiqueta: "Trazabilidad", icono: History, permiso: "bitacora:ver" },

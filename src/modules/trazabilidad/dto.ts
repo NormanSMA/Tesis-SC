@@ -54,7 +54,7 @@ export function aCadenaDto(orden: CadenaGuardada, actor: Actor, historial?: Hist
       creadoEn: orden.creadoEn.toISOString(), fechaInicioReal: orden.fechaInicioReal?.toISOString() ?? null,
       fechaEntregaReal: orden.fechaEntregaReal?.toISOString() ?? null, fechaCierre: orden.fechaCierre?.toISOString() ?? null },
     etapas: orden.etapas.map((etapa) => ({ id: etapa.id, nombre: etapa.nombre, area: etapa.area, secuencia: etapa.secuencia,
-      estado: textoEstado(etapa.estado), responsable: etapa.responsable,
+      estado: textoEstado(etapa.estado), estadoCodigo: etapa.estado, responsable: etapa.responsable,
       fechaInicioPlan: etapa.fechaInicioPlan?.toISOString().slice(0, 10) ?? null, fechaFinPlan: etapa.fechaFinPlan?.toISOString().slice(0, 10) ?? null,
       fechaInicioReal: etapa.fechaInicioReal?.toISOString() ?? null, fechaFinReal: etapa.fechaFinReal?.toISOString() ?? null })),
   };

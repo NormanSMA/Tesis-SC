@@ -6,7 +6,6 @@ import {
   CirclePlay,
   CircleX,
   Clock,
-  Factory,
   FilePen,
   Lock,
   MessageSquareWarning,
@@ -18,6 +17,8 @@ import {
   Truck,
   type LucideIcon,
 } from "lucide-react";
+
+import { BrazoRobot } from "@/components/layout/IconoBrazoRobot";
 
 export type TipoEstado = "cotizacion" | "orden" | "etapa" | "stock";
 
@@ -44,7 +45,7 @@ export const ESTADOS: Record<TipoEstado, Record<string, DefinicionEstado>> = {
   },
   orden: {
     PENDIENTE: { etiqueta: "Pendiente", tono: "neutro", icono: Clock },
-    EN_PRODUCCION: { etiqueta: "En producción", tono: "info", icono: Factory },
+    EN_PRODUCCION: { etiqueta: "En producción", tono: "info", icono: BrazoRobot },
     LISTA: { etiqueta: "Lista", tono: "acento", icono: PackageCheck },
     ENTREGADA: { etiqueta: "Entregada", tono: "exito", icono: Truck },
     CERRADA: { etiqueta: "Cerrada", tono: "neutroFuerte", icono: Lock },

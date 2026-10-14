@@ -26,6 +26,7 @@ export function AppShell({ usuario, children }: { usuario: UsuarioSesion; childr
   return (
     <div className="min-h-dvh">
       <BarraLateral
+        usuario={usuario}
         grupos={grupos}
         ruta={ruta}
         rielExpandido={rielExpandido}
@@ -41,7 +42,6 @@ export function AppShell({ usuario, children }: { usuario: UsuarioSesion; childr
       ) : null}
       <div className="md:pl-16 xl:pl-64">
         <BarraSuperior
-          usuario={usuario}
           ruta={ruta}
           rielExpandido={rielExpandido}
           alAbrirMenuMovil={() => setMenuMovilAbierto(true)}
@@ -52,6 +52,7 @@ export function AppShell({ usuario, children }: { usuario: UsuarioSesion; childr
         </main>
       </div>
       <MenuMovil
+        usuario={usuario}
         abierto={menuMovilAbierto}
         alCambiarAbierto={setMenuMovilAbierto}
         grupos={grupos}

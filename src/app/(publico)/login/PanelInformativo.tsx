@@ -18,7 +18,7 @@ export function PanelInformativo() {
         <div className="cascada-puntos absolute inset-0" />
         <div className="cascada-puntos-grandes absolute inset-0" />
       </div>
-      <div className="relative flex min-h-[28rem] flex-1 flex-col justify-between gap-10">
+      <div className="relative flex flex-1 flex-col justify-center gap-10">
         <div className="flex size-16 items-center justify-center rounded-2xl bg-card">
           <Image src="/brand/isotipo.png" alt="TRACORE" width={544} height={512} className="h-10 w-auto" />
         </div>

@@ -8,9 +8,13 @@ import { cn } from "@/lib/utils";
 
 import { ListaNavegacion } from "./ListaNavegacion";
 import { Marca } from "./Marca";
+import type { UsuarioSesion } from "@/lib/auth/sesion";
+
 import type { GrupoNavegacion } from "./navegacion";
+import { TarjetaUsuario } from "./TarjetaUsuario";
 
 type PropiedadesBarra = {
+  usuario: UsuarioSesion;
   grupos: GrupoNavegacion[];
   ruta: string;
   /** Solo aplica entre 768 y 1279 px: muestra el riel con etiquetas encima del contenido. */
@@ -19,7 +23,7 @@ type PropiedadesBarra = {
   alCerrarRielConFoco: () => void;
 };
 
-export function BarraLateral({ grupos, ruta, rielExpandido, alCerrarRiel, alCerrarRielConFoco }: PropiedadesBarra) {
+export function BarraLateral({ usuario, grupos, ruta, rielExpandido, alCerrarRiel, alCerrarRielConFoco }: PropiedadesBarra) {
   return (
     <aside
       id="menu-principal"
@@ -56,6 +60,7 @@ export function BarraLateral({ grupos, ruta, rielExpandido, alCerrarRiel, alCerr
       <nav aria-label="Principal" className="flex-1 overflow-y-auto p-2 xl:p-3">
         <ListaNavegacion grupos={grupos} ruta={ruta} expandido={rielExpandido} alNavegar={alCerrarRiel} />
       </nav>
+      <TarjetaUsuario usuario={usuario} modo={rielExpandido ? "amplia" : "adaptable"} />
     </aside>
   );
 }

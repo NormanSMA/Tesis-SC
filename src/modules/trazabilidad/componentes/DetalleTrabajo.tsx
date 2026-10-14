@@ -2,6 +2,7 @@
 
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { Timeline } from "@/components/comunes/Timeline";
 import { formatearCantidadPorUnidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { textoCambioEstado } from "../etiquetas";
@@ -12,7 +13,7 @@ type Material = TrazabilidadOrden["materiales"][number];
 const claseTabla = "min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2";
 const columnasEtapas: ColumnaTabla<Etapa>[] = [
   { id: "nombre", encabezado: "Etapa y área", principal: true, celda: (fila) => <>{fila.secuencia}. {fila.nombre}<p>{fila.area.nombre}</p></> },
-  { id: "estado", encabezado: "Estado y responsable", celda: (fila) => <>{fila.estado}<p>{fila.responsable?.nombre ?? "Sin responsable"}</p></> },
+  { id: "estado", encabezado: "Estado y responsable", celda: (fila) => <><EstadoBadge tipo="etapa" estado={fila.estadoCodigo} /><p className="mt-1">{fila.responsable?.nombre ?? "Sin responsable"}</p></> },
   { id: "plan", encabezado: "Fechas planificadas", celda: (fila) => <><p>Inicio: {formatearFecha(fila.fechaInicioPlan) || "Sin planificar"}</p><p>Fin: {formatearFecha(fila.fechaFinPlan) || "Sin planificar"}</p></> },
   { id: "real", encabezado: "Fechas reales", celda: (fila) => <><p>Inicio: {formatearFechaHora(fila.fechaInicioReal) || "Sin registrar"}</p><p>Fin: {formatearFechaHora(fila.fechaFinReal) || "Sin registrar"}</p></> },
 ];

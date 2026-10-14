@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Iniciar sesión" };
 export default function PaginaLogin() {
   return (
     <main id="contenido" tabIndex={-1} className="flex min-h-dvh items-center justify-center bg-background px-4 py-6 sm:px-8 sm:py-10">
-      <div className="grid w-full max-w-lg overflow-hidden rounded-[24px] border border-border bg-card lg:min-h-[640px] lg:max-w-[1120px] lg:grid-cols-2">
+      <div className="grid w-full max-w-lg overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_30px_70px_-20px_rgba(15,23,42,0.35),0_8px_24px_-8px_rgba(15,23,42,0.18)] lg:min-h-[640px] lg:max-w-[1120px] lg:grid-cols-2">
         <div className="flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:py-10">
           <Image
             src="/brand/isotipo.png"

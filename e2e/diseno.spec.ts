@@ -133,11 +133,10 @@ test.describe("pantallas con sesión de demostración", () => {
     await expect(page.getByRole("dialog").getByRole("link", { name: "Clientes" })).toBeVisible();
   });
 
-  test("el menú de usuario muestra perfil y cierre de sesión", async ({ page }) => {
+  test("la tarjeta de usuario del menú lateral ofrece el cierre de sesión", async ({ page }) => {
     await page.goto(`${BASE}/panel`);
-    await page.getByRole("button", { name: /Menú de usuario/ }).click();
-    await expect(page.getByRole("menuitem", { name: "Cerrar sesión" })).toBeVisible();
-    await expect(page.getByText(/Perfil:/)).toBeVisible();
+    const tarjeta = page.locator("#menu-principal").getByRole("region", { name: "Sesión de usuario" });
+    await expect(tarjeta.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
   });
 
   test("las tablas tienen encabezados con scope y nombre accesible", async ({ page }) => {
