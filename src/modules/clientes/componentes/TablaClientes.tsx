@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableRowHeader } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+import { ETIQUETA_COLUMNA, columnasPermitidas, type ColumnaOpcional } from "../columnas";
 import { ETIQUETA_TIPO, type ConsultaClientes } from "../schema";
 import type { ClienteFila, ListaClientes } from "../tipos";
 import { EstadoCliente } from "./EstadoCliente";
@@ -36,9 +37,11 @@ type ColumnaLista = {
   celda: (cliente: ClienteFila) => ReactNode;
 };
 
-// Máximo 4 columnas: contacto, teléfono y demás datos viven en la ficha. La fila entera enlaza a la ficha.
-function columnas(conCotizaciones: boolean): ColumnaLista[] {
-  const lista: ColumnaLista[] = [
+const VACIO = <span aria-label="Sin dato">—</span>;
+
+// Nombre siempre visible; el resto lo elige el usuario en el selector de columnas. La fila entera enlaza a la ficha.
+function columnas(elegidas: readonly ColumnaOpcional[]): ColumnaLista[] {
+  const nombre: ColumnaLista =
     {
       id: "nombre",
       encabezado: "Nombre",
@@ -54,25 +57,23 @@ function columnas(conCotizaciones: boolean): ColumnaLista[] {
           {cliente.activo ? null : <EstadoCliente activo={false} />}
         </div>
       ),
-    },
-    {
-      id: "codigoCliente",
-      encabezado: "Código",
-      conEtiqueta: true,
-      celda: (cliente) => cliente.codigoCliente,
-    },
-    { id: "tipo", encabezado: "Tipo", conEtiqueta: true, celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
-  ];
-  if (conCotizaciones) {
-    lista.push({
+    };
+  const opcionales: Record<ColumnaOpcional, ColumnaLista> = {
+    codigoCliente: { id: "codigoCliente", encabezado: ETIQUETA_COLUMNA.codigoCliente, conEtiqueta: true, celda: (cliente) => cliente.codigoCliente },
+    ruc: { id: "ruc", encabezado: ETIQUETA_COLUMNA.ruc, conEtiqueta: true, celda: (cliente) => cliente.ruc ?? VACIO },
+    tipo: { id: "tipo", encabezado: ETIQUETA_COLUMNA.tipo, conEtiqueta: true, celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
+    contactoPrincipal: { id: "contactoPrincipal", encabezado: ETIQUETA_COLUMNA.contactoPrincipal, conEtiqueta: true, celda: (cliente) => cliente.contactoPrincipal ?? VACIO },
+    telefono: { id: "telefono", encabezado: ETIQUETA_COLUMNA.telefono, conEtiqueta: true, celda: (cliente) => cliente.telefono ?? VACIO },
+    correo: { id: "correo", encabezado: ETIQUETA_COLUMNA.correo, conEtiqueta: true, celda: (cliente) => cliente.correo ?? VACIO },
+    cotizaciones: {
       id: "cotizaciones",
-      encabezado: "Cotizaciones",
+      encabezado: ETIQUETA_COLUMNA.cotizaciones,
       derecha: true,
       conEtiqueta: true,
       celda: (cliente) => <span className="tabular-nums">{cliente.cotizaciones ?? 0}</span>,
-    });
-  }
-  return lista;
+    },
+  };
+  return [nombre, ...(Object.keys(opcionales) as ColumnaOpcional[]).filter((id) => elegidas.includes(id)).map((id) => opcionales[id])];
 }
 
 type PropiedadesSinResultados = { consulta: ConsultaClientes; puedeGestionar: boolean; totalGeneral: number };
@@ -130,6 +131,7 @@ type PropiedadesTabla = {
   consulta: ConsultaClientes;
   puedeGestionar: boolean;
   conCotizaciones: boolean;
+  columnasVisibles: ColumnaOpcional[];
 };
 
 function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: ColumnaLista[] }) {
@@ -157,11 +159,11 @@ function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: Co
   );
 }
 
-export function TablaClientes({ lista, consulta, puedeGestionar, conCotizaciones }: PropiedadesTabla) {
+export function TablaClientes({ lista, consulta, puedeGestionar, conCotizaciones, columnasVisibles }: PropiedadesTabla) {
   if (lista.datos.length === 0) {
     return <SinResultados consulta={consulta} puedeGestionar={puedeGestionar} totalGeneral={lista.total} />;
   }
-  const visibles = columnas(conCotizaciones);
+  const visibles = columnas(columnasPermitidas(columnasVisibles, conCotizaciones));
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table containerProps={{ role: "region", "aria-label": "Listado de clientes", tabIndex: 0 }}>

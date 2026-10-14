@@ -10,13 +10,21 @@ import { BarraLateral } from "./BarraLateral";
 import { BarraSuperior } from "./BarraSuperior";
 import { MenuMovil } from "./MenuMovil";
 import { filtrarNavegacion, gruposNavegacion } from "./navegacion";
+import { guardarMenuCompacto } from "./preferencia-menu";
 import { useCerrarConEscape } from "./useCerrarConEscape";
 
 /** Estado del menú: panel móvil, riel expandido (tableta) y menú compacto (pantalla grande). */
-function useEstadoMenu() {
+function useEstadoMenu(compactoInicial: boolean) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   const [rielExpandido, setRielExpandido] = useState(false);
-  const [compacto, setCompacto] = useState(false);
+  const [compacto, setCompactoEstado] = useState(compactoInicial);
+  const setCompacto = useCallback((actualizar: (valor: boolean) => boolean) => {
+    setCompactoEstado((valor) => {
+      const siguiente = actualizar(valor);
+      guardarMenuCompacto(siguiente);
+      return siguiente;
+    });
+  }, []);
   const cerrarRiel = useCallback(() => setRielExpandido(false), []);
   const cerrarRielConFoco = useCallback(() => {
     setRielExpandido(false);
@@ -26,11 +34,13 @@ function useEstadoMenu() {
   return { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco };
 }
 
-export function AppShell({ usuario, children }: { usuario: UsuarioSesion; children: ReactNode }) {
+type PropiedadesShell = { usuario: UsuarioSesion; children: ReactNode; compactoInicial?: boolean };
+
+export function AppShell({ usuario, children, compactoInicial = false }: PropiedadesShell) {
   const ruta = usePathname();
   const grupos = filtrarNavegacion(gruposNavegacion, usuario.permisos);
   const { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco } =
-    useEstadoMenu();
+    useEstadoMenu(compactoInicial);
 
   return (
     <div className="min-h-dvh">
