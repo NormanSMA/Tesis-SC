@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MENSAJE_TELEFONO, esTelefonoValido } from "./telefono";
 
 export const TIPOS_CLIENTE = ["PERSONA", "EMPRESA"] as const;
 export type TipoCliente = (typeof TIPOS_CLIENTE)[number];
@@ -56,7 +57,7 @@ function limitado(maximo: number, etiqueta: string) {
 const reglasTexto = {
   ruc: limitado(LIMITES.ruc, "El RUC").nullable(),
   contactoPrincipal: limitado(LIMITES.contactoPrincipal, "El contacto principal").nullable(),
-  telefono: limitado(LIMITES.telefono, "El teléfono").nullable(),
+  telefono: limitado(LIMITES.telefono, "El teléfono").refine(esTelefonoValido, MENSAJE_TELEFONO).nullable(),
   correo: z
     .string()
     .max(LIMITES.correo, `El correo admite hasta ${LIMITES.correo} caracteres.`)

@@ -1,11 +1,11 @@
 "use client";
 
-import { PanelLeftClose } from "lucide-react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { PanelLeftCloseIcon } from "@/components/iconos-animados/panel-left-close";
 import { cn } from "@/lib/utils";
 
+import { BotonPanel } from "./BotonPanel";
 import { ListaNavegacion } from "./ListaNavegacion";
 import { Marca } from "./Marca";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
@@ -48,16 +48,15 @@ export function BarraLateral({ usuario, grupos, ruta, rielExpandido, compacto, a
           )}
         </Link>
         {rielExpandido ? (
-          <Button
+          <BotonPanel
+            Icono={PanelLeftCloseIcon}
             variant="ghost"
             size="icon"
             className="ml-auto xl:hidden"
             aria-label="Contraer menú de navegación"
             onClick={alCerrarRielConFoco}
             autoFocus
-          >
-            <PanelLeftClose aria-hidden="true" />
-          </Button>
+          />
         ) : null}
       </div>
       <nav aria-label="Principal" className={cn("flex-1 overflow-y-auto p-2", !compacto && "xl:p-3")}>

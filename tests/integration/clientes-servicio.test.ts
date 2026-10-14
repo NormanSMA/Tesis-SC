@@ -123,7 +123,7 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
     });
 
     it("rechaza un nombre vacío y un tipo ausente con error por campo", async () => {
-      const { status, error } = await crear({ nombre: "   ", telefono: "8888" });
+      const { status, error } = await crear({ nombre: "   ", telefono: "8888 0000" });
       expect(status).toBe(422);
       expect(Object.keys(error?.campos ?? {}).sort()).toEqual(["nombre", "tipo"]);
     });
@@ -367,7 +367,7 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
 
     it("no crea el cliente", async () => {
       const nombre = nombreUnico();
-      const entrada = { nombre, tipo: "EMPRESA", telefono: "8888", ruc: null, contactoPrincipal: null, correo: null, direccion: null, notas: null } as const;
+      const entrada = { nombre, tipo: "EMPRESA", telefono: "8888 0000", ruc: null, contactoPrincipal: null, correo: null, direccion: null, notas: null } as const;
       await expect(modulos.servicio.crearCliente(entrada, actorFantasma())).rejects.toThrow();
       expect(await db.cliente.count({ where: { nombre } })).toBe(0);
     });

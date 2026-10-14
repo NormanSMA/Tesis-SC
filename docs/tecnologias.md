@@ -33,6 +33,7 @@ Criterios de adopción: mantenimiento activo, licencia permisiva, sin dependenci
 | pino | 10.x | Registro estructurado en JSON con redacción. | `src/lib/registro.ts`, `src/lib/http.ts`, `src/lib/errores.ts`, autenticación. | Contraseñas, cookies y tokens no llegan al registro. Formato apto para agregadores. | `console.log` sin redacción. winston: más pesado y sin redacción por ruta nativa. |
 | rate-limiter-flexible | 11.x | Límite de tasa por usuario e IP con almacén en memoria. | `src/lib/limite-tasa.ts`; API y login. | Responde 429 con `Retry-After` ante abuso. Un solo proceso no necesita Redis. | express-rate-limit: ligado a Express. Redis: infraestructura extra sin necesidad hoy. |
 | papaparse | 5.7.x | Lectura de CSV con comillas, BOM y separadores. | `src/modules/importacion/csv.ts`. | Analizador probado. La validación de filas sigue en zod. | `split(",")` casero: falla con comillas y saltos de línea. csv-parse: más pesado para el navegador. |
+| motion | 14.x | Animación de íconos del menú. | `src/components/iconos-animados/*` (de lucide-animated, MIT), `src/components/layout/BotonPanel.tsx`. | Los íconos se mueven al pasar el mouse, al enfocar y al abrir la sección activa; respeta «reducir movimiento». | CSS propio por ícono: más trabajo y sin las animaciones de la librería. |
 
 Decisiones relacionadas: ADR-017 (límite de tasa, proxy TLS y bitácora de accesos) y ADR-019 (importación y confirmación).
 

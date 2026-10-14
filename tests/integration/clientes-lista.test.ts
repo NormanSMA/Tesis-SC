@@ -160,7 +160,7 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
         data: Array.from({ length: 105 }, (_, i) => ({
           nombre: `${token} ${String(i).padStart(3, "0")}`,
           tipo: "EMPRESA" as const,
-          telefono: "8888",
+          telefono: "8888 0000",
         })),
       });
       const porDefecto = await consultar({ q: token });

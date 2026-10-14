@@ -79,7 +79,7 @@ describe("esquemaCrearCliente: cadenas vacías", () => {
   });
 
   it("trata los campos ausentes y los nulos como nulo", () => {
-    const resultado = esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", telefono: "8888", ruc: null });
+    const resultado = esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", telefono: "8888 0000", ruc: null });
     expect(resultado.success && resultado.data).toMatchObject({ ruc: null, correo: null, notas: null });
   });
 
@@ -127,8 +127,8 @@ describe("esquemaCrearCliente: longitudes", () => {
   it("aplica los máximos de contacto 120 y teléfono 30", () => {
     expect(crear({ contactoPrincipal: "c".repeat(120) }).success).toBe(true);
     expect(camposConError(crear({ contactoPrincipal: "c".repeat(121) }))).toEqual(["contactoPrincipal"]);
-    expect(crear({ telefono: "1".repeat(30) }).success).toBe(true);
-    expect(camposConError(crear({ telefono: "1".repeat(31) }))).toEqual(["telefono"]);
+    expect(crear({ telefono: "+5 0 5 8 7 5 6 8 9 0 1 2 3 4 5" }).success).toBe(true);
+    expect(camposConError(crear({ telefono: "+ 5 0 5 8 7 5 6 8 9 0 1 2 3 4 5" }))).toEqual(["telefono"]);
   });
 
   it("aplica el máximo de 2000 en dirección y notas al crear y editar", () => {
@@ -161,7 +161,7 @@ describe("esquemaCrearCliente: medio de contacto", () => {
 
   it("acepta solo correo o solo teléfono", () => {
     expect(esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", correo: "a@b.co" }).success).toBe(true);
-    expect(esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", telefono: "8888" }).success).toBe(true);
+    expect(esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", telefono: "8888 0000" }).success).toBe(true);
   });
 });
 

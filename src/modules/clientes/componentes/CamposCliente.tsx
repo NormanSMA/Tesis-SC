@@ -53,10 +53,10 @@ export function CamposContacto({ formulario }: PropiedadesCampos) {
       <FormField
         id="telefono"
         etiqueta="Teléfono"
-        ayuda="Obligatorio si no indica un correo."
+        ayuda="Incluya el código de país, por ejemplo +505 8756-8901. Obligatorio si no indica un correo."
         error={errors.telefono?.message}
       >
-        {(atributos) => <Input {...atributos} {...register("telefono")} type="tel" autoComplete="off" inputMode="tel" />}
+        {(atributos) => <Input {...atributos} {...register("telefono")} type="tel" autoComplete="off" inputMode="tel" placeholder="+505 8756-8901" />}
       </FormField>
       <FormField
         id="correo"

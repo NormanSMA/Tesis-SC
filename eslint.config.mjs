@@ -28,6 +28,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "audit/**",
     "src/generated/**",
+    // Íconos de lucide-animated (MIT) copiados tal cual: no se reformatean para poder actualizarlos.
+    "src/components/iconos-animados/**",
   ]),
 ]);
 
