@@ -1,4 +1,5 @@
--- Impide perder el tipo de cambio de cotizaciones en dólares al revertir ADR-018.
+-- Impide perder el tipo de cambio de cotizaciones en dolares al revertir ADR-018.
+-- cotizacion_moneda_formato nunca se elimino en la migracion de subida, por lo que no se restaura.
 BEGIN;
 
 LOCK TABLE cotizacion IN ACCESS EXCLUSIVE MODE;
@@ -14,7 +15,6 @@ $$;
 ALTER TABLE cotizacion
   DROP CONSTRAINT IF EXISTS cotizacion_moneda_valida,
   DROP CONSTRAINT IF EXISTS cotizacion_tipo_cambio_valido,
-  ADD CONSTRAINT cotizacion_moneda_formato CHECK (moneda ~ '^[A-Z]{3}$'),
   DROP COLUMN tipo_cambio;
 
 DELETE FROM configuracion WHERE clave = 'tipo_cambio_usd';

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
-import { formatearCantidad, formatearCantidadConUnidad, nombreUnidad } from "@/lib/formato";
+import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, nombreUnidad } from "@/lib/formato";
 import { AccionesMaterial } from "@/modules/inventario/componentes/AccionesMaterial";
 import { FiltrosMovimientos } from "@/modules/inventario/componentes/FiltrosInventario";
 import { EstadoMaterial, TablaMovimientos, etiquetaAlertaMaterial } from "@/modules/inventario/componentes/TablasInventario";
@@ -29,7 +29,7 @@ export default async function PaginaMaterial({ params, searchParams }: { params:
           <div><dt className="text-sm text-muted-foreground">Costo promedio (C$)</dt><dd>{formatearCantidad(material.costoPromedio, 4)}</dd></div></dl>
           {material.alerta ? <p role="status" className="font-medium">{etiquetaAlertaMaterial(material.alerta)}</p> : null}
           <p role={material.conciliacion.conciliado ? "status" : "alert"} className="text-sm">{material.conciliacion.conciliado ? "Conciliado" : "Diferencia de integridad"}
-            : existencia {material.conciliacion.existencia}; suma del libro {material.conciliacion.sumaLibro}.</p>
+            : existencia {formatearCantidadPorUnidad(material.conciliacion.existencia, material.unidad)}; suma del libro {formatearCantidadPorUnidad(material.conciliacion.sumaLibro, material.unidad)}.</p>
           {material.descripcion ? <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{material.descripcion}</p> : null}
         </CardContent></Card>
       <section aria-label="Libro del material" className="min-w-0">

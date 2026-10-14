@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/comunes/EmptyState";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatearCantidad } from "@/lib/formato";
+import { formatearCantidad, formatearCantidadPorUnidad } from "@/lib/formato";
 
 import { imagenPorCategoria } from "../imagenes";
 import type { FichaProducto as Ficha } from "../tipos";
@@ -53,7 +53,7 @@ export function FichaProducto({ ficha }: { ficha: Ficha }) {
           columnas={[
             { id: "material", encabezado: "Material", principal: true, celda: (fila) => <span className="whitespace-normal break-words">{fila.material.codigo} · {fila.material.nombre}{!fila.material.activo ? " (archivado)" : ""}</span> },
             { id: "unidad", encabezado: "Unidad", celda: (fila) => fila.material.unidad.toLowerCase() },
-            { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidad(fila.cantidad, 3) },
+            { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidadPorUnidad(fila.cantidad, fila.material.unidad) },
           ]} /></CardContent>
       </Card>
     </TabsContent>

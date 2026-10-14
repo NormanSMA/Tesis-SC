@@ -25,6 +25,7 @@ Material para el Capítulo IV.
 | ADR-018 | 2026-10-13 | Dos monedas (NIO y USD) por cotización con tipo de cambio congelado | Norman pidió manejar córdobas y dólares. Cada cotización guarda sus montos en su moneda; el motor de costeo no cambia | Montos siempre en NIO con conversión al mostrar; moneda por ítem |
 | ADR-019 | 2026-10-13 | Confirmación de consumo y importación CSV por fila | La tesis enfatiza «Confirmar consumo» (predefensa lámina 11) y la importación piloto (4.10). La importación valida en seco y crea fila por fila con bitácora | Una sola transacción para todo el archivo; tocar los servicios de alta |
 | ADR-020 | 2026-10-13 | Diferir la migración de la autenticación a Better Auth hasta validar el piloto | Cubre de forma nativa 5 de 15 requisitos propios (bloqueo, clave temporal, matriz de perfiles, bitácora con IP truncada y cookie Secure por solicitud siguen propios). No mejora la seguridad actual y toca el login cerca de la predefensa | Migrar ahora (30 a 40 h, riesgo alto); spike inmediato (18 h) |
+| ADR-021 | 2026-10-14 | Descuento comercial por porcentaje o monto; cantidades sin ceros sobrantes; costos con 2 decimales | Pedido de Norman: escribir el descuento en porcentaje y verlo en moneda; números más legibles | Guardar solo el porcentaje; redondear unidades discretas |
 
 ## ADR-014: perfiles v9 y migraciones de datos
 
@@ -137,3 +138,12 @@ Estado: diferido. Evaluación del agente arquitecto con documentación oficial d
   6. `migrate deploy` con `sc_app` y Squawk pasan; `rendimiento.mjs` da 0 respuestas 429 y p95 a más 10 % como máximo.
   7. Las líneas propias de autenticación no crecen frente a las 465 actuales.
 - Costo estimado del spike: 18 horas.
+
+## ADR-021: descuento en porcentaje y formato de cantidades (2026-10-14)
+
+- Descuento comercial: se escribe como monto (como antes) o como porcentaje de 0 a 100 con hasta 2 decimales. Ambos a la vez dan 422.
+- Columna `cotizacion.descuento_pct NUMERIC(5,2) NULL`. Con porcentaje, el servidor calcula `descuento = round(subtotal * pct / 100, 2)` al crear, editar, reemplazar ítems, duplicar, corregir y enviar. Escribir un monto limpia el porcentaje.
+- El monto `descuento` sigue siendo la fuente para totales, base y reportes. La interfaz siempre lo muestra en moneda y, si hay porcentaje, rotula «Descuento (10 %)».
+- Cantidades de material: sin ceros sobrantes (8, 3.7, 0.125). Una unidad discreta con fracción conserva su valor real (3.7 rollos no se redondea a 4). Los campos de entrada conservan el decimal exacto para editar.
+- Costos y precios: 2 decimales con `formatearMoneda`. Se retiró el valor exacto de 7 decimales de la ficha de trazabilidad; el DTO conserva la precisión.
+- Migración `20261014100000_cotizacion_descuento_pct`, con reversión en `prisma/migrations-down`.

@@ -280,7 +280,7 @@ async function verificarCadena(page: Page): Promise<void> {
   await expect(items).toContainText(PERSONALIZADO);
   await abrirPestana(page, "Consumo estimado");
   const estimado = page.getByRole("table", { name: "Consumo estimado de materiales" });
-  await expect(estimado.getByRole("row").filter({ hasText: MATERIAL })).toContainText("4.000");
+  await expect(estimado.getByRole("row").filter({ hasText: MATERIAL }).getByRole("cell")).toHaveText(["4", "PLIEGO"]);
   await expect(estimado).toContainText("Vinil adhesivo blanco brillo");
   await expect(estimado).toContainText("Laminado mate 150 micras");
 }
@@ -293,7 +293,7 @@ async function consumir(page: Page): Promise<void> {
   await expect(page.getByRole("link", { name: "Registrar consumo", exact: true })).toBeVisible();
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: MATERIAL });
   await expect(fila.getByRole("rowheader")).toHaveText(MATERIAL);
-  await expect(fila.getByRole("cell")).toHaveText(["4.000 PLIEGO", "2.000 PLIEGO", "0.000 PLIEGO", "2.000 PLIEGO"]);
+  await expect(fila.getByRole("cell")).toHaveText(["4 pliego", "2 pliego", "0 pliego", "2 pliego"]);
   await abrirPestana(page, "Historial");
   await expect(page.getByRole("list", { name: "Historial de la orden" })).toContainText("registró un consumo de material");
 }
@@ -467,7 +467,7 @@ function registrarConsultaYCancelacion(): void {
       await verificarCadena(page);
       await verificarHistorial(page);
       await abrirPestana(page, "Materiales consumidos");
-      await expect(page.getByRole("table", { name: "Materiales de la orden" })).toContainText("2.000 PLIEGO");
+      await expect(page.getByRole("table", { name: "Materiales de la orden" })).toContainText("2 pliego");
       await sinDesbordeHorizontal(page);
       await capturar(page, `CF-09-orden-${vista.nombre}`);
     }

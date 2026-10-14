@@ -99,6 +99,8 @@ describe("formatos de reporte y panel", () => {
     expect(formatearCantidadPorUnidad("1234.500", "Kilogramo")).toBe("1,234.5");
     expect(formatearCantidadPorUnidad("0.125", "LITRO")).toBe("0.125");
     expect(formatearCantidadPorUnidad("1200.000", "ROLLO")).toBe("1,200");
+    expect(formatearCantidadPorUnidad("3.700", "ROLLO")).toBe("3.7");
+    expect(formatearCantidadPorUnidad("0.500", "PLIEGO")).toBe("0.5");
   });
 
   it("nombra la unidad en minúscula", () => {

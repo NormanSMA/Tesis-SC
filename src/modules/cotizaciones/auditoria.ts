@@ -30,11 +30,13 @@ export function detalleItems(antes: FichaGuardada, despues: FichaGuardada): Pris
 }
 
 export function detalleCabecera(antes: FichaGuardada, despues: FichaGuardada): Prisma.InputJsonObject {
-  const campos = ["asunto", "condiciones", "descuento", "vigenciaDias"] as const;
+  const campos = ["asunto", "condiciones", "descuento", "descuentoPct", "vigenciaDias"] as const;
   const cambios: Record<string, Prisma.InputJsonValue> = {};
   for (const campo of campos) {
-    const anterior = campo === "descuento" ? antes.descuento.toFixed(2) : antes[campo];
-    const nuevo = campo === "descuento" ? despues.descuento.toFixed(2) : despues[campo];
+    const valor = (ficha: FichaGuardada) => campo === "descuento" ? ficha.descuento.toFixed(2)
+      : campo === "descuentoPct" ? ficha.descuentoPct?.toFixed(2) ?? null : ficha[campo];
+    const anterior = valor(antes);
+    const nuevo = valor(despues);
     if (anterior !== nuevo) cambios[campo] = { anterior, nuevo };
   }
   return { cambios, totales: { anterior: aTotalesDto(antes), nuevo: aTotalesDto(despues) } };

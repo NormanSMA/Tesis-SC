@@ -36,7 +36,7 @@ export function EditorItems({ cotizacion, selectores: selectoresCordobas }: { co
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("items-cotizacion");
   const vista = calcularVista({ items, originales: cotizacion.items, selectores,
-    descuento: cotizacion.descuento, tasaImpuesto: cotizacion.tasaImpuesto });
+    descuento: cotizacion.descuento, descuentoPct: cotizacion.descuentoPct, tasaImpuesto: cotizacion.tasaImpuesto });
   const campos = { ...errores, ...vista.errores, ...solicitud.campos };
   const cambiarItem = (indice: number, item: ItemEditor) => setItems(items.map((guardado, posicion) =>
     posicion === indice ? { ...item, claveLocal: guardado.claveLocal } : guardado));
@@ -70,9 +70,9 @@ export function EditorItems({ cotizacion, selectores: selectoresCordobas }: { co
         <Button type="button" variant="outline" disabled={items.length >= 200 || !selectores.categorias.length}
           onClick={() => setItems([...items, nuevoItem("PERSONALIZADO")])}>Agregar personalizado</Button>
       </div>
-      {vista.totales ? <div><TotalesCotizacion totales={vista.totales} moneda={cotizacion.moneda} /></div> : <Alert>
+      {vista.totales ? <div><TotalesCotizacion totales={{ ...vista.totales, descuentoPct: cotizacion.descuentoPct }} moneda={cotizacion.moneda} /></div> : <Alert>
         <CircleAlert aria-hidden="true" /><AlertTitle>Revise los campos para calcular los totales</AlertTitle>
-        <AlertDescription>{campos.descuento ?? "Complete productos, cantidades y líneas de costo."}</AlertDescription>
+        <AlertDescription>{campos.descuento ?? campos.descuentoPct ?? "Complete productos, cantidades y líneas de costo."}</AlertDescription>
       </Alert>}
       <div className="flex flex-wrap gap-3"><Button type="submit" disabled={solicitud.enviando}>Guardar ítems</Button>
         <Button asChild variant="outline"><Link href={`/cotizaciones/${cotizacion.id}`}>Cancelar</Link></Button></div>

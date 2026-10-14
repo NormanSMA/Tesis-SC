@@ -17,6 +17,7 @@ export type ClienteCotizacion = {
   telefono: string | null; correo: string | null; direccion: string | null; activo: boolean;
 };
 export type CotizacionDto = TotalesCotizacion & {
+  descuentoPct: string | null;
   id: string; numero: string; clienteId: string; cliente: ClienteCotizacion; estado: EstadoCotizacion;
   asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string; tipoCambio: string;
   vigenciaDias: number; fechaEmision: string | null; fechaVencimiento: string | null;

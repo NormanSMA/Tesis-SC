@@ -41,7 +41,7 @@ const cotizacion: CotizacionDto = {
   fechaVencimiento: null, fechaRespuesta: null, motivoRechazo: null, archivada: false,
   version: 1, motivoAjuste: null, referenciaAprobacion: null, usuarioAprobacionId: null,
   usuarioAprobacion: null, creadoEn: version, actualizadoEn: version, items: [], avisos: [],
-  subtotal: "0", descuento: "0", tasaImpuesto: "0", impuesto: "0", total: "0",
+  subtotal: "0", descuento: "0", descuentoPct: null, tasaImpuesto: "0", impuesto: "0", total: "0",
   margenPct: "0",
 };
 const selectores: SelectoresEditor = {

@@ -107,6 +107,8 @@ ALTER TABLE cotizacion
     tasa_impuesto BETWEEN 0 AND 100
     AND (margen_pct IS NULL OR (margen_pct >= 0 AND margen_pct < 100))
   ),
+  DROP CONSTRAINT IF EXISTS cotizacion_descuento_pct_valido,
+  ADD CONSTRAINT cotizacion_descuento_pct_valido CHECK (descuento_pct IS NULL OR (descuento_pct >= 0 AND descuento_pct <= 100)),
   DROP CONSTRAINT IF EXISTS cotizacion_montos_no_negativos,
   ADD CONSTRAINT cotizacion_montos_no_negativos CHECK (
     subtotal >= 0 AND descuento >= 0 AND descuento <= subtotal AND impuesto >= 0 AND total >= 0

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatearCantidadConUnidad } from "@/lib/formato";
 import type { ResumenConsumo } from "../resumen-consumo";
 
 export function ConfirmarConsumo({ abierto, numeroOrden, lineas, cerrar, confirmar, devolverFoco }: {
@@ -21,7 +22,7 @@ export function ConfirmarConsumo({ abierto, numeroOrden, lineas, cerrar, confirm
       <ul aria-label="Materiales por consumir" className="max-h-[50vh] space-y-3 overflow-y-auto">
         {lineas.map((linea) => <li key={linea.clave} className="min-w-0 break-words">
           <p className="font-medium">{linea.codigo} — {linea.nombre}</p>
-          <p>{linea.cantidad} {linea.unidad}</p>
+          <p>{formatearCantidadConUnidad(linea.cantidad, linea.unidad)}</p>
         </li>)}
       </ul>
       <DialogFooter>

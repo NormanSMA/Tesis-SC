@@ -163,13 +163,13 @@ async function abrirPestana(page: Page, nombre: string): Promise<void> {
   }).toPass({ timeout: 10000 });
 }
 
-// Cuatro cantidades en el orden de la tabla: estimado, consumido, devuelto y neto.
+// Cuatro cantidades enteras (unidad discreta) en el orden de la tabla: estimado, consumido, devuelto y neto.
 async function verResumen(page: Page, cantidades: string[]): Promise<void> {
   await abrirPestana(page, "Materiales consumidos");
   const fila = page.getByRole("table", { name: "Materiales de la orden" }).getByRole("row").filter({ hasText: NOMBRE });
   // La primera columna de DataTable es un rowheader; las cantidades son celdas.
   await expect(fila.getByRole("rowheader")).toHaveText(NOMBRE);
-  await expect(fila.getByRole("cell")).toHaveText(cantidades.map((valor) => `${valor} ${UNIDAD}`));
+  await expect(fila.getByRole("cell")).toHaveText(cantidades.map((valor) => `${valor} ${UNIDAD_FICHA}`));
 }
 
 async function abrirOrden(page: Page): Promise<void> {
@@ -203,7 +203,7 @@ async function verExistenciaEnFicha(page: Page, existencia: string): Promise<voi
 async function consumirDesdeFormulario(page: Page): Promise<void> {
   const form = await abrirMovimiento(page, "consumo");
   await expect(form.getByLabel("Cantidad")).toHaveValue("4.000");
-  await expect(form).toContainText(`Existencia disponible: 13.000 ${UNIDAD}`);
+  await expect(form).toContainText(`Existencia disponible: 13 ${UNIDAD_FICHA}`);
   await form.getByLabel("Cantidad").fill("3");
   const movimientosAntes = await totalMovimientos(page);
   const peticiones: string[] = [];
@@ -216,12 +216,12 @@ async function consumirDesdeFormulario(page: Page): Promise<void> {
   await expect(dialogo).toContainText(datos(orden, "la orden").numero);
   await expect(dialogo).toContainText(CODIGO);
   await expect(dialogo).toContainText(NOMBRE);
-  await expect(dialogo).toContainText(`3 ${UNIDAD}`);
+  await expect(dialogo).toContainText(`3 ${UNIDAD_FICHA}`);
   await expect(dialogo).not.toContainText(/C\$|Unitario/);
   await dialogo.getByRole("button", { name: "Cancelar", exact: true }).click();
   await expect(dialogo).toBeHidden();
   await expect(form.getByRole("button", { name: "Registrar consumo", exact: true })).toBeFocused();
-  await expect(form).toContainText(`Existencia disponible: 13.000 ${UNIDAD}`);
+  await expect(form).toContainText(`Existencia disponible: 13 ${UNIDAD_FICHA}`);
   expect(await totalMovimientos(page)).toBe(movimientosAntes);
   await verExistenciaEnFicha(page, "13");
   expect(peticiones).toEqual([]);
@@ -230,9 +230,9 @@ async function consumirDesdeFormulario(page: Page): Promise<void> {
   await confirmado.getByLabel("Cantidad").fill("3");
   await enviarMovimiento(page, confirmado, 201);
   await expect(confirmado.getByRole("status").filter({ hasText: "Consumo registrado" })).toBeVisible();
-  await expect(confirmado).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
+  await expect(confirmado).toContainText(`Existencia disponible: 10 ${UNIDAD_FICHA}`);
   await abrirOrden(page);
-  await verResumen(page, ["4.000", "3.000", "0.000", "3.000"]);
+  await verResumen(page, ["4", "3", "0", "3"]);
   await verExistenciaEnFicha(page, "10");
 }
 
@@ -242,7 +242,7 @@ async function rechazarExceso(page: Page): Promise<void> {
   await enviarMovimiento(page, form, 409);
   await expect(page.locator('[id="lineas.0.cantidad-error"]')).toContainText(/Existencia insuficiente.*solicitado 100\.000, disponible 10\.000/);
   await expect(form.getByRole("alert").filter({ hasText: "Existencia insuficiente" }).first()).toBeVisible();
-  await expect(form).toContainText(`Existencia disponible: 10.000 ${UNIDAD}`);
+  await expect(form).toContainText(`Existencia disponible: 10 ${UNIDAD_FICHA}`);
   await verExistenciaEnFicha(page, "10");
 }
 
@@ -251,9 +251,9 @@ async function devolverParcial(page: Page): Promise<void> {
   await expect(form.getByLabel("Cantidad")).toHaveValue("3.000");
   await form.getByLabel("Cantidad").fill("1");
   await enviarMovimiento(page, form, 201);
-  await expect(form).toContainText(`Existencia disponible: 11.000 ${UNIDAD}`);
+  await expect(form).toContainText(`Existencia disponible: 11 ${UNIDAD_FICHA}`);
   await abrirOrden(page);
-  await verResumen(page, ["4.000", "3.000", "1.000", "2.000"]);
+  await verResumen(page, ["4", "3", "1", "2"]);
   await verExistenciaEnFicha(page, "11");
 }
 
@@ -303,7 +303,7 @@ async function verSinCostosComoProduccion(page: Page): Promise<void> {
     expect(((await consumos.json()).datos as Consumos).movimientos.every((fila) => fila.costoUnitario === undefined)).toBe(true);
   } else expect(consumos.status()).toBe(403);
   await abrirOrden(page);
-  if (consumos.status() === 200) await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
+  if (consumos.status() === 200) await verResumen(page, ["4", "4", "1", "3"]);
   expect(await page.evaluate(() => document.body.innerText)).not.toMatch(/C\$|Unitario/);
 }
 
@@ -398,7 +398,7 @@ async function capturarOrden(page: Page): Promise<void> {
   for (const vista of VIEWPORTS) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
     await abrirOrden(page);
-    await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
+    await verResumen(page, ["4", "4", "1", "3"]);
     await sinDesbordeHorizontal(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.evaluate(() => document.fonts.ready);
@@ -435,7 +435,7 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
     await crearCotizacion(page);
     await aprobarCotizacion(page);
     await convertirEnOrden(page);
-    await verResumen(page, ["4.000", "0.000", "0.000", "0.000"]);
+    await verResumen(page, ["4", "0", "0", "0"]);
   });
 
   registrarAxe();
@@ -483,7 +483,7 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
       await entrarComo(page, perfil);
       await abrirOrden(page);
       if (await page.getByRole("tab", { name: "Materiales consumidos", exact: true }).count() > 0) {
-        await verResumen(page, ["4.000", "4.000", "1.000", "3.000"]);
+        await verResumen(page, ["4", "4", "1", "3"]);
       }
       await expect(page.getByRole("link", { name: /^(Registrar consumo|Devolver sobrante)$/ })).toHaveCount(0);
       await page.goto(`/inventario/consumo?ordenId=${ordenId}`);

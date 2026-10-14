@@ -452,6 +452,53 @@ test.describe("Lista, borradores y permisos", () => {
   }
 });
 
+async function leerDescuento(page: Page): Promise<number> {
+  const tarjeta = page.getByLabel("Totales de cotización");
+  return aNumero(await tarjeta.getByText(/^Descuento/).locator("xpath=following-sibling::dd").first().textContent());
+}
+
+function enMoneda(valor: number): string {
+  return `C$ ${valor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+test.describe("Descuento comercial como porcentaje o monto", () => {
+  test("Atención al cliente descuenta 10 % y luego un monto fijo sobre un borrador", async ({ page }, info) => {
+    soloUnaVez(info.project.name);
+    test.setTimeout(120_000);
+    await entrarComo(page, ATENCION_CLIENTE);
+    const borrador = await crearBorradorPorApi(page);
+    await page.goto(`/cotizaciones/${borrador.id}`);
+    const { subtotal } = await leerTotales(page);
+    const descuentoEsperado = Math.round(Math.round(subtotal * 100) / 10) / 100;
+
+    // Porcentaje: el monto se ve en la edición y la ficha lo etiqueta con el porcentaje.
+    await page.goto(`/cotizaciones/${borrador.id}/editar`);
+    await elegirEn(page, "cabecera-descuento-modo", "Porcentaje (%)");
+    await porId(page, "cabecera-descuento-pct").fill("10");
+    await expect(porId(page, "cabecera-descuento-monto")).toContainText(enMoneda(descuentoEsperado));
+    await page.getByRole("button", { name: "Guardar datos" }).click();
+    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
+    const tarjeta = page.getByLabel("Totales de cotización");
+    await expect(tarjeta.getByText(/^Descuento \(10 %\)$/)).toBeVisible();
+    expect(await leerDescuento(page)).toBeCloseTo(descuentoEsperado, 2);
+    const conPorcentaje = await leerTotales(page);
+    expect(Math.abs(conPorcentaje.impuesto - (subtotal - descuentoEsperado) * 0.15)).toBeLessThanOrEqual(0.01);
+    expect(Math.abs(conPorcentaje.total - (subtotal - descuentoEsperado + conPorcentaje.impuesto))).toBeLessThanOrEqual(0.01);
+
+    // Monto: al guardar un monto fijo desaparece el porcentaje.
+    await page.goto(`/cotizaciones/${borrador.id}/editar`);
+    await expect(porId(page, "cabecera-descuento-pct")).toHaveValue("10.00");
+    await elegirEn(page, "cabecera-descuento-modo", "Monto (C$)");
+    await expect(porId(page, "cabecera-descuento")).toHaveValue(descuentoEsperado.toFixed(2));
+    await porId(page, "cabecera-descuento").fill("123.45");
+    await page.getByRole("button", { name: "Guardar datos" }).click();
+    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
+    await expect(tarjeta.getByText(/^Descuento$/)).toBeVisible();
+    await expect(tarjeta.getByText(/Descuento \(/)).toHaveCount(0);
+    expect(await leerDescuento(page)).toBeCloseTo(123.45, 2);
+  });
+});
+
 test.describe("Accesibilidad (axe)", () => {
   for (const vista of VIEWPORTS) {
     test(`lista, editor y detalle sin violaciones graves en ${vista.nombre} (${vista.width} px)`, async ({ page }, info) => {

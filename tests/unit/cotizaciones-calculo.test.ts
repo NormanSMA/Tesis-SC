@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { costearItemCatalogo, costearItemPersonalizado, totalizarCotizacion } from "@/core/costeo";
-import { aEntradaItem, calcularVista } from "@/modules/cotizaciones/calculo";
+import { aEntradaItem, calcularVista, descuentoDePorcentaje, descuentoParaGuardar, montoDePorcentajeEscrito,
+  porcentajeDeMonto, totalizarConDescuento } from "@/modules/cotizaciones/calculo";
 import { aEntradaLinea, aLineaMotor } from "@/modules/cotizaciones/mapeo";
 import type { EntradaItem } from "@/modules/cotizaciones/schema";
 import type { ItemDto, SelectoresEditor } from "@/modules/cotizaciones/tipos";
@@ -99,6 +100,49 @@ describe("cotizaciones: mapeo del editor al motor", () => {
       { ...personalizado, lineas: [{ tipo: "MANO_OBRA", descripcion: "Diseño", unidad: "h", horas: "0", tarifa: "100" }] }]).errores;
     expect(Object.keys(errores)).toEqual(expect.arrayContaining(["items.0.ancho", "items.0.alto", "items.1.lineas.0.horas"]));
     expect(vista([{ ...personalizado, unidadCobro: "M2" }]).errores["items.0.ancho"]).toBeTruthy();
+  });
+
+  it("convierte el porcentaje en monto con redondeo de mitad lejos de cero", () => {
+    const items = [{ tipo: "CATALOGO" as const, importe: "33.35", costoTotal: null }];
+    const total = (descuentoPct: string | null, descuento = "0") => totalizarConDescuento({ items, descuento, descuentoPct, tasaImpuesto: "15" });
+    expect(total("10")).toMatchObject({ subtotal: "33.35", descuento: "3.34", impuesto: "4.50", total: "34.51" });
+    expect(total("12.5").descuento).toBe("4.17");
+    expect(total("0").descuento).toBe("0.00");
+    expect(total("100")).toMatchObject({ descuento: "33.35", impuesto: "0.00", total: "0.00" });
+    expect(total(null, "5")).toMatchObject({ descuento: "5.00", total: "32.60" });
+    expect(total("10", "5").descuento).toBe("3.34");
+  });
+
+  it("el porcentaje sobre subtotal cero da descuento cero", () => {
+    const totales = totalizarConDescuento({ items: [], descuento: "0", descuentoPct: "50", tasaImpuesto: "15" });
+    expect(totales).toMatchObject({ subtotal: "0.00", descuento: "0.00", total: "0.00" });
+    expect(descuentoDePorcentaje("0.00", "100")).toBe("0.00");
+  });
+
+  it("convierte entre monto y porcentaje para el formulario", () => {
+    expect(montoDePorcentajeEscrito("15500.00", "10")).toBe("1550.00");
+    expect(montoDePorcentajeEscrito("15500.00", "12.5")).toBe("1937.50");
+    for (const invalido of ["", "abc", "100.5", "101", "1.234", "-5"]) expect(montoDePorcentajeEscrito("100.00", invalido)).toBeNull();
+    expect(porcentajeDeMonto("15500.00", "1550.00")).toBe("10.00");
+    expect(porcentajeDeMonto("300.00", "100")).toBe("33.33");
+    expect(porcentajeDeMonto("0.00", "5")).toBe("0.00");
+    expect(porcentajeDeMonto("100.00", "")).toBeNull();
+  });
+
+  it("envía solo el campo del modo elegido", () => {
+    expect(descuentoParaGuardar("PORCENTAJE", "5.00", " 10 ")).toEqual({ descuentoPct: "10" });
+    expect(descuentoParaGuardar("MONTO", "5.00", "10")).toEqual({ descuento: "5.00" });
+  });
+
+  it("la vista con porcentaje coincide con los totales del servidor", () => {
+    const items = [{ tipo: "CATALOGO" as const, productoId: "p1", cantidad: "3" }];
+    const entrada = { items, originales: [], selectores, descuento: "0.00", tasaImpuesto: "15" };
+    const esperado = totalizarConDescuento({ items: [costearItemCatalogo({ unidadCobro: "UNIDAD", precioBase: "100", cantidad: "3" })],
+      descuento: "0.00", descuentoPct: "10.00", tasaImpuesto: "15" });
+    expect(calcularVista({ ...entrada, descuentoPct: "10.00" }).totales).toEqual(esperado);
+    expect(esperado).toMatchObject({ subtotal: "300.00", descuento: "30.00", total: "310.50" });
+    expect(calcularVista({ ...entrada, descuento: "5.00", descuentoPct: null }).totales?.descuento).toBe("5.00");
+    expect(calcularVista({ ...entrada, descuentoPct: "abc" }).errores.descuentoPct).toBeTruthy();
   });
 
   it("rechaza descuento superior al subtotal en la vista", () => {

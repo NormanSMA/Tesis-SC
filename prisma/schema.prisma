@@ -502,9 +502,11 @@ model Cotizacion {
   tasaImpuesto       Decimal          @map("tasa_impuesto") @db.Decimal(5, 2)
   subtotal           Decimal          @default(0) @db.Decimal(14, 2)
   descuento          Decimal          @default(0) @db.Decimal(14, 2)
+  // Instruccion opcional: si no es nula, el servidor calcula descuento = round(subtotal * pct / 100, 2).
+  descuentoPct       Decimal?         @map("descuento_pct") @db.Decimal(5, 2)
   impuesto           Decimal          @default(0) @db.Decimal(14, 2)
   total              Decimal          @default(0) @db.Decimal(14, 2)
-  margenPct          Decimal?         @map("margen_pct") @db.Decimal(5, 2)
+  margenPct         Decimal?         @map("margen_pct") @db.Decimal(5, 2)
   vigenciaDias       Int              @map("vigencia_dias")
   // Fechas de calendario (date): evitan desfase de dia por zona horaria (America/Managua, UTC-6).
   fechaEmision       DateTime?        @map("fecha_emision") @db.Date

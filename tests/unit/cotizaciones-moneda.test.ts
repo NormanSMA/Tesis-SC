@@ -45,6 +45,19 @@ describe("importes con la moneda de la cotización", () => {
     expect(renderToStaticMarkup(createElement(TotalesCotizacion, { totales }))).toContain("C$");
   });
 
+  it("muestra el descuento como monto y agrega el porcentaje solo cuando existe", () => {
+    const con = renderToStaticMarkup(createElement(TotalesCotizacion, {
+      totales: { ...totales, descuento: "10.00", descuentoPct: "10.00" }, moneda: "USD" }));
+    expect(con).toContain("Descuento (10 %)");
+    expect(con).toMatch(/US\$\s*10\.00/);
+    const decimal = renderToStaticMarkup(createElement(TotalesCotizacion, { totales: { ...totales, descuentoPct: "12.50" } }));
+    expect(decimal).toContain("Descuento (12.5 %)");
+    for (const descuentoPct of [null, undefined]) {
+      const sin = renderToStaticMarkup(createElement(TotalesCotizacion, { totales: { ...totales, descuentoPct } }));
+      expect(sin).toContain("<dt>Descuento</dt>");
+    }
+  });
+
   it("rotula el total aprobado del cliente como C$ equivalente", () => {
     const html = renderToStaticMarkup(createElement(ResumenCliente, { resumen: { cotizaciones: 1, porEstado: {}, totalAprobado: "100.00" } }));
     expect(html).toContain("C$ equivalente");

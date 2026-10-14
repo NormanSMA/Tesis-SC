@@ -144,7 +144,8 @@ test.describe("Operaciones gestiona el catálogo", () => {
     await abrirPestana(page, "Receta");
     const filaMaterial = page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) });
     await expect(filaMaterial).toBeVisible();
-    await expect(filaMaterial).toContainText("0.500");
+    // VIN-BLA-01 es ROLLO: 0.500 se muestra sin ceros sobrantes, sin redondear.
+    await expect(filaMaterial.getByRole("cell")).toHaveText(["rollo", "0.5"]);
 
     await page.getByRole("button", { name: "Archivar" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Archivar" }).click();

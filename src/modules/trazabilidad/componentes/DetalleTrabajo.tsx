@@ -3,7 +3,7 @@
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { Timeline } from "@/components/comunes/Timeline";
-import { formatearCantidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
+import { formatearCantidadPorUnidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { textoCambioEstado } from "../etiquetas";
 import type { TrazabilidadOrden } from "../tipos";
 
@@ -20,9 +20,9 @@ function columnasMateriales(dinero: boolean): ColumnaTabla<Material>[] {
   return [{ id: "material", encabezado: "Material", principal: true, celda: (fila) => <>{fila.material.nombre}<p className="text-xs">{fila.material.unidad}</p></> },
     ...(["estimado", "consumido", "devuelto", "neto"] as const).map((campo) => ({ id: campo,
       encabezado: { estimado: "Estimado", consumido: "Consumido", devuelto: "Devuelto", neto: "Neto" }[campo],
-      alinear: "derecha" as const, celda: (fila: Material) => formatearCantidad(fila[campo], 3) })),
-    ...(dinero ? [{ id: "costo", encabezado: "Costo real (C$)", alinear: "derecha" as const,
-      celda: (fila: Material) => formatearCantidad(fila.costoReal, 7) }] : [])];
+      alinear: "derecha" as const, celda: (fila: Material) => formatearCantidadPorUnidad(fila[campo], fila.material.unidad) })),
+    ...(dinero ? [{ id: "costo", encabezado: "Costo real", alinear: "derecha" as const,
+      celda: (fila: Material) => formatearMoneda(fila.costoReal) }] : [])];
 }
 export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrden }) {
   const eventos = trazabilidad.eventos.map((evento) => ({ id: evento.id, instante: evento.creadoEn,
@@ -36,7 +36,7 @@ export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrd
         idFila={(fila) => fila.material.id} className={claseTabla}
         vacio={<EmptyState ilustracion="uv-dtf" titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." />} />
       {"costoRealTotal" in trazabilidad ? <div className="mt-3 space-y-1"><p className="font-semibold">Costo real total: {formatearMoneda(trazabilidad.costoRealTotal)}</p>
-        <p className="text-sm text-muted-foreground">Valor exacto: C$ {trazabilidad.costoRealTotal}. Incluye consumos menos devoluciones.</p></div> : null}
+        <p className="text-sm text-muted-foreground">Incluye consumos menos devoluciones.</p></div> : null}
     </section>
     <section aria-labelledby="titulo-responsables"><h2 id="titulo-responsables" className="mb-3 text-xl font-semibold">Responsables que intervinieron</h2>
       <ul className="grid gap-3 sm:grid-cols-2">{trazabilidad.responsables.map((persona) => <li key={persona.id} className="min-w-0 rounded-lg border bg-card p-4">

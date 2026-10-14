@@ -79,7 +79,6 @@ export function formatearPorcentaje(valor: string | number | null | undefined, d
   return numero ? `${numero} %` : "";
 }
 
-const UNIDADES_DISCRETAS = new Set(["UNIDAD", "PLIEGO", "ROLLO"]);
 const NOMBRES_UNIDAD: Record<string, string> = {
   UNIDAD: "unidad", METRO: "metro", M2: "m²", YARDA: "yarda", PIE: "pie", LITRO: "litro",
   GALON: "galón", KILOGRAMO: "kilogramo", LIBRA: "libra", PLIEGO: "pliego", ROLLO: "rollo",
@@ -91,10 +90,13 @@ export function nombreUnidad(unidad: string): string {
   return NOMBRES_UNIDAD[codigo] ?? unidad.trim().toLowerCase();
 }
 
-/** Unidades discretas sin decimales; continuas con hasta `decimales`, sin ceros sobrantes. */
-export function formatearCantidadPorUnidad(valor: string | number | null | undefined, unidad: string, decimales = 3): string {
-  const discreta = UNIDADES_DISCRETAS.has(unidad.trim().toUpperCase());
-  return quitarCerosFinales(formatearCantidad(valor, discreta ? 0 : decimales));
+/**
+ * Cantidad sin ceros sobrantes: 8.000 -> "8", 3.700 -> "3.7", 0.125 -> "0.125".
+ * Una unidad entera se ve sin decimales; una fraccionaria (medio rollo) conserva su valor real.
+ * El parámetro unidad se conserva por compatibilidad; la regla no redondea nunca.
+ */
+export function formatearCantidadPorUnidad(valor: string | number | null | undefined, _unidad: string, decimales = 3): string {
+  return quitarCerosFinales(formatearCantidad(valor, decimales));
 }
 
 /** Cantidad con su unidad legible: "1,200 pliego", "2.5 m²". */

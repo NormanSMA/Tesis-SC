@@ -17,7 +17,7 @@ export function aTotalesDto(cotizacion: Cotizacion) {
 export function aCotizacionFila(fila: Cotizacion & {
   cliente: Cliente; usuarioAprobacion: { id: string; nombre: string } | null;
 }): CotizacionFila {
-  return { ...aTotalesDto(fila), id: fila.id, numero: fila.numero, clienteId: fila.clienteId,
+  return { ...aTotalesDto(fila), descuentoPct: fila.descuentoPct?.toFixed(2) ?? null, id: fila.id, numero: fila.numero, clienteId: fila.clienteId,
     cliente: aClienteDto(fila.cliente), estado: fila.estado, asunto: fila.asunto, condiciones: fila.condiciones,
     cotizacionOrigenId: fila.cotizacionOrigenId, moneda: fila.moneda, tipoCambio: fila.tipoCambio.toFixed(4), vigenciaDias: fila.vigenciaDias,
     fechaEmision: fila.fechaEmision?.toISOString().slice(0, 10) ?? null,

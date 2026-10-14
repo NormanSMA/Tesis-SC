@@ -4,6 +4,7 @@ import { FormField } from "@/components/comunes/FormField";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { formatearCantidadConUnidad } from "@/lib/formato";
 import type { ResumenOrdenInventario } from "../contrato-orden";
 import type { MaterialDto } from "../dto";
 import { SelectorMaterial } from "./SelectorMaterial";
@@ -22,7 +23,7 @@ export function LineaMovimientoOrden({ linea, indice, resumen, errores, cambiar,
     <legend className="text-base font-semibold">Línea {indice + 1}: {linea.nombre || "Seleccione material"}</legend>
     <SelectorMaterial id={`${prefijo}.materialId`} valor={linea.materialId} error={errores[`${prefijo}.materialId`]}
       cambiar={seleccionar} />
-    <p className="text-sm">Existencia disponible: {disponible} {linea.unidad}</p>
+    <p className="text-sm">Existencia disponible: {formatearCantidadConUnidad(disponible, linea.unidad)}</p>
     <FormField id={`${prefijo}.cantidad`} etiqueta="Cantidad" requerido error={errores[`${prefijo}.cantidad`]
       ?? errores[`${prefijo}.disponible`] ?? errores[linea.materialId]}>{(atributos) => <Input {...atributos} inputMode="decimal"
         value={linea.cantidad} onChange={(e) => cambiar({ cantidad: e.target.value })} />}</FormField>

@@ -1,13 +1,13 @@
 import { CircleAlert } from "lucide-react";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { formatearCantidad } from "@/lib/formato";
+import { formatearCantidadPorUnidad } from "@/lib/formato";
 import type { OrdenDto } from "../tipos";
 
 type Consumo = OrdenDto["consumosEstimados"][number];
 const columnas: ColumnaTabla<Consumo>[] = [
   { id: "material", encabezado: "Material", principal: true, celda: (consumo) => consumo.material.nombre },
-  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (consumo) => formatearCantidad(consumo.cantidad, 3) },
+  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (consumo) => formatearCantidadPorUnidad(consumo.cantidad, consumo.material.unidad) },
   { id: "unidad", encabezado: "Unidad", celda: (consumo) => consumo.material.unidad },
 ];
 

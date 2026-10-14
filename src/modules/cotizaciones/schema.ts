@@ -9,7 +9,9 @@ const id = z.uuid({ error: "Seleccione un registro válido." });
 const texto = z.string().trim().min(1, "Es obligatorio.");
 const textoCorto = texto.max(200, "Admite hasta 200 caracteres.");
 const decimal = z.string({ error: "Ingrese una cadena decimal con punto." });
-const medidas = { ancho: decimal.nullish(), alto: decimal.nullish() };
+const descuentoPct = z.string({ error: "Ingrese una cadena decimal con punto." })
+  .regex(/^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/, "Ingrese un porcentaje de 0 a 100 con hasta 2 decimales.");
+const medidas ={ ancho: decimal.nullish(), alto: decimal.nullish() };
 const vigenciaDias = z.number().int().min(1, "Debe ser mayor que 0.").max(36500, "Admite hasta 36500 días.");
 const condiciones = z.string().trim().max(2000, "Admite hasta 2000 caracteres.").nullable();
 
@@ -24,7 +26,12 @@ export const esquemaEditarCotizacion = z.object({
   asunto: texto.max(200).optional(),
   condiciones: condiciones.optional(),
   descuento: decimal.optional(),
+  descuentoPct: descuentoPct.nullable().optional(),
   vigenciaDias: vigenciaDias.optional(),
+}).superRefine((entrada, contexto) => {
+  if (entrada.descuento !== undefined && entrada.descuentoPct != null) {
+    contexto.addIssue({ code: "custom", path: ["descuentoPct"], message: "Envíe el descuento como monto o como porcentaje, no ambos." });
+  }
 });
 export const esquemaCambioEstado = z.object({ version });
 export const esquemaResponder = z.object({

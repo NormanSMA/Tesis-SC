@@ -58,6 +58,17 @@ describe("cotizaciones: esquemas", () => {
     for (const vigenciaDias of [0, 1.5, 36501, "15"]) expect(esquemaEditarCotizacion.safeParse({ version: VERSION, vigenciaDias }).success).toBe(false);
   });
 
+  it("editar acepta descuento como monto o como porcentaje, no ambos", () => {
+    const resultado = (extra: object) => esquemaEditarCotizacion.safeParse({ version: VERSION, ...extra });
+    for (const descuentoPct of ["0", "10", "12.5", "99.99", "100", "100.00", null]) expect(resultado({ descuentoPct }).success).toBe(true);
+    expect(resultado({ descuento: "5" }).success).toBe(true);
+    expect(resultado({ descuento: "5", descuentoPct: null }).success).toBe(true);
+    const ambos = resultado({ descuento: "5", descuentoPct: "10" });
+    expect(ambos.success).toBe(false);
+    expect(ambos.error?.issues.map((p) => p.path.join("."))).toEqual(["descuentoPct"]);
+    for (const descuentoPct of ["100.01", "101", "12.345", "-1", "abc", "", 10]) expect(resultado({ descuentoPct }).success).toBe(false);
+  });
+
   it("rechazar exige motivo y acepta aprobación o vencimiento", () => {
     expect(esquemaResponder.safeParse({ version: VERSION, resultado: "RECHAZADA", motivo: " " }).success).toBe(false);
     expect(esquemaResponder.parse({ version: VERSION, resultado: "RECHAZADA", motivo: " Precio " }).motivo).toBe("Precio");

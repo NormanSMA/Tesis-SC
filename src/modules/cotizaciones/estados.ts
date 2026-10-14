@@ -1,8 +1,8 @@
 import { exigir, type Actor } from "@/core/autorizacion";
-import { totalizarCotizacion } from "@/core/costeo";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 
+import { totalizarConDescuento } from "./calculo";
 import { aCotizacionDto, aItemDto } from "./dto";
 import { regla } from "./errores";
 import { exigirBorrador, exigirCotizacion, guardarCabecera, registrarCambio, tomarVersion } from "./escritura";
@@ -24,8 +24,8 @@ export async function enviarCotizacion(id: string, version: string, actor: Actor
     if (!transicionValidaCotizacion(actual.estado, "ENVIADA")) throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
     exigirBorrador(actual);
     if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un ítem antes de enviar la cotización.");
-    const totales = totalizarCotizacion({ items: actual.items.map(aItemDto),
-      descuento: actual.descuento.toFixed(2), tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
+    const totales = totalizarConDescuento({ items: actual.items.map(aItemDto), descuento: actual.descuento.toFixed(2),
+      descuentoPct: actual.descuentoPct?.toFixed(2) ?? null, tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
     const hoy = hoyManagua();
     await guardarCabecera(tx, actual, { ...totales, estado: "ENVIADA", fechaEmision: sumarDias(hoy, 0),
       fechaVencimiento: sumarDias(hoy, actual.vigenciaDias) });

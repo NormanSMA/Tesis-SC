@@ -166,11 +166,9 @@ async function verificarEtapasYEstimado(page: Page): Promise<void> {
   const consumo = page.getByRole("table", { name: "Consumo estimado de materiales" });
   await expect(consumo.getByRole("row")).toHaveCount(3);
   const vinil = consumo.getByRole("row", { name: /Vinil adhesivo blanco brillo/ });
-  await expect(vinil).toContainText("3.700");
-  await expect(vinil).toContainText("ROLLO");
+  await expect(vinil.getByRole("cell")).toHaveText(["3.7", "ROLLO"]);
   const laminado = consumo.getByRole("row", { name: /Laminado mate 150 micras/ });
-  await expect(laminado).toContainText("1.500");
-  await expect(laminado).toContainText("M2");
+  await expect(laminado.getByRole("cell")).toHaveText(["1.5", "M2"]);
 }
 
 async function consultarSembradas(page: Page, estado?: string): Promise<Orden[]> {

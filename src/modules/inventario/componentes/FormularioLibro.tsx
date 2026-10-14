@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
+import { formatearCantidadConUnidad } from "@/lib/formato";
 import { enfocarError, erroresEsquema } from "@/modules/cotizaciones/useSolicitudCotizacion";
 import type { MaterialDto } from "../dto";
 import { esquemaAjuste, esquemaEntrada } from "../schema";
@@ -35,7 +36,7 @@ export function FormularioLibro({ tipo, inicial }: { tipo: "entrada" | "ajuste";
     <AvisoSolicitud {...solicitud} /><Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
       <SelectorMaterial id="materialId" valor={material?.id ?? ""} error={errores.materialId ?? solicitud.campos.materialId}
         cambiar={(nuevo) => { setMaterial(nuevo); setErrores({}); solicitud.cambiarContenido(); }} />
-      {material ? <p className="text-sm" aria-live="polite">Existencia disponible: {solicitud.existencias[material.id] ?? material.existencia} {material.unidad}</p> : null}
+      {material ? <p className="text-sm" aria-live="polite">Existencia disponible: {formatearCantidadConUnidad(solicitud.existencias[material.id] ?? material.existencia, material.unidad)}</p> : null}
       <FormField id="cantidad" etiqueta="Cantidad" requerido error={errores.cantidad ?? solicitud.campos.cantidad}>{(atributos) =>
         <Input {...atributos} inputMode="decimal" value={valores.cantidad} onChange={(e) => cambiar("cantidad", e.target.value)} />}</FormField>
       <CamposLibro tipo={tipo} valores={valores} errores={{ ...errores, ...solicitud.campos }} cambiar={cambiar} />

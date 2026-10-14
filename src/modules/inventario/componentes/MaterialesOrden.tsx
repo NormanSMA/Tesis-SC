@@ -4,7 +4,7 @@ import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { formatearCantidad } from "@/lib/formato";
+import { formatearCantidadConUnidad } from "@/lib/formato";
 import type { ResumenMaterialOrden } from "../contrato-orden";
 import { useResumenOrden } from "../useResumenOrden";
 
@@ -12,7 +12,7 @@ const columnas: ColumnaTabla<ResumenMaterialOrden>[] = [
   { id: "material", encabezado: "Material", principal: true, celda: (fila) => <Link className="text-primary underline" href={`/inventario/${fila.material.id}`}>{fila.material.nombre}</Link> },
   ...(["estimado", "consumido", "devuelto", "neto"] as const).map((campo) => ({ id: campo,
     encabezado: { estimado: "Estimado", consumido: "Consumido", devuelto: "Devuelto", neto: "Neto" }[campo],
-    alinear: "derecha" as const, celda: (fila: ResumenMaterialOrden) => <span>{formatearCantidad(fila[campo], 3)} {fila.material.unidad}</span> })),
+    alinear: "derecha" as const, celda: (fila: ResumenMaterialOrden) => <span>{formatearCantidadConUnidad(fila[campo], fila.material.unidad)}</span> })),
 ];
 export function MaterialesOrden({ ordenId, consumir }: { ordenId: string; consumir: boolean }) {
   const { resumen, error, recargar } = useResumenOrden(ordenId);

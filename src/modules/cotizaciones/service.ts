@@ -1,10 +1,10 @@
 import { exigir, type Actor } from "@/core/autorizacion";
-import { totalizarCotizacion } from "@/core/costeo";
 import { type Moneda } from "@/core/moneda";
 import { prisma, type Tx } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 
 import { detalleCabecera, detalleItems } from "./auditoria";
+import { totalizarConDescuento } from "./calculo";
 import { costearItems } from "./costear";
 import { aCotizacionDto, aCotizacionFila, aItemDto } from "./dto";
 import { regla } from "./errores";
@@ -44,12 +44,14 @@ async function insertarBorrador(tx: Tx, entrada: DatosNuevoBorrador, actor: Acto
   const configuracion = await configuracionCotizacion(tx);
   const { moneda, tipoCambio } = monedaYTipoCambio(entrada, configuracion);
   const items = await costearItems(tx, { items: entrada.items ?? [], anteriores: entrada.origen?.items ?? [], tipoCambio, duplicando: true });
-  const totales = totalizarCotizacion({ items, descuento: entrada.origen?.descuento.toFixed(2) ?? "0", tasaImpuesto: configuracion.tasaImpuesto });
+  const descuentoPct = entrada.origen?.descuentoPct?.toFixed(2) ?? null;
+  const totales = totalizarConDescuento({ items, descuento: entrada.origen?.descuento.toFixed(2) ?? "0", descuentoPct,
+    tasaImpuesto: configuracion.tasaImpuesto });
   const nuevo = await tx.cotizacion.create({ data: {
     numero: await siguienteNumero(tx), clienteId: entrada.clienteId, asunto: entrada.asunto,
     condiciones: entrada.condiciones === undefined ? configuracion.condiciones : entrada.condiciones,
     vigenciaDias: configuracion.vigenciaDias, creadoPorId: actor.id, cotizacionOrigenId: entrada.origen?.id,
-    moneda, tipoCambio,
+    moneda, tipoCambio, descuentoPct,
     version: entrada.version ?? 1, ...totales,
   } });
   await guardarItems(tx, nuevo.id, items);
@@ -70,10 +72,13 @@ export async function editarCotizacion(id: string, entrada: EntradaEditarCotizac
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, entrada.version);
     exigirBorrador(actual);
-    const totales = totalizarCotizacion({ items: actual.items.map(aItemDto),
+    // Un porcentaje explícito (o null) manda; enviar un monto limpia el porcentaje.
+    const descuentoPct = entrada.descuentoPct !== undefined ? entrada.descuentoPct
+      : entrada.descuento !== undefined ? null : actual.descuentoPct?.toFixed(2) ?? null;
+    const totales = totalizarConDescuento({ items: actual.items.map(aItemDto), descuentoPct,
       descuento: entrada.descuento ?? actual.descuento.toFixed(2), tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
     await guardarCabecera(tx, actual, { asunto: entrada.asunto, condiciones: entrada.condiciones,
-      vigenciaDias: entrada.vigenciaDias, ...totales });
+      vigenciaDias: entrada.vigenciaDias, descuentoPct, ...totales });
     const nueva = await exigirCotizacion(tx, id);
     await registrarCambio(tx, { ficha: nueva, actor, accion: "EDITAR", detalle: detalleCabecera(actual, nueva) });
     return aCotizacionDto(nueva);
@@ -86,7 +91,8 @@ export async function reemplazarItems(id: string, entrada: EntradaReemplazarItem
     const actual = await tomarVersion(tx, id, entrada.version);
     exigirBorrador(actual);
     const items = await costearItems(tx, { items: entrada.items, anteriores: actual.items, tipoCambio: actual.tipoCambio.toFixed(4) });
-    const totales = totalizarCotizacion({ items, descuento: actual.descuento.toFixed(2), tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
+    const totales = totalizarConDescuento({ items, descuento: actual.descuento.toFixed(2),
+      descuentoPct: actual.descuentoPct?.toFixed(2) ?? null, tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
     await guardarItems(tx, id, items);
     await guardarCabecera(tx, actual, totales);
     const nueva = await exigirCotizacion(tx, id);
