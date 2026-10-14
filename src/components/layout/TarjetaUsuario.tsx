@@ -88,7 +88,7 @@ function TarjetaRiel({ usuario, className }: { usuario: UsuarioSesion; className
   const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(", ");
   return (
     <section aria-label="Sesión de usuario" className={cn("flex flex-col items-center gap-1 border-t border-sidebar-border p-2", className)}>
-      <span title={`${usuario.nombre} · ${perfiles}`} role="img" aria-label={`${usuario.nombre}, ${perfiles}`}>
+      <span title={`${usuario.nombre} · ${perfiles}`} role="img" aria-label={usuario.nombre}>
         <Iniciales usuario={usuario} className="size-9" />
       </span>
       <BotonSalir onClick={cerrarSesion} />

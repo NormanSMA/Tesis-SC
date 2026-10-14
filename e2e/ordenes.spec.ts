@@ -433,7 +433,7 @@ test("Producción consulta lista y ficha sin gestión ni dinero", async ({ page 
   await abrirSembrada(page);
   expect(await page.evaluate(() => document.body.innerText)).not.toContain("C$");
   await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar|Entregar|Convertir en orden/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar(?! sesión)|Entregar|Convertir en orden/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
   await abrirPestana(page, "Especificaciones");
   await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("Cantidad:");
