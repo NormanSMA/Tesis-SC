@@ -8,12 +8,15 @@ import { Migas } from "./Migas";
 type PropiedadesBarra = {
   ruta: string;
   rielExpandido: boolean;
+  compacto: boolean;
   alAbrirMenuMovil: () => void;
   alAlternarRiel: () => void;
+  alAlternarCompacto: () => void;
 };
 
-export function BarraSuperior({ ruta, rielExpandido, alAbrirMenuMovil, alAlternarRiel }: PropiedadesBarra) {
+export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
   const IconoRiel = rielExpandido ? PanelLeftClose : PanelLeftOpen;
+  const IconoCompacto = compacto ? PanelLeftOpen : PanelLeftClose;
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card px-4 xl:px-6">
       <Button
@@ -36,6 +39,17 @@ export function BarraSuperior({ ruta, rielExpandido, alAbrirMenuMovil, alAlterna
         onClick={alAlternarRiel}
       >
         <IconoRiel aria-hidden="true" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden xl:inline-flex"
+        aria-label={compacto ? "Expandir menú de navegación" : "Contraer menú de navegación"}
+        aria-expanded={!compacto}
+        aria-controls="menu-principal"
+        onClick={alAlternarCompacto}
+      >
+        <IconoCompacto aria-hidden="true" />
       </Button>
       <div className="min-w-0 flex-1">
         <Migas ruta={ruta} />

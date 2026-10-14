@@ -19,17 +19,20 @@ type PropiedadesBarra = {
   ruta: string;
   /** Solo aplica entre 768 y 1279 px: muestra el riel con etiquetas encima del contenido. */
   rielExpandido: boolean;
+  /** Pantalla grande con el menú reducido a íconos. */
+  compacto: boolean;
   alCerrarRiel: () => void;
   alCerrarRielConFoco: () => void;
 };
 
-export function BarraLateral({ usuario, grupos, ruta, rielExpandido, alCerrarRiel, alCerrarRielConFoco }: PropiedadesBarra) {
+export function BarraLateral({ usuario, grupos, ruta, rielExpandido, compacto, alCerrarRiel, alCerrarRielConFoco }: PropiedadesBarra) {
   return (
     <aside
       id="menu-principal"
       data-expandido={rielExpandido}
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden w-16 flex-col border-r border-sidebar-border bg-sidebar md:flex xl:w-64",
+        "fixed inset-y-0 left-0 z-40 hidden w-16 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex",
+        !compacto && "xl:w-64",
         rielExpandido && "w-64 shadow-lg xl:shadow-none",
       )}
     >
@@ -39,8 +42,8 @@ export function BarraLateral({ usuario, grupos, ruta, rielExpandido, alCerrarRie
             <Marca />
           ) : (
             <>
-              <Marca mostrarNombre={false} className="xl:hidden" />
-              <Marca className="hidden xl:flex" />
+              <Marca mostrarNombre={false} className={compacto ? undefined : "xl:hidden"} />
+              {compacto ? null : <Marca className="hidden xl:flex" />}
             </>
           )}
         </Link>
@@ -57,10 +60,10 @@ export function BarraLateral({ usuario, grupos, ruta, rielExpandido, alCerrarRie
           </Button>
         ) : null}
       </div>
-      <nav aria-label="Principal" className="flex-1 overflow-y-auto p-2 xl:p-3">
-        <ListaNavegacion grupos={grupos} ruta={ruta} expandido={rielExpandido} alNavegar={alCerrarRiel} />
+      <nav aria-label="Principal" className={cn("flex-1 overflow-y-auto p-2", !compacto && "xl:p-3")}>
+        <ListaNavegacion grupos={grupos} ruta={ruta} expandido={rielExpandido} compacto={compacto} alNavegar={alCerrarRiel} />
       </nav>
-      <TarjetaUsuario usuario={usuario} modo={rielExpandido ? "amplia" : "adaptable"} />
+      <TarjetaUsuario usuario={usuario} modo={rielExpandido ? "amplia" : compacto ? "riel" : "adaptable"} />
     </aside>
   );
 }

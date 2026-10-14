@@ -50,7 +50,7 @@ export function FormField({ id, etiqueta, ayuda, error, requerido, className, ch
           {ayuda}
         </p>
       ) : null}
-      <div aria-live="polite">
+      <div aria-live="polite" className="empty:-mt-2">
         {error ? (
           <p id={idError} className="flex items-start gap-1.5 text-sm font-medium text-danger">
             <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
