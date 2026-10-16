@@ -33,7 +33,6 @@ Criterios de adopción: mantenimiento activo, licencia permisiva, sin dependenci
 | pino | 10.x | Registro estructurado en JSON con redacción. | `src/lib/registro.ts`, `src/lib/http.ts`, `src/lib/errores.ts`, autenticación. | Contraseñas, cookies y tokens no llegan al registro. Formato apto para agregadores. | `console.log` sin redacción. winston: más pesado y sin redacción por ruta nativa. |
 | rate-limiter-flexible | 11.x | Límite de tasa por usuario e IP con almacén en memoria. | `src/lib/limite-tasa.ts`; API y login. | Responde 429 con `Retry-After` ante abuso. Un solo proceso no necesita Redis. | express-rate-limit: ligado a Express. Redis: infraestructura extra sin necesidad hoy. |
 | papaparse | 5.7.x | Lectura de CSV con comillas, BOM y separadores. | `src/modules/importacion/csv.ts`. | Analizador probado. La validación de filas sigue en zod. | `split(",")` casero: falla con comillas y saltos de línea. csv-parse: más pesado para el navegador. |
-| motion | 14.x | Animación de íconos del menú. | `src/components/iconos-animados/*` (de lucide-animated, MIT), `src/components/layout/BotonPanel.tsx`. | Los íconos se mueven al pasar el mouse, al enfocar y al abrir la sección activa; respeta «reducir movimiento». | CSS propio por ícono: más trabajo y sin las animaciones de la librería. |
 
 Decisiones relacionadas: ADR-017 (límite de tasa, proxy TLS y bitácora de accesos) y ADR-019 (importación y confirmación).
 
@@ -48,6 +47,7 @@ Decisiones relacionadas: ADR-017 (límite de tasa, proxy TLS y bitácora de acce
 
 | Librería | Motivo del descarte | Cuándo reconsiderar |
 |---|---|---|
+| lucide-animated y motion (íconos animados) | Se probaron en el menú y Norman pidió quitarlas (2026-10-16). Quedaron los íconos estáticos de lucide. | Si se vuelve a pedir; el menú ya está preparado con un ícono por sección. |
 | next-themes (modo oscuro) | Norman pidió terminar primero el tema claro. El trabajo hecho y probado está guardado en la bóveda (`wiki/projects/sc-plataforma/modo-oscuro-pendiente`). | Cuando el tema claro quede aprobado. |
 | TanStack Query | El sistema usa componentes de servidor y un hook propio acotado por pantalla. Agregarla duplicaría la caché. | Si aparecen pantallas con sondeo, actualización optimista o caché compartida. |
 | TanStack Table | Las tablas actuales son simples y accesibles con HTML semántico. | Si se piden columnas redimensionables, agrupación o virtualización. |

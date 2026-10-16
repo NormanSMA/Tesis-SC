@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useReducedMotion } from "motion/react";
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment } from "react";
 
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-import type { ControlIcono } from "./icono-animado";
 import type { GrupoNavegacion, ItemNavegacion } from "./navegacion";
 
 type PropiedadesLista = {
@@ -33,24 +31,10 @@ function EnlaceItem({
   alNavegar,
 }: { item: ItemNavegacion; activo: boolean } & Pick<PropiedadesLista, "expandido" | "compacto" | "alNavegar">) {
   const Icono = item.icono;
-  const control = useRef<ControlIcono>(null);
-  const reducirMovimiento = useReducedMotion();
-  const animar = () => {
-    if (!reducirMovimiento) control.current?.startAnimation();
-  };
-  const detener = () => control.current?.stopAnimation();
-  // Al llegar a una sección, su ícono se mueve una vez.
-  useEffect(() => {
-    if (activo && !reducirMovimiento) control.current?.startAnimation();
-  }, [activo, reducirMovimiento]);
   const enlace = (
     <Link
       href={item.href}
       onClick={alNavegar}
-      onMouseEnter={animar}
-      onMouseLeave={detener}
-      onFocus={animar}
-      onBlur={detener}
       aria-current={activo ? "page" : undefined}
       className={cn(
         "relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent",
@@ -61,7 +45,7 @@ function EnlaceItem({
       {activo ? (
         <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-full bg-brand-gold" />
       ) : null}
-      <Icono ref={control} size={20} aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center" />
+      <Icono aria-hidden="true" className="size-5 shrink-0" />
       <span className={cn("truncate", !expandido && (compacto ? "sr-only" : "sr-only xl:not-sr-only"))}>{item.etiqueta}</span>
     </Link>
   );

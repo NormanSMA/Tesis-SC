@@ -1,16 +1,15 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { LogoutIcon } from "@/components/iconos-animados/logout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ETIQUETA_PERFIL } from "@/core/permisos";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
 import { cn } from "@/lib/utils";
-
-import { BotonPanel } from "./BotonPanel";
 
 function iniciales(nombre: string): string {
   const partes = nombre.trim().split(/\s+/).filter(Boolean);
@@ -45,8 +44,7 @@ function Iniciales({ usuario, className }: { usuario: UsuarioSesion; className?:
 
 function BotonSalir({ onClick }: { onClick: () => void }) {
   return (
-    <BotonPanel
-      Icono={LogoutIcon}
+    <Button
       type="button"
       variant="ghost"
       size="icon"
@@ -54,7 +52,9 @@ function BotonSalir({ onClick }: { onClick: () => void }) {
       aria-label="Cerrar sesión"
       title="Cerrar sesión"
       onClick={onClick}
-    />
+    >
+      <LogOut aria-hidden="true" />
+    </Button>
   );
 }
 

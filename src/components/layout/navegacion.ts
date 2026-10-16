@@ -1,22 +1,24 @@
-import { BookTextIcon } from "@/components/iconos-animados/book-text";
-import { BoxesIcon } from "@/components/iconos-animados/boxes";
-import { ChartColumnIncreasingIcon } from "@/components/iconos-animados/chart-column-increasing";
-import { ClipboardCheckIcon } from "@/components/iconos-animados/clipboard-check";
-import { HistoryIcon } from "@/components/iconos-animados/history";
-import { LayoutGridIcon } from "@/components/iconos-animados/layout-grid";
-import { ReceiptTextIcon } from "@/components/iconos-animados/receipt-text";
-import { SettingsIcon } from "@/components/iconos-animados/settings";
-import { ShieldCheckIcon } from "@/components/iconos-animados/shield-check";
-import { UserRoundCogIcon } from "@/components/iconos-animados/user-round-cog";
-import { UsersIcon } from "@/components/iconos-animados/users";
+import {
+  BookOpen,
+  Boxes,
+  ClipboardCheck,
+  History,
+  LayoutDashboard,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  ReceiptText,
+  Users,
+  UserCog,
+  type LucideIcon,
+} from "lucide-react";
 
-import { BrazoRobotAnimado } from "./IconoBrazoRobotAnimado";
-import type { IconoAnimado } from "./icono-animado";
+import { BrazoRobot } from "./IconoBrazoRobot";
 
 export type ItemNavegacion = {
   href: string;
   etiqueta: string;
-  icono: IconoAnimado;
+  icono: LucideIcon;
   permiso: string;
 };
 
@@ -30,24 +32,24 @@ export const gruposNavegacion: GrupoNavegacion[] = [
   {
     id: "operacion",
     items: [
-      { href: "/panel", etiqueta: "Panel", icono: LayoutGridIcon, permiso: "panel:ver" },
-      { href: "/clientes", etiqueta: "Clientes", icono: UsersIcon, permiso: "cliente:ver" },
-      { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: ReceiptTextIcon, permiso: "cotizacion:ver" },
-      { href: "/ordenes", etiqueta: "Órdenes de trabajo", icono: ClipboardCheckIcon, permiso: "orden:ver" },
-      { href: "/produccion", etiqueta: "Producción", icono: BrazoRobotAnimado, permiso: "produccion:ver" },
-      { href: "/inventario", etiqueta: "Inventario", icono: BoxesIcon, permiso: "inventario:ver" },
-      { href: "/catalogo", etiqueta: "Catálogo", icono: BookTextIcon, permiso: "catalogo:ver" },
-      { href: "/trazabilidad", etiqueta: "Trazabilidad", icono: HistoryIcon, permiso: "bitacora:ver" },
-      { href: "/reportes", etiqueta: "Reportes", icono: ChartColumnIncreasingIcon, permiso: "reporte:ver" },
+      { href: "/panel", etiqueta: "Panel", icono: LayoutDashboard, permiso: "panel:ver" },
+      { href: "/clientes", etiqueta: "Clientes", icono: Users, permiso: "cliente:ver" },
+      { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: ReceiptText, permiso: "cotizacion:ver" },
+      { href: "/ordenes", etiqueta: "Órdenes de trabajo", icono: ClipboardCheck, permiso: "orden:ver" },
+      { href: "/produccion", etiqueta: "Producción", icono: BrazoRobot, permiso: "produccion:ver" },
+      { href: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: "inventario:ver" },
+      { href: "/catalogo", etiqueta: "Catálogo", icono: BookOpen, permiso: "catalogo:ver" },
+      { href: "/trazabilidad", etiqueta: "Trazabilidad", icono: History, permiso: "bitacora:ver" },
+      { href: "/reportes", etiqueta: "Reportes", icono: BarChart3, permiso: "reporte:ver" },
     ],
   },
   {
     id: "administracion",
     etiqueta: "Administración técnica",
     items: [
-      { href: "/admin/usuarios", etiqueta: "Usuarios", icono: UserRoundCogIcon, permiso: "usuario:gestionar" },
-      { href: "/admin/permisos", etiqueta: "Perfiles y permisos", icono: ShieldCheckIcon, permiso: "permiso:gestionar" },
-      { href: "/admin/configuracion", etiqueta: "Configuración", icono: SettingsIcon, permiso: "configuracion:gestionar" },
+      { href: "/admin/usuarios", etiqueta: "Usuarios", icono: UserCog, permiso: "usuario:gestionar" },
+      { href: "/admin/permisos", etiqueta: "Perfiles y permisos", icono: ShieldCheck, permiso: "permiso:gestionar" },
+      { href: "/admin/configuracion", etiqueta: "Configuración", icono: Settings, permiso: "configuracion:gestionar" },
     ],
   },
 ];

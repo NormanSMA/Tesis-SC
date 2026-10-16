@@ -1,9 +1,10 @@
 "use client";
 
-import { PanelLeftCloseIcon } from "@/components/iconos-animados/panel-left-close";
+import { PanelLeftClose } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-import { BotonPanel } from "./BotonPanel";
 import { ListaNavegacion } from "./ListaNavegacion";
 import { Marca } from "./Marca";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
@@ -28,7 +29,9 @@ export function MenuMovil({ usuario, abierto, alCambiarAbierto, grupos, ruta }: 
           <SheetDescription className="sr-only">Opciones disponibles según su perfil.</SheetDescription>
           <Marca />
           <SheetClose asChild>
-            <BotonPanel Icono={PanelLeftCloseIcon} variant="ghost" size="icon" aria-label="Cerrar menú de navegación" />
+            <Button variant="ghost" size="icon" aria-label="Cerrar menú de navegación">
+              <PanelLeftClose aria-hidden="true" />
+            </Button>
           </SheetClose>
         </SheetHeader>
         <nav aria-label="Principal" className="flex-1 overflow-y-auto p-3">

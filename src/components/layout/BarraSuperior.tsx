@@ -1,12 +1,8 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
-import { PanelLeftCloseIcon } from "@/components/iconos-animados/panel-left-close";
-import { PanelLeftOpenIcon } from "@/components/iconos-animados/panel-left-open";
 import { Button } from "@/components/ui/button";
-
-import { BotonPanel } from "./BotonPanel";
 import { Migas } from "./Migas";
 
 type PropiedadesBarra = {
@@ -19,6 +15,8 @@ type PropiedadesBarra = {
 };
 
 export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
+  const IconoRiel = rielExpandido ? PanelLeftClose : PanelLeftOpen;
+  const IconoCompacto = compacto ? PanelLeftOpen : PanelLeftClose;
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card px-4 xl:px-6">
       <Button
@@ -30,8 +28,7 @@ export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil,
       >
         <Menu aria-hidden="true" />
       </Button>
-      <BotonPanel
-        Icono={rielExpandido ? PanelLeftCloseIcon : PanelLeftOpenIcon}
+      <Button
         variant="ghost"
         size="icon"
         className="hidden md:inline-flex xl:hidden"
@@ -40,9 +37,10 @@ export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil,
         aria-controls="menu-principal"
         id="alternar-riel"
         onClick={alAlternarRiel}
-      />
-      <BotonPanel
-        Icono={compacto ? PanelLeftOpenIcon : PanelLeftCloseIcon}
+      >
+        <IconoRiel aria-hidden="true" />
+      </Button>
+      <Button
         variant="ghost"
         size="icon"
         className="hidden xl:inline-flex"
@@ -50,7 +48,9 @@ export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil,
         aria-expanded={!compacto}
         aria-controls="menu-principal"
         onClick={alAlternarCompacto}
-      />
+      >
+        <IconoCompacto aria-hidden="true" />
+      </Button>
       <div className="min-w-0 flex-1">
         <Migas ruta={ruta} />
       </div>
