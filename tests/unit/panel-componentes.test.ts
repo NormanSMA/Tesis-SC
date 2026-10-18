@@ -68,7 +68,7 @@ describe("Gráfico compacto de estados", () => {
     expect(html.match(/class="animate-bar-grow /g)).toHaveLength(6);
     expect(html).toContain("Otros: 6");
     expect(html).toContain('animation-delay:200ms');
-    expect(html).toContain('<table class="sr-only">');
+    expect(html).toContain('<div class="sr-only"><table>');
     expect(html).toContain('<th scope="row">Otros</th><td>6</td>');
     expect(datos.map(({ valor }) => valor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
@@ -128,16 +128,25 @@ describe("Feed operativo", () => {
 });
 
 describe("Indicadores operativos", () => {
-  it("usa comparación, invierte la tendencia descendente y muestra la meta del porcentaje", () => {
+  it("con tendencia, el pie muestra el contexto; invierte el color y muestra la meta en el anillo", () => {
     const html = renderToStaticMarkup(createElement(TarjetaIndicador, { indicador: {
       id: "tasa", etiqueta: "Tasa de aprobación", numero: 64, valor: "64 %", formato: "porcentaje",
       meta: 70, destino: "/cotizaciones", contexto: "Contexto secundario", mejorSiBaja: true,
       comparacion: { porcentaje: -2, texto: "vs. mes anterior" }, tendencia: { direccion: "baja", texto: "2 %" },
     } }));
-    expect(html).toContain("Meta 70 %");
+    expect(html).toContain("meta 70 %");
     expect(html).toContain("text-success");
-    expect(html).toContain("vs. mes anterior");
-    expect(html).not.toContain("Contexto secundario");
+    expect(html).toContain("Contexto secundario");
+    expect(html).not.toContain("vs. mes anterior");
     expect(html).toContain('role="img"');
+  });
+  it("sin tendencia, el pie muestra la comparación con el periodo anterior", () => {
+    const html = renderToStaticMarkup(createElement(TarjetaIndicador, { indicador: {
+      id: "clientes", etiqueta: "Clientes nuevos", numero: 3, valor: "3", formato: "entero",
+      destino: "/clientes", contexto: "Contexto secundario",
+      comparacion: { porcentaje: 50, texto: "+50 % vs. el mes anterior" },
+    } }));
+    expect(html).toContain("+50 % vs. el mes anterior");
+    expect(html).not.toContain("Contexto secundario");
   });
 });

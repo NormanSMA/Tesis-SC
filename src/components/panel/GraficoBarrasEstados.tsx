@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 
-import { agruparOtros, porcentajeVisible } from "@/lib/listas/numeros";
+import { agruparOtros, formatearCompacto, porcentajeVisible } from "@/lib/listas/numeros";
 import type { GraficoPanel } from "@/modules/panel/tipos";
 
 function datosVisibles(grafico: GraficoPanel) {
@@ -13,15 +13,26 @@ export function formatearDescripcionGrafico(grafico: GraficoPanel): string {
   return `${grafico.titulo}${contexto}. ${valores.length ? valores.join("; ") : "Sin datos"}.`;
 }
 
+// Etiqueta corta sobre la barra: montos largos pasan a formato compacto ("C$ 110 mil"); el valor completo queda en la tabla accesible.
+function etiquetaBarra(texto: string | undefined, valor: number): string {
+  if (!texto) return String(valor);
+  if (texto.length <= 8) return texto;
+  const numero = Number(texto.replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numero)) return texto;
+  const simbolo = texto.match(/^-?(US\$|C\$)/)?.[1];
+  return simbolo ? `${simbolo} ${formatearCompacto(numero)}` : formatearCompacto(numero);
+}
+
+// La tabla va dentro de un div sr-only: una tabla con sr-only directo ignora el ancho de 1 px y desborda la página.
 function TablaGrafico({ grafico }: { grafico: GraficoPanel }) {
   return (
-    <table className="sr-only">
+    <div className="sr-only"><table>
       <caption>{grafico.titulo}. {grafico.subtitulo}</caption>
       <thead><tr><th scope="col">Categoría</th><th scope="col">Valor</th></tr></thead>
       <tbody>{datosVisibles(grafico).map(({ clave, etiqueta, valor, texto }, indice) => (
         <tr key={clave ?? `${etiqueta}-${indice}`}><th scope="row">{etiqueta}</th><td>{texto ?? valor}</td></tr>
       ))}</tbody>
-    </table>
+    </table></div>
   );
 }
 
@@ -39,7 +50,7 @@ export function GraficoBarrasEstados({ grafico }: { grafico: GraficoPanel }) {
             <div key={clave ?? `${etiqueta}-${indice}`} className="flex h-full min-w-0 items-end justify-center">
               <div className={`animate-bar-grow relative w-full max-w-10 rounded-t-md motion-reduce:animate-none ${destacado ? "bg-primary" : "bg-slate-300"}`}
                 style={{ height: `${porcentajeVisible(valor, maximo) * 0.85}%`, animationDelay: `${indice * 40}ms` }}>
-                <span className="absolute bottom-full left-1/2 mb-2 max-w-[calc(100%+0.5rem)] -translate-x-1/2 text-center text-[11px] font-semibold tabular-nums [overflow-wrap:anywhere]">{texto ?? valor}</span>
+                <span className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 text-center text-[11px] font-semibold whitespace-nowrap text-slate-700 tabular-nums">{etiquetaBarra(texto, valor)}</span>
               </div>
             </div>
           ))}

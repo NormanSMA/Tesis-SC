@@ -6,7 +6,7 @@ export const META_APROBACION_PCT = 70;
 export function comparacionPanel(actual: number, anterior: number, periodo: string): ComparacionIndicador {
   const porcentaje = anterior === 0 ? null : (actual - anterior) * 100 / anterior;
   const texto = porcentaje === null ? `Sin datos en ${periodo}`
-    : `${porcentaje > 0 ? "+" : ""}${formatearDecimal(String(porcentaje), 0)} % respecto a ${periodo}`;
+    : `${porcentaje > 0 ? "+" : ""}${formatearDecimal(String(porcentaje), 0)} % vs. ${periodo}`;
   return { porcentaje, texto };
 }
 export function mesAnterior(hoy: string): string {

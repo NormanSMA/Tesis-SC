@@ -1,5 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { nombreUnidad } from "@/lib/formato";
+import { cantidadMaterialPanel } from "./dto";
 import type { FilaOperativaDto, UrgenciaFeed } from "./tipos";
 
 export type FuenteFeed = { filas: FilaOperativaDto[]; total: number };
@@ -33,7 +35,8 @@ export function consultarCotizacionesFeed(entrada: EntradaFuente, urgencia: Urge
   const detalle = urgencia === "AJUSTE_SOLICITADO" ? "Ajuste solicitado sin versión corregida"
     : urgencia === "SIN_RESPUESTA" ? "Enviada hace más de tres días sin respuesta" : "Vence en los próximos tres días";
   return consultarFuente(Prisma.sql`
-    SELECT c.id, 'cotizacion' AS tipo, c.numero AS codigo, cl.nombre AS titulo, ${detalle}::text AS detalle,
+    SELECT c.id, 'cotizacion' AS tipo, c.numero AS codigo, cl.nombre AS titulo,
+      coalesce(nullif(c.asunto, ''), ${detalle}::text) AS detalle,
       ${urgencia}::text AS urgencia, ${urgencia === "AJUSTE_SOLICITADO" ? "alta" : "media"}::text AS gravedad,
       ${dinero}, ${referencia} AS referencia,
       greatest(floor(extract(epoch FROM (${instante}::timestamptz - ${referencia})) / 86400), 0)::int AS dias,
@@ -59,14 +62,23 @@ export function consultarOrdenesFeed(entrada: EntradaFuente, urgencia: "ORDEN_AT
       AND ${atrasada ? Prisma.sql`o.fecha_entrega < ${hoy}::date` : Prisma.sql`o.responsable_id IS NULL`}`);
 }
 
-export function consultarMaterialesFeed(entrada: EntradaFuente): Promise<FuenteFeed> {
-  return consultarFuente(Prisma.sql`
-    SELECT id, 'material' AS tipo, codigo, nombre AS titulo,
-      'Existencia ' || existencia::text || ' de ' || stock_minimo::text || ' ' || unidad::text AS detalle,
+// La consulta trae existencia, mínimo y unidad crudos; el texto se arma con el formato de cantidades de la interfaz.
+type FilaMaterial = FilaOperativaDto & { existencia?: string; minimo?: string; unidad?: string };
+function detalleMaterial(fila: FilaMaterial): FilaOperativaDto {
+  const { existencia = "0", minimo = "0", unidad = "", ...resto } = fila;
+  const cantidad = (valor: string) => cantidadMaterialPanel(valor, unidad);
+  return { ...resto, detalle: `Existencia ${cantidad(existencia)} de ${cantidad(minimo)} ${nombreUnidad(unidad)}`.trim() };
+}
+
+export async function consultarMaterialesFeed(entrada: EntradaFuente): Promise<FuenteFeed> {
+  const fuente = await consultarFuente(Prisma.sql`
+    SELECT id, 'material' AS tipo, codigo, nombre AS titulo, '' AS detalle,
+      existencia::text AS existencia, stock_minimo::text AS minimo, unidad::text AS unidad,
       'BAJO_MINIMO' AS urgencia, CASE WHEN existencia = 0 THEN 'alta' ELSE 'media' END AS gravedad,
       NULL::text AS monto, NULL::text AS moneda, actualizado_en AS referencia,
       greatest(floor(extract(epoch FROM (${entrada.instante}::timestamptz - actualizado_en)) / 86400), 0)::int AS dias,
       '/inventario/' || id AS destino FROM material WHERE activo AND stock_minimo > 0 AND existencia <= stock_minimo`);
+  return { ...fuente, filas: fuente.filas.map(detalleMaterial) };
 }
 
 export function consultarEtapasFeed(entrada: EntradaFuente, urgencia: "ETAPA_ATRASADA" | "ETAPA_DETENIDA"): Promise<FuenteFeed> {

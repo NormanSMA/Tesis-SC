@@ -48,7 +48,7 @@ export function TarjetaMetrica(propiedades: PropiedadesTarjeta) {
               <Icono aria-hidden="true" className="size-4" />
             </span>
           ) : null}
-          <span className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{etiqueta}</span>
+          <span className="line-clamp-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{etiqueta}</span>
         </span>
         {alerta ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-warning-soft-border bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning">
@@ -61,7 +61,7 @@ export function TarjetaMetrica(propiedades: PropiedadesTarjeta) {
           <ContadorMetrica numero={numero} texto={texto} formato={formato} moneda={moneda}
             className="text-3xl font-bold tracking-tight text-slate-900" />
           {tendencia && IconoTendencia ? (
-            <span className={cn("inline-flex items-center text-xs font-semibold", colorTendencia(tendencia.direccion, mejorSiBaja))}>
+            <span className={cn("inline-flex shrink-0 items-center text-xs font-semibold whitespace-nowrap", colorTendencia(tendencia.direccion, mejorSiBaja))}>
               <IconoTendencia aria-hidden="true" className="size-3.5" />
               <span className="sr-only">{tendencia.direccion === "sube" ? "Sube" : tendencia.direccion === "baja" ? "Baja" : "Igual"}</span>
               {tendencia.texto}
