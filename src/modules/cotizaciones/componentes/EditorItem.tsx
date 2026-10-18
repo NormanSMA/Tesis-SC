@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { useController, useFieldArray, useWatch, type UseFormReturn } from "react-hook-form";
 
 import { FormField } from "@/components/comunes/FormField";
 import { Money } from "@/components/comunes/ValorFormateado";
@@ -10,17 +11,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { TipoLineaCosto } from "@/core/costeo";
 import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
-import type { ItemCalculado } from "../calculo";
-import type { EntradaItem, EntradaLineaEditor } from "../schema";
+import { calcularVista, type ItemCalculado } from "../calculo";
+import type { EntradaItem, EntradaLineaEditor, EntradaReemplazarItems } from "../schema";
 import type { ItemDto, SelectoresEditor } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
 import { EditorLinea } from "./EditorLinea";
 import { GrupoCampo } from "./GrupoCampo";
 
-export type ItemEditor = EntradaItem & { claveLocal?: string };
+export type ItemEditor = EntradaItem;
 
-export type PropiedadesItem = { moneda: Moneda; item: ItemEditor; indice: number; original?: ItemDto; selectores: SelectoresEditor;
+type CamposItem = { moneda: Moneda; item: ItemEditor; indice: number; original?: ItemDto; selectores: SelectoresEditor;
   calculado: ItemCalculado | null; errores: CamposError; alCambiar: (item: ItemEditor) => void; alQuitar: () => void };
+export type PropiedadesItem = CamposItem;
+type ItemRegistrado = Omit<CamposItem, "item" | "calculado" | "alCambiar"> & { formulario: UseFormReturn<EntradaReemplazarItems> };
 
 function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
   if (tipo === "MATERIAL") return { tipo, descripcion: "", unidad: "unidad", materialId: null,
@@ -29,7 +32,7 @@ function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
   return { tipo, descripcion: "Servicio de tercero", unidad: "servicio", costo: "0" };
 }
 
-function CamposCatalogo({ moneda, item, indice, original, selectores, errores, alCambiar }: PropiedadesItem) {
+function CamposCatalogo({ moneda, item, indice, original, selectores, errores, alCambiar }: CamposItem) {
   if (item.tipo !== "CATALOGO") return null;
   const conservar = Boolean(original && !item.actualizarPrecio);
   const producto = selectores.productos.find((registro) => registro.id === item.productoId);
@@ -50,7 +53,7 @@ function CamposCatalogo({ moneda, item, indice, original, selectores, errores, a
   </>;
 }
 
-function MedidasItem({ item, indice, errores, alCambiar }: Pick<PropiedadesItem, "item" | "indice" | "errores" | "alCambiar">) {
+function MedidasItem({ item, indice, errores, alCambiar }: Pick<CamposItem, "item" | "indice" | "errores" | "alCambiar">) {
   return <div className="grid gap-4 sm:grid-cols-2">
     <CampoTexto id={`items.${indice}.ancho`} etiqueta="Ancho (m)" decimal requerido valor={item.ancho ?? ""}
       error={errores[`items.${indice}.ancho`]} alCambiar={(ancho) => alCambiar({ ...item, ancho: ancho || null })} />
@@ -59,7 +62,7 @@ function MedidasItem({ item, indice, errores, alCambiar }: Pick<PropiedadesItem,
   </div>;
 }
 
-function CamposPersonalizado({ item, indice, original, selectores, errores, alCambiar }: PropiedadesItem) {
+function CamposPersonalizado({ item, indice, original, selectores, errores, alCambiar }: CamposItem) {
   if (item.tipo !== "PERSONALIZADO") return null;
   const categorias = [...selectores.categorias];
   if (original && !categorias.some((registro) => registro.id === original.categoriaId)) {
@@ -83,33 +86,29 @@ function CamposPersonalizado({ item, indice, original, selectores, errores, alCa
   </>;
 }
 
-function LineasItem({ moneda, item, indice, original, selectores, calculado, errores, alCambiar }: PropiedadesItem) {
-  if (item.tipo !== "PERSONALIZADO") return null;
+function LineasItem({ moneda, item, indice, original, selectores, calculado, errores, formulario }: CamposItem & Pick<ItemRegistrado, "formulario">) {
+  const { fields, append, remove } = useFieldArray({ control: formulario.control, name: `items.${indice}.lineas` });
   const bloqueada = Boolean(original && !item.actualizarPrecio);
   const lineas = calculado?.tipo === "PERSONALIZADO" ? calculado.lineas : [];
-  const cambiarLinea = (posicion: number, linea: EntradaLineaEditor) => {
-    alCambiar({ ...item, lineas: item.lineas.map((guardada, actual) => actual === posicion ? linea : guardada) });
-  };
   return <div className="space-y-4">
     <h3 className="text-base font-semibold">Líneas de costo</h3>
     <GrupoCampo id={`items.${indice}.lineas`} etiqueta="Consumos del ítem" className="space-y-4"
       error={errores[`items.${indice}.lineas`]}>
-      {item.lineas.map((linea, posicion) => <EditorLinea key={linea.lineaId ?? posicion}
-        moneda={moneda} linea={linea} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
+      {fields.map((linea, posicion) => <EditorLinea key={linea.id}
+        moneda={moneda} formulario={formulario} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
         errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
-        alCambiar={(entrada) => cambiarLinea(posicion, entrada)}
-        alQuitar={() => alCambiar({ ...item, lineas: item.lineas.filter((_, actual) => actual !== posicion) })} />)}
+        quitar={remove} />)}
     </GrupoCampo>
     <div className="flex flex-wrap gap-2">
       {(["MATERIAL", "MANO_OBRA", "TERCERO"] as const).map((tipo) => <Button key={tipo} type="button" variant="outline"
-        disabled={bloqueada} onClick={() => alCambiar({ ...item, lineas: [...item.lineas, nuevaLinea(tipo)] })}>
+        disabled={bloqueada} onClick={() => append(nuevaLinea(tipo))}>
         Agregar {tipo === "MATERIAL" ? "material" : tipo === "MANO_OBRA" ? "mano de obra" : "tercero"}
       </Button>)}
     </div>
   </div>;
 }
 
-function ActualizarInstantanea({ item, indice, original, alCambiar }: PropiedadesItem) {
+function ActualizarInstantanea({ item, indice, original, alCambiar }: CamposItem) {
   const idDescripcion = useId();
   if (!original) return null;
   const etiqueta = item.tipo === "CATALOGO" ? "Aplicar producto y precio vigentes" : "Aplicar cambios de costos y margen";
@@ -126,7 +125,7 @@ function ActualizarInstantanea({ item, indice, original, alCambiar }: Propiedade
   </span></>;
 }
 
-export function EditorItem(propiedades: PropiedadesItem) {
+function ContenidoItem(propiedades: CamposItem & { formulario?: UseFormReturn<EntradaReemplazarItems> }) {
   const { moneda, item, indice, calculado, errores, alCambiar, alQuitar } = propiedades;
   return <Card className="px-5"><div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -137,11 +136,25 @@ export function EditorItem(propiedades: PropiedadesItem) {
     <CamposCatalogo {...propiedades} /><CamposPersonalizado {...propiedades} />
     <CampoTexto id={`items.${indice}.cantidad`} etiqueta="Cantidad del ítem" decimal requerido valor={item.cantidad}
       error={errores[`items.${indice}.cantidad`]} alCambiar={(cantidad) => alCambiar({ ...item, cantidad })} />
-    <LineasItem {...propiedades} />
+    {item.tipo === "PERSONALIZADO" && propiedades.formulario ? <LineasItem {...propiedades} formulario={propiedades.formulario} /> : null}
     <dl className="flex flex-wrap gap-x-8 gap-y-3 border-t pt-4 text-sm">
       <div><dt>Precio unitario</dt><dd><Money valor={calculado?.precioUnitario} moneda={moneda} /></dd></div>
       {item.tipo === "PERSONALIZADO" ? <div><dt>Costo total</dt><dd><Money valor={calculado?.costoTotal} moneda={moneda} /></dd></div> : null}
       <div><dt>Importe del ítem</dt><dd className="font-semibold"><Money valor={calculado?.importe} moneda={moneda} /></dd></div>
     </dl>
   </div></Card>;
+}
+
+function ItemConFormulario(propiedades: ItemRegistrado) {
+  const { field } = useController({ control: propiedades.formulario.control, name: `items.${propiedades.indice}` });
+  const item = useWatch({ control: propiedades.formulario.control, name: `items.${propiedades.indice}` });
+  const vista = calcularVista({ items: [item], originales: propiedades.original ? [propiedades.original] : [],
+    selectores: propiedades.selectores, descuento: "0", tasaImpuesto: "0" });
+  const errores = { ...propiedades.errores, ...Object.fromEntries(Object.entries(vista.errores)
+    .map(([campo, mensaje]) => [campo.replace(/^items\.0\./, `items.${propiedades.indice}.`), mensaje])) };
+  return <ContenidoItem {...propiedades} item={item} calculado={vista.items[0]} errores={errores} alCambiar={field.onChange} />;
+}
+
+export function EditorItem(propiedades: ItemRegistrado | PropiedadesItem) {
+  return "formulario" in propiedades ? <ItemConFormulario {...propiedades} /> : <ContenidoItem {...propiedades} />;
 }

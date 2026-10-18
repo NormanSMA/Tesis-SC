@@ -8,6 +8,9 @@ import { DrawerFormulario } from "@/components/comunes/DrawerFormulario";
 import { EsqueletoFilas } from "@/components/comunes/Esqueletos";
 import { Button } from "@/components/ui/button";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
+import type { ProductoDto } from "@/modules/catalogo/tipos";
+import type { CotizacionDto, SelectoresEditor } from "../tipos";
+import { EditorItems } from "./EditorItems";
 import { ModalClienteRapido } from "./ModalClienteRapido";
 import { NuevaCotizacion } from "./NuevaCotizacion";
 
@@ -35,31 +38,85 @@ function usePreparacion() {
   return { datos, setDatos, error };
 }
 
-function SesionCreador({ abierto, clienteId: inicial, puedeCrearCliente, cerrar }: {
-  abierto: boolean; clienteId: string; puedeCrearCliente: boolean; cerrar: () => void;
-}) {
+async function leerDatos<T>(url: string, signal: AbortSignal): Promise<T> {
+  const respuesta = await fetch(url, { signal });
+  if (!respuesta.ok) throw new Error("No se pudo cargar el editor. Intente nuevamente.");
+  return (await respuesta.json()).datos;
+}
+
+async function cargarEditor(id: string, signal: AbortSignal) {
+  const productos: ProductoDto[] = [];
+  let pagina = 1;
+  let total = 0;
+  do {
+    const respuesta = await fetch(`/api/v1/productos?activo=true&porPagina=100&pagina=${pagina++}`, { signal });
+    if (!respuesta.ok) throw new Error("No se pudo cargar el catálogo.");
+    const resultado = await respuesta.json() as { datos: ProductoDto[]; total: number };
+    productos.push(...resultado.datos); total = resultado.total;
+    if (!resultado.datos.length) break;
+  } while (productos.length < total);
+  const [cotizacion, materiales, categorias] = await Promise.all([
+    leerDatos<CotizacionDto>(`/api/v1/cotizaciones/${id}`, signal),
+    leerDatos<SelectoresEditor["materiales"]>("/api/v1/catalogo/materiales?activo=true", signal),
+    leerDatos<SelectoresEditor["categorias"]>("/api/v1/categorias?activo=true", signal),
+  ]);
+  return { cotizacion, selectores: { materiales, categorias,
+    productos: productos.map((producto) => ({ ...producto, categoria: producto.categoria.nombre })) } };
+}
+
+function PasoItems({ id, pie, alGuardar }: { id: string; pie: HTMLElement | null; alGuardar: () => void }) {
+  const [editor, setEditor] = useState<Awaited<ReturnType<typeof cargarEditor>> | null>(null);
+  const [error, setError] = useState(false);
+  const [intento, setIntento] = useState(0);
+  function recargar() { setEditor(null); setError(false); setIntento((valor) => valor + 1); }
+  useEffect(() => {
+    const controlador = new AbortController();
+    cargarEditor(id, controlador.signal).then((datos) => { if (!controlador.signal.aborted) setEditor(datos); },
+      () => { if (!controlador.signal.aborted) setError(true); });
+    return () => controlador.abort();
+  }, [id, intento]);
+  if (error) return <div role="alert">No se pudo cargar el editor.
+    <Button type="button" onClick={recargar}>Reintentar</Button>
+    <Button asChild variant="outline"><a href={`/cotizaciones/${id}/editar`}>Abrir editor completo</a></Button>
+  </div>;
+  return editor ? <EditorItems {...editor} variante="drawer" pie={pie} alGuardar={alGuardar} alRecargar={recargar} /> :
+    <div role="status" aria-label="Cargando cotización"><EsqueletoFilas cantidad={4} /></div>;
+}
+
+function useCreacion(cerrar: () => void) {
   const router = useRouter();
-  const { datos, setDatos, error } = usePreparacion();
-  const [modal, setModal] = useState(false);
-  const [clienteId, setClienteId] = useState(inicial);
-  function guardar(id: string, numero?: string) {
+  const [creada, setCreada] = useState<{ id: string; numero?: string } | null>(null);
+  function finalizar() {
+    if (!creada) return;
     cerrar();
-    toast.success(`Cotización ${numero ?? id} creada`, {
-      action: { label: "Agregar ítems", onClick: () => router.push(`/cotizaciones/${id}/editar`) },
+    toast.success(`Cotización ${creada.numero ?? creada.id} creada`, {
+      action: { label: "Abrir editor", onClick: () => router.push(`/cotizaciones/${creada.id}/editar`) },
     });
     startTransition(() => router.refresh());
   }
+  return { creada, finalizar, guardar: (id: string, numero?: string) => setCreada({ id, numero }) };
+}
+
+function SesionCreador({ abierto, clienteId: inicial, puedeCrearCliente, cerrar }: {
+  abierto: boolean; clienteId: string; puedeCrearCliente: boolean; cerrar: () => void;
+}) {
+  const creacion = useCreacion(cerrar);
+  const [pie, setPie] = useState<HTMLElement | null>(null);
+  const { datos, setDatos, error } = usePreparacion();
+  const [modal, setModal] = useState(false);
+  const [clienteId, setClienteId] = useState(inicial);
   function agregarCliente(cliente: { id: string; nombre: string }) {
     setDatos((actuales) => actuales ? { ...actuales, clientes: [...actuales.clientes, cliente] } : actuales);
     setClienteId(cliente.id); setModal(false);
   }
   return <>
     <DrawerFormulario abierto={abierto} alCambiar={(valor) => { if (!valor && !modal) cerrar(); }}
-      titulo="Nueva cotización" descripcion="Seleccione el cliente y describa el trabajo." bloquearExterior={modal}
-      pie={<><Button type="button" variant="outline" onClick={cerrar} disabled={modal}>Cancelar</Button>
+      titulo="Nueva cotización" descripcion={creacion.creada ? "Agregue los ítems y guarde el borrador." : "Seleccione el cliente y describa el trabajo."} bloquearExterior={modal}
+      pie={creacion.creada ? <div ref={setPie} className="w-full" /> : <><Button type="button" variant="outline" onClick={cerrar} disabled={modal}>Cancelar</Button>
         <Button type="submit" form="nueva-cotizacion" disabled={!datos?.clientes.length || modal}>Crear cotización</Button></>}>
-      {error ? <p role="alert">No se pudo preparar la cotización. Cierre e intente nuevamente.</p> : datos ?
-        <NuevaCotizacion {...datos} clienteId={clienteId} variante="drawer" alGuardar={guardar}
+      {creacion.creada ? <PasoItems id={creacion.creada.id} pie={pie} alGuardar={creacion.finalizar} /> :
+        error ? <p role="alert">No se pudo preparar la cotización. Cierre e intente nuevamente.</p> : datos ?
+        <NuevaCotizacion {...datos} clienteId={clienteId} variante="drawer" alGuardar={creacion.guardar}
           alCancelar={cerrar} puedeCrearCliente={puedeCrearCliente} alNuevoCliente={() => setModal(true)} /> :
         <div role="status" aria-label="Cargando cotización"><EsqueletoFilas cantidad={4} /></div>}
     </DrawerFormulario>

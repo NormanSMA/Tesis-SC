@@ -117,7 +117,8 @@ async function crearCabecera(page: Page, asunto: string): Promise<void> {
   await page.goto("/cotizaciones"); await page.getByRole("button", { name: "Nueva cotización", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Nueva cotización", exact: true })).toBeVisible(); await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
   await page.locator("#asunto").fill(asunto); await page.getByRole("button", { name: "Crear cotización" }).click();
-  await page.getByRole("button", { name: "Agregar ítems", exact: true }).click(); await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
+  await expect(page.getByRole("button", { name: "Guardar borrador", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Abrir editor completo", exact: true }).click(); await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
 }
 async function agregarItemPorM2(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Agregar catálogo" }).click(); await elegirEn(page, "items.0.productoId", /ROT-VIN-001/); await porId(page, "items.0.ancho").fill("2");
@@ -322,6 +323,8 @@ test.describe("Lista, borradores y permisos", () => {
     const respuesta = page.waitForResponse((res) => res.url().endsWith("/api/v1/cotizaciones") && res.request().method() === "POST");
     await drawer.getByRole("button", { name: "Crear cotización" }).click();
     const cotizacion = (await (await respuesta).json()).datos as Cotizacion;
+    await expect(drawer.getByRole("form", { name: "Ítems de cotización" })).toBeVisible();
+    await drawer.getByRole("button", { name: "Guardar borrador", exact: true }).click();
     await expect(drawer).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveCSS("pointer-events", "none");
     await expect(page.getByRole("row").filter({ hasText: cotizacion.numero })).toContainText(nombre);

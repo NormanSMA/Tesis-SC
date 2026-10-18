@@ -1,12 +1,14 @@
-"use client";
+﻿"use client";
 
+import { memo } from "react";
+import { useController, type UseFormReturn } from "react-hook-form";
 import { FormField } from "@/components/comunes/FormField";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
 import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
 import { simboloMoneda } from "../moneda";
-import type { EntradaLineaEditor } from "../schema";
+import type { EntradaLineaEditor, EntradaReemplazarItems } from "../schema";
 import type { MaterialSelector } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
 
@@ -54,7 +56,7 @@ function CamposTrabajo({ moneda, linea, prefijo, errores, alCambiar }: Propiedad
   </div>;
 }
 
-export function EditorLinea(propiedades: PropiedadesLinea) {
+function ContenidoLinea(propiedades: PropiedadesLinea) {
   const { linea, prefijo, indice, errores, bloqueada, alCambiar } = propiedades;
   return <fieldset disabled={bloqueada} className="min-w-0 space-y-4 rounded-md border p-4">
     <legend className="px-2 text-base font-semibold">Línea {indice + 1}: {ETIQUETA[linea.tipo]}</legend>
@@ -72,3 +74,25 @@ export function EditorLinea(propiedades: PropiedadesLinea) {
       aria-label={`Quitar línea ${indice + 1}: ${ETIQUETA[linea.tipo]}`}>Quitar línea</Button>
   </fieldset>;
 }
+
+type LineaRegistrada = Omit<PropiedadesLinea, "linea" | "alCambiar" | "alQuitar"> & {
+  formulario: UseFormReturn<EntradaReemplazarItems>;
+  prefijo: `items.${number}.lineas.${number}`;
+  quitar: (indice: number) => void;
+};
+
+export const EditorLinea = memo(function EditorLinea(propiedades: LineaRegistrada) {
+  const { field } = useController({ control: propiedades.formulario.control, name: propiedades.prefijo });
+  return <ContenidoLinea {...propiedades} linea={field.value} alCambiar={field.onChange}
+    alQuitar={() => propiedades.quitar(propiedades.indice)} />;
+}, (anterior, siguiente) => {
+  const erroresDe = (propiedades: LineaRegistrada) => Object.entries(propiedades.errores)
+    .filter(([campo]) => campo.startsWith(`${propiedades.prefijo}.`));
+  return anterior.formulario === siguiente.formulario && anterior.prefijo === siguiente.prefijo
+    && anterior.indice === siguiente.indice && anterior.materiales === siguiente.materiales
+    && anterior.moneda === siguiente.moneda && anterior.bloqueada === siguiente.bloqueada
+    && anterior.importe === siguiente.importe && anterior.quitar === siguiente.quitar
+    && JSON.stringify(erroresDe(anterior)) === JSON.stringify(erroresDe(siguiente));
+});
+
+
