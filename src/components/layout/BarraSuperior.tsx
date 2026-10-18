@@ -7,6 +7,8 @@ import { Migas } from "./Migas";
 
 type PropiedadesBarra = {
   ruta: string;
+  /** Fecha de hoy ya formateada por el servidor; se muestra junto a las migas del panel. */
+  fechaHoy?: string;
   rielExpandido: boolean;
   compacto: boolean;
   alAbrirMenuMovil: () => void;
@@ -14,7 +16,7 @@ type PropiedadesBarra = {
   alAlternarCompacto: () => void;
 };
 
-export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
+export function BarraSuperior({ ruta, fechaHoy, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
   const IconoRiel = rielExpandido ? PanelLeftClose : PanelLeftOpen;
   const IconoCompacto = compacto ? PanelLeftOpen : PanelLeftClose;
   return (
@@ -51,8 +53,11 @@ export function BarraSuperior({ ruta, rielExpandido, compacto, alAbrirMenuMovil,
       >
         <IconoCompacto aria-hidden="true" />
       </Button>
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <Migas ruta={ruta} />
+        {fechaHoy && ruta === "/panel" ? (
+          <span className="truncate text-sm text-muted-foreground first-letter:uppercase">{fechaHoy}</span>
+        ) : null}
       </div>
     </header>
   );

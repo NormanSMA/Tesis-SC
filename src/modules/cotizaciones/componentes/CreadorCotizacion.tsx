@@ -8,7 +8,6 @@ import { DrawerFormulario } from "@/components/comunes/DrawerFormulario";
 import { EsqueletoFilas } from "@/components/comunes/Esqueletos";
 import { Button } from "@/components/ui/button";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
-import type { ProductoDto } from "@/modules/catalogo/tipos";
 import type { CotizacionDto, SelectoresEditor } from "../tipos";
 import { EditorItems } from "./EditorItems";
 import { ModalClienteRapido } from "./ModalClienteRapido";
@@ -44,24 +43,9 @@ async function leerDatos<T>(url: string, signal: AbortSignal): Promise<T> {
   return (await respuesta.json()).datos;
 }
 
-async function cargarEditor(id: string, signal: AbortSignal) {
-  const productos: ProductoDto[] = [];
-  let pagina = 1;
-  let total = 0;
-  do {
-    const respuesta = await fetch(`/api/v1/productos?activo=true&porPagina=100&pagina=${pagina++}`, { signal });
-    if (!respuesta.ok) throw new Error("No se pudo cargar el catálogo.");
-    const resultado = await respuesta.json() as { datos: ProductoDto[]; total: number };
-    productos.push(...resultado.datos); total = resultado.total;
-    if (!resultado.datos.length) break;
-  } while (productos.length < total);
-  const [cotizacion, materiales, categorias] = await Promise.all([
-    leerDatos<CotizacionDto>(`/api/v1/cotizaciones/${id}`, signal),
-    leerDatos<SelectoresEditor["materiales"]>("/api/v1/catalogo/materiales?activo=true", signal),
-    leerDatos<SelectoresEditor["categorias"]>("/api/v1/categorias?activo=true", signal),
-  ]);
-  return { cotizacion, selectores: { materiales, categorias,
-    productos: productos.map((producto) => ({ ...producto, categoria: producto.categoria.nombre })) } };
+// Una sola petición con los mismos datos que la página de edición (cotización y selectores del catálogo).
+function cargarEditor(id: string, signal: AbortSignal) {
+  return leerDatos<{ cotizacion: CotizacionDto; selectores: SelectoresEditor }>(`/api/v1/cotizaciones/${id}/editor`, signal);
 }
 
 function PasoItems({ id, pie, alGuardar }: { id: string; pie: HTMLElement | null; alGuardar: () => void }) {
@@ -83,16 +67,22 @@ function PasoItems({ id, pie, alGuardar }: { id: string; pie: HTMLElement | null
     <div role="status" aria-label="Cargando cotización"><EsqueletoFilas cantidad={4} /></div>;
 }
 
-function useCreacion(cerrar: () => void) {
+function useCreacion() {
   const router = useRouter();
+  const { construir } = useParametrosUrl();
   const [creada, setCreada] = useState<{ id: string; numero?: string } | null>(null);
+  // Al guardar: replace deja al router en la URL sin ?crear (cierra el drawer) y refresh trae la lista fresca.
+  // Con solo history.replaceState + refresh, Next descartaba la respuesta: su URL registrada seguía con ?crear=1.
+  // Con solo replace, Next reutilizaba la página en caché y no pedía la lista.
   function finalizar() {
     if (!creada) return;
-    cerrar();
     toast.success(`Cotización ${creada.numero ?? creada.id} creada`, {
       action: { label: "Abrir editor", onClick: () => router.push(`/cotizaciones/${creada.id}/editar`) },
     });
-    startTransition(() => router.refresh());
+    startTransition(() => {
+      router.replace(construir({ crear: null, clienteId: null }), { scroll: false });
+      router.refresh();
+    });
   }
   return { creada, finalizar, guardar: (id: string, numero?: string) => setCreada({ id, numero }) };
 }
@@ -100,7 +90,7 @@ function useCreacion(cerrar: () => void) {
 function SesionCreador({ abierto, clienteId: inicial, puedeCrearCliente, cerrar }: {
   abierto: boolean; clienteId: string; puedeCrearCliente: boolean; cerrar: () => void;
 }) {
-  const creacion = useCreacion(cerrar);
+  const creacion = useCreacion();
   const [pie, setPie] = useState<HTMLElement | null>(null);
   const { datos, setDatos, error } = usePreparacion();
   const [modal, setModal] = useState(false);

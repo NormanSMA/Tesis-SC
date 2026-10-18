@@ -34,9 +34,9 @@ function useEstadoMenu(compactoInicial: boolean) {
   return { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco };
 }
 
-type PropiedadesShell = { usuario: UsuarioSesion; children: ReactNode; compactoInicial?: boolean };
+type PropiedadesShell = { usuario: UsuarioSesion; children: ReactNode; compactoInicial?: boolean; fechaHoy?: string };
 
-export function AppShell({ usuario, children, compactoInicial = false }: PropiedadesShell) {
+export function AppShell({ usuario, children, compactoInicial = false, fechaHoy }: PropiedadesShell) {
   const ruta = usePathname();
   const grupos = filtrarNavegacion(gruposNavegacion, usuario.permisos);
   const { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco } =
@@ -63,6 +63,7 @@ export function AppShell({ usuario, children, compactoInicial = false }: Propied
       <div className={cn("transition-[padding] duration-200 md:pl-16", !compacto && "xl:pl-64")}>
         <BarraSuperior
           ruta={ruta}
+          fechaHoy={fechaHoy}
           rielExpandido={rielExpandido}
           compacto={compacto}
           alAbrirMenuMovil={() => setMenuMovilAbierto(true)}

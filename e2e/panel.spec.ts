@@ -82,7 +82,9 @@ async function verificarEnlaces(page: Page) {
     await abrirPanel(page);
     await regionPanel(page).locator(`a[href="${destino}"]`).first().click();
     await expect(page).toHaveURL(new URL(destino, BASE).toString());
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // ?crear=1 abre el drawer: Radix oculta el resto de la página a la accesibilidad mientras está abierto.
+    if (destino.includes("crear=1")) await expect(page.getByRole("dialog", { name: "Nueva cotización" })).toBeVisible();
+    else await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page).not.toHaveURL(/\/(sin-acceso|login)$/);
   }
 }

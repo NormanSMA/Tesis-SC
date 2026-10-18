@@ -106,7 +106,8 @@ describe("Interfaz del panel", () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain("Comercial");
     expect(html).toContain("Producción");
-    expect(html).toContain("10 oct 2026");
+    // 01:00 UTC del 11 es 7:00 p. m. del 10 en Managua: solo la hora (la fecha va en la barra superior).
+    expect(html).toMatch(/Actualizado: <time[^>]*>7:00/);
   });
 });
 

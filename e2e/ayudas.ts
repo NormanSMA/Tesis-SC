@@ -109,12 +109,19 @@ export async function verificarMenuExacto(
 }
 
 // Las entradas animadas (opacidad) alteran el color calculado y producen falsos positivos de contraste.
+// Una animación dentro de una sección plegada no avanza nunca: se ignoran los elementos sin caja visible
+// y la espera tiene un tope de 2 s (las animaciones de la interfaz duran como máximo 500 ms).
 async function esperarAnimacionesFinitas(page: Page): Promise<void> {
-  await page.evaluate(() => Promise.all(
-    document.getAnimations()
+  await page.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations()
       .filter((animacion) => animacion.effect?.getComputedTiming().iterations !== Infinity)
-      .map((animacion) => animacion.finished.catch(() => undefined)),
-  ));
+      .filter((animacion) => {
+        const objetivo = (animacion.effect as KeyframeEffect | null)?.target;
+        return !objetivo || objetivo.checkVisibility();
+      })
+      .map((animacion) => animacion.finished.catch(() => undefined))),
+    new Promise((resolver) => setTimeout(resolver, 2000)),
+  ]));
 }
 
 export async function violacionesGraves(page: Page): Promise<string[]> {

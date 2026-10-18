@@ -4,8 +4,10 @@ import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
-import { formatearFecha } from "@/lib/formato";
 import type { PanelDto, PerfilPanel } from "@/modules/panel/tipos";
+
+// La fecha ya va en la barra superior: aquí solo la hora de la última carga (zona fija, igual en servidor y cliente).
+const HORA = new Intl.DateTimeFormat("es-NI", { hour: "numeric", minute: "2-digit", timeZone: "America/Managua" });
 
 type PerfilesProps = Pick<PanelDto, "perfil" | "perfilesDisponibles"> & {
   onCambiarPerfil: (perfil: PerfilPanel) => void;
@@ -50,7 +52,7 @@ export function EncabezadoPanel(propiedades: EncabezadoPanelProps) {
         <p className="mb-1 text-xs text-muted-foreground">{pregunta}</p>
         <h1 className="text-xl leading-tight font-semibold tracking-tight sm:text-2xl">{titulo}</h1>
         <p role="status" aria-atomic="true" className="mt-1 text-xs text-muted-foreground">
-          Actualizado: <time dateTime={generadoEn}>{formatearFecha(generadoEn)}</time>
+          Actualizado: <time dateTime={generadoEn}>{HORA.format(new Date(generadoEn))}</time>
         </p>
       </div>
       <div className="flex max-w-full flex-wrap items-center gap-2">

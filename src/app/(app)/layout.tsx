@@ -10,10 +10,16 @@ import { GuardiaCambioClave } from "@/modules/auth/componentes/FormularioCambiar
 // La sesión depende de la cookie de cada solicitud: nada de esta zona se prerrenderiza.
 export const dynamic = "force-dynamic";
 
+const FECHA_LARGA = new Intl.DateTimeFormat("es-NI", {
+  weekday: "long", day: "numeric", month: "long", timeZone: "America/Managua",
+});
+
 export default async function LayoutAplicacion({ children }: { children: ReactNode }) {
   const usuario = await obtenerSesion();
   if (!usuario) redirect("/login");
   if (usuario.debeCambiarClave) return <GuardiaCambioClave>{children}</GuardiaCambioClave>;
   const compactoInicial = (await cookies()).get(COOKIE_MENU)?.value === VALOR_MENU_COMPACTO;
-  return <AppShell usuario={usuario} compactoInicial={compactoInicial}>{children}</AppShell>;
+  // La fecha se calcula en el servidor (hora de Managua): el cliente hidrata el mismo texto.
+  const fechaHoy = FECHA_LARGA.format(new Date());
+  return <AppShell usuario={usuario} compactoInicial={compactoInicial} fechaHoy={fechaHoy}>{children}</AppShell>;
 }

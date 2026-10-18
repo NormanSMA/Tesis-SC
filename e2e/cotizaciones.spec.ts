@@ -312,12 +312,13 @@ test.describe("Lista, borradores y permisos", () => {
     await drawer.getByLabel("Asunto").fill(asunto);
     await drawer.getByRole("button", { name: "Nuevo cliente", exact: true }).click();
     const modal = page.getByRole("dialog", { name: "Nuevo cliente", exact: true });
-    await modal.getByLabel("Nombre", { exact: true }).fill(nombre);
+    // La etiqueta lleva la marca de obligatorio: se busca por prefijo.
+    await modal.getByLabel(/^Nombre/).fill(nombre);
     await modal.getByLabel("Correo", { exact: true }).fill(`${asunto.toLowerCase()}@example.test`);
     await modal.getByRole("button", { name: "Guardar cliente" }).click();
     await expect(modal).toHaveCount(0);
     await expect(drawer.getByLabel("Asunto")).toHaveValue(asunto);
-    await expect(drawer.getByLabel("Cliente", { exact: true })).toContainText(nombre);
+    await expect(drawer.getByLabel(/^Cliente/)).toContainText(nombre);
     await expect(drawer.getByRole("button", { name: "Nuevo cliente", exact: true })).toBeFocused();
     await expect(drawer).toHaveCSS("pointer-events", "auto");
     const respuesta = page.waitForResponse((res) => res.url().endsWith("/api/v1/cotizaciones") && res.request().method() === "POST");

@@ -34,7 +34,7 @@ export function FilaOperativa({ destino, icono: Icono, codigo, insignia, titulo,
           {insignia}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-          {titulo}{detalle ? <span className="text-slate-400"> · {detalle}</span> : null}
+          {titulo}{detalle ? <span className="text-slate-500"> · {detalle}</span> : null}
         </span>
       </span>
       <span className="flex items-center gap-3">
