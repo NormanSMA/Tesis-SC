@@ -9,7 +9,7 @@ import { solicitarApi } from "@/lib/cliente-api";
 import type { CamposError } from "@/lib/errores";
 
 type Peticion = { url: string; metodo: "POST" | "PATCH" | "PUT"; cuerpo: object; destino?: "editar" | "detalle" };
-const esquemaSolicitud = z.object({ id: z.string(), avisos: z.array(z.string()).optional() });
+const esquemaSolicitud = z.object({ id: z.string(), numero: z.string().optional(), avisos: z.array(z.string()).optional() });
 
 export function enfocarError(idFormulario: string) {
   requestAnimationFrame(() => {
@@ -23,7 +23,7 @@ export function erroresEsquema(esquema: ZodType, entrada: unknown): CamposError 
   return Object.fromEntries(resultado.error.issues.map((error) => [error.path.join("."), error.message]));
 }
 
-export function useSolicitudCotizacion(idFormulario?: string) {
+export function useSolicitudCotizacion(idFormulario?: string, alGuardar?: (id: string, numero?: string) => void) {
   const router = useRouter();
   const bloqueo = useRef(false);
   const [enviando, setEnviando] = useState(false);
@@ -37,10 +37,13 @@ export function useSolicitudCotizacion(idFormulario?: string) {
     setEnviando(true); setError(null); setCampos({}); setConflicto(false);
     const resultado = await solicitarApi({ ...peticion, esquema: esquemaSolicitud });
     if ("datos" in resultado) {
-      toast.success("Cotización guardada.");
+      if (alGuardar) alGuardar(resultado.datos.id, resultado.datos.numero);
+      else {
+        toast.success("Cotización guardada.");
+        router.push(`/cotizaciones/${resultado.datos.id}${peticion.destino === "editar" ? "/editar" : ""}`);
+        router.refresh();
+      }
       resultado.datos.avisos?.forEach((aviso) => toast.warning(aviso));
-      router.push(`/cotizaciones/${resultado.datos.id}${peticion.destino === "editar" ? "/editar" : ""}`);
-      router.refresh();
     } else {
       setCampos(resultado.error?.campos ?? {});
       setError(resultado.error?.mensaje ?? "No se pudo guardar.");

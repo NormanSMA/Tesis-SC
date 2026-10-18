@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { PageHeader } from "@/components/comunes/PageHeader";
-import { Button } from "@/components/ui/button";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
+import { BotonNuevaCotizacion } from "@/modules/cotizaciones/componentes/BotonNuevaCotizacion";
+import { CreadorCotizacion } from "@/modules/cotizaciones/componentes/CreadorCotizacion";
 import { FiltrosCotizaciones } from "@/modules/cotizaciones/componentes/FiltrosCotizaciones";
 import { TablaCotizaciones } from "@/modules/cotizaciones/componentes/TablaCotizaciones";
 import { consultarClientesSelector } from "@/modules/cotizaciones/repo";
@@ -29,8 +29,9 @@ export default async function PaginaCotizaciones({ searchParams }: {
   const puedeGestionar = can(actor, "cotizacion:gestionar");
   return <>
     <PageHeader titulo="Cotizaciones" descripcion="Proformas con catálogo y trabajos personalizados."
-      acciones={puedeGestionar ? <Button asChild><Link href="/cotizaciones/nueva">Nueva cotización</Link></Button> : null} />
+      acciones={puedeGestionar ? <BotonNuevaCotizacion /> : null} />
     <FiltrosCotizaciones consulta={consulta} clientes={clientes} />
     <TablaCotizaciones lista={lista} consulta={consulta} puedeGestionar={puedeGestionar} />
+    {puedeGestionar ? <CreadorCotizacion puedeCrearCliente={can(actor, "cliente:gestionar")} /> : null}
   </>;
 }
