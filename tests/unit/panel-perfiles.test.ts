@@ -3,20 +3,23 @@ import type { Actor } from "@/core/autorizacion";
 import { PERMISOS_POR_PERFIL, type PerfilCodigo } from "@/core/permisos";
 import { obtenerPanel } from "@/modules/panel/service";
 
-const consultas = vi.hoisted(() => ({ perfiles: vi.fn(), comercial: vi.fn(), ordenes: vi.fn(), inventario: vi.fn(), movimientos: vi.fn(), produccion: vi.fn(), clientes: vi.fn() }));
+const consultas = vi.hoisted(() => ({ perfiles: vi.fn(), comercial: vi.fn(), ordenes: vi.fn(), inventario: vi.fn(), movimientos: vi.fn(), produccion: vi.fn(), clientes: vi.fn(), feed: vi.fn() }));
 vi.mock("@/modules/panel/repo", () => ({ consultarPerfilesPanel: consultas.perfiles, consultarComercial: consultas.comercial,
   consultarOperacion: consultas.ordenes, consultarMaterialesPanel: consultas.inventario, consultarMovimientos: consultas.movimientos,
   consultarProduccion: consultas.produccion, consultarClientesNuevos: consultas.clientes }));
+
+vi.mock("@/modules/panel/feed", () => ({ consultarFeed: consultas.feed }));
 
 const instante = new Date("2034-05-10T12:00:00Z");
 const actor = (perfil: PerfilCodigo): Actor => ({ id: "actor", nombre: "Actor", correo: "actor@example.test", perfil, perfiles: [perfil], permisos: PERMISOS_POR_PERFIL[perfil] });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  consultas.feed.mockResolvedValue({ atencion: [], atencionTotal: 0 });
   consultas.perfiles.mockImplementation(async (perfiles: PerfilCodigo[]) => perfiles.filter((codigo) => codigo !== "ADMIN").map((codigo) => ({ codigo })));
   consultas.comercial.mockResolvedValue({ meses: ["2033-12", "2034-01", "2034-02", "2034-03", "2034-04", "2034-05"].map((mes) => ({ mes: `${mes}-01`, monto: "0", aprobadas: 0, respondidas: 0 })),
     enviadas: 0, porVencer: 0, atencionTotal: 0, filas: [], porEstado: [] });
-  consultas.ordenes.mockResolvedValue({ pendientes: 0, sinResponsable: 0, enProduccion: 0, atrasadas: 0, entregas: 0, accion: 0, porEstado: [], filas: [] });
+  consultas.ordenes.mockResolvedValue({ pendientes: 0, sinResponsable: 0, enProduccion: 0, atrasadas: 0, entregas: 0, entregadasAnteriores: 0, accion: 0, porEstado: [], filas: [] });
   consultas.inventario.mockResolvedValue({ bajoMinimo: 0, valor: "0", filas: [] });
   consultas.movimientos.mockResolvedValue({ consumosHoy: 0, movimientosSemana: 0, semanas: [] });
   consultas.produccion.mockResolvedValue({ enCurso: 0, pendientes: 0, atrasadas: 0, completadasHoy: 0, atencionTotal: 0, porDia: [], filas: [] });
@@ -101,12 +104,51 @@ describe("panel: bloques por permiso", () => {
 
 describe("panel: prioridad de atención", () => {
   it("Gerencia prioriza órdenes y limita atención sin perder el total", async () => {
-    consultas.ordenes.mockResolvedValue({ pendientes: 1, sinResponsable: 0, enProduccion: 2, atrasadas: 4, entregas: 0, accion: 4, porEstado: [],
-      filas: Array.from({ length: 4 }, (_, indice) => ({ id: `orden-${indice}`, numero: `OT-${indice}`, dias: 10 - indice, sinResponsable: false })) });
-    consultas.inventario.mockResolvedValue({ bajoMinimo: 8, valor: "0", filas: Array.from({ length: 5 }, (_, indice) => ({ id: `material-${indice}`, nombre: "Material", existencia: "0", minimo: "1", unidad: "UNIDAD" })) });
+    consultas.feed.mockResolvedValue({ atencionTotal: 12, atencion: Array.from({ length: 8 }, (_, indice) => ({
+      id: `fila-${indice}`, tipo: "orden", codigo: `OT-${indice}`, titulo: "Cliente", detalle: "Revise la entrega",
+      urgencia: "ORDEN_ATRASADA", gravedad: "alta", monto: null, moneda: null,
+      referencia: "2034-05-01T06:00:00.000Z", dias: 9, destino: `/ordenes/fila-${indice}`,
+    })) });
     const panel = await obtenerPanel(actor("GERENCIA"), instante);
-    expect(panel.atencion).toHaveLength(5); expect(panel.atencionTotal).toBe(12);
-    expect(panel.atencion.slice(0, 4).every((fila) => fila.id.startsWith("orden-"))).toBe(true);
-    expect(panel.atencion[4].id).toBe("material-0");
+    expect(panel.atencion).toHaveLength(8); expect(panel.atencionTotal).toBe(12);
+    expect(consultas.feed).toHaveBeenCalledWith({ perfil: "GERENCIA", actor: actor("GERENCIA"), hoy: "2034-05-10", instante });
+  });
+});
+
+describe("panel: valores crudos y comparaciones", () => {
+  it("compara comercial, clientes, consumos, completadas y entregas", async () => {
+    const comercial = await consultas.comercial();
+    comercial.meses[4] = { mes: "2034-04-01", monto: "100", aprobadas: 3, respondidas: 10 };
+    comercial.meses[5] = { mes: "2034-05-01", monto: "200", aprobadas: 6, respondidas: 10 };
+    consultas.comercial.mockResolvedValue(comercial);
+    consultas.clientes.mockImplementation(async (hoy: string) => hoy === "2034-05-10" ? 8 : 4);
+    consultas.ordenes.mockResolvedValue({ ...(await consultas.ordenes()), entregas: 6, entregadasAnteriores: 3 });
+    consultas.produccion.mockResolvedValue({ ...(await consultas.produccion()), completadasHoy: 6,
+      porDia: [{ etiqueta: "2034-05-09", valor: 3 }, { etiqueta: "2034-05-10", valor: 6 }] });
+    consultas.movimientos.mockResolvedValue({ consumosHoy: 1, movimientosSemana: 9,
+      semanas: [{ etiqueta: "2034-05-01", valor: 3 }, { etiqueta: "2034-05-08", valor: 6 }] });
+    const esperados = { GERENCIA: ["monto-aprobado", "tasa-aprobacion"], ATENCION_CLIENTE: ["aprobadas-mes", "clientes-nuevos"],
+      OPERACIONES: ["entregas-proximas"], PRODUCCION: ["completadas-hoy"], ADMINISTRACION: ["consumos-hoy"] } as const;
+    for (const perfil of Object.keys(esperados) as (keyof typeof esperados)[]) {
+      const panel = await obtenerPanel(actor(perfil), instante);
+      for (const id of esperados[perfil]) expect(panel.indicadores.find((fila) => fila.id === id)?.comparacion).toEqual({ porcentaje: 100, texto: expect.any(String) });
+      for (const indicador of panel.indicadores) {
+        expect(typeof indicador.numero).toBe("number");
+        expect(["entero", "moneda", "porcentaje"]).toContain(indicador.formato);
+      }
+    }
+    const gerencia = await obtenerPanel(actor("GERENCIA"), instante);
+    expect(gerencia.indicadores[0]).toMatchObject({ numero: 200, formato: "moneda" });
+    expect(gerencia.indicadores[1]).toMatchObject({ numero: 60, formato: "porcentaje", meta: 70 });
+    expect(consultas.clientes).toHaveBeenCalledWith("2034-04-01");
+  });
+  it.each(["GERENCIA", "ATENCION_CLIENTE", "OPERACIONES", "PRODUCCION", "ADMINISTRACION"] as const)("usa porcentaje null con anterior cero en %s", async (perfil) => {
+    const panel = await obtenerPanel(actor(perfil), instante);
+    const comparaciones = panel.indicadores.flatMap((fila) => fila.comparacion ? [fila.comparacion] : []);
+    expect(comparaciones.length).toBeGreaterThan(0);
+    for (const comparacion of comparaciones) expect(comparacion).toEqual({ porcentaje: null, texto: expect.any(String) });
+    for (const id of ["sin-responsable", "por-iniciar"]) {
+      expect(panel.indicadores.find((fila) => fila.id === id)?.comparacion).toBeUndefined();
+    }
   });
 });

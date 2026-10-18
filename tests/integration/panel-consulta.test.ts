@@ -2,7 +2,8 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import type { PanelDto } from "@/modules/panel/tipos";
 import { formatear, leerDecimal, restar } from "@/core/decimal";
-import { consultarMaterialesPanel } from "@/modules/panel/repo";
+import { consultarMaterialesPanel, consultarOperacion } from "@/modules/panel/repo";
+import { consultarCotizacionesFeed, consultarEtapasFeed, consultarMaterialesFeed, consultarOrdenesFeed } from "@/modules/panel/feed-consultas";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
 import { abrirSesion } from "./cotizaciones-ayudas";
@@ -35,7 +36,7 @@ async function vigenciaYMedianoche() {
   const despues = await entorno.servicio.obtenerPanel(actor, new Date("2035-01-02T06:00:00Z"));
   expect(valorIndicador(despues, "enviadas")).toBe(valorIndicador(antes, "enviadas") - 1);
 }
-async function accionSinDuplicados() {
+async function accionPorUrgencia() {
   const actor = entorno.sesiones.OPERACIONES.actor;
   const anterior = await entorno.servicio.obtenerPanel(actor, instante);
   const orden = await crearOrdenPanel(entorno, { fechaEntrega: "2034-05-01", responsableId: null });
@@ -46,14 +47,12 @@ async function accionSinDuplicados() {
   const actual = await entorno.servicio.obtenerPanel(actor, instante);
   expect(valorIndicador(actual, "sin-responsable")).toBe(valorIndicador(anterior, "sin-responsable") + 1);
   expect(valorIndicador(actual, "entregas-proximas")).toBe(valorIndicador(anterior, "entregas-proximas") + 2);
-  expect(actual.atencionTotal).toBe(anterior.atencionTotal + 1);
-  expect(actual.atencion.length).toBeLessThanOrEqual(5);
-  expect(actual.atencion.filter((fila) => fila.id === orden.id).length).toBeLessThanOrEqual(1);
+  expect(actual.atencionTotal).toBe(anterior.atencionTotal + 2);
+  expect(actual.atencion.length).toBeLessThanOrEqual(8);
+  expect(actual.atencion.filter((fila) => fila.id === orden.id).length).toBeLessThanOrEqual(2);
   expect(actual.grafico?.datos).toHaveLength(4);
   await listaAcotadaDeterminista(actor, actual.atencionTotal);
 }
-// Seis órdenes atrasadas sin responsable, más antiguas que cualquier orden activa previa:
-// las cinco más atrasadas llenan la lista y la sexta queda fuera, sin depender de datos compartidos.
 async function listaAcotadaDeterminista(actor: Parameters<EntornoPanel["servicio"]["obtenerPanel"]>[0], totalPrevio: number) {
   const masAntigua = await db.ordenTrabajo.aggregate({ _min: { fechaEntrega: true }, where: { estado: { notIn: ["CERRADA", "CANCELADA"] } } });
   const base = masAntigua._min.fechaEntrega ?? new Date("2034-05-01");
@@ -64,9 +63,9 @@ async function listaAcotadaDeterminista(actor: Parameters<EntornoPanel["servicio
     ordenes.push(await crearOrdenPanel(entorno, { fechaEntrega: fecha.toISOString().slice(0, 10), responsableId: null }));
   }
   const panel = await entorno.servicio.obtenerPanel(actor, instante);
-  expect(panel.atencionTotal).toBe(totalPrevio + 6);
-  expect(panel.atencion).toHaveLength(5);
-  expect(panel.atencion.map((fila) => fila.id)).toEqual(ordenes.slice(0, 5).map((fila) => fila.id));
+  expect(panel.atencionTotal).toBe(totalPrevio + 12);
+  expect(panel.atencion).toHaveLength(8);
+  expect(panel.atencion.slice(0, 5).map((fila) => fila.id)).toEqual(ordenes.slice(0, 5).map((fila) => fila.id));
   expect(panel.atencion.map((fila) => fila.id)).not.toContain(ordenes[5].id);
 }
 async function produccionPropia() {
@@ -161,6 +160,7 @@ async function alertasYDinero() {
     const actor = entorno.sesiones[perfil].actor;
     const oculto = await entorno.servicio.obtenerPanel({ ...actor, permisos: actor.permisos.filter((permiso) => permiso !== "cotizacion:ver") }, instante);
     expect(clavesMonetarias(oculto)).toEqual([]);
+    for (const fila of oculto.atencion) expect(fila).toMatchObject({ monto: null, moneda: null });
     expect(oculto.indicadores.map((fila) => fila.id)).not.toContain("valor-inventario");
     if (perfil === "GERENCIA") expect(oculto.grafico).toBeNull();
   }
@@ -169,14 +169,15 @@ async function materialesCriticos() {
   const actor = entorno.sesiones.ADMINISTRACION.actor;
   const anterior = await entorno.servicio.obtenerPanel(actor, instante);
   const nombre = `000 Crítico ${instante.toISOString()}`;
-  const critico = await crearMaterialPanel(entorno, { nombre, existencia: "0", minimo: "3" });
+  await crearMaterialPanel(entorno, { nombre, existencia: "0", minimo: "3" });
   for (let indice = 0; indice < 6; indice++) {
     await crearMaterialPanel(entorno, { existencia: "1", minimo: "4", nombre: `Carga ${indice}` });
   }
   const actual = await entorno.servicio.obtenerPanel(actor, instante);
   expect(actual.atencionTotal).toBe(anterior.atencionTotal + 7);
   expect(actual.atencion).toHaveLength(5);
-  expect(actual.atencion[0].id).toBe(critico.id);
+  expect(actual.atencion.some((fila) => fila.gravedad === "alta")).toBe(true);
+  expect(actual.atencion.map((fila) => fila.gravedad)).toEqual(actual.atencion.map((fila) => fila.gravedad).sort());
   expect(actual.grafico?.datos).toHaveLength(6);
 }
 async function valorInventarioExacto() {
@@ -207,6 +208,65 @@ async function consumosPorSemana() {
   expect(actual.grafico!.datos.at(-1)!.valor).toBe(anterior.grafico!.datos.at(-1)!.valor + 2);
 }
 
+async function ochoUrgencias() {
+  const actor = entorno.sesiones.PRODUCCION.actor;
+  const parametros = { hoy: "2034-05-10", instante, actorId: actor.id, verDinero: true };
+  const sinRespuesta = await crearCotizacionPanel(entorno, { estado: "ENVIADA", vencimiento: "2000-01-16", total: "123.45" });
+  const porVencer = await crearCotizacionPanel(entorno, { estado: "ENVIADA", vencimiento: "2034-05-12" });
+  const ajuste = await crearCotizacionPanel(entorno, { estado: "AJUSTE_SOLICITADO", respuesta: "2000-01-01T12:00:00Z" });
+  const orden = await crearOrdenPanel(entorno, { fechaEntrega: "2000-01-01", responsableId: null });
+  const area = await db.area.create({ data: { nombre: `Feed ${orden.id}` } });
+  const etapa = await crearEtapaPanel(entorno, { ordenId: orden.id, areaId: area.id, secuencia: 1, nombre: "Feed detenido",
+    responsableId: actor.id, fechaFinPlan: new Date("2000-01-01"), estado: "EN_CURSO", fechaInicioReal: new Date("2000-01-01T12:00:00Z") });
+  await crearMaterialPanel(entorno, { existencia: "0", minimo: "1" });
+  const resultados = await Promise.all([
+    consultarCotizacionesFeed(parametros, "SIN_RESPUESTA"), consultarCotizacionesFeed(parametros, "POR_VENCER"),
+    consultarCotizacionesFeed(parametros, "AJUSTE_SOLICITADO"), consultarOrdenesFeed(parametros, "ORDEN_ATRASADA"),
+    consultarOrdenesFeed(parametros, "SIN_RESPONSABLE"), consultarMaterialesFeed(parametros),
+    consultarEtapasFeed(parametros, "ETAPA_ATRASADA"), consultarEtapasFeed(parametros, "ETAPA_DETENIDA"),
+  ]);
+  expect(resultados.map((fuente) => fuente.filas[0]?.urgencia)).toEqual(["SIN_RESPUESTA", "POR_VENCER", "AJUSTE_SOLICITADO",
+    "ORDEN_ATRASADA", "SIN_RESPONSABLE", "BAJO_MINIMO", "ETAPA_ATRASADA", "ETAPA_DETENIDA"]);
+  for (const fuente of resultados) {
+    expect(fuente.filas.length).toBeLessThanOrEqual(5);
+    expect(fuente.total).toBeGreaterThanOrEqual(fuente.filas.length);
+    for (const fila of fuente.filas) expect(fila.dias).toBeGreaterThanOrEqual(0);
+  }
+  expect(resultados[0].filas.find((fila) => fila.id === sinRespuesta.id)).toMatchObject({ codigo: sinRespuesta.numero, monto: "123.45", moneda: "NIO" });
+  expect(resultados[1].filas.some((fila) => fila.id === porVencer.id)).toBe(true);
+  expect(resultados[2].filas.some((fila) => fila.id === ajuste.id)).toBe(true);
+  expect(resultados[3].filas.some((fila) => fila.id === orden.id)).toBe(true);
+  expect(resultados[6].filas.some((fila) => fila.id === etapa.id)).toBe(true);
+  expect(resultados[7].filas.some((fila) => fila.id === etapa.id)).toBe(true);
+  const oculto = await consultarOrdenesFeed({ ...parametros, verDinero: false }, "ORDEN_ATRASADA");
+  expect(oculto.filas.find((fila) => fila.id === orden.id)).toEqual({ id: orden.id, tipo: "orden", codigo: orden.numero,
+    titulo: entorno.ordenes.cotizaciones.referencias.cliente.nombre, detalle: "Revise la fecha de entrega", urgencia: "ORDEN_ATRASADA",
+    gravedad: "alta", monto: null, moneda: null, referencia: "2000-01-01T06:00:00.000Z",
+    dias: Math.floor((instante.getTime() - new Date("2000-01-01T06:00:00Z").getTime()) / 86400000), destino: `/ordenes/${orden.id}` });
+}
+
+async function limitesDelFeed() {
+  const parametros = { hoy: "2070-05-10", instante: new Date("2070-05-10T06:00:00Z"),
+    actorId: entorno.sesiones.PRODUCCION.actor.id, verDinero: true };
+  const cotizacion = await crearCotizacionPanel(entorno, { estado: "ENVIADA", emision: "2070-05-07", vencimiento: "2070-05-20" });
+  const exacto = await consultarCotizacionesFeed(parametros, "SIN_RESPUESTA");
+  const despues = await consultarCotizacionesFeed({ ...parametros, instante: new Date("2070-05-10T06:00:00.001Z") }, "SIN_RESPUESTA");
+  expect(despues.total).toBe(exacto.total + 1);
+  const vencimiento = await consultarCotizacionesFeed(parametros, "POR_VENCER");
+  expect(vencimiento.filas.some((fila) => fila.id === cotizacion.id)).toBe(false);
+}
+
+async function entregasAnteriores() {
+  const antes = await consultarOperacion("2034-05-10");
+  for (const fecha of ["2034-05-03T06:00:00Z", "2034-05-03T05:59:59Z", "2034-05-10T05:59:59Z", "2034-05-10T06:00:00Z"]) {
+    const orden = await crearOrdenPanel(entorno, { estado: "EN_PRODUCCION" });
+    await db.ordenTrabajo.update({ where: { id: orden.id }, data: { estado: "LISTA" } });
+    await db.ordenTrabajo.update({ where: { id: orden.id }, data: { estado: "ENTREGADA", fechaEntregaReal: new Date(fecha) } });
+  }
+  const despues = await consultarOperacion("2034-05-10");
+  expect(despues.entregadasAnteriores).toBe(antes.entregadasAnteriores + 2);
+}
+
 function pruebasApiPorPerfil() {
   for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
     it(`${perfil}: recibe su panel o 403`, async () => {
@@ -215,7 +275,7 @@ function pruebasApiPorPerfil() {
       if (perfil === "ADMIN") { expect(respuesta.error?.codigo).toBe("SIN_PERMISO"); return; }
       expect(respuesta.datos?.perfil).toBe(perfil);
       expect(respuesta.datos?.indicadores.map((fila) => fila.id)).toEqual(PANELES[perfil]);
-      expect(respuesta.datos?.atencion.length).toBeLessThanOrEqual(5);
+      expect(respuesta.datos?.atencion.length).toBeLessThanOrEqual(8);
       expect(respuesta.datos?.perfilesDisponibles).toEqual([{ codigo: perfil, nombre: expect.any(String) }]);
     });
   }
@@ -226,16 +286,19 @@ describeConBase("panel: consultas y perfiles v9", () => {
   beforeAll(async () => { entorno = await prepararPanel(db); });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
   it("cuenta vigentes con límites inclusivos y medianoche de Managua", vigenciaYMedianoche);
-  it("cuenta órdenes distintas y entregas incluyendo una orden sin responsable", accionSinDuplicados);
+  it("cuenta urgencias y entregas incluyendo una orden sin responsable", accionPorUrgencia);
   it("limita producción a las etapas del actor", produccionPropia);
   it("calcula meses, dinero exacto y tasa sobre todas las respuestas", mesesConocidos);
   it("suma el monto aprobado en córdobas equivalentes con dos monedas", montoEnCordobasEquivalentes);
   it("cuenta completadas por el actor y detecta etapas largas", completadasPorActor);
   it("omite ajustes corregidos y respeta treinta días por creación", ajustesYCreacion);
   it("ordena alertas, excluye inactivos y oculta dinero sin permiso", alertasYDinero);
-  it("prioriza la proporción crítica y limita cinco filas con el total completo", materialesCriticos);
+  it("prioriza gravedad y limita cinco filas con el total completo", materialesCriticos);
   it("suma existencia por costo promedio con decimal exacto", valorInventarioExacto);
   it("cuenta consumos y agrupa seis semanas con fechas de Managua", consumosPorSemana);
+  it("devuelve las ocho urgencias y oculta el monto en el objeto completo", ochoUrgencias);
+  it("calcula la espera contra el instante recibido y excluye tres días exactos", limitesDelFeed);
+  it("compara entregas con siete días anteriores según la fecha real", entregasAnteriores);
   pruebasApiPorPerfil();
   it("ignora un perfil solicitado sin asignación", async () => {
     const respuesta = await invocar<PanelDto>(entorno.panel.GET, peticion("GET", "/api/v1/panel?perfil=GERENCIA", { cookie: entorno.sesiones.PRODUCCION.cookie }));

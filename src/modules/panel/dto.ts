@@ -1,8 +1,19 @@
 import { CIEN, comparar, deEntero, dividir, formatear, leerDecimal, multiplicar, restar } from "@/core/decimal";
 import { formatearCantidadPorUnidad, formatearDecimal, formatearMonedaEntera } from "@/lib/formato";
-import type { MesComercial, Tendencia } from "./tipos";
+import type { ComparacionIndicador, MesComercial, Tendencia } from "./tipos";
 
 export const META_APROBACION_PCT = 70;
+export function comparacionPanel(actual: number, anterior: number, periodo: string): ComparacionIndicador {
+  const porcentaje = anterior === 0 ? null : (actual - anterior) * 100 / anterior;
+  const texto = porcentaje === null ? `Sin datos en ${periodo}`
+    : `${porcentaje > 0 ? "+" : ""}${formatearDecimal(String(porcentaje), 0)} % respecto a ${periodo}`;
+  return { porcentaje, texto };
+}
+export function mesAnterior(hoy: string): string {
+  const fecha = new Date(`${hoy.slice(0, 7)}-01T00:00:00Z`);
+  fecha.setUTCMonth(fecha.getUTCMonth() - 1);
+  return fecha.toISOString().slice(0, 10);
+}
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 export function nombreMes(fecha: string): string { return MESES[Number(fecha.slice(5, 7)) - 1]; }

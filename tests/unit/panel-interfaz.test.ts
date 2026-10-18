@@ -20,20 +20,20 @@ const inicial: PanelDto = {
   generadoEn: "2026-10-10T16:30:00.000Z",
   titulo: "Cotizaciones comerciales", pregunta: "¿Qué necesita atención?",
   indicadores: ["Enviadas", "Aprobadas", "Por vencer", "Ventas"].map((etiqueta, indice) => ({
-    id: `${indice}`, etiqueta, valor: `${indice + 1}`, contexto: "Este mes", destino: "/cotizaciones",
+    id: `${indice}`, numero: indice + 1, formato: "entero", etiqueta, valor: `${indice + 1}`, contexto: "Este mes", destino: "/cotizaciones",
   })),
   grafico: {
     titulo: "Cotizaciones por estado", subtitulo: "Este mes", tipo: "barras",
     datos: [{ etiqueta: "Enviadas", valor: 4 }, { etiqueta: "Aprobadas", valor: 2 }],
   },
-  atencion: [{ id: "cot-1", titulo: "Cotización por vencer", detalle: "Vence hoy", gravedad: "alta", destino: "/cotizaciones/cot-1" }],
+  atencion: [{ id: "cot-1", tipo: "cotizacion", codigo: "COT-1", urgencia: "POR_VENCER", monto: null, moneda: null, referencia: "2026-10-10T06:00:00.000Z", dias: 0, titulo: "Cotización por vencer", detalle: "Vence hoy", gravedad: "alta", destino: "/cotizaciones/cot-1" }],
   atencionTotal: 1,
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   obtenerPanel.mockResolvedValue(inicial);
-  exigirPermisoPagina.mockResolvedValue({ id: "actor-1", perfil: "ATENCION_CLIENTE", perfiles: ["ATENCION_CLIENTE"] });
+  exigirPermisoPagina.mockResolvedValue({ id: "actor-1", perfil: "ATENCION_CLIENTE", perfiles: ["ATENCION_CLIENTE"], permisos: ["cotizacion:gestionar"] });
 });
 
 describe("Página del panel", () => {
@@ -42,6 +42,8 @@ describe("Página del panel", () => {
     expect(exigirPermisoPagina).toHaveBeenCalledWith("panel:ver");
     expect(obtenerPanel).toHaveBeenCalledWith(await exigirPermisoPagina.mock.results[0].value, expect.any(Date), "ATENCION_CLIENTE");
     expect(pagina.props.inicial).toBe(inicial);
+    expect(pagina.props.puedeCrearCotizacion).toBe(true);
+    expect(pagina.key).toBe(inicial.perfil);
   });
 
   it("acepta el perfil ausente y toma el primero cuando está repetido", async () => {
@@ -49,6 +51,13 @@ describe("Página del panel", () => {
     expect(obtenerPanel).toHaveBeenLastCalledWith(expect.anything(), expect.any(Date), undefined);
     await PaginaPanel({ searchParams: Promise.resolve({ perfil: ["ATENCION_CLIENTE", "PRODUCCION"] }) });
     expect(obtenerPanel).toHaveBeenLastCalledWith(expect.anything(), expect.any(Date), "ATENCION_CLIENTE");
+  });
+
+  it("omite la creación de cotizaciones cuando falta el permiso del servidor", async () => {
+    exigirPermisoPagina.mockResolvedValue({ id: "actor-1", permisos: ["panel:ver"] });
+    const pagina = await PaginaPanel({ searchParams: Promise.resolve({}) });
+    expect(pagina.props.puedeCrearCotizacion).toBe(false);
+    expect(renderToStaticMarkup(pagina)).not.toContain("Nueva cotización");
   });
 });
 
@@ -72,7 +81,7 @@ describe("Interfaz del panel", () => {
   it("mantiene los indicadores y la atención cuando no hay gráfico", () => {
     const html = renderToStaticMarkup(createElement(Panel, { inicial: { ...inicial, grafico: null, atencion: [] } }));
     expect(html).not.toContain('role="img"');
-    expect(html).toContain("Nada requiere atención ahora");
+    expect(html).toContain("Todo al día");
     expect(html.match(/<h1\b/g)).toHaveLength(1);
   });
 
@@ -83,6 +92,21 @@ describe("Interfaz del panel", () => {
     const error = renderToStaticMarkup(createElement(ErrorPanel, { retry: vi.fn() }));
     expect(error).toContain('role="alert"');
     expect(error).toContain("Reintentar");
+  });
+
+  it("muestra la creación autorizada y conserva nombres y selección de perfiles", () => {
+    const html = renderToStaticMarkup(createElement(Panel, { puedeCrearCotizacion: true, inicial: {
+      ...inicial, generadoEn: "2026-10-11T01:00:00.000Z", perfilesDisponibles: [
+        { codigo: "ATENCION_CLIENTE", nombre: "Comercial" }, { codigo: "PRODUCCION", nombre: "Producción" },
+      ],
+    } }));
+    expect(html).toContain('href="/cotizaciones?crear=1"');
+    expect(html).toContain("Nueva cotización");
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain("Comercial");
+    expect(html).toContain("Producción");
+    expect(html).toContain("10 oct 2026");
   });
 });
 

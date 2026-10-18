@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { cantidadMaterialPanel, cantidadPanel, dineroPanel, etiquetaDia, etiquetaSemana, mesesConActividad, META_APROBACION_PCT, nombreMesCorto, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "@/modules/panel/dto";
+import { comparacionPanel, mesAnterior, cantidadMaterialPanel, cantidadPanel, dineroPanel, etiquetaDia, etiquetaSemana, mesesConActividad, META_APROBACION_PCT, nombreMesCorto, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "@/modules/panel/dto";
 import type { MesComercial } from "@/modules/panel/tipos";
 
 const mes = (monto: string, fecha = "2034-10-01"): MesComercial => ({ mes: fecha, monto, aprobadas: 0, respondidas: 0 });
 describe("panel: frases y formatos", () => {
+  it.each([[6, 3, 100], [1, 4, -75], [3, 3, 0], [0, 0, null], [7, 0, null]])("compara %s contra %s", (actual, anterior, esperado) => {
+    const comparacion = comparacionPanel(actual!, anterior!, "ayer");
+    expect(comparacion.porcentaje).toBe(esperado);
+    expect(comparacion.texto).toContain("ayer");
+    expect(comparacion.texto).not.toMatch(/NaN|Infinity/);
+  });
+  it("retrocede de enero a diciembre", () => {
+    expect(mesAnterior("2034-01-31")).toBe("2033-12-01");
+  });
   it.each([["184500.00", "C$\u00A0184,500"], ["184500.25", "C$\u00A0184,500"], ["1174042.59", "C$\u00A01,174,043"], ["0", "C$\u00A00"],
     ["99999999999999.995", "C$\u00A0100,000,000,000,000"]])("formatea exactamente %s", (valor, esperado) => {
     expect(dineroPanel(valor)).toBe(esperado);

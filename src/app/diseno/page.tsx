@@ -5,6 +5,7 @@ import { env } from "@/env";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { Marca } from "@/components/layout/Marca";
 
+import { SeccionDatosVivos } from "./SeccionDatosVivos";
 import { SeccionFormularios } from "./SeccionFormularios";
 import { SeccionInteractiva } from "./SeccionInteractiva";
 import { SeccionBadges, SeccionBotones, SeccionTipografia, SeccionTokens } from "./SeccionesBase";
@@ -31,6 +32,7 @@ export default function PaginaDiseno() {
         <SeccionBadges />
         <SeccionTabla />
         <SeccionTarjetas />
+        <SeccionDatosVivos />
         <SeccionTimeline />
         <SeccionEstadosVista />
         <SeccionInteractiva />

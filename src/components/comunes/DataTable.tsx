@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import { CabeceraOrdenable } from "@/components/comunes/CabeceraOrdenable";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { MAXIMO_ESCALONADO, retrasoEscalonado } from "@/components/comunes/ListaEscalonada";
+import type { DireccionOrden } from "@/lib/listas/orden";
 import { Paginacion, type PaginacionTabla } from "@/components/comunes/Paginacion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableRowHeader } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -12,7 +15,12 @@ export type ColumnaTabla<T> = {
   alinear?: "derecha";
   /** Solo la primera columna: queda fija al desplazar horizontalmente. */
   principal?: boolean;
+  /** Campo de la lista blanca de orden del módulo; vuelve interactiva la cabecera. */
+  ordenable?: string;
 };
+
+/** Orden activo leído de la URL por la página (server). */
+export type OrdenTabla = { campo: string; direccion: DireccionOrden } | null;
 
 type PropiedadesTabla<T> = {
   /** Nombre accesible de la tabla. Se publica como caption oculto y como nombre de la región. */
@@ -26,6 +34,9 @@ type PropiedadesTabla<T> = {
   className?: string;
   /** En pantallas menores de 768 px cada fila se muestra como tarjeta con la etiqueta de cada columna. */
   apilarEnMovil?: boolean;
+  orden?: OrdenTabla;
+  /** Cambia con la consulta (búsqueda, filtro, página): las filas vuelven a entrar escalonadas. */
+  claveConsulta?: string;
 };
 
 const FILA_APILADA = "max-md:grid max-md:h-auto max-md:grid-cols-1 max-md:gap-y-1 max-md:border-b max-md:px-4 max-md:py-3";
@@ -34,13 +45,17 @@ const CELDA_APILADA =
 
 const CELDA_FIJA = "sticky left-0 z-10 bg-card group-hover/fila:bg-background";
 
-function EncabezadoColumna<T>({ columna }: { columna: ColumnaTabla<T> }) {
+function EncabezadoColumna<T>({ columna, orden }: { columna: ColumnaTabla<T>; orden?: OrdenTabla }) {
+  const activa = columna.ordenable && orden?.campo === columna.ordenable ? orden.direccion : null;
   return (
     <TableHead
       scope="col"
+      aria-sort={columna.ordenable ? (activa === "asc" ? "ascending" : activa === "desc" ? "descending" : "none") : undefined}
       className={cn(columna.alinear === "derecha" && "text-right", columna.principal && "left-0 z-30 bg-muted")}
     >
-      {columna.encabezado}
+      {columna.ordenable ? (
+        <CabeceraOrdenable campo={columna.ordenable} etiqueta={columna.encabezado} activa={activa} alinearDerecha={columna.alinear === "derecha"} />
+      ) : columna.encabezado}
     </TableHead>
   );
 }
@@ -50,14 +65,17 @@ function FilaDatos<T>({
   columnas,
   acciones,
   apilar,
+  indice,
 }: {
   fila: T;
   columnas: ColumnaTabla<T>[];
   acciones?: (fila: T) => ReactNode;
   apilar: boolean;
+  indice: number;
 }) {
   return (
-    <TableRow className={cn("h-12", apilar && FILA_APILADA)}>
+    <TableRow className={cn("h-12", indice < MAXIMO_ESCALONADO && "animate-row-enter", apilar && FILA_APILADA)}
+      style={{ animationDelay: retrasoEscalonado(indice) }}>
       {columnas.map((columna, indice) => {
         const Celda = indice === 0 ? TableRowHeader : TableCell;
         return (
@@ -89,12 +107,14 @@ export function DataTable<T>({
   paginacion,
   className,
   apilarEnMovil = false,
+  orden,
+  claveConsulta,
 }: PropiedadesTabla<T>) {
   if (filas.length === 0) {
     return vacio ?? <EmptyState titulo="Sin resultados" descripcion="No hay registros que mostrar." />;
   }
   return (
-    <div className={cn("overflow-hidden rounded-lg border bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm", className)}>
       <Table
         containerClassName="min-h-24 md:max-h-[calc(100dvh-16rem)]"
         containerProps={{ role: "region", "aria-label": titulo, tabIndex: 0 }}
@@ -103,7 +123,7 @@ export function DataTable<T>({
         <TableHeader className={apilarEnMovil ? "max-md:sr-only" : undefined}>
           <TableRow className="hover:bg-transparent">
             {columnas.map((columna) => (
-              <EncabezadoColumna key={columna.id} columna={columna} />
+              <EncabezadoColumna key={columna.id} columna={columna} orden={orden} />
             ))}
             {acciones ? (
               <TableHead scope="col" className="text-right">
@@ -112,9 +132,9 @@ export function DataTable<T>({
             ) : null}
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {filas.map((fila) => (
-            <FilaDatos key={idFila(fila)} fila={fila} columnas={columnas} acciones={acciones} apilar={apilarEnMovil} />
+        <TableBody key={claveConsulta}>
+          {filas.map((fila, indice) => (
+            <FilaDatos key={idFila(fila)} fila={fila} columnas={columnas} acciones={acciones} apilar={apilarEnMovil} indice={indice} />
           ))}
         </TableBody>
       </Table>

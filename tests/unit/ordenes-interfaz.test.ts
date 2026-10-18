@@ -115,8 +115,10 @@ describe("órdenes: responsable opcional en componentes", () => {
         especificaciones: null, fechaEntrega: orden.fechaEntrega, creadoEn: orden.creadoEn,
         fechaInicioReal: null, fechaEntregaReal: null, fechaCierre: null }, etapas: [],
     } }));
-    const panel = renderToStaticMarkup(createElement(ListaAtencion, { atencion: [{
-      id, titulo: orden.numero, detalle: "Sin responsable", gravedad: "alta", destino: `/ordenes/${id}`,
+    const panel = renderToStaticMarkup(createElement(ListaAtencion, { generadoEn: "2026-10-06T12:00:00Z", atencionTotal: 1, atencion: [{
+      id, tipo: "orden", codigo: orden.numero, urgencia: "SIN_RESPONSABLE", monto: null, moneda: null,
+      referencia: "2026-10-06T06:00:00Z", dias: 0,
+      titulo: orden.numero, detalle: "Sin responsable", gravedad: "alta", destino: `/ordenes/${id}`,
     }] }));
     expect(cadena).toContain("Sin responsable");
     expect(panel).toContain("Sin responsable");

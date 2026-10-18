@@ -7,8 +7,8 @@ export async function consultarPerfilesPanel(perfiles: readonly PerfilCodigo[]) 
     permisos: { some: { permiso: { recurso: "panel", accion: "ver" } } } }, select: { codigo: true } });
 }
 
-export async function consultarOperacion(hoy: string, soloAtrasadas = false): Promise<OperacionPanel> {
-  const [resultado] = await prisma.$queryRaw<OperacionPanel[]>`
+export async function consultarOperacion(hoy: string, soloAtrasadas = false): Promise<OperacionPanel & { entregadasAnteriores: number }> {
+  const [resultado] = await prisma.$queryRaw<(OperacionPanel & { entregadasAnteriores: number })[]>`
     WITH activas AS (SELECT *, (${hoy}::date - fecha_entrega)::int AS dias,
       responsable_id IS NULL AS "sinResponsable" FROM orden_trabajo WHERE estado NOT IN ('CERRADA', 'CANCELADA')),
     atencion AS (SELECT * FROM activas WHERE dias > 0 OR (NOT ${soloAtrasadas} AND "sinResponsable"))
@@ -17,6 +17,9 @@ export async function consultarOperacion(hoy: string, soloAtrasadas = false): Pr
       count(*) FILTER (WHERE estado = 'EN_PRODUCCION')::int AS "enProduccion",
       count(*) FILTER (WHERE dias > 0)::int AS atrasadas,
       count(*) FILTER (WHERE fecha_entrega BETWEEN ${hoy}::date AND ${hoy}::date + 7)::int AS entregas,
+      (SELECT count(*)::int FROM orden_trabajo WHERE estado IN ('ENTREGADA','CERRADA')
+        AND (fecha_entrega_real AT TIME ZONE 'America/Managua')::date >= ${hoy}::date - 7
+        AND (fecha_entrega_real AT TIME ZONE 'America/Managua')::date < ${hoy}::date) AS "entregadasAnteriores",
       (SELECT count(*)::int FROM atencion) AS accion,
       (SELECT coalesce(jsonb_agg(f ORDER BY f.dias DESC, f.numero, f.id), '[]') FROM
         (SELECT id, numero, dias, "sinResponsable" FROM atencion ORDER BY dias DESC, numero, id LIMIT 5) f) AS filas,

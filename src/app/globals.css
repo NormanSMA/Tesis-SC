@@ -26,19 +26,22 @@
   --accent-foreground: #0f172a;
 
   --border: #e2e8f0;
+  /* Separadores internos de tarjetas y listas. */
+  --border-subtle: #f1f5f9;
   /* Borde de controles: 4.76:1 sobre blanco (WCAG 1.4.11 exige 3:1) */
   --input: #64748b;
   --ring: #1f2a6b;
 
-  --success: #15803d;
-  --success-soft: #f0fdf4;
-  --success-soft-border: #bbf7d0;
+  /* Estados: fondo desaturado y texto de alto contraste (emerald, amber, rose y blue 700). */
+  --success: #047857;
+  --success-soft: #ecfdf5;
+  --success-soft-border: #a7f3d0;
   --warning: #b45309;
   --warning-soft: #fffbeb;
   --warning-soft-border: #fde68a;
-  --danger: #b91c1c;
-  --danger-soft: #fef2f2;
-  --danger-soft-border: #fecaca;
+  --danger: #be123c;
+  --danger-soft: #fff1f2;
+  --danger-soft-border: #fecdd3;
   --info: #1d4ed8;
   --info-soft: #eff6ff;
   --info-soft-border: #bfdbfe;
@@ -84,6 +87,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
@@ -110,8 +114,9 @@
 
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 6px;
-  --radius-xl: 8px;
+  /* Controles internos 6 a 8 px; tarjetas, drawers y modales 12 px. */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
   /* Escala tipográfica: 12 / 14 / 16 / 20 / 24 / 30 */
   --text-xs: 0.75rem;
@@ -130,6 +135,12 @@
   --text-3xl--line-height: 2.25rem;
 
   --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(15 23 42 / 0.05), 0 1px 2px 0 rgb(15 23 42 / 0.03);
+  --shadow-drawer: -4px 0 24px -2px rgb(15 23 42 / 0.12);
+
+  /* Movimiento: entrada de overlays con deceleración controlada; salida rápida. */
+  --ease-drawer: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-data: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -230,39 +241,73 @@ details[open] > summary::after {
   animation: cascada-puntos-grandes 5s linear infinite;
 }
 
-/* Movimiento de la interfaz: entrada suave de las pantallas, tarjetas escalonadas y barras que crecen. */
+/*
+ * Movimiento de la interfaz. Solo opacity y transform (sin reflujo).
+ * Interfaz: 100 a 200 ms. Datos (conteo, barras, anillos): hasta 500 ms.
+ * Única excepción de propiedad: stroke-dashoffset del anillo SVG (solo pinta).
+ */
 @keyframes entrada-suave {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(4px);
+  }
+}
+@keyframes entrada-fila {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
   }
 }
 @keyframes crecer-barra {
   from {
-    height: 0;
+    transform: scaleY(0);
+  }
+}
+@keyframes crecer-barra-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes llenar-anillo {
+  from {
+    stroke-dashoffset: var(--anillo-inicio, 0);
   }
 }
 .entrada {
-  animation: entrada-suave 0.35s ease-out both;
+  animation: entrada-suave 150ms ease-out both;
 }
 .entrada-escalonada > * {
-  animation: entrada-suave 0.45s ease-out both;
+  animation: entrada-suave 150ms ease-out both;
 }
 .entrada-escalonada > :nth-child(2) {
-  animation-delay: 0.05s;
+  animation-delay: 20ms;
 }
 .entrada-escalonada > :nth-child(3) {
-  animation-delay: 0.1s;
+  animation-delay: 40ms;
 }
-.entrada-escalonada > :nth-child(4) {
-  animation-delay: 0.15s;
-}
-.entrada-escalonada > :nth-child(5) {
-  animation-delay: 0.2s;
-}
-.entrada-escalonada > :nth-child(n + 6) {
-  animation-delay: 0.25s;
+.entrada-escalonada > :nth-child(n + 4) {
+  animation-delay: 60ms;
 }
 .barra-crece {
-  animation: crecer-barra 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: bottom;
+  animation: crecer-barra 350ms var(--ease-data) both;
+}
+
+/* Fila que entra al filtrar, paginar o recibir datos nuevos. */
+@utility animate-row-enter {
+  animation: entrada-fila 150ms var(--ease-drawer) both;
+}
+/* Barra vertical que crece desde la base. */
+@utility animate-bar-grow {
+  transform-origin: bottom;
+  animation: crecer-barra 350ms var(--ease-data) both;
+}
+/* Barra horizontal de progreso que crece desde la izquierda. */
+@utility animate-bar-grow-x {
+  transform-origin: left;
+  animation: crecer-barra-x 350ms var(--ease-data) both;
+}
+/* Anillo SVG: requiere --anillo-inicio (circunferencia) en el estilo del trazo. */
+@utility animate-ring-fill {
+  animation: llenar-anillo 500ms var(--ease-data) both;
 }

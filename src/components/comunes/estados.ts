@@ -37,11 +37,11 @@ export type DefinicionEstado = { etiqueta: string; tono: TonoEstado; icono: Luci
 export const ESTADOS: Record<TipoEstado, Record<string, DefinicionEstado>> = {
   cotizacion: {
     BORRADOR: { etiqueta: "Borrador", tono: "neutro", icono: FilePen },
-    ENVIADA: { etiqueta: "Enviada", tono: "info", icono: Send },
-    AJUSTE_SOLICITADO: { etiqueta: "Ajustes solicitados", tono: "advertencia", icono: MessageSquareWarning },
+    ENVIADA: { etiqueta: "Enviada", tono: "advertencia", icono: Send },
+    AJUSTE_SOLICITADO: { etiqueta: "Ajustes solicitados", tono: "info", icono: MessageSquareWarning },
     APROBADA: { etiqueta: "Aprobada", tono: "exito", icono: CircleCheck },
     RECHAZADA: { etiqueta: "Rechazada", tono: "peligro", icono: CircleX },
-    VENCIDA: { etiqueta: "Vencida", tono: "advertencia", icono: TimerOff },
+    VENCIDA: { etiqueta: "Vencida", tono: "peligro", icono: TimerOff },
   },
   orden: {
     PENDIENTE: { etiqueta: "Pendiente", tono: "neutro", icono: Clock },

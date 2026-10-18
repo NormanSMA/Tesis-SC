@@ -20,11 +20,12 @@ export async function prepararPanel(db: PrismaClient) {
 }
 export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
   estado?: EstadoCotizacion; total?: string; creadoEn?: string; vencimiento?: string; archivada?: boolean;
-  respuesta?: string; origenId?: string; version?: number; moneda?: "NIO" | "USD"; tipoCambio?: string;
+  respuesta?: string; origenId?: string; version?: number; moneda?: "NIO" | "USD"; tipoCambio?: string; emision?: string;
 } = {}) {
   const vence = entrada.vencimiento ?? "2034-05-10";
-  const emision = new Date(`${vence}T00:00:00Z`);
-  emision.setUTCDate(emision.getUTCDate() - 15);
+  const emision = new Date(`${entrada.emision ?? vence}T00:00:00Z`);
+  if (!entrada.emision) emision.setUTCDate(emision.getUTCDate() - 15);
+  const vigenciaDias = Math.round((new Date(vence).getTime() - emision.getTime()) / 86400000);
   return entorno.db.$transaction(async (tx) => {
     const creadoEn = new Date(entrada.creadoEn ?? "2034-05-01T12:00:00Z");
     const [numeracion] = await tx.$queryRaw<{ numero: string }[]>`SELECT siguiente_numero('COTIZACION', ${creadoEn}) AS numero`;
@@ -32,7 +33,7 @@ export async function crearCotizacionPanel(entorno: EntornoPanel, entrada: {
     const nueva = await tx.cotizacion.create({ data: {
       numero: numeracion.numero, clienteId: entorno.ordenes.cotizaciones.referencias.cliente.id,
       creadoPorId: entorno.sesiones.ATENCION_CLIENTE.usuarioId, asunto: "Prueba panel", subtotal: total, total,
-      tasaImpuesto: "0", descuento: "0", impuesto: "0", vigenciaDias: 15,
+      tasaImpuesto: "0", descuento: "0", impuesto: "0", vigenciaDias,
       fechaEmision: emision, fechaVencimiento: new Date(vence), creadoEn,
       cotizacionOrigenId: entrada.origenId, version: entrada.version,
       moneda: entrada.moneda, tipoCambio: entrada.tipoCambio,

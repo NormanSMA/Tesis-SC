@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatearDescripcionGrafico } from "@/components/panel/GraficoBarras";
-import { ordenarPorGravedad } from "@/components/panel/ListaAtencion";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { formatearDescripcionGrafico, GraficoBarrasEstados } from "@/components/panel/GraficoBarrasEstados";
+import { ListaAtencion, ordenarPorGravedad, tiempoAtencion } from "@/components/panel/ListaAtencion";
+import { TarjetaIndicador } from "@/components/panel/TarjetaIndicador";
+import { URGENCIAS } from "@/components/panel/urgencias";
 import type { AtencionPanel, GraficoPanel } from "@/modules/panel/tipos";
 
 const grafico: GraficoPanel = {
@@ -14,7 +18,7 @@ const grafico: GraficoPanel = {
 };
 
 function crearAtencion(id: string, gravedad: AtencionPanel["gravedad"]): AtencionPanel {
-  return { id, gravedad, titulo: id, detalle: "Detalle", destino: `/ordenes/${id}` };
+  return { id, gravedad, tipo: "orden", codigo: id, urgencia: "ORDEN_ATRASADA", monto: null, moneda: null, referencia: "2034-05-01T06:00:00.000Z", dias: 9, titulo: id, detalle: "Detalle", destino: `/ordenes/${id}` };
 }
 
 describe("Descripción accesible del gráfico", () => {
@@ -54,5 +58,86 @@ describe("Orden de gravedad", () => {
 
   it("devuelve una lista vacía cuando no existe atención", () => {
     expect(ordenarPorGravedad([])).toEqual([]);
+  });
+});
+
+describe("Gráfico compacto de estados", () => {
+  it("agrupa en seis categorías, conserva el total y expone una tabla accesible", () => {
+    const datos = Array.from({ length: 8 }, (_, indice) => ({ etiqueta: `Estado ${indice}`, valor: indice + 1 }));
+    const html = renderToStaticMarkup(createElement(GraficoBarrasEstados, { grafico: { ...grafico, datos } }));
+    expect(html.match(/class="animate-bar-grow /g)).toHaveLength(6);
+    expect(html).toContain("Otros: 6");
+    expect(html).toContain('animation-delay:200ms');
+    expect(html).toContain('<table class="sr-only">');
+    expect(html).toContain('<th scope="row">Otros</th><td>6</td>');
+    expect(datos.map(({ valor }) => valor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it("conserva ceros y distingue la categoría destacada", () => {
+    const html = renderToStaticMarkup(createElement(GraficoBarrasEstados, { grafico: {
+      ...grafico, datos: [{ etiqueta: "Vacío", valor: 0 }, { etiqueta: "Actual", valor: 1, destacado: true }],
+    } }));
+    expect(html).toContain("height:0%");
+    expect(html).toContain("bg-primary");
+    expect(html).toContain("bg-slate-300");
+    expect(html).not.toMatch(/NaN|Infinity/);
+  });
+});
+
+describe("Feed operativo", () => {
+  const generadoEn = "2034-05-10T12:00:00.000Z";
+  const fila = { ...crearAtencion("OT-1", "alta"), referencia: "2034-05-07T12:00:00.000Z", dias: 3 };
+
+  it.each([
+    { urgencia: "SIN_RESPUESTA", referencia: "2034-05-06T12:00:00.000Z", dias: 4, esperado: "Sin respuesta hace 4 días" },
+    { urgencia: "POR_VENCER", referencia: "2034-05-12T12:00:00.000Z", dias: 2, esperado: "Vence en 2 días" },
+    { urgencia: "POR_VENCER", referencia: "2034-05-10T06:00:00.000Z", dias: 0, esperado: "Vence hoy" },
+    { urgencia: "ORDEN_ATRASADA", referencia: "2034-05-07T12:00:00.000Z", dias: 3, esperado: "Atrasada 3 días" },
+  ] as const)("calcula $urgencia desde generadoEn", ({ urgencia, referencia, dias, esperado }) => {
+    expect(tiempoAtencion({ ...fila, urgencia, referencia, dias }, generadoEn)).toBe(esperado);
+  });
+
+  it("muestra moneda, insignia, tiempo, total y enlace a la lista", () => {
+    const html = renderToStaticMarkup(createElement(ListaAtencion, {
+      generadoEn, atencionTotal: 12, atencion: [{ ...fila, monto: "1250.50", moneda: "USD" }],
+    }));
+    expect(html).toContain("US$ 1,251");
+    expect(html).toContain("Atrasada 3 días");
+    expect(html).toContain('data-variant="peligro"');
+    expect(html).toContain("12 elementos requieren atención");
+    expect(html).toContain('href="/ordenes"');
+    expect(html).toContain("Ver todas");
+    expect(html).toContain("animate-row-enter");
+  });
+
+  it("omite montos ocultos y no propone una lista para fuentes mezcladas", () => {
+    const html = renderToStaticMarkup(createElement(ListaAtencion, {
+      generadoEn, atencionTotal: 2, atencion: [fila, { ...fila, id: "cot-2", destino: "/cotizaciones/cot-2" }],
+    }));
+    expect(html).not.toContain("US$");
+    expect(html).not.toContain("C$");
+    expect(html).not.toContain("Ver todas");
+  });
+
+  it("presenta el estado cero con ayuda y define las ocho urgencias", () => {
+    const html = renderToStaticMarkup(createElement(ListaAtencion, { generadoEn, atencionTotal: 0, atencion: [] }));
+    expect(html).toContain("Todo al día");
+    expect(html).toContain("No hay elementos que requieran atención ahora.");
+    expect(Object.keys(URGENCIAS)).toHaveLength(8);
+  });
+});
+
+describe("Indicadores operativos", () => {
+  it("usa comparación, invierte la tendencia descendente y muestra la meta del porcentaje", () => {
+    const html = renderToStaticMarkup(createElement(TarjetaIndicador, { indicador: {
+      id: "tasa", etiqueta: "Tasa de aprobación", numero: 64, valor: "64 %", formato: "porcentaje",
+      meta: 70, destino: "/cotizaciones", contexto: "Contexto secundario", mejorSiBaja: true,
+      comparacion: { porcentaje: -2, texto: "vs. mes anterior" }, tendencia: { direccion: "baja", texto: "2 %" },
+    } }));
+    expect(html).toContain("Meta 70 %");
+    expect(html).toContain("text-success");
+    expect(html).toContain("vs. mes anterior");
+    expect(html).not.toContain("Contexto secundario");
+    expect(html).toContain('role="img"');
   });
 });

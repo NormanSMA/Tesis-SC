@@ -11,10 +11,11 @@ import { esquemaConsultaOrdenes } from "@/modules/ordenes/schema";
 import { construirPanel } from "@/modules/panel/paneles";
 import type { PerfilPanel } from "@/modules/panel/tipos";
 
+vi.mock("@/modules/panel/feed", () => ({ consultarFeed: vi.fn(async () => ({ atencion: [], atencionTotal: 0 })) }));
 vi.mock("@/core/autorizacion", () => ({ can: vi.fn(() => true) }));
 vi.mock("@/modules/panel/repo", () => ({
   consultarOperacion: vi.fn(async () => ({
-    pendientes: 2, sinResponsable: 1, enProduccion: 3, entregas: 2, accion: 1,
+    pendientes: 2, sinResponsable: 1, enProduccion: 3, entregas: 2, entregadasAnteriores: 1, accion: 1,
     porEstado: [{ etiqueta: "PENDIENTE", valor: 2 }], filas: [],
   })),
   consultarComercial: vi.fn(async () => ({
@@ -108,6 +109,19 @@ describe("destinos del panel", () => {
     expect(panel.indicadores.find(({ id }) => id === "aprobadas-mes")).toMatchObject({
       valor: "3", contexto: "Mes anterior: 7 aprobadas",
     });
+  });
+
+  it.each([
+    { perfil: "GERENCIA", ids: ["ordenes-atrasadas"] },
+    { perfil: "OPERACIONES", ids: ["por-iniciar", "sin-responsable"] },
+    { perfil: "ATENCION_CLIENTE", ids: ["enviadas", "por-vencer"] },
+    { perfil: "PRODUCCION", ids: ["mis-etapas-pendientes", "mis-etapas-atrasadas"] },
+    { perfil: "ADMINISTRACION", ids: ["materiales-bajo-minimo"] },
+  ] as const)("marca como favorable reducir los indicadores pendientes de $perfil", async ({ perfil, ids }) => {
+    const panel = await construirPanel({ ...entrada, perfil });
+    for (const id of ids) {
+      expect(panel.indicadores.find((indicador) => indicador.id === id)?.mejorSiBaja, id).toBe(true);
+    }
   });
 
   it("conserva contexto y enlace de inventario sin permiso de cotizaciones", async () => {

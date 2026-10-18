@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EncabezadoPanel } from "@/components/panel/EncabezadoPanel";
-import { GraficoBarras } from "@/components/panel/GraficoBarras";
+import { GraficoBarrasEstados } from "@/components/panel/GraficoBarrasEstados";
 import { ListaAtencion } from "@/components/panel/ListaAtencion";
 import { TarjetaIndicador } from "@/components/panel/TarjetaIndicador";
-import { formatearFechaHora } from "@/lib/formato";
 import type { PanelDto } from "@/modules/panel/tipos";
 
 const VACIO_OPERACIONES = { texto: "Todas las órdenes activas están al día.", enlace: "Ver órdenes", destino: "/ordenes" };
@@ -49,40 +48,27 @@ function useDatosPanel(inicial: PanelDto) {
   return { datos, actualizando, error, actualizar };
 }
 
-export function Panel({ inicial }: { inicial: PanelDto }) {
+export function Panel({ inicial, puedeCrearCotizacion = false }: { inicial: PanelDto; puedeCrearCotizacion?: boolean }) {
   const router = useRouter();
   const { datos, actualizando, error, actualizar } = useDatosPanel(inicial);
   return (
-    <section aria-label="Panel" aria-busy={actualizando} className="min-w-0 max-w-full">
-      <EncabezadoPanel {...datos} onCambiarPerfil={(perfil) => router.replace(`/panel?perfil=${encodeURIComponent(perfil)}`, { scroll: false })} />
-      <div className="mb-6 flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <p role="status" aria-atomic="true" className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">
-          Actualizado: <time dateTime={datos.generadoEn}>{formatearFechaHora(datos.generadoEn)}</time>
-        </p>
-        <button
-          type="button"
-          onClick={actualizar}
-          aria-disabled={actualizando}
-          className="min-h-10 rounded-lg border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-disabled:cursor-wait aria-disabled:opacity-60"
-        >
-          Actualizar
-        </button>
-      </div>
+    <section aria-label="Panel" aria-busy={actualizando} className="min-w-0 max-w-full [&_.transition-colors]:transition-[opacity,transform]">
+      <EncabezadoPanel {...datos} puedeCrearCotizacion={puedeCrearCotizacion} actualizando={actualizando} onActualizar={actualizar}
+        onCambiarPerfil={(perfil) => router.replace(`/panel?perfil=${encodeURIComponent(perfil)}`, { scroll: false })} />
       {error && <p role="alert" aria-live="assertive" className="mb-4 text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
-      <div className="entrada-escalonada grid min-w-0 grid-cols-1 gap-4 min-[761px]:grid-cols-2 min-[1101px]:grid-cols-12">
+      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {datos.indicadores.map((indicador) => (
-          <div key={indicador.id} className="flex min-w-0 min-[1101px]:col-span-3 [&>*]:flex-1">
+          <div key={indicador.id} className="min-w-0">
             <TarjetaIndicador indicador={indicador} />
           </div>
         ))}
-        {datos.grafico && (
-          <div className="min-w-0 min-[1101px]:col-span-8">
-            <GraficoBarras grafico={datos.grafico} />
-          </div>
-        )}
-        <div className={`min-w-0 ${datos.grafico ? "min-[1101px]:col-span-4" : "min-[761px]:col-span-2 min-[1101px]:col-span-12"}`}>
-          <ListaAtencion atencion={datos.atencion} vacio={datos.perfil === "OPERACIONES" ? VACIO_OPERACIONES : undefined} />
+      </div>
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className={`min-w-0 ${datos.grafico ? "lg:col-span-8" : "lg:col-span-12"}`}>
+          <ListaAtencion atencion={datos.atencion} atencionTotal={datos.atencionTotal} generadoEn={datos.generadoEn}
+            vacio={datos.perfil === "OPERACIONES" ? VACIO_OPERACIONES : undefined} />
         </div>
+        {datos.grafico && <div className="min-w-0 lg:col-span-4"><GraficoBarrasEstados grafico={datos.grafico} /></div>}
       </div>
     </section>
   );
