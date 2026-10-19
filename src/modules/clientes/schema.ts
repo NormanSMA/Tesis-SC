@@ -3,7 +3,7 @@ import { z } from "zod";
 import { esquemaOrden } from "@/lib/listas/orden";
 
 import { MENSAJE_TELEFONO, esTelefonoValido } from "./telefono";
-import { CAMPOS_ORDEN_CLIENTE } from "./tipos";
+import { CAMPOS_ORDEN_CLIENTE } from "./campos-orden";
 
 export const TIPOS_CLIENTE = ["PERSONA", "EMPRESA"] as const;
 export type TipoCliente = (typeof TIPOS_CLIENTE)[number];

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { MONEDAS } from "@/core/moneda";
 import { esquemaOrden } from "@/lib/listas/orden";
 
-import { CAMPOS_ORDEN_COTIZACION } from "./tipos";
+import { CAMPOS_ORDEN_COTIZACION } from "./campos-orden";
 
 export const ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"] as const;
 export const CONDICIONES_PREDETERMINADAS = "Precios expresados en la moneda de la cotización. La producción inicia después de aprobar la cotización.";

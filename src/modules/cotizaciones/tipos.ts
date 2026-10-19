@@ -28,8 +28,7 @@ export type CotizacionDto = TotalesCotizacion & {
 };
 export type CotizacionFila = Omit<CotizacionDto, "items" | "avisos">;
 /** Campos de la lista blanca del parámetro orden=campo:direccion (R7). */
-export const CAMPOS_ORDEN_COTIZACION = ["creadoEn", "numero", "cliente", "total", "vencimiento"] as const;
-export type CampoOrdenCotizacion = (typeof CAMPOS_ORDEN_COTIZACION)[number];
+export { CAMPOS_ORDEN_COTIZACION, type CampoOrdenCotizacion } from "./campos-orden";
 /**
  * Conteos para las pastillas de estado: con los mismos filtros de la consulta (q, cliente, archivadas)
  * pero sin el filtro de estado ni porVencer. porVencer = ENVIADA sin respuesta que vence en 3 días o menos.

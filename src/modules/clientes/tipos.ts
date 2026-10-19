@@ -27,8 +27,7 @@ export type ClienteFila = Pick<
 };
 
 /** Lista blanca del parámetro orden=campo:direccion (R7). */
-export const CAMPOS_ORDEN_CLIENTE = ["nombre", "codigo", "creadoEn"] as const;
-export type CampoOrdenCliente = (typeof CAMPOS_ORDEN_CLIENTE)[number];
+export { CAMPOS_ORDEN_CLIENTE, type CampoOrdenCliente } from "./campos-orden";
 /** Conteos para las pastillas de tipo: mismos filtros (q, activo) sin el filtro de tipo. */
 export type ConteosClientes = { todos: number; EMPRESA: number; PERSONA: number };
 
