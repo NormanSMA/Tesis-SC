@@ -9,10 +9,11 @@ import { costearItems } from "./costear";
 import { aCotizacionDto, aCotizacionFila, aItemDto } from "./dto";
 import { regla } from "./errores";
 import { exigirBorrador, exigirCotizacion, guardarCabecera, guardarItems, registrarCambio, tomarVersion } from "./escritura";
+import { hoyManagua } from "./fechas";
 import { aEntradaLinea } from "./mapeo";
-import { configuracionCotizacion, consultarCotizaciones, siguienteNumero, type FichaGuardada } from "./repo";
+import { configuracionCotizacion, consultarConteosCotizaciones, consultarCotizaciones, siguienteNumero, type FichaGuardada } from "./repo";
 import type { ConsultaCotizaciones, EntradaCrearCotizacion, EntradaEditarCotizacion, EntradaItem, EntradaReemplazarItems } from "./schema";
-import type { CotizacionDto, ListaCotizaciones } from "./tipos";
+import type { ConteosCotizaciones, CotizacionDto, ListaCotizaciones } from "./tipos";
 
 export { leerIdCotizacion } from "./errores";
 export { enviarCotizacion, responderCotizacion, archivarCotizacion } from "./estados";
@@ -137,7 +138,19 @@ export async function obtenerCotizacion(id: string): Promise<CotizacionDto> {
   return aCotizacionDto(await exigirCotizacion(prisma, id));
 }
 
+function totalLista(consulta: ConsultaCotizaciones, conteos: ConteosCotizaciones): number {
+  if (consulta.porVencer) {
+    if (consulta.estado && consulta.estado !== "ENVIADA") return 0;
+    return conteos.porVencer;
+  }
+  return consulta.estado ? conteos[consulta.estado] : conteos.todas;
+}
+
 export async function listarCotizaciones(consulta: ConsultaCotizaciones): Promise<ListaCotizaciones> {
-  const { filas, total } = await consultarCotizaciones(consulta);
-  return { datos: filas.map(aCotizacionFila), total, pagina: consulta.pagina, porPagina: consulta.porPagina };
+  const hoy = hoyManagua();
+  const [filas, conteos] = await Promise.all([
+    consultarCotizaciones(consulta, hoy), consultarConteosCotizaciones(consulta, hoy),
+  ]);
+  const total = totalLista(consulta, conteos);
+  return { datos: filas.map(aCotizacionFila), total, pagina: consulta.pagina, porPagina: consulta.porPagina, conteos };
 }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { ClienteFila } from "@/modules/clientes/tipos";
+import { CAMPOS_ORDEN_CLIENTE, type ClienteFila } from "@/modules/clientes/tipos";
 
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
@@ -85,6 +85,7 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
       const { datos, cuerpo } = await consultar({ q: `inexistente-${randomUUID()}` });
       expect(datos).toEqual([]);
       expect(cuerpo.total).toBe(0);
+      expect(cuerpo.conteos).toEqual({ todos: 0, EMPRESA: 0, PERSONA: 0 });
     });
   });
 
@@ -106,6 +107,42 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
       expect((await consultar({ q: token })).datos).toHaveLength(2);
     });
 
+    it("cuenta tipos sin depender del tipo, orden o página y conserva búsqueda y activo", async () => {
+      const token = `Conteos${randomUUID().slice(0, 8)}`;
+      await crearClienteDirecto(db, { nombre: `${token} A`, tipo: "EMPRESA" });
+      await crearClienteDirecto(db, { nombre: `${token} B`, tipo: "EMPRESA" });
+      await crearClienteDirecto(db, { nombre: `${token} C`, tipo: "PERSONA" });
+      await crearClienteDirecto(db, { nombre: `${token} D`, tipo: "PERSONA", activo: false });
+      await crearClienteDirecto(db, { nombre: `${token} E`, tipo: "EMPRESA", activo: false });
+      await crearClienteDirecto(db, { tipo: "EMPRESA" });
+      for (const tipo of ["", "EMPRESA", "PERSONA"]) {
+        const lista = await consultar({ q: token.toUpperCase(), tipo, orden: "codigo:desc", pagina: "9", porPagina: "1" });
+        expect(lista.status).toBe(200);
+        expect(lista.datos).toEqual([]);
+        expect(lista.cuerpo).toMatchObject({
+          total: tipo === "" ? 3 : tipo === "EMPRESA" ? 2 : 1,
+          conteos: { todos: 3, EMPRESA: 2, PERSONA: 1 },
+        });
+        const archivados = await consultar({ q: token, tipo, activo: "false" });
+        expect(archivados.cuerpo.conteos).toEqual({ todos: 2, EMPRESA: 1, PERSONA: 1 });
+        expect(archivados.datos).toHaveLength(tipo === "" ? 2 : 1);
+      }
+      expect((await consultar({ q: `${token} C`, tipo: "EMPRESA" })).cuerpo)
+        .toMatchObject({ total: 0, conteos: { todos: 1, EMPRESA: 0, PERSONA: 1 } });
+      expect((await consultar({ q: `${token} C`, activo: "false" })).cuerpo.conteos)
+        .toEqual({ todos: 0, EMPRESA: 0, PERSONA: 0 });
+    });
+
+    it.each(["tipo:asc", "codigoCliente:desc", "nombre:invalido", "nombre:asc:desc"])(
+      "responde 422 para orden=%s",
+      async (orden) => {
+        const respuesta = await consultar({ orden });
+        expect(respuesta.status).toBe(422);
+        expect(respuesta.error?.codigo).toBe("VALIDACION");
+        expect(respuesta.error?.campos?.orden).toBeTruthy();
+      },
+    );
+
     it("ignora los parámetros vacíos", async () => {
       const { status } = await consultar({ q: "", tipo: "", activo: "", pagina: "", porPagina: "" });
       expect(status).toBe(200);
@@ -119,6 +156,37 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
   });
 
   describe("paginación y orden", () => {
+    it.each(CAMPOS_ORDEN_CLIENTE)("ordena por %s en ambas direcciones y pagina con desempate", async (campo) => {
+      const token = `Orden${randomUUID().slice(0, 8)}`;
+      const filas = [];
+      for (const [indice, letra] of ["B", "A", "B", "C"].entries()) {
+        filas.push(await crearClienteDirecto(db, {
+          nombre: `${token} ${letra}`,
+          creadoEn: new Date(indice < 2 ? "2026-10-01T12:00:00Z" : "2026-10-02T12:00:00Z"),
+        }));
+      }
+      for (const direccion of ["asc", "desc"]) {
+        const columna = campo === "codigo" ? "codigoCliente" : campo;
+        const signo = direccion === "asc" ? 1 : -1;
+        const esperado = [...filas].sort((a, b) => {
+          const primero = a[columna];
+          const segundo = b[columna];
+          if (primero < segundo) return -signo;
+          if (primero > segundo) return signo;
+          return (a.id < b.id ? -1 : 1) * signo;
+        }).map((fila) => fila.id);
+        const lista = await consultar({ q: token, orden: `${campo}:${direccion}` });
+        expect(lista.status).toBe(200);
+        expect(lista.datos.map((fila) => fila.id)).toEqual(esperado);
+        const vistos: string[] = [];
+        for (const pagina of [1, 2]) {
+          const parcial = await consultar({ q: token, orden: `${campo}:${direccion}`, pagina: String(pagina), porPagina: "2" });
+          vistos.push(...parcial.datos.map((fila) => fila.id));
+        }
+        expect(vistos).toEqual(esperado);
+      }
+    });
+
     async function crearIgualesPorNombre(cantidad: number): Promise<{ nombre: string; ids: string[] }> {
       const nombre = `${marca} Mismo nombre ${randomUUID().slice(0, 6)}`;
       const ids: string[] = [];

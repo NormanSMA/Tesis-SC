@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { BellRing, ChevronDown, CircleCheck, ClipboardList, FileText, Layers, Package } from "lucide-react";
+import { BellRing, Calculator, ChevronDown, CircleCheck, ClipboardList, Layers, Package } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -12,7 +12,7 @@ import { tiempoRelativo } from "@/lib/listas/tiempo-relativo";
 import { cn } from "@/lib/utils";
 import type { AtencionPanel } from "@/modules/panel/tipos";
 
-const ICONOS = { cotizacion: FileText, orden: ClipboardList, material: Package, etapa: Layers };
+const ICONOS = { cotizacion: Calculator, orden: ClipboardList, material: Package, etapa: Layers };
 const TONOS: Record<AtencionPanel["tipo"], TonoMiniatura> = { cotizacion: "primario", orden: "info", material: "advertencia", etapa: "exito" };
 type MensajeVacio = { texto: string; enlace: string; destino: string };
 type PropiedadesAtencion = {
@@ -98,7 +98,7 @@ export function ListaAtencion({ atencion, generadoEn, atencionTotal, vacio }: Pr
       </div>
       {atencion.length === 0 ? <AtencionVacia vacio={vacio} /> : (
         <>
-          <div aria-hidden="true" className={cn("hidden gap-4 px-5 pt-3 pb-1 text-sm text-slate-500 lg:grid", COLUMNAS_FEED)}>
+          <div aria-hidden="true" className={cn("hidden gap-4 px-5 pt-3 pb-1 text-sm font-semibold text-slate-700 lg:grid", COLUMNAS_FEED)}>
             {ENCABEZADOS.map((encabezado, indice) => <span key={encabezado} className={indice === 0 ? "pl-16" : undefined}>{encabezado}</span>)}
           </div>
           <ListaEscalonada className="gap-1.5 p-2">

@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 import { MONEDAS } from "@/core/moneda";
+import { esquemaOrden } from "@/lib/listas/orden";
+
+import { CAMPOS_ORDEN_COTIZACION } from "./tipos";
 
 export const ESTADOS = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"] as const;
 export const CONDICIONES_PREDETERMINADAS = "Precios expresados en la moneda de la cotización. La producción inicia después de aprobar la cotización.";
@@ -79,6 +82,8 @@ export const esquemaReemplazarItems = z.object({ version, items: z.array(esquema
 export const esquemaConsultaCotizaciones = z.object({
   q: z.string().max(200).optional(),
   estado: z.enum(ESTADOS).optional(),
+  orden: esquemaOrden(CAMPOS_ORDEN_COTIZACION).optional(),
+  porVencer: z.enum(["true"]).optional(),
   cliente: id.optional(),
   archivadas: z.enum(["true", "false", "todas"]).default("false"),
   pagina: z.coerce.number().int().min(1).max(100000).default(1),

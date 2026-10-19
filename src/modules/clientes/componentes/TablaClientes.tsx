@@ -1,194 +1,99 @@
-import type { ReactNode } from "react";
+import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-
+import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
-import { Paginacion } from "@/components/comunes/Paginacion";
+import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableRowHeader } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-
-import { ETIQUETA_COLUMNA, columnasPermitidas, type ColumnaOpcional } from "../columnas";
-import { ETIQUETA_TIPO, type ConsultaClientes } from "../schema";
-import type { ClienteFila, ListaClientes } from "../tipos";
+import type { Orden } from "@/lib/listas/orden";
+import type { ColumnaOpcional } from "../columnas";
+import { ETIQUETA_TIPO } from "../schema";
+import type { CampoOrdenCliente, ClienteFila, ListaClientes } from "../tipos";
 import { EstadoCliente } from "./EstadoCliente";
-import { hayFiltrosActivos } from "./FiltrosClientes";
+import { NuevoCliente } from "./NuevoCliente";
 
-const TAMANO_POR_DEFECTO = 20;
-
-function hrefPagina(consulta: ConsultaClientes, pagina: number): string {
-  const parametros = new URLSearchParams();
-  if (consulta.q) parametros.set("q", consulta.q);
-  if (consulta.tipo) parametros.set("tipo", consulta.tipo);
-  if (!consulta.activo) parametros.set("activo", "false");
-  if (consulta.porPagina !== TAMANO_POR_DEFECTO) parametros.set("porPagina", String(consulta.porPagina));
-  if (pagina > 1) parametros.set("pagina", String(pagina));
-  const texto = parametros.toString();
-  return texto ? `/clientes?${texto}` : "/clientes";
+function hrefPagina(parametros: Record<string, string>, pagina: number) {
+  return `/clientes?${new URLSearchParams({ ...parametros, pagina: String(pagina) })}`;
 }
 
-type ColumnaLista = {
-  id: string;
-  encabezado: string;
-  derecha?: boolean;
-  /** Clases de la celda en móvil, donde cada fila se apila como tarjeta. */
-  movil?: string;
-  conEtiqueta?: boolean;
-  celda: (cliente: ClienteFila) => ReactNode;
-};
+const VACIO = <span data-vacio aria-label="Sin dato" className="text-muted-foreground">—</span>;
 
-const VACIO = <span aria-label="Sin dato">—</span>;
+/** Enlace extendido: toda la fila navega a la ficha. El resto de las celdas es solo texto. */
+const ENLACE_FILA = "font-medium text-primary underline-offset-4 outline-none after:absolute after:inset-0 after:content-[''] hover:underline";
 
-// Nombre siempre visible; el resto lo elige el usuario en el selector de columnas. La fila entera enlaza a la ficha.
-function columnas(elegidas: readonly ColumnaOpcional[]): ColumnaLista[] {
-  const nombre: ColumnaLista =
-    {
-      id: "nombre",
-      encabezado: "Nombre",
-      movil: "max-md:col-span-2",
-      celda: (cliente) => (
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/clientes/${cliente.id}`}
-            className="font-medium text-foreground underline-offset-4 outline-none hover:underline after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
-          >
-            {cliente.nombre}
-          </Link>
-          {cliente.activo ? null : <EstadoCliente activo={false} />}
-        </div>
-      ),
-    };
-  const opcionales: Record<ColumnaOpcional, ColumnaLista> = {
-    codigoCliente: { id: "codigoCliente", encabezado: ETIQUETA_COLUMNA.codigoCliente, conEtiqueta: true, celda: (cliente) => cliente.codigoCliente },
-    ruc: { id: "ruc", encabezado: ETIQUETA_COLUMNA.ruc, conEtiqueta: true, celda: (cliente) => cliente.ruc ?? VACIO },
-    tipo: { id: "tipo", encabezado: ETIQUETA_COLUMNA.tipo, conEtiqueta: true, celda: (cliente) => ETIQUETA_TIPO[cliente.tipo] },
-    contactoPrincipal: { id: "contactoPrincipal", encabezado: ETIQUETA_COLUMNA.contactoPrincipal, conEtiqueta: true, celda: (cliente) => cliente.contactoPrincipal ?? VACIO },
-    telefono: { id: "telefono", encabezado: ETIQUETA_COLUMNA.telefono, conEtiqueta: true, celda: (cliente) => cliente.telefono ?? VACIO },
-    correo: { id: "correo", encabezado: ETIQUETA_COLUMNA.correo, conEtiqueta: true, celda: (cliente) => cliente.correo ?? VACIO },
-    cotizaciones: {
-      id: "cotizaciones",
-      encabezado: ETIQUETA_COLUMNA.cotizaciones,
-      derecha: true,
-      conEtiqueta: true,
-      celda: (cliente) => <span className="tabular-nums">{cliente.cotizaciones ?? 0}</span>,
-    },
-  };
-  return [nombre, ...(Object.keys(opcionales) as ColumnaOpcional[]).filter((id) => elegidas.includes(id)).map((id) => opcionales[id])];
-}
-
-type PropiedadesSinResultados = { consulta: ConsultaClientes; puedeGestionar: boolean; totalGeneral: number };
-
-function SinResultados({ consulta, puedeGestionar, totalGeneral }: PropiedadesSinResultados) {
-  if (totalGeneral > 0) {
-    return (
-      <EmptyState
-        ilustracion="reconocimientos"
-        titulo="Esa página no existe"
-        descripcion={`La búsqueda tiene ${totalGeneral} resultados en menos páginas.`}
-        accion={
-          <Button asChild variant="outline">
-            <Link href={hrefPagina(consulta, 1)}>Ir a la primera página</Link>
-          </Button>
-        }
-      />
-    );
-  }
-  if (hayFiltrosActivos(consulta)) {
-    return (
-      <EmptyState
-        ilustracion="reconocimientos"
-        titulo="Sin resultados"
-        descripcion="Ningún cliente coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
-        accion={
-          <Button asChild variant="outline">
-            <Link href="/clientes">Limpiar filtros</Link>
-          </Button>
-        }
-      />
-    );
-  }
-  return (
-    <EmptyState
-      ilustracion="reconocimientos"
-      titulo="Aún no hay clientes"
-      descripcion="Registre el primer cliente para empezar a cotizar."
-      accion={
-        puedeGestionar ? (
-          <Button asChild>
-            <Link href="/clientes/nuevo">
-              <Plus aria-hidden="true" />
-              Nuevo cliente
-            </Link>
-          </Button>
-        ) : undefined
-      }
-    />
-  );
-}
-
-type PropiedadesTabla = {
-  lista: ListaClientes;
-  consulta: ConsultaClientes;
-  puedeGestionar: boolean;
-  conCotizaciones: boolean;
-  columnasVisibles: ColumnaOpcional[];
-};
-
-function FilaCliente({ cliente, visibles }: { cliente: ClienteFila; visibles: ColumnaLista[] }) {
-  return (
-    <TableRow className="relative h-12 max-md:grid max-md:h-auto max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-y-1 max-md:px-4 max-md:py-3">
-      {visibles.map((columna, indice) => {
-        const Celda = indice === 0 ? TableRowHeader : TableCell;
-        return (
-        <Celda
-          key={columna.id}
-          data-etiqueta={columna.encabezado}
-          className={cn(
-            "max-md:p-0 max-md:whitespace-normal max-md:break-words",
-            columna.derecha && "text-right",
-            columna.conEtiqueta &&
-              "max-md:col-span-2 max-md:flex max-md:justify-between max-md:text-sm max-md:text-muted-foreground max-md:before:content-[attr(data-etiqueta)]",
-            columna.movil,
-          )}
-        >
-          {columna.celda(cliente)}
-        </Celda>
-        );
-      })}
-    </TableRow>
-  );
-}
-
-export function TablaClientes({ lista, consulta, puedeGestionar, conCotizaciones, columnasVisibles }: PropiedadesTabla) {
-  if (lista.datos.length === 0) {
-    return <SinResultados consulta={consulta} puedeGestionar={puedeGestionar} totalGeneral={lista.total} />;
-  }
-  const visibles = columnas(columnasPermitidas(columnasVisibles, conCotizaciones));
-  return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table containerProps={{ role: "region", "aria-label": "Listado de clientes", tabIndex: 0 }}>
-        <caption className="sr-only">Listado de clientes</caption>
-        <TableHeader className="max-md:sr-only">
-          <TableRow className="hover:bg-transparent">
-            {visibles.map((columna) => (
-              <TableHead key={columna.id} scope="col" className={cn(columna.derecha && "text-right")}>
-                {columna.encabezado}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {lista.datos.map((cliente) => (
-            <FilaCliente key={cliente.id} cliente={cliente} visibles={visibles} />
-          ))}
-        </TableBody>
-      </Table>
-      <Paginacion
-        pagina={lista.pagina}
-        total={lista.total}
-        tamano={lista.porPagina}
-        hrefPagina={(pagina) => hrefPagina(consulta, pagina)}
-      />
+function celdaCliente(cliente: ClienteFila, elegidas: readonly ColumnaOpcional[]) {
+  const detalle = [
+    elegidas.includes("codigoCliente") ? cliente.codigoCliente : null,
+    elegidas.includes("tipo") ? ETIQUETA_TIPO[cliente.tipo] : null,
+    elegidas.includes("ruc") ? cliente.ruc : null,
+  ].filter(Boolean).join(" · ");
+  return <div className="flex items-center gap-3">
+    <AvatarIniciales nombre={cliente.nombre} />
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Link href={`/clientes/${cliente.id}`} className={ENLACE_FILA}>{cliente.nombre}</Link>
+        {cliente.activo ? null : <EstadoCliente activo={false} />}
+      </div>
+      {/* En tableta la línea gris se corta para que la tabla quepa; el texto completo queda en title. */}
+      {detalle ? <p className="max-w-48 truncate text-xs text-muted-foreground lg:max-w-none max-md:max-w-full" title={detalle}>{detalle}</p> : null}
     </div>
-  );
+  </div>;
+}
+
+// Contacto en dos líneas: persona arriba; teléfono y correo juntos abajo. Así la tabla cabe desde 768 px.
+function celdaContacto(cliente: ClienteFila, elegidas: readonly ColumnaOpcional[]) {
+  const contacto = elegidas.includes("contactoPrincipal") ? cliente.contactoPrincipal : null;
+  const medios = [elegidas.includes("telefono") ? cliente.telefono : null, elegidas.includes("correo") ? cliente.correo : null]
+    .filter(Boolean).join(" · ");
+  if (!contacto && !medios) return VACIO;
+  return <div className="min-w-0 max-w-52 max-md:max-w-full lg:max-w-80">
+    {contacto ? <p className="truncate">{contacto}</p> : null}
+    {medios ? <p className={contacto ? "truncate text-xs text-muted-foreground" : "truncate"} title={medios}>{medios}</p> : null}
+  </div>;
+}
+
+function columnasDe(elegidas: readonly ColumnaOpcional[], conCotizaciones: boolean): ColumnaTabla<ClienteFila>[] {
+  const columnas: ColumnaTabla<ClienteFila>[] = [
+    { id: "cliente", encabezado: "Cliente", ordenable: "nombre", celda: (cliente) => celdaCliente(cliente, elegidas) },
+  ];
+  if (elegidas.includes("contactoPrincipal") || elegidas.includes("telefono") || elegidas.includes("correo")) {
+    columnas.push({ id: "contacto", encabezado: "Contacto", celda: (cliente) => celdaContacto(cliente, elegidas) });
+  }
+  if (conCotizaciones && elegidas.includes("cotizaciones")) {
+    columnas.push({ id: "cotizaciones", encabezado: "Cotizaciones", alinear: "derecha", celda: (cliente) =>
+      <span className="tabular-nums"><span className="text-muted-foreground md:hidden">Cotizaciones: </span>{cliente.cotizaciones ?? 0}</span> });
+  }
+  return columnas;
+}
+
+/** Escritorio: tabla. Móvil (menos de 768 px): una tarjeta apilada por fila, sin desplazamiento horizontal. */
+const CLASES_TABLA = [
+  "[&_tbody_tr]:relative [&_tbody_tr]:cursor-pointer [&_tbody_tr:has(a:focus-visible)]:outline-2 [&_tbody_tr:has(a:focus-visible)]:-outline-offset-2 [&_tbody_tr:has(a:focus-visible)]:outline-ring",
+  "max-md:[&_thead]:sr-only max-md:[&_tr]:grid max-md:[&_tr]:h-auto max-md:[&_tr]:grid-cols-1 max-md:[&_tr]:gap-y-1 max-md:[&_tr]:px-4 max-md:[&_tr]:py-3",
+  "max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0 max-md:[&_td]:text-left max-md:[&_th]:whitespace-normal max-md:[&_th]:p-0",
+  "max-md:[&_td:has([data-vacio])]:hidden",
+].join(" ");
+
+export function TablaClientes({ lista, parametros, orden, puedeGestionar, conCotizaciones, columnasVisibles }: {
+  lista: ListaClientes; parametros: Record<string, string>; orden: Orden<CampoOrdenCliente> | null;
+  puedeGestionar: boolean; conCotizaciones: boolean; columnasVisibles: readonly ColumnaOpcional[];
+}) {
+  const filtrado = Object.keys(parametros).some((clave) => clave === "q" || clave === "tipo" || clave === "activo");
+  const sinClientes = lista.total === 0 && !filtrado;
+  const vacio = lista.total > 0
+    ? <EmptyState ilustracion="reconocimientos" titulo="Esa página no existe"
+      descripcion={`La búsqueda tiene ${lista.total} resultados en menos páginas.`}
+      accion={<Button asChild variant="outline"><Link href={hrefPagina(parametros, 1)}>Ir a la primera página</Link></Button>} />
+    : sinClientes
+      ? <EmptyState ilustracion="reconocimientos" titulo="Aún no hay clientes"
+        descripcion="Registre el primer cliente para empezar a cotizar."
+        accion={puedeGestionar ? <NuevoCliente conEnlace={false} /> : undefined} />
+      : <EmptyState ilustracion="reconocimientos" titulo="Sin resultados"
+        descripcion="Ningún cliente coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
+        accion={<Button asChild variant="outline"><Link href="/clientes">Limpiar filtros</Link></Button>} />;
+  return <ZonaResultados>
+    <DataTable titulo="Listado de clientes" columnas={columnasDe(columnasVisibles, conCotizaciones)} filas={lista.datos}
+      idFila={(cliente) => cliente.id} className={CLASES_TABLA} orden={orden} claveConsulta={new URLSearchParams(parametros).toString()}
+      vacio={vacio} paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
+        hrefPagina: (pagina) => hrefPagina(parametros, pagina) }} />
+  </ZonaResultados>;
 }

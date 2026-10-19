@@ -17,12 +17,12 @@ import {
 
 import {
   COLUMNAS_OPCIONALES,
-  COLUMNAS_POR_DEFECTO,
   ETIQUETA_COLUMNA,
   columnasPermitidas,
   guardarColumnas,
   type ColumnaOpcional,
 } from "../columnas";
+import { COLUMNAS_LISTA_POR_DEFECTO } from "./columnasLista";
 
 type PropiedadesSelector = { visibles: ColumnaOpcional[]; conCotizaciones: boolean };
 
@@ -63,7 +63,7 @@ export function SelectorColumnas({ visibles, conCotizaciones }: PropiedadesSelec
           </DropdownMenuCheckboxItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => guardar([...COLUMNAS_POR_DEFECTO])}>Restablecer</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => guardar([...COLUMNAS_LISTA_POR_DEFECTO])}>Restablecer</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

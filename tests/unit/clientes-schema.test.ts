@@ -7,6 +7,7 @@ import {
   esquemaEditarCliente,
   objetoDeParametros,
 } from "@/modules/clientes/schema";
+import { CAMPOS_ORDEN_CLIENTE } from "@/modules/clientes/tipos";
 
 const VERSION = "2026-10-06T01:17:26.214Z";
 
@@ -232,6 +233,19 @@ describe("esquemaCambioEstado", () => {
 });
 
 describe("esquemaConsultaClientes", () => {
+  it.each(CAMPOS_ORDEN_CLIENTE)("acepta orden ascendente y descendente por %s", (campo) => {
+    for (const direccion of ["asc", "desc"]) {
+      expect(esquemaConsultaClientes.parse({ orden: `${campo}:${direccion}` }).orden).toEqual({ campo, direccion });
+    }
+  });
+
+  it.each(["tipo:asc", "codigoCliente:asc", "nombre:ASC", "nombre:desc:asc", "nombre:", "nombre;DROP TABLE cliente:asc"])(
+    "rechaza el orden inválido %s en su campo",
+    (orden) => {
+      expect(camposConError(esquemaConsultaClientes.safeParse({ orden }))).toEqual(["orden"]);
+    },
+  );
+
   it("usa activos, página 1 y 20 por página por defecto", () => {
     expect(esquemaConsultaClientes.parse({})).toEqual({ activo: true, pagina: 1, porPagina: 20 });
   });

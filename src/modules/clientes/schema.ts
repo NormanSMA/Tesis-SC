@@ -1,5 +1,9 @@
 import { z } from "zod";
+
+import { esquemaOrden } from "@/lib/listas/orden";
+
 import { MENSAJE_TELEFONO, esTelefonoValido } from "./telefono";
+import { CAMPOS_ORDEN_CLIENTE } from "./tipos";
 
 export const TIPOS_CLIENTE = ["PERSONA", "EMPRESA"] as const;
 export type TipoCliente = (typeof TIPOS_CLIENTE)[number];
@@ -155,6 +159,7 @@ const MAXIMO_PAGINA = 100_000;
 export const esquemaConsultaClientes = z.object({
   q: z.string().max(200, "La búsqueda admite hasta 200 caracteres.").optional(),
   tipo: z.enum(TIPOS_CLIENTE, { error: "El tipo debe ser PERSONA o EMPRESA." }).optional(),
+  orden: esquemaOrden(CAMPOS_ORDEN_CLIENTE).optional(),
   activo: z
     .enum(["true", "false"], { error: "El estado debe ser true o false." })
     .default("true")

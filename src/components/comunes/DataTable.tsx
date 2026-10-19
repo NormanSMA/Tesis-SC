@@ -43,7 +43,7 @@ const FILA_APILADA = "max-md:grid max-md:h-auto max-md:grid-cols-1 max-md:gap-y-
 const CELDA_APILADA =
   "max-md:flex max-md:items-baseline max-md:justify-between max-md:gap-4 max-md:p-0 max-md:text-left max-md:whitespace-normal max-md:before:shrink-0 max-md:before:text-xs max-md:before:font-medium max-md:before:text-muted-foreground max-md:before:content-[attr(data-etiqueta)]";
 
-const CELDA_FIJA = "sticky left-0 z-10 bg-card group-hover/fila:bg-background";
+const CELDA_FIJA = "sticky left-0 z-10 bg-card group-hover/fila:bg-slate-50";
 
 function EncabezadoColumna<T>({ columna, orden }: { columna: ColumnaTabla<T>; orden?: OrdenTabla }) {
   const activa = columna.ordenable && orden?.campo === columna.ordenable ? orden.direccion : null;
@@ -51,7 +51,7 @@ function EncabezadoColumna<T>({ columna, orden }: { columna: ColumnaTabla<T>; or
     <TableHead
       scope="col"
       aria-sort={columna.ordenable ? (activa === "asc" ? "ascending" : activa === "desc" ? "descending" : "none") : undefined}
-      className={cn(columna.alinear === "derecha" && "text-right", columna.principal && "left-0 z-30 bg-muted")}
+      className={cn(columna.alinear === "derecha" && "text-right", columna.principal && "left-0 z-30 bg-slate-50")}
     >
       {columna.ordenable ? (
         <CabeceraOrdenable campo={columna.ordenable} etiqueta={columna.encabezado} activa={activa} alinearDerecha={columna.alinear === "derecha"} />
@@ -116,7 +116,8 @@ export function DataTable<T>({
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm", className)}>
       <Table
-        containerClassName="min-h-24 md:max-h-[calc(100dvh-16rem)]"
+        // Sin altura máxima: la lista usa el scroll de la página y no corta filas (como Mise).
+        containerClassName="min-h-24"
         containerProps={{ role: "region", "aria-label": titulo, tabIndex: 0 }}
       >
         <caption className="sr-only">{titulo}</caption>

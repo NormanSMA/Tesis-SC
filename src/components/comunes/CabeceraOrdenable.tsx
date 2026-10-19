@@ -22,8 +22,8 @@ export function CabeceraOrdenable({ campo, etiqueta, activa, parametro = "orden"
   const Icono = activa === "asc" ? ArrowUp : activa === "desc" ? ArrowDown : ArrowUpDown;
   return (
     <button type="button" onClick={() => navegar({ [parametro]: siguiente })}
-      className={cn("-mx-2 inline-flex h-8 items-center gap-1 rounded-md px-2 font-semibold transition-colors duration-100 hover:bg-slate-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        alinearDerecha && "flex-row-reverse", activa && "text-foreground")}>
+      className={cn("-mx-2 inline-flex h-8 items-center gap-1 rounded-md px-2 font-semibold transition-colors duration-100 hover:bg-slate-200/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        alinearDerecha && "flex-row-reverse", activa && "text-slate-900")}>
       {etiqueta}
       <Icono aria-hidden="true" className={cn("size-3.5", !activa && "text-slate-400")} />
       <span className="sr-only">{siguiente === null ? ", quitar orden" : siguiente.endsWith("asc") ? ", ordenar ascendente" : ", ordenar descendente"}</span>

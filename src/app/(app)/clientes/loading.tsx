@@ -1,5 +1,8 @@
-import { LoadingState } from "@/components/comunes/LoadingState";
+import { EsqueletoTabla } from "@/components/comunes/Esqueletos";
 
 export default function CargandoClientes() {
-  return <LoadingState filas={6} />;
+  return <div role="status">
+    <span className="sr-only">Cargando clientes</span>
+    <EsqueletoTabla filas={8} columnas={4} />
+  </div>;
 }

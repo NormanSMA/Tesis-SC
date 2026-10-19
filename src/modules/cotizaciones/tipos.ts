@@ -27,7 +27,17 @@ export type CotizacionDto = TotalesCotizacion & {
   creadoEn: string; actualizadoEn: string; items: ItemDto[]; avisos: string[];
 };
 export type CotizacionFila = Omit<CotizacionDto, "items" | "avisos">;
-export type ListaCotizaciones = { datos: CotizacionFila[]; total: number; pagina: number; porPagina: number };
+/** Campos de la lista blanca del parámetro orden=campo:direccion (R7). */
+export const CAMPOS_ORDEN_COTIZACION = ["creadoEn", "numero", "cliente", "total", "vencimiento"] as const;
+export type CampoOrdenCotizacion = (typeof CAMPOS_ORDEN_COTIZACION)[number];
+/**
+ * Conteos para las pastillas de estado: con los mismos filtros de la consulta (q, cliente, archivadas)
+ * pero sin el filtro de estado ni porVencer. porVencer = ENVIADA sin respuesta que vence en 3 días o menos.
+ */
+export type ConteosCotizaciones = Record<EstadoCotizacion, number> & { todas: number; porVencer: number };
+export type ListaCotizaciones = {
+  datos: CotizacionFila[]; total: number; pagina: number; porPagina: number; conteos: ConteosCotizaciones;
+};
 export type ProductoSelector = {
   id: string; codigo: string; nombre: string; categoriaId: string; categoria: string;
   unidadCobro: UnidadCobro; precioBase: string;

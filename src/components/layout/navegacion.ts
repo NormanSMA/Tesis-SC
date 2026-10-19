@@ -7,7 +7,7 @@ import {
   BarChart3,
   Settings,
   ShieldCheck,
-  ReceiptText,
+  Calculator,
   Users,
   UserCog,
   type LucideIcon,
@@ -38,7 +38,7 @@ export const gruposNavegacion: GrupoNavegacion[] = [
     items: [
       { href: "/panel", etiqueta: "Panel", icono: LayoutDashboard, permiso: "panel:ver" },
       { href: "/clientes", etiqueta: "Clientes", icono: Users, permiso: "cliente:ver" },
-      { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: ReceiptText, permiso: "cotizacion:ver" },
+      { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: Calculator, permiso: "cotizacion:ver" },
       { href: "/ordenes", etiqueta: "Órdenes de trabajo", icono: ClipboardCheck, permiso: "orden:ver" },
       { href: "/produccion", etiqueta: "Producción", icono: BrazoRobot, permiso: "produccion:ver" },
     ],

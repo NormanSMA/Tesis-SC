@@ -2,6 +2,7 @@ import { Prisma, type Cliente } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 
 import type { CampoEditable, ConsultaClientes, EntradaCrearCliente } from "./schema";
+import type { CampoOrdenCliente, ConteosClientes } from "./tipos";
 
 export const LIMITE_HISTORIAL = 20;
 
@@ -36,12 +37,22 @@ function filtroLista({ q, tipo, activo }: ConsultaClientes): Prisma.ClienteWhere
   return where;
 }
 
+function ordenLista(orden: ConsultaClientes["orden"]): Prisma.ClienteOrderByWithRelationInput[] {
+  const { campo, direccion } = orden ?? { campo: "nombre", direccion: "asc" };
+  const campos: Record<CampoOrdenCliente, Prisma.ClienteOrderByWithRelationInput> = {
+    nombre: { nombre: direccion },
+    codigo: { codigoCliente: direccion },
+    creadoEn: { creadoEn: direccion },
+  };
+  return [campos[campo], { id: direccion }];
+}
+
 export async function consultarClientes(consulta: ConsultaClientes): Promise<{ filas: FilaListada[]; total: number }> {
   const where = filtroLista(consulta);
   const [filas, total] = await Promise.all([
     prisma.cliente.findMany({
       where,
-      orderBy: [{ nombre: "asc" }, { id: "asc" }],
+      orderBy: ordenLista(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina,
       take: consulta.porPagina,
       include: { _count: { select: { cotizaciones: true } } },
@@ -49,6 +60,17 @@ export async function consultarClientes(consulta: ConsultaClientes): Promise<{ f
     prisma.cliente.count({ where }),
   ]);
   return { filas, total };
+}
+
+export async function consultarConteosClientes(consulta: ConsultaClientes): Promise<ConteosClientes> {
+  const where = filtroLista({ ...consulta, tipo: undefined });
+  const porTipo = await prisma.cliente.groupBy({ by: ["tipo"], where, _count: { _all: true } });
+  const conteos: ConteosClientes = { todos: 0, EMPRESA: 0, PERSONA: 0 };
+  for (const fila of porTipo) {
+    conteos[fila.tipo] = fila._count._all;
+    conteos.todos += fila._count._all;
+  }
+  return conteos;
 }
 
 export function buscarCliente(db: Tx, id: string): Promise<Cliente | null> {

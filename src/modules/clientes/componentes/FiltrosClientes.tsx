@@ -1,63 +1,59 @@
-import Link from "next/link";
-import { Search } from "lucide-react";
+"use client";
 
-import { AccionesFiltros, CampoFiltro, FiltrosLista, SelectFiltro } from "@/components/comunes/FiltrosLista";
+import { SlidersHorizontal } from "lucide-react";
+import { useId } from "react";
+import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
+import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
+import type { ConteosClientes } from "../tipos";
 
-import { ETIQUETA_TIPO, TIPOS_CLIENTE, type ConsultaClientes } from "../schema";
+const ESTADOS = [{ id: "true", nombre: "Activos" }, { id: "false", nombre: "Archivados" }];
 
-export function hayFiltrosActivos({ q, tipo, activo }: ConsultaClientes): boolean {
-  return Boolean(q) || Boolean(tipo) || !activo;
+function opcionesTipo(conteos?: ConteosClientes): OpcionSegmento[] {
+  return [
+    { valor: "todos", etiqueta: "Todos", conteo: conteos?.todos },
+    { valor: "EMPRESA", etiqueta: "Empresas", conteo: conteos?.EMPRESA },
+    { valor: "PERSONA", etiqueta: "Personas", conteo: conteos?.PERSONA },
+  ];
 }
 
-// Formulario GET sin JavaScript: la URL conserva la búsqueda y se puede compartir o recargar.
-export function FiltrosClientes({ consulta }: { consulta: ConsultaClientes }) {
-  return (
-    <FiltrosLista action="/clientes" role="search" etiqueta="Buscar clientes">
-      <CampoFiltro id="filtro-q" etiqueta="Buscar" className="sm:min-w-56 sm:flex-[2]">
-        {(atributos) => (
-          <Input
-            {...atributos}
-            name="q"
-            type="search"
-            defaultValue={consulta.q ?? ""}
-            placeholder="Nombre, RUC, contacto o correo"
-            autoComplete="off"
-          />
-        )}
-      </CampoFiltro>
-      <CampoFiltro id="filtro-tipo" etiqueta="Tipo" className="sm:max-w-48">
-        {(atributos) => (
-          <SelectFiltro {...atributos} name="tipo" defaultValue={consulta.tipo ?? ""}>
-            <option value="">Todos</option>
-            {TIPOS_CLIENTE.map((tipo) => (
-              <option key={tipo} value={tipo}>
-                {ETIQUETA_TIPO[tipo]}
-              </option>
-            ))}
-          </SelectFiltro>
-        )}
-      </CampoFiltro>
-      <CampoFiltro id="filtro-activo" etiqueta="Estado" className="sm:max-w-48">
-        {(atributos) => (
-          <SelectFiltro {...atributos} name="activo" defaultValue={consulta.activo ? "true" : "false"}>
-            <option value="true">Activos</option>
-            <option value="false">Archivados</option>
-          </SelectFiltro>
-        )}
-      </CampoFiltro>
-      <AccionesFiltros>
-        <Button type="submit">
-          <Search aria-hidden="true" />
-          Buscar
+function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: string) => void }) {
+  const id = useId();
+  return <div className="flex flex-col gap-1.5">
+    <label htmlFor={id} className="text-sm font-medium">Estado</label>
+    <Select value={valor} onValueChange={alCambiar}>
+      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+      <SelectContent>{ESTADOS.map((estado) => <SelectItem key={estado.id} value={estado.id}>{estado.nombre}</SelectItem>)}</SelectContent>
+    </Select>
+  </div>;
+}
+
+/** Barra de la lista: búsqueda en vivo, pastillas de tipo y filtro de estado. Todo vive en la URL. */
+export function FiltrosClientes({ conteos }: { conteos?: ConteosClientes }) {
+  const { parametros, navegar } = useParametrosUrl();
+  const activo = parametros.get("activo") ?? "true";
+  const archivados = activo === "false";
+  const hayFiltros = archivados || Boolean(parametros.get("q")) || Boolean(parametros.get("tipo"));
+  return <div className="mb-4 flex flex-wrap items-center gap-3">
+    <BuscadorEnVivo etiqueta="Buscar clientes" marcador="Buscar por nombre, RUC, contacto o correo" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
+    <FiltroSegmentado etiqueta="Tipo" parametro="tipo" valorTodos="todos" opciones={opcionesTipo(conteos)} />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" className="h-10 gap-2">
+          <SlidersHorizontal aria-hidden="true" className="size-4" />
+          Más filtros
+          {archivados ? <span className="rounded bg-slate-200/70 px-1.5 text-[11px] font-semibold text-slate-600 tabular-nums">
+            1<span className="sr-only"> activo</span></span> : null}
         </Button>
-        {hayFiltrosActivos(consulta) ? (
-          <Button asChild variant="outline">
-            <Link href="/clientes">Limpiar filtros</Link>
-          </Button>
-        ) : null}
-      </AccionesFiltros>
-    </FiltrosLista>
-  );
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
+        <CampoEstado valor={activo} alCambiar={(valor) => navegar({ activo: valor === "true" ? null : valor })} />
+      </PopoverContent>
+    </Popover>
+    {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
+      onClick={() => navegar({ q: null, tipo: null, activo: null })}>Limpiar filtros</Button> : null}
+  </div>;
 }

@@ -17,6 +17,7 @@ import {
   agregadoCotizaciones,
   buscarCliente,
   consultarClientes,
+  consultarConteosClientes,
   cotizacionesDeCliente,
   eventosDeCliente,
   insertarCliente,
@@ -203,13 +204,17 @@ export function reactivarCliente(id: string, version: string, actor: Actor): Pro
 }
 
 export async function listarClientes(consulta: ConsultaClientes, actor: Actor): Promise<ListaClientes> {
-  const { filas, total } = await consultarClientes(consulta);
+  const [{ filas, total }, conteos] = await Promise.all([
+    consultarClientes(consulta),
+    consultarConteosClientes(consulta),
+  ]);
   const conConteo = can(actor, "cotizacion:ver");
   return {
     datos: filas.map((fila) => aClienteFila(fila, conConteo ? fila._count.cotizaciones : undefined)),
     total,
     pagina: consulta.pagina,
     porPagina: consulta.porPagina,
+    conteos,
   };
 }
 

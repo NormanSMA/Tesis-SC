@@ -107,10 +107,14 @@ test.describe("Atención al cliente gestiona clientes", () => {
     await entrarComo(page, ATENCION_CLIENTE);
 
     await page.goto("/clientes");
-    await page.getByRole("link", { name: "Nuevo cliente" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Nuevo cliente" })).toBeVisible();
-    await llenarFormulario(page, { nombre, ruc: ` e2e ${Date.now()} `, telefono: "8888 0101", correo: "Contacto@E2E.test" });
-    await page.getByRole("button", { name: "Guardar cliente" }).click();
+    await page.getByRole("button", { name: "Nuevo cliente" }).click();
+    const modal = page.getByRole("dialog");
+    await llenarFormulario(page, {
+      "cliente-rapido-nombre": nombre, "cliente-rapido-ruc": ` e2e ${Date.now()} `,
+      "cliente-rapido-telefono": "8888 0101", "cliente-rapido-correo": "Contacto@E2E.test",
+    });
+    await modal.getByRole("button", { name: "Guardar cliente" }).click();
+    await page.getByRole("button", { name: "Abrir ficha" }).click();
 
     await expect(page).toHaveURL(/\/clientes\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1, name: nombre })).toBeVisible();
@@ -130,8 +134,7 @@ test.describe("Atención al cliente gestiona clientes", () => {
     await expect(page.getByText("editó el cliente")).toBeVisible();
 
     await page.goto("/clientes");
-    await page.getByLabel("Buscar", { exact: true }).fill(nombre.toLowerCase());
-    await page.getByRole("button", { name: "Buscar" }).click();
+    await page.getByLabel("Buscar clientes", { exact: true }).fill(nombre.toLowerCase());
     await expect(page).toHaveURL(/q=e2e-/);
     await expect(page.getByRole("link", { name: nombre }).first()).toBeVisible();
     await page.getByRole("link", { name: nombre }).first().click();
@@ -149,14 +152,15 @@ test.describe("Atención al cliente gestiona clientes", () => {
     await expect(page.getByRole("link", { name: nombre }).first()).toBeVisible();
   });
 
-  test("la lista muestra solo las columnas reducidas y la fila enlaza a la ficha", async ({ page }, info) => {
+  test("la lista muestra las columnas de cliente y la fila enlaza a la ficha", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/clientes?q=${encodeURIComponent(CLIENTE_SEMBRADO)}`);
-    for (const columna of ["Nombre", "Código", "Tipo", "Cotizaciones"]) {
+    // Teléfono y correo van dentro de Contacto para que la tabla quepa desde 768 px.
+    for (const columna of ["Cliente", "Contacto", "Cotizaciones"]) {
       await expect(page.getByRole("columnheader", { name: columna })).toBeVisible();
     }
-    for (const columna of ["Estado", "Contacto", "Teléfono"]) {
+    for (const columna of ["Estado", "Teléfono", "Correo"]) {
       await expect(page.getByRole("columnheader", { name: columna })).toHaveCount(0);
     }
     await expect(page.getByRole("link", { name: CLIENTE_SEMBRADO }).first()).toHaveAttribute(
@@ -262,7 +266,7 @@ test.describe("Gerencia y Operaciones consultan sin modificar", () => {
       await entrarComo(page, perfil);
       await page.goto("/clientes");
       await expect(page.getByRole("heading", { level: 1, name: "Clientes" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Nuevo cliente" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Nuevo cliente" })).toHaveCount(0);
 
       await abrirFichaSembrada(page);
       await expect(page.getByText(/CLI-\d{4}/).first()).toBeVisible();

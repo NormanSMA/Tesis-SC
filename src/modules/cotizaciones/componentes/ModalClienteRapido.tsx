@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -14,6 +15,12 @@ type Valores = z.input<typeof esquemaCrearCliente>;
 type Propiedades = {
   abierto: boolean; alCambiar: (abierto: boolean) => void;
   alGuardar: (cliente: { id: string; nombre: string }) => void;
+  /** Texto bajo el título; cambia según desde dónde se abre (cotización o lista de clientes). */
+  descripcion?: string;
+  /** id del botón que recibe el foco al cerrar. */
+  idRetorno?: string;
+  /** Enlace al formulario completo de cliente (solo fuera del drawer de cotización). */
+  enlaceCompleto?: string;
 };
 const esquemaCliente = z.object({ id: z.string(), nombre: z.string() });
 const CAMPOS = [
@@ -43,15 +50,16 @@ function useClienteRapido(alGuardar: Propiedades["alGuardar"]) {
   return { formulario, guardar };
 }
 
-export function ModalClienteRapido({ abierto, alCambiar, alGuardar }: Propiedades) {
+export function ModalClienteRapido({ abierto, alCambiar, alGuardar, descripcion = "Registre el cliente para esta cotización.",
+  idRetorno = "nuevo-cliente-cotizacion", enlaceCompleto }: Propiedades) {
   const { formulario, guardar } = useClienteRapido(alGuardar);
   const { errors, isSubmitting } = formulario.formState;
   return <Dialog open={abierto} onOpenChange={(valor) => { if (!isSubmitting) alCambiar(valor); }}>
     <DialogContent className="sm:max-w-md" onCloseAutoFocus={(evento) => {
-      evento.preventDefault(); document.getElementById("nuevo-cliente-cotizacion")?.focus();
+      evento.preventDefault(); document.getElementById(idRetorno)?.focus();
     }}>
       <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle>
-        <DialogDescription>Registre el cliente para esta cotización.</DialogDescription></DialogHeader>
+        <DialogDescription>{descripcion}</DialogDescription></DialogHeader>
       <form onSubmit={guardar} noValidate className="space-y-4">
         {errors.root ? <p role="alert" className="text-sm text-destructive">{errors.root.message}</p> : null}
         <fieldset disabled={isSubmitting} className="space-y-4">
@@ -60,7 +68,9 @@ export function ModalClienteRapido({ abierto, alCambiar, alGuardar }: Propiedade
             {(atributos) => <Input {...atributos} {...formulario.register(campo.nombre)} type={campo.tipo} />}
           </FormField>)}
         </fieldset>
-        <DialogFooter><Button type="button" variant="outline" disabled={isSubmitting} onClick={() => alCambiar(false)}>Cancelar</Button>
+        <DialogFooter className="sm:items-center">
+          {enlaceCompleto ? <Link href={enlaceCompleto} className="mr-auto text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring">¿Necesita más datos? Formulario completo</Link> : null}
+          <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => alCambiar(false)}>Cancelar</Button>
           <Button type="submit" disabled={isSubmitting}>Guardar cliente</Button></DialogFooter>
       </form>
     </DialogContent>

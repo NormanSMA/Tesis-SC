@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { esquemaCrearCotizacion, esquemaEditarCotizacion, esquemaCambioEstado, esquemaResponder,
   esquemaReemplazarItems, esquemaConsultaCotizaciones, objetoDeParametros } from "@/modules/cotizaciones/schema";
 import { hoyManagua, sumarDias } from "@/modules/cotizaciones/fechas";
+import { CAMPOS_ORDEN_COTIZACION } from "@/modules/cotizaciones/tipos";
 
 const ID = "00000000-0000-4000-8000-000000000001";
 const VERSION = "2026-10-06T00:00:00.123Z";
@@ -128,6 +129,27 @@ describe("cotizaciones: esquemas", () => {
   it("parámetros vacíos no introducen filtros", () => {
     expect(objetoDeParametros(new URLSearchParams("q=%20&estado=&pagina=2"))).toEqual({ pagina: "2" });
     expect(objetoDeParametros({ q: [" Prueba ", "otro"], estado: undefined })).toEqual({ q: "Prueba" });
+  });
+
+  it.each(CAMPOS_ORDEN_COTIZACION)("acepta orden ascendente y descendente por %s", (campo) => {
+    for (const direccion of ["asc", "desc"]) {
+      expect(esquemaConsultaCotizaciones.parse({ orden: `${campo}:${direccion}` }).orden).toEqual({ campo, direccion });
+    }
+    expect(esquemaConsultaCotizaciones.parse({ orden: campo }).orden).toEqual({ campo, direccion: "asc" });
+  });
+
+  it.each(["estado:asc", "fechaVencimiento:desc", "__proto__:asc", "total:ASC", "numero:asc:desc", "numero;DROP TABLE cotizacion"])
+    ("rechaza orden fuera de la lista blanca: %s", (orden) => {
+      const resultado = esquemaConsultaCotizaciones.safeParse({ orden });
+      expect(resultado.success).toBe(false);
+      expect(resultado.error?.issues[0].path).toEqual(["orden"]);
+    });
+
+  it("acepta exclusivamente true textual para porVencer", () => {
+    expect(esquemaConsultaCotizaciones.parse({ porVencer: "true" }).porVencer).toBe("true");
+    for (const porVencer of ["false", "1", "", true, false]) {
+      expect(esquemaConsultaCotizaciones.safeParse({ porVencer }).success).toBe(false);
+    }
   });
 });
 
