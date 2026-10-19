@@ -242,6 +242,9 @@ async function buscarClientes(auditoria: Auditoria, busqueda: { termino: string;
     await expect(resultado).toBeVisible({ timeout: 1500 });
     if (!busqueda.nombre) expect(await primeraFicha(auditoria.page, "/clientes")).toBeUndefined();
   }).toPass({ timeout: TIMEOUT });
+  // La búsqueda en vivo atenúa la tabla mientras llega la respuesta: axe mide cuando ya terminó.
+  await expect(auditoria.page).toHaveURL(/[?&]q=/);
+  await expect(auditoria.page.locator('main [aria-busy="true"]')).toHaveCount(0);
 }
 
 async function auditarEstadoVacio(auditoria: Auditoria): Promise<void> {

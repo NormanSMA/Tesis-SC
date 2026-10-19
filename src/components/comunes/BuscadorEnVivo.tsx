@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle, Search } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,33 @@ type PropiedadesBuscador = {
 
 function esCampoEditable(objetivo: EventTarget | null): boolean {
   return objetivo instanceof HTMLElement && Boolean(objetivo.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+// Un clic en un enlace a otra página cancela la búsqueda pendiente. La lista sigue montada mientras carga
+// la página nueva, y sin esto la búsqueda, que es más reciente, devolvería al usuario a la lista.
+function useCancelarAlSalir(espera: RefObject<ReturnType<typeof setTimeout> | undefined>) {
+  useEffect(() => {
+    const alSalir = (evento: MouseEvent) => {
+      const enlace = evento.target instanceof Element ? evento.target.closest("a[href]") : null;
+      if (!(enlace instanceof HTMLAnchorElement) || enlace.target === "_blank") return;
+      if (new URL(enlace.href, window.location.href).pathname !== window.location.pathname) clearTimeout(espera.current);
+    };
+    document.addEventListener("click", alSalir, true);
+    return () => document.removeEventListener("click", alSalir, true);
+  }, [espera]);
+}
+
+/** Atajo "/" para enfocar el campo, salvo que ya se esté escribiendo en otro. */
+function useAtajoBarra(campo: RefObject<HTMLInputElement | null>) {
+  useEffect(() => {
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key !== "/" || evento.ctrlKey || evento.metaKey || evento.altKey || esCampoEditable(evento.target)) return;
+      evento.preventDefault();
+      campo.current?.focus();
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [campo]);
 }
 
 /**
@@ -37,25 +64,20 @@ export function BuscadorEnVivo({ etiqueta, marcador = "Buscar…", parametro = "
     setTexto(enUrl);
   }
 
+  const espera = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     const limpio = texto.trim();
     if (limpio === enviado.trim()) return;
-    const espera = setTimeout(() => {
+    espera.current = setTimeout(() => {
       setEnviado(limpio);
       navegar({ [parametro]: limpio || null });
     }, retrasoMs);
-    return () => clearTimeout(espera);
+    return () => clearTimeout(espera.current);
   }, [texto, enviado, navegar, parametro, retrasoMs]);
 
-  useEffect(() => {
-    const alPulsar = (evento: KeyboardEvent) => {
-      if (evento.key !== "/" || evento.ctrlKey || evento.metaKey || evento.altKey || esCampoEditable(evento.target)) return;
-      evento.preventDefault();
-      campo.current?.focus();
-    };
-    window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
-  }, []);
+  useCancelarAlSalir(espera);
+
+  useAtajoBarra(campo);
 
   return (
     <div role="search" className={cn("relative w-full sm:max-w-xs", className)}>
