@@ -82,6 +82,7 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
         alCambiarAbierto={setMenuMovilAbierto}
         grupos={grupos}
         ruta={ruta}
+        contadores={contadores}
       />
     </div>
   );
