@@ -1,12 +1,26 @@
 import Link from "next/link";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
+import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, formatearFechaHora, nombreUnidad } from "@/lib/formato";
+import { cn } from "@/lib/utils";
 import type { ListaMateriales, ListaMovimientos, MaterialDto, MovimientoDto } from "../dto";
 
-const ESTILO_TABLA = "min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-2 [&_td]:px-2";
+/** Enlace extendido: toda la fila navega al material. El resto de las celdas es solo texto. */
+const ENLACE_FILA = "font-medium text-primary underline-offset-4 outline-none after:absolute after:inset-0 after:content-[''] hover:underline";
+const CLASES_FILA_ENLAZADA = "[&_tbody_tr]:cursor-pointer [&_tbody_tr:has(a:focus-visible)]:outline-2 [&_tbody_tr:has(a:focus-visible)]:-outline-offset-2 [&_tbody_tr:has(a:focus-visible)]:outline-ring";
+/** Escritorio: tabla. Móvil (menos de 768 px): una tarjeta apilada por fila, sin desplazamiento horizontal. */
+const CLASES_TABLA = [
+  "[&_tbody_tr]:relative",
+  "max-md:[&_thead]:sr-only max-md:[&_tr]:grid max-md:[&_tr]:h-auto max-md:[&_tr]:grid-cols-1 max-md:[&_tr]:gap-y-1 max-md:[&_tr]:px-4 max-md:[&_tr]:py-3",
+  "max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0 max-md:[&_td]:text-left max-md:[&_th]:whitespace-normal max-md:[&_th]:p-0",
+].join(" ");
+const ETIQUETA_MOVIL = "text-muted-foreground md:hidden";
+
 /** Vocabulario único de alerta de stock en lista y ficha: "Sin existencia" o "Bajo mínimo". */
 export function etiquetaAlertaMaterial(alerta: MaterialDto["alerta"]): string | null {
   if (!alerta) return null;
@@ -22,28 +36,58 @@ export function EstadoListaMaterial({ material }: { material: Pick<MaterialDto, 
   if (material.alerta === "Sin existencia") return <Badge variant="peligro">Sin existencia</Badge>;
   return material.alerta ? <Badge variant="advertencia">Bajo mínimo</Badge> : <Badge variant="neutro">Normal</Badge>;
 }
+/** Tono de la barra de existencia: advertencia bajo el mínimo, peligro sin existencia. */
+export function tonoExistencia(material: Pick<MaterialDto, "activo" | "alerta">) {
+  return material.alerta === "Sin existencia" ? "peligro" : material.alerta ? "advertencia" : material.activo ? "exito" : "primario";
+}
+/** Existencia y su barra frente al mínimo. */
+export function ExistenciaMaterial({ material }: { material: Pick<MaterialDto, "nombre" | "unidad" | "existencia" | "stockMinimo" | "activo" | "alerta"> }) {
+  const minimo = Number(material.stockMinimo);
+  const tono = tonoExistencia(material);
+  return <div className="min-w-0 md:w-60">
+    <p className="font-medium tabular-nums"><span className={cn(ETIQUETA_MOVIL, "font-normal")}>Existencia: </span>
+      {formatearCantidadConUnidad(material.existencia, material.unidad)}</p>
+    {minimo > 0
+      ? <BarraProgresoAnimada className="mt-1 [&>span]:min-w-20 [&>span]:text-right" valor={Number(material.existencia)} total={minimo} tono={tono}
+        etiqueta={`Existencia de ${material.nombre} frente al mínimo`} texto={`Mín. ${formatearCantidadPorUnidad(material.stockMinimo, material.unidad)}`} />
+      : <p className="text-xs text-muted-foreground">Sin mínimo definido</p>}
+  </div>;
+}
 const columnasMaterial: ColumnaTabla<MaterialDto>[] = [
-  { id: "codigo", encabezado: "Código", principal: true, celda: (fila) => <span className="font-medium">{fila.codigo}</span> },
-  { id: "material", encabezado: "Material", celda: (fila) =>
-    <Link className="font-medium text-primary underline" href={`/inventario/${fila.id}`}>{fila.nombre}</Link> },
-  { id: "existencia", encabezado: "Existencia", alinear: "derecha", celda: (fila) => <div>
-    {formatearCantidadPorUnidad(fila.existencia, fila.unidad)}<span className="block text-xs">{nombreUnidad(fila.unidad)}</span></div> },
-  { id: "minimo", encabezado: "Stock mínimo", alinear: "derecha", celda: (fila) => formatearCantidadConUnidad(fila.stockMinimo, fila.unidad) },
+  { id: "material", encabezado: "Material", celda: (fila) => <div className="min-w-0">
+    <Link className={ENLACE_FILA} href={`/inventario/${fila.id}`}>{fila.nombre}</Link>
+    <p className="truncate text-xs text-muted-foreground" title={`${fila.codigo} · ${nombreUnidad(fila.unidad)}`}>{fila.codigo} · {nombreUnidad(fila.unidad)}</p></div> },
+  { id: "existencia", encabezado: "Existencia frente al mínimo", celda: (fila) => <ExistenciaMaterial material={fila} /> },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoListaMaterial material={fila} /> },
 ];
-const columnasLibro: ColumnaTabla<MovimientoDto>[] = [
-  { id: "fecha", encabezado: "Fecha (Managua)", principal: true, celda: (fila) => <div>{formatearFechaHora(fila.creadoEn)}
-    <span className="block text-xs">{fila.usuario.nombre}</span></div> },
-  { id: "material", encabezado: "Material", celda: (fila) => <Link className="text-primary underline" href={`/inventario/${fila.material.id}`}>{fila.material.nombre}</Link> },
-  { id: "tipo", encabezado: "Movimiento", celda: (fila) => <div><Badge variant="neutro">{etiquetar(ETIQUETA_MOVIMIENTO, fila.tipo)}</Badge>
-    {fila.orden ? <Link className="block text-primary underline" href={`/ordenes/${fila.orden.id}`}>{fila.orden.numero}</Link> : null}
-    <span className="block text-xs">{fila.referencia ?? fila.motivo}</span></div> },
-  { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => formatearCantidadPorUnidad(fila.cantidad, fila.material.unidad) },
-  { id: "saldo", encabezado: "Existencia resultante", alinear: "derecha", celda: (fila) => formatearCantidadPorUnidad(fila.existenciaResultante, fila.material.unidad) },
-  { id: "costo", encabezado: "Costos (C$)", alinear: "derecha", celda: (fila) => fila.costoUnitario === undefined
-    ? <span className="text-xs">Sin permiso</span> : <div><span>Unitario: {formatearCantidad(fila.costoUnitario, 4)}</span>
-      <span className="block text-xs">Promedio: {formatearCantidad(fila.costoPromedioResultante, 4)}</span></div> },
-];
+const TONO_MOVIMIENTO = { ENTRADA: "exito", CONSUMO: "info", AJUSTE: "advertencia", DEVOLUCION: "acento" } as const;
+function celdaMovimiento(fila: MovimientoDto, sinMaterial: boolean) {
+  const tono = TONO_MOVIMIENTO[fila.tipo as keyof typeof TONO_MOVIMIENTO] ?? "neutro";
+  const detalle = fila.referencia ?? fila.motivo;
+  return <div className="min-w-0 max-w-48 max-md:max-w-full lg:max-w-72">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <Badge variant={tono}>{etiquetar(ETIQUETA_MOVIMIENTO, fila.tipo)}</Badge>
+      {fila.orden ? <Link className="relative z-10 text-sm text-primary underline-offset-4 hover:underline" href={`/ordenes/${fila.orden.id}`}>{fila.orden.numero}</Link> : null}
+    </div>
+    {sinMaterial ? null : <Link className={cn(ENLACE_FILA, "block truncate")} href={`/inventario/${fila.material.id}`} title={fila.material.nombre}>{fila.material.nombre}</Link>}
+    {detalle ? <p className="truncate text-xs text-muted-foreground" title={detalle}>{detalle}</p> : null}
+  </div>;
+}
+function columnasLibro(sinMaterial: boolean): ColumnaTabla<MovimientoDto>[] {
+  return [
+    { id: "fecha", encabezado: "Fecha (Managua)", celda: (fila) => <div>{formatearFechaHora(fila.creadoEn)}
+      <span className="block text-xs text-muted-foreground">{fila.usuario.nombre}</span></div> },
+    { id: "tipo", encabezado: "Movimiento", celda: (fila) => celdaMovimiento(fila, sinMaterial) },
+    { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (fila) => <div className="tabular-nums">
+      <span className={ETIQUETA_MOVIL}>Cantidad: </span>{formatearCantidadPorUnidad(fila.cantidad, fila.material.unidad)}
+      <span className="block text-xs text-muted-foreground"><span className="md:hidden">Existencia resultante: </span>
+        <span className="max-md:hidden">Saldo </span>{formatearCantidadPorUnidad(fila.existenciaResultante, fila.material.unidad)}</span></div> },
+    { id: "costo", encabezado: "Costos (C$)", alinear: "derecha", celda: (fila) => fila.costoUnitario === undefined
+      ? <span className="text-xs text-muted-foreground">Sin permiso</span>
+      : <div className="tabular-nums"><span>Unitario: {formatearCantidad(fila.costoUnitario, 4)}</span>
+        <span className="block text-xs text-muted-foreground">Promedio: {formatearCantidad(fila.costoPromedioResultante, 4)}</span></div> },
+  ];
+}
 export function hrefInventario(entrada: { ruta: string; consulta: object; pagina: number }) {
   const parametros = new URLSearchParams();
   const valores: Record<string, unknown> = { ...entrada.consulta, pagina: entrada.pagina };
@@ -52,17 +96,34 @@ export function hrefInventario(entrada: { ruta: string; consulta: object; pagina
   });
   return `${entrada.ruta}?${parametros}`;
 }
-export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: object }) {
-  return <DataTable apilarEnMovil titulo="Materiales del inventario" filas={lista.datos} columnas={columnasMaterial}
-    vacio={<EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="No hay registros que mostrar." />}
-    idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
-      tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta: "/inventario", consulta, pagina }) }} />;
+function Vacio({ total, filtrado, sinRegistros, limpiar, primera }: {
+  total: number; filtrado: boolean; sinRegistros: string; limpiar: string; primera: string }) {
+  if (total > 0) return <EmptyState ilustracion="muebles" titulo="Esa página no existe" descripcion={`La búsqueda tiene ${total} resultados en menos páginas.`}
+    accion={<Button asChild variant="outline"><Link href={primera}>Ir a la primera página</Link></Button>} />;
+  if (!filtrado) return <EmptyState ilustracion="muebles" titulo="Sin registros" descripcion={sinRegistros} />;
+  return <EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="Nada coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
+    accion={<Button asChild variant="outline"><Link href={limpiar}>Limpiar filtros</Link></Button>} />;
+}
+export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: { q?: string; estado?: string; porPagina?: number } }) {
+  return <ZonaResultados>
+    <DataTable titulo="Materiales del inventario" filas={lista.datos} columnas={columnasMaterial}
+      vacio={<Vacio total={lista.total} filtrado={Boolean(consulta.q || consulta.estado)} sinRegistros="Registre el primer material para controlar existencias."
+        limpiar="/inventario" primera={hrefInventario({ ruta: "/inventario", consulta, pagina: 1 })} />}
+      idFila={(fila) => fila.id} className={cn(CLASES_TABLA, CLASES_FILA_ENLAZADA)} claveConsulta={JSON.stringify(consulta)}
+      paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
+        hrefPagina: (pagina) => hrefInventario({ ruta: "/inventario", consulta, pagina }) }} />
+  </ZonaResultados>;
 }
 export function TablaMovimientos({ lista, consulta, ruta = "/inventario", sinMaterial = false }: {
   lista: ListaMovimientos; consulta: object; ruta?: string; sinMaterial?: boolean }) {
-  return <DataTable apilarEnMovil titulo="Libro de movimientos del inventario" filas={lista.datos}
-    columnas={sinMaterial ? columnasLibro.filter((columna) => columna.id !== "material") : columnasLibro}
-    vacio={<EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="No hay registros que mostrar." />}
-    idFila={(fila) => fila.id} className={ESTILO_TABLA} paginacion={{ pagina: lista.pagina, total: lista.total,
-      tamano: lista.porPagina, hrefPagina: (pagina) => hrefInventario({ ruta, consulta: { ...consulta, pestana: "movimientos" }, pagina }) }} />;
+  const parametros = { ...consulta, ...(sinMaterial ? {} : { pestana: "movimientos" }) };
+  const filtrado = ["tipo", "material", "orden", "usuario", "desde", "hasta"].some((clave) => (consulta as Record<string, unknown>)[clave]);
+  return <ZonaResultados>
+    <DataTable titulo="Libro de movimientos del inventario" filas={lista.datos} columnas={columnasLibro(sinMaterial)}
+      vacio={<Vacio total={lista.total} filtrado={filtrado} sinRegistros="Aún no hay movimientos en el libro."
+        limpiar={sinMaterial ? ruta : "/inventario?pestana=movimientos"} primera={hrefInventario({ ruta, consulta: parametros, pagina: 1 })} />}
+      idFila={(fila) => fila.id} className={cn(CLASES_TABLA, !sinMaterial && CLASES_FILA_ENLAZADA)} claveConsulta={JSON.stringify(consulta)}
+      paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
+        hrefPagina: (pagina) => hrefInventario({ ruta, consulta: parametros, pagina }) }} />
+  </ZonaResultados>;
 }

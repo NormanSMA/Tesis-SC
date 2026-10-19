@@ -3,7 +3,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -106,7 +105,7 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
   const nombre = ETIQUETAS[inicial.clave] ?? inicial.clave;
   const id = `config-${inicial.clave}`;
   return (
-    <Card className="min-w-0 p-4">
+    <div className="min-w-0 px-5 py-4">
       <form onSubmit={fila.guardar} noValidate aria-label={`Parámetro ${nombre}`} className="space-y-2">
         <fieldset disabled={!hidratado} className="grid min-w-0 items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_6rem]">
           <legend className="sr-only">Editar parámetro</legend>
@@ -122,6 +121,6 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
         {fila.conflicto ? <AvisoAdmin mensaje="Otra persona modificó este parámetro." alRecargar={fila.recargar} /> : null}
         <p role="status" className="text-sm">{fila.mensaje}</p>
       </form>
-    </Card>
+    </div>
   );
 }

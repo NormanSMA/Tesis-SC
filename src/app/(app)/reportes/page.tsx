@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { prisma } from "@/lib/db";
+import { ProveedorLista } from "@/lib/listas/contexto-lista";
 import { FiltrosReportes } from "@/modules/reportes/componentes/FiltrosReportes";
 import { ResultadoReporte } from "@/modules/reportes/componentes/ResultadoReporte";
 import { enlaceExportacion, leerFiltrosPagina } from "@/modules/reportes/paginas";
@@ -17,11 +18,13 @@ export default async function PaginaReportes({ searchParams }: { searchParams: P
     filtros.valido ? obtenerReporte({ nombre: filtros.nombre, consulta: filtros.consulta, actor }) : undefined,
     prisma.area.findMany({ select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
   ]);
-  return <><PageHeader titulo="Reportes" descripcion="Consulte indicadores y exporte información de la operación." acciones={
+  return <><PageHeader titulo="Reportes" tituloVisible={false} descripcion="Consulte indicadores y exporte información de la operación." acciones={
     reporte && can(actor, "reporte:exportar") ? <Button asChild variant="outline"><a href={enlaceExportacion(filtros.nombre, filtros.consulta, "xlsx")}>Exportar a Excel</a></Button> : undefined} />
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-4">
       {!filtros.valido ? <p role="alert" aria-live="assertive">Revise el reporte y los filtros antes de consultar.</p> : null}
-      <FiltrosReportes key={JSON.stringify(filtros)} nombre={filtros.nombre} consulta={filtros.consulta} areas={areas} campos={filtros.campos} />
-      {reporte ? <ResultadoReporte nombre={filtros.nombre} reporte={reporte} dinero={can(actor, "cotizacion:ver")} /> : null}
+      <ProveedorLista>
+        <FiltrosReportes nombre={filtros.nombre} consulta={filtros.consulta} areas={areas} campos={filtros.campos} />
+        {reporte ? <ResultadoReporte nombre={filtros.nombre} reporte={reporte} dinero={can(actor, "cotizacion:ver")} /> : null}
+      </ProveedorLista>
     </div></>;
 }

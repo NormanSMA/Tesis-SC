@@ -3,17 +3,24 @@
 import { useState, type FormEvent } from "react";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { ConfirmDialog } from "@/components/comunes/ConfirmDialog";
+import { EmptyState } from "@/components/comunes/EmptyState";
+import { InsigniaPunto } from "@/components/comunes/FilaOperativa";
+import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ReferenciaOrden } from "@/modules/ordenes/tipos";
 import type { PlantillaDto } from "../tipos";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
 import { AvisoProduccion, SeleccionProduccion, TextoProduccion } from "./CamposProduccion";
+import { FiltrosCatalogo, type ConteosCatalogo } from "./FiltrosCatalogo";
 
 const columnas: ColumnaTabla<PlantillaDto>[] = [
-  { id: "nombre", encabezado: "Posición y etapa", principal: true, celda: (plantilla) => `${plantilla.secuencia}. ${plantilla.nombre}` },
+  { id: "nombre", encabezado: "Posición y etapa", principal: true, celda: (plantilla) => <span className="flex min-w-0 items-center gap-3">
+    <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-sm font-semibold text-primary ring-1 ring-indigo-100 tabular-nums">
+      {plantilla.secuencia}</span>
+    <span className="min-w-0 font-medium text-slate-900"><span className="sr-only">{plantilla.secuencia}. </span>{plantilla.nombre}</span></span> },
   { id: "area", encabezado: "Área", celda: (plantilla) => plantilla.area.nombre },
-  { id: "estado", encabezado: "Estado", celda: (plantilla) => plantilla.activo ? "Activa" : "Archivada" },
+  { id: "estado", encabezado: "Estado", celda: (plantilla) => <InsigniaPunto tono={plantilla.activo ? "exito" : "neutro"}>{plantilla.activo ? "Activa" : "Archivada"}</InsigniaPunto> },
 ];
 type Formulario = { categoriaId: string; areas: ReferenciaOrden[]; plantilla: PlantillaDto | null; cerrar: () => void };
 
@@ -71,16 +78,23 @@ function AccionesPlantilla({ plantilla, editar }: { plantilla: PlantillaDto; edi
     cargando={solicitud.enviando} alConfirmar={archivar} /> : null}</div>;
 }
 
-export function AdministracionPlantillas({ categoriaId, plantillas, areas, gestionar }: {
-  categoriaId: string; plantillas: PlantillaDto[]; areas: ReferenciaOrden[]; gestionar: boolean;
+export function AdministracionPlantillas({ categoriaId, categorias, plantillas, conteos, areas, gestionar }: {
+  categoriaId: string; categorias: ReferenciaOrden[]; plantillas: PlantillaDto[]; conteos: ConteosCatalogo;
+  areas: ReferenciaOrden[]; gestionar: boolean;
 }) {
   const [edicion, setEdicion] = useState<PlantillaDto | null | undefined>(undefined);
-  return <div className="min-w-0 space-y-4">
-    {gestionar ? <Button type="button" onClick={() => setEdicion(null)}>Agregar plantilla</Button> : null}
-    <DataTable titulo="Plantillas de etapas" columnas={columnas} filas={plantillas} idFila={(plantilla) => plantilla.id}
+  const filtrado = conteos.todas > plantillas.length;
+  const vacio = <EmptyState titulo={filtrado ? "Sin resultados" : "Sin plantillas"}
+    descripcion={filtrado ? "Ninguna plantilla coincide con la consulta. Pruebe otros términos o quite los filtros."
+      : "Agregue la primera etapa de esta categoría."} />;
+  return <div className="min-w-0">
+    <FiltrosCatalogo busqueda="Buscar plantillas" marcador="Buscar por etapa o área" conteos={conteos} categorias={categorias}>
+      {gestionar ? <Button type="button" className="h-10" onClick={() => setEdicion(null)}>Agregar plantilla</Button> : null}
+    </FiltrosCatalogo>
+    <ZonaResultados><DataTable titulo="Plantillas de etapas" columnas={columnas} filas={plantillas} idFila={(plantilla) => plantilla.id} vacio={vacio}
       acciones={gestionar ? (plantilla) => <AccionesPlantilla key={plantilla.actualizadoEn} plantilla={plantilla}
         editar={() => setEdicion(plantilla)} /> : undefined}
-      className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere]" />
+      className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere]" /></ZonaResultados>
     {edicion !== undefined ? <FormularioPlantilla key={edicion?.actualizadoEn ?? "nueva"} categoriaId={categoriaId}
       areas={areas} plantilla={edicion} cerrar={() => setEdicion(undefined)} /> : null}
   </div>;

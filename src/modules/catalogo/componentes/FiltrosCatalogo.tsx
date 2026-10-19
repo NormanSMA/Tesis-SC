@@ -1,33 +1,70 @@
 "use client";
 
-import Link from "next/link";
-import { Search } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import { useId } from "react";
 
-import { AccionesFiltros, CampoFiltro, FiltrosLista } from "@/components/comunes/FiltrosLista";
+import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
+import { FiltroSegmentado } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 
-import type { ConsultaProductos } from "../schema";
 import type { CategoriaDto } from "../tipos";
-import { SelectorCatalogo } from "./SelectorCatalogo";
 
-export function FiltrosCatalogo({ consulta, categorias }: { consulta: ConsultaProductos; categorias: CategoriaDto[] }) {
-  const opciones = [{ valor: "todas", etiqueta: "Todas" }, ...categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre, categoria: categoria.nombre }))];
-  return <FiltrosLista action="/catalogo" role="search" etiqueta="Buscar productos" className="mb-6">
-    <CampoFiltro id="filtro-q" etiqueta="Buscar" className="sm:min-w-56 sm:flex-[2]">
-      {(atributos) => <Input {...atributos} name="q" type="search" defaultValue={consulta.q ?? ""} placeholder="Código, nombre o descripción" />}
-    </CampoFiltro>
-    <CampoFiltro id="filtro-categoria" etiqueta="Categoría" className="sm:max-w-72">
-      {(atributos) => <SelectorCatalogo {...atributos} nombre="categoriaId" inicial={consulta.categoriaId ?? "todas"} opciones={opciones} />}
-    </CampoFiltro>
-    <CampoFiltro id="filtro-activo" etiqueta="Estado" className="sm:max-w-48">
-      {(atributos) => <SelectorCatalogo {...atributos} nombre="activo" inicial={String(consulta.activo)} opciones={[
-        { valor: "true", etiqueta: "Activos" }, { valor: "false", etiqueta: "Archivados" },
-      ]} />}
-    </CampoFiltro>
-    <AccionesFiltros>
-      <Button type="submit"><Search aria-hidden="true" />Buscar</Button>
-      {consulta.q || consulta.categoriaId || !consulta.activo ? <Button asChild variant="outline"><Link href="/catalogo">Limpiar</Link></Button> : null}
-    </AccionesFiltros>
-  </FiltrosLista>;
+const ESTADOS = [{ id: "true", nombre: "Activos" }, { id: "false", nombre: "Archivados" }];
+
+function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: string) => void }) {
+  const id = useId();
+  return <div className="flex flex-col gap-1.5">
+    <label htmlFor={id} className="text-sm font-medium">Estado</label>
+    <Select value={valor} onValueChange={alCambiar}>
+      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+      <SelectContent>{ESTADOS.map((estado) => <SelectItem key={estado.id} value={estado.id}>{estado.nombre}</SelectItem>)}</SelectContent>
+    </Select>
+  </div>;
+}
+
+function CampoCategoria({ opciones, valor, alCambiar }: { opciones: { valor: string; etiqueta: string }[]; valor: string; alCambiar: (valor: string) => void }) {
+  const id = useId();
+  return <div className="flex flex-col gap-1.5 md:hidden">
+    <label htmlFor={id} className="text-sm font-medium">Categoría</label>
+    <Select value={valor} onValueChange={alCambiar}>
+      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+      <SelectContent>{opciones.map((opcion) => <SelectItem key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</SelectItem>)}</SelectContent>
+    </Select>
+  </div>;
+}
+
+/** Barra de la lista: búsqueda en vivo, categorías como pastillas y estado en "Más filtros". Todo vive en la URL. */
+export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) {
+  const { parametros, navegar } = useParametrosUrl();
+  const activo = parametros.get("activo") ?? "true";
+  const archivados = activo === "false";
+  const hayFiltros = archivados || Boolean(parametros.get("q")) || Boolean(parametros.get("categoriaId"));
+  const opciones = [{ valor: "todas", etiqueta: "Todas" }, ...categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre }))];
+  return <div className="mb-4 flex flex-col gap-3">
+   <div className="flex flex-wrap items-center gap-3">
+    <BuscadorEnVivo etiqueta="Buscar productos" marcador="Buscar por código, nombre o descripción" className="min-w-0 flex-1 sm:max-w-md" />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" className="h-10 gap-2">
+          <SlidersHorizontal aria-hidden="true" className="size-4" />
+          Más filtros
+          {archivados ? <span className="rounded bg-slate-200/70 px-1.5 text-[11px] font-semibold text-slate-600 tabular-nums">
+            1<span className="sr-only"> activo</span></span> : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
+        {/* En móvil la categoría vive aquí: las pastillas ocuparían varias líneas. */}
+        <CampoCategoria opciones={opciones} valor={parametros.get("categoriaId") ?? "todas"}
+          alCambiar={(valor) => navegar({ categoriaId: valor === "todas" ? null : valor })} />
+        <CampoEstado valor={activo} alCambiar={(valor) => navegar({ activo: valor === "true" ? null : valor })} />
+      </PopoverContent>
+    </Popover>
+    {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
+      onClick={() => navegar({ q: null, categoriaId: null, activo: null })}>Limpiar filtros</Button> : null}
+   </div>
+    <FiltroSegmentado etiqueta="Categoría" parametro="categoriaId" valorTodos="todas" opciones={opciones} className="self-start max-md:hidden" />
+  </div>;
 }

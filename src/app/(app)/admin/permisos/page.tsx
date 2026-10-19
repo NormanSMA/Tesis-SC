@@ -12,7 +12,7 @@ export default async function Pagina() {
   const datos = await listarPermisos(actor);
   return (
     <div className="w-full min-w-0 max-w-full">
-      <PageHeader titulo="Perfiles y permisos" descripcion="Asigne permisos por perfil. Revise las altas y bajas antes de guardar." />
+      <PageHeader titulo="Perfiles y permisos" tituloVisible={false} descripcion="Asigne permisos por perfil. Revise las altas y bajas antes de guardar." />
       <MatrizPermisos datos={datos} />
     </div>
   );

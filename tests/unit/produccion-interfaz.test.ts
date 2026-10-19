@@ -18,7 +18,10 @@ import { FiltrosProduccion } from "@/modules/produccion/componentes/FiltrosProdu
 import { TableroProduccion } from "@/modules/produccion/componentes/TableroProduccion";
 import type { AreaDto, EtapaTablero, GrupoEtapas, PlantillaDto } from "@/modules/produccion/tipos";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/produccion", useSearchParams: () => new URLSearchParams(),
+}));
 
 const id = "11111111-1111-4111-8111-111111111111";
 const version = "2026-10-06T12:00:00.000Z";
@@ -34,6 +37,9 @@ const porArea: GrupoEtapas[] = [{ id, nombre: area.nombre, etapas: [etapa, enCur
 const porResponsable: GrupoEtapas[] = [{ id, nombre: responsable.nombre, etapas: [etapa, enCurso] }];
 const plantilla: PlantillaDto = { id, categoriaId: id, area, secuencia: 1, nombre: etapa.nombre, activo: true, actualizadoEn: version };
 const opciones = { areas: [area], responsables: [responsable] };
+const conteos = { todas: 1, activas: 1, archivadas: 0 };
+const categorias = [{ id, nombre: "Gran formato" }];
+const referencia = "2026-10-06T12:00:00.000Z";
 const ESPERADO: Record<PerfilCodigo, PermisosEtapas & { gestionarCatalogo: boolean }> = {
   GERENCIA: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
   ADMINISTRACION: { planificar: true, ejecutar: true, avanzar: true, gestionarCatalogo: false },
@@ -53,14 +59,14 @@ function pantallas(): ReactNode[][] {
   const gestion = PERMISOS_POR_PERFIL.OPERACIONES.includes("catalogo:gestionar");
   return [
     [createElement(PageHeader, { key: "titulo", titulo: "Producción" }),
-      createElement(FiltrosProduccion, { key: "filtros", consulta: {}, opciones }),
-      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("PRODUCCION"), vistaInicial: "responsable" })],
+      createElement(FiltrosProduccion, { key: "filtros", opciones }),
+      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("PRODUCCION"), vistaInicial: "responsable", referencia })],
     [createElement(PageHeader, { key: "titulo", titulo: "Producción" }),
-      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("ATENCION_CLIENTE"), vistaInicial: "area" })],
+      createElement(TableroProduccion, { key: "tablero", porArea, porResponsable, permisos: permisos("ATENCION_CLIENTE"), vistaInicial: "area", referencia })],
     [createElement(PageHeader, { key: "titulo", titulo: "Áreas de producción" }),
-      createElement(AdministracionAreas, { key: "areas", areas: [area], gestionar: gestion })],
+      createElement(AdministracionAreas, { key: "areas", areas: [area], conteos, gestionar: gestion })],
     [createElement(PageHeader, { key: "titulo", titulo: "Plantillas de producción" }),
-      createElement(AdministracionPlantillas, { key: "plantillas", categoriaId: id, plantillas: [plantilla], areas: [area], gestionar: gestion })],
+      createElement(AdministracionPlantillas, { key: "plantillas", categoriaId: id, categorias, conteos, plantillas: [plantilla], areas: [area], gestionar: gestion })],
     [createElement(PageHeader, { key: "titulo", titulo: etapa.orden.numero }),
       createElement(EtapasOrden, { key: "etapas", etapas: [etapa, enCurso], permisos: permisos("PRODUCCION"), ...opciones,
         orden: { id, estado: "EN_PRODUCCION", actualizadoEn: version, etapas: [etapa, enCurso] } })],
@@ -100,7 +106,7 @@ describe("producción: accesibilidad y tamaños de interfaz", () => {
 
   for (const ancho of [820, 1024, 1366, 1920]) {
     it(`tablero, áreas, plantillas y etapas sin desborde ni infracciones axe a ${ancho}px`, async () => {
-      const contexto = await navegador.newContext({ viewport: { width: ancho, height: 1000 } });
+      const contexto = await navegador.newContext({ viewport: { width: ancho, height: 1000 }, reducedMotion: "reduce" });
       const pagina = await contexto.newPage();
       try {
         for (const pantalla of pantallas()) await comprobarPantalla({ pagina, pantalla, css });
@@ -113,7 +119,7 @@ describe("producción: permisos de interfaz", () => {
   for (const perfil of Object.keys(ESPERADO) as PerfilCodigo[]) {
     it(`muestra acciones autorizadas para ${perfil}`, () => {
       const tablero = renderToStaticMarkup(createElement(TableroProduccion, { porArea, porResponsable,
-        permisos: permisos(perfil), vistaInicial: "responsable" }));
+        permisos: permisos(perfil), vistaInicial: "responsable", referencia }));
       expect(tablero.includes('aria-label="Iniciar:')).toBe(ESPERADO[perfil].ejecutar && ESPERADO[perfil].avanzar);
       expect(tablero.includes('aria-label="Completar:')).toBe(ESPERADO[perfil].ejecutar);
       expect(tablero.includes('aria-label="Asignar responsable:')).toBe(false);
@@ -124,9 +130,9 @@ describe("producción: permisos de interfaz", () => {
         orden: { id, estado: "EN_PRODUCCION", actualizadoEn: version, etapas: [{ ...etapa, estado: "COMPLETADA" }] } }));
       expect(accionesOrden.includes("Marcar lista")).toBe(ESPERADO[perfil].avanzar);
       const gestionar = PERMISOS_POR_PERFIL[perfil].includes("catalogo:gestionar");
-      const areas = renderToStaticMarkup(createElement(AdministracionAreas, { areas: [area], gestionar }));
+      const areas = renderToStaticMarkup(createElement(AdministracionAreas, { areas: [area], conteos, gestionar }));
       const plantillas = renderToStaticMarkup(createElement(AdministracionPlantillas,
-        { categoriaId: id, plantillas: [plantilla], areas: [area], gestionar }));
+        { categoriaId: id, categorias, conteos, plantillas: [plantilla], areas: [area], gestionar }));
       expect(areas.includes("Crear área")).toBe(ESPERADO[perfil].gestionarCatalogo);
       expect(plantillas.includes("Agregar plantilla")).toBe(ESPERADO[perfil].gestionarCatalogo);
       if (gestionar) expect(plantillas).not.toContain('data-size="sm"');

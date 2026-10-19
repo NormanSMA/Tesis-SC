@@ -23,7 +23,7 @@ export function EncabezadoFicha({ titulo, codigo, detalle, categoria, estado, ac
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 items-start gap-4">
         {conIlustracion && categoria ? (
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted sm:size-[72px]">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted sm:size-[72px]">
             <IconoServicio categoria={categoria} tamano={32} className="sm:hidden" />
             <IconoServicio categoria={categoria} tamano={56} className="hidden sm:block" />
           </div>

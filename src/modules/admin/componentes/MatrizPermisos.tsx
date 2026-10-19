@@ -14,6 +14,15 @@ import { TablaPermisos, type MatrizDto } from "./TablaPermisos";
 
 type CambioPerfil = { codigo: PerfilCodigo; nombre: string; altas: string[]; bajas: string[] };
 
+/** Marca o desmarca varios permisos de un perfil; los protegidos no cambian. */
+function aplicarGrupo(actual: Record<string, string[]>, { codigo, permisos, marcar }: { codigo: PerfilCodigo; permisos: string[]; marcar: boolean }) {
+  const editables = permisos.filter((permiso) => !permisoProtegido(codigo, permiso));
+  const vigentes = actual[codigo] ?? [];
+  return { ...actual, [codigo]: marcar
+    ? [...vigentes, ...editables.filter((permiso) => !vigentes.includes(permiso))]
+    : vigentes.filter((permiso) => !editables.includes(permiso)) };
+}
+
 function useMatrizPermisos(datos: MatrizDto) {
   const inicial = Object.fromEntries(datos.matriz.map(({ perfil, permisos }) => [perfil, permisos]));
   const [seleccion, setSeleccion] = useState<Record<string, string[]>>(inicial);
@@ -35,6 +44,7 @@ function useMatrizPermisos(datos: MatrizDto) {
     setSeleccion((actual) => ({ ...actual, [codigo]: (actual[codigo] ?? []).includes(permiso)
       ? actual[codigo].filter((valor) => valor !== permiso) : [...(actual[codigo] ?? []), permiso] }));
   }
+  function cambiarGrupo(codigo: PerfilCodigo, permisos: string[], marcar: boolean) { setSeleccion((actual) => aplicarGrupo(actual, { codigo, permisos, marcar })); }
   async function confirmar() {
     if (!cambios.length || enviando) return;
     setEnviando(true);
@@ -60,7 +70,7 @@ function useMatrizPermisos(datos: MatrizDto) {
     setConfirmando(false);
     setEnviando(false);
   }
-  return { seleccion, cambios, confirmando, setConfirmando, enviando, error, conflicto, mensaje, cambiar, confirmar };
+  return { seleccion, cambios, confirmando, setConfirmando, enviando, error, conflicto, mensaje, cambiar, cambiarGrupo, confirmar };
 }
 
 export function MatrizPermisos({ datos }: { datos: MatrizDto }) {
@@ -74,7 +84,7 @@ export function MatrizPermisos({ datos }: { datos: MatrizDto }) {
       {matriz.error ? <AvisoAdmin mensaje={matriz.error}
         alRecargar={matriz.conflicto ? () => window.location.reload() : undefined} /> : null}
       <p role="status">{matriz.mensaje}</p>
-      <TablaPermisos datos={datos} seleccion={matriz.seleccion} enviando={matriz.enviando} alCambiar={matriz.cambiar} />
+      <TablaPermisos datos={datos} seleccion={matriz.seleccion} enviando={matriz.enviando} alCambiar={matriz.cambiar} alCambiarGrupo={matriz.cambiarGrupo} />
       <div className="sticky bottom-0 z-30 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t bg-background px-4 py-3 xl:-mx-6 xl:px-6">
         <p role="status" className="text-sm font-medium">{total ? `${total} ${total === 1 ? "cambio" : "cambios"} sin guardar` : "Sin cambios pendientes"}</p>
         <Button type="button" className="min-h-10" disabled={matriz.enviando || !total} onClick={() => matriz.setConfirmando(true)}>Guardar cambios</Button>

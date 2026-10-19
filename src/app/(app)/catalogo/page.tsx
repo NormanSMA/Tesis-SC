@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { Button } from "@/components/ui/button";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
+import { ProveedorLista } from "@/lib/listas/contexto-lista";
 import { listarCategorias } from "@/modules/catalogo/categorias";
 import { FiltrosCatalogo } from "@/modules/catalogo/componentes/FiltrosCatalogo";
 import { TarjetasCatalogo } from "@/modules/catalogo/componentes/TarjetasCatalogo";
@@ -20,9 +21,11 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
   const [lista, categorias] = await Promise.all([listarProductos(consulta, actor), listarCategorias()]);
   const puedeGestionar = can(actor, "catalogo:gestionar");
   return <>
-    <PageHeader titulo="Catálogo" descripcion="Productos, precios y recetas de materiales."
+    <PageHeader titulo="Catálogo" tituloVisible={false} descripcion="Productos, precios y recetas de materiales."
       acciones={puedeGestionar ? <Button asChild><Link href="/catalogo/nuevo">Nuevo producto</Link></Button> : null} />
-    <FiltrosCatalogo key={JSON.stringify(consulta)} consulta={consulta} categorias={categorias} />
-    <TarjetasCatalogo lista={lista} consulta={consulta} puedeGestionar={puedeGestionar} />
+    <ProveedorLista>
+      <FiltrosCatalogo categorias={categorias} />
+      <TarjetasCatalogo lista={lista} consulta={consulta} puedeGestionar={puedeGestionar} />
+    </ProveedorLista>
   </>;
 }

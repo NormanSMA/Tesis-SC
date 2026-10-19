@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/comunes/PageHeader";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
-import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, nombreUnidad } from "@/lib/formato";
+import { nombreUnidad } from "@/lib/formato";
+import { ProveedorLista } from "@/lib/listas/contexto-lista";
 import { AccionesMaterial } from "@/modules/inventario/componentes/AccionesMaterial";
 import { FiltrosMovimientos } from "@/modules/inventario/componentes/FiltrosInventario";
-import { EstadoMaterial, TablaMovimientos, etiquetaAlertaMaterial } from "@/modules/inventario/componentes/TablasInventario";
+import { ResumenMaterial } from "@/modules/inventario/componentes/ResumenMaterial";
+import { EstadoMaterial, TablaMovimientos } from "@/modules/inventario/componentes/TablasInventario";
 import { cargarMaterial, consultaPagina } from "@/modules/inventario/paginas";
 import { esquemaConsultaMovimientos } from "@/modules/inventario/schema";
 import { listarMovimientosMaterial, opcionesLibro } from "@/modules/inventario/service";
@@ -22,22 +23,18 @@ export default async function PaginaMaterial({ params, searchParams }: { params:
     <div className="min-w-0 space-y-6">
       <AccionesMaterial key={material.actualizadoEn} material={material} permisos={{ gestionar: can(actor, "material:gestionar"),
         entrada: can(actor, "inventario:entrada"), ajustar: can(actor, "inventario:ajustar") }} />
-      <Card className="min-w-0"><CardHeader><CardTitle><h2>Existencias y conciliación</h2></CardTitle></CardHeader>
-        <CardContent className="space-y-4"><dl className="grid gap-4 sm:grid-cols-3">
-          <div><dt className="text-sm text-muted-foreground">Existencia</dt><dd className="text-2xl font-semibold">{formatearCantidadConUnidad(material.existencia, material.unidad)}</dd></div>
-          <div><dt className="text-sm text-muted-foreground">Stock mínimo</dt><dd>{formatearCantidadConUnidad(material.stockMinimo, material.unidad)}</dd></div>
-          <div><dt className="text-sm text-muted-foreground">Costo promedio (C$)</dt><dd>{formatearCantidad(material.costoPromedio, 4)}</dd></div></dl>
-          {material.alerta ? <p role="status" className="font-medium">{etiquetaAlertaMaterial(material.alerta)}</p> : null}
-          <p role={material.conciliacion.conciliado ? "status" : "alert"} className="text-sm">{material.conciliacion.conciliado ? "Conciliado" : "Diferencia de integridad"}
-            : existencia {formatearCantidadPorUnidad(material.conciliacion.existencia, material.unidad)}; suma del libro {formatearCantidadPorUnidad(material.conciliacion.sumaLibro, material.unidad)}.</p>
-          {material.descripcion ? <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{material.descripcion}</p> : null}
-        </CardContent></Card>
+      <ResumenMaterial material={material} />
       <section aria-label="Libro del material" className="min-w-0">
-        <details open className="group min-w-0 space-y-5">
+        <details open className="group min-w-0 space-y-4">
           <summary className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-ring">
-            <h2 className="text-xl font-semibold">Movimientos</h2>
+            <h2 className="text-lg font-medium text-slate-900">Movimientos</h2>
             <span className="text-sm text-muted-foreground">({libro.total} {libro.total === 1 ? "registro" : "registros"})</span></summary>
-          {error ? <p role="alert">{error}</p> : null}<FiltrosMovimientos consulta={consulta} materialId={material.id} opciones={opciones} />
-          <TablaMovimientos lista={libro} consulta={consulta} ruta={`/inventario/${material.id}`} sinMaterial /></details></section>
+          {error ? <p role="alert">{error}</p> : null}
+          <ProveedorLista>
+            <div className="space-y-4">
+              <FiltrosMovimientos materialId={material.id} opciones={opciones} />
+              <TablaMovimientos lista={libro} consulta={consulta} ruta={`/inventario/${material.id}`} sinMaterial />
+            </div>
+          </ProveedorLista></details></section>
     </div></>;
 }

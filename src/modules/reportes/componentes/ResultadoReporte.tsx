@@ -1,5 +1,6 @@
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { KpiCard } from "@/components/comunes/KpiCard";
 import { formatearFechaHora } from "@/lib/formato";
 import { celdaVisible, columnasReporte, etiquetaVisible, ETIQUETAS_TOTALES, TITULOS_REPORTES, totalVisible } from "../columnas";
@@ -11,14 +12,16 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
     id: columna.campo, encabezado: etiquetaVisible(columna.encabezado), celda: (fila) => celdaVisible(columna, fila),
     ...(columna.tipo !== "texto" && { alinear: "derecha" as const }),
   }));
-  return <section aria-label="Resultado del reporte" className="min-w-0 space-y-4">
-    <h2 className="text-lg font-semibold">{TITULOS_REPORTES[nombre]}</h2>
-    <p className="text-sm text-muted-foreground">Generado: {formatearFechaHora(reporte.generadoEn)} (Managua).</p>
+  return <ZonaResultados><section aria-label="Resultado del reporte" className="min-w-0 space-y-4">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <h2 className="text-lg font-semibold">{TITULOS_REPORTES[nombre]}</h2>
+      <p className="text-sm text-muted-foreground">Generado: {formatearFechaHora(reporte.generadoEn)} (Managua).</p>
+    </div>
+    <section aria-label="Totales del reporte" className="space-y-3"><h3 className="sr-only">Totales</h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 [&_p]:break-words [&_[data-slot=card]]:rounded-2xl [&_[data-slot=card]]:border-slate-200/80">{Object.entries(reporte.totales).map(([campo, valor]) =>
+        <KpiCard key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} valor={totalVisible(campo, valor)} />)}</div></section>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
       idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
       vacio={<EmptyState ilustracion="video-marketing" titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />
-    <section aria-label="Totales del reporte" className="space-y-3"><h3 className="font-semibold">Totales</h3>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 [&_p]:break-words [&_p]:[overflow-wrap:anywhere]">{Object.entries(reporte.totales).map(([campo, valor]) =>
-        <KpiCard key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} valor={totalVisible(campo, valor)} />)}</div></section>
-  </section>;
+  </section></ZonaResultados>;
 }

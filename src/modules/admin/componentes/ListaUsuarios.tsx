@@ -1,79 +1,79 @@
 import { CircleCheck, CircleMinus, Lock, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
+import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
+import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
+import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
+import { EmptyState } from "@/components/comunes/EmptyState";
+import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
+import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ETIQUETA_PERFIL, PERFILES } from "@/core/permisos";
 import type { cargarUsuarios } from "@/modules/admin/paginas";
 import type { UsuarioDto } from "@/modules/admin/tipos";
-import { SelectNativo } from "@/modules/clientes/componentes/SelectNativo";
 
-import { estadoUsuario, hrefUsuarios, type EstadoUsuario, type FiltrosUsuarios } from "./interfaz";
+import { estadoUsuario, FILTRO_ESTADO_PREDETERMINADO, hrefUsuarios, type EstadoUsuario, type FiltrosUsuarios } from "./interfaz";
 
-export function FiltrosListaUsuarios({ filtros }: { filtros: FiltrosUsuarios }) {
+const OPCIONES_PERFIL: OpcionSegmento[] = [
+  { valor: "todos", etiqueta: "Todos" },
+  ...PERFILES.map(({ codigo, nombre }) => ({ valor: codigo, etiqueta: nombre })),
+];
+function opcionesEstado(activos: number, bloqueados: number): OpcionSegmento[] {
+  return [
+    { valor: "ACTIVO", etiqueta: "Activos", conteo: activos }, { valor: "BLOQUEADO", etiqueta: "Bloqueados", conteo: bloqueados },
+    { valor: "INACTIVO", etiqueta: "Inactivos" }, { valor: "TODOS", etiqueta: "Todos" },
+  ];
+}
+
+/** Barra de la lista: búsqueda en vivo y pastillas de perfil y estado. Todo vive en la URL. */
+export function FiltrosListaUsuarios({ filtros, activos, bloqueados }: { filtros: FiltrosUsuarios; activos: number; bloqueados: number }) {
+  const hayFiltros = Boolean(filtros.q || filtros.perfil) || filtros.estado !== FILTRO_ESTADO_PREDETERMINADO;
   return (
-    <form method="get" action="/admin/usuarios" role="search" aria-label="Buscar usuarios" className="mb-5 flex flex-wrap items-end gap-3">
-      <div className="w-full min-w-0 flex-1 space-y-2 sm:basis-56">
-        <Label htmlFor="usuarios-q">Buscar</Label>
-        <Input id="usuarios-q" name="q" type="search" className="min-h-10" defaultValue={filtros.q} placeholder="Nombre o correo" maxLength={200} />
-      </div>
-      <div className="w-full min-w-0 space-y-2 sm:w-auto sm:basis-56">
-        <Label htmlFor="usuarios-perfil">Perfil</Label>
-        <SelectNativo id="usuarios-perfil" name="perfil" defaultValue={filtros.perfil}>
-          <option value="">Todos los perfiles</option>
-          {PERFILES.map(({ codigo, nombre }) => <option key={codigo} value={codigo}>{nombre}</option>)}
-        </SelectNativo>
-      </div>
-      <div className="w-full min-w-0 space-y-2 sm:w-auto sm:basis-40">
-        <Label htmlFor="usuarios-estado">Estado</Label>
-        <SelectNativo id="usuarios-estado" name="estado" defaultValue={filtros.estado}>
-          <option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option>
-          <option value="TODOS">Todos</option>
-        </SelectNativo>
-      </div>
-      <Button type="submit" className="min-h-10">Buscar</Button>
-      <Button asChild variant="outline" className="min-h-10"><Link href="/admin/usuarios">Limpiar filtros</Link></Button>
-    </form>
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <BuscadorEnVivo etiqueta="Buscar usuarios" marcador="Buscar por nombre o correo" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
+      <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos={FILTRO_ESTADO_PREDETERMINADO} opciones={opcionesEstado(activos, bloqueados)} />
+      <FiltroSegmentado etiqueta="Perfil" parametro="perfil" valorTodos="todos" opciones={OPCIONES_PERFIL} />
+      {hayFiltros ? <Button asChild variant="ghost" className="h-10"><Link href="/admin/usuarios">Limpiar filtros</Link></Button> : null}
+    </div>
   );
 }
 
 type Lista = Awaited<ReturnType<typeof cargarUsuarios>>;
+
+/** Enlace extendido: toda la fila navega a la ficha. El resto de las celdas es solo texto. */
+const ENLACE_FILA = "font-medium text-primary underline-offset-4 outline-none after:absolute after:inset-0 after:content-[''] hover:underline";
+const CLASES_TABLA = "[&_tbody_tr]:relative [&_tbody_tr]:cursor-pointer [&_tbody_tr:has(a:focus-visible)]:outline-2 [&_tbody_tr:has(a:focus-visible)]:-outline-offset-2 [&_tbody_tr:has(a:focus-visible)]:outline-ring [&_td]:whitespace-normal";
+
+function columnasDe(ahora: number): ColumnaTabla<UsuarioDto>[] {
+  return [
+    { id: "nombre", encabezado: "Nombre", celda: (usuario) => (
+      <div className="flex min-w-0 items-center gap-3">
+        <AvatarIniciales nombre={usuario.nombre} />
+        <Link href={`/admin/usuarios/${usuario.id}`} className={`${ENLACE_FILA} min-w-0 break-words`}>{usuario.nombre}</Link>
+      </div>) },
+    { id: "correo", encabezado: "Correo", celda: (usuario) => <span className="break-all text-muted-foreground">{usuario.correo}</span> },
+    { id: "perfiles", encabezado: "Perfiles", celda: (usuario) => <PerfilesUsuario perfiles={usuario.perfiles} /> },
+    { id: "estado", encabezado: "Estado", celda: (usuario) => <EstadoUsuarioBadge estado={estadoUsuario(usuario, ahora)} /> },
+  ];
+}
+
 export function TablaUsuarios({ lista, filtros }: { lista: Lista; filtros: FiltrosUsuarios }) {
-  if (!lista.datos.length) return (
-    <div className="space-y-3 rounded-lg border p-5">
-      <p>{lista.total ? "Esa página no existe." : "Ningún usuario coincide con los filtros."}</p>
-      <Button asChild variant="outline" className="min-h-10"><Link href={hrefUsuarios(filtros, 1)}>Volver a la primera página</Link></Button>
-    </div>
-  );
+  const vacio = lista.total
+    ? <EmptyState ilustracion="reconocimientos" titulo="Esa página no existe"
+      descripcion={`La búsqueda tiene ${lista.total} resultados en menos páginas.`}
+      accion={<Button asChild variant="outline"><Link href={hrefUsuarios(filtros, 1)}>Volver a la primera página</Link></Button>} />
+    : <EmptyState ilustracion="reconocimientos" titulo="Sin resultados"
+      descripcion="Ningún usuario coincide con los filtros. Pruebe con otros términos o quite los filtros."
+      accion={<Button asChild variant="outline"><Link href="/admin/usuarios">Limpiar filtros</Link></Button>} />;
   return (
-    <div className="min-w-0 space-y-4">
-      <div role="region" aria-label="Lista de usuarios" className="min-w-0">
-        <div className="overflow-hidden rounded-lg border bg-card max-md:hidden">
-          <Table>
-            <caption className="sr-only">Usuarios y perfiles asignados</caption>
-            <TableHeader><TableRow>{["Nombre", "Correo", "Perfiles", "Estado"].map((texto) => <TableHead key={texto} scope="col">{texto}</TableHead>)}</TableRow></TableHeader>
-            <TableBody>{lista.datos.map((usuario) => <TableRow key={usuario.id} className="h-auto">
-              <TableCell className="max-w-64 font-medium whitespace-normal"><EnlaceUsuario usuario={usuario} /></TableCell>
-              <TableCell className="max-w-64 break-all whitespace-normal">{usuario.correo}</TableCell>
-              <TableCell className="max-w-72 whitespace-normal"><PerfilesUsuario perfiles={usuario.perfiles} /></TableCell>
-              <TableCell><EstadoUsuarioBadge estado={estadoUsuario(usuario, lista.ahora)} /></TableCell>
-            </TableRow>)}</TableBody>
-          </Table>
-        </div>
-        <ul className="space-y-3 md:hidden">{lista.datos.map((usuario) => <li key={usuario.id} className="space-y-2 rounded-lg border bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <p className="min-w-0 font-medium"><EnlaceUsuario usuario={usuario} /></p>
-            <EstadoUsuarioBadge estado={estadoUsuario(usuario, lista.ahora)} />
-          </div>
-          <p className="break-all text-sm text-muted-foreground">{usuario.correo}</p>
-          <PerfilesUsuario perfiles={usuario.perfiles} />
-        </li>)}</ul>
-      </div>
-      <PaginacionUsuarios lista={lista} filtros={filtros} />
-    </div>
+    <ZonaResultados>
+      <DataTable apilarEnMovil titulo="Lista de usuarios" columnas={columnasDe(lista.ahora)} filas={lista.datos}
+        idFila={(usuario) => usuario.id} className={CLASES_TABLA} vacio={vacio}
+        claveConsulta={hrefUsuarios(filtros, lista.pagina)}
+        paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
+          hrefPagina: (pagina) => hrefUsuarios(filtros, pagina) }} />
+    </ZonaResultados>
   );
 }
 
@@ -88,25 +88,6 @@ function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
   return <Badge variant={tono}><Icono aria-hidden="true" />{etiqueta}</Badge>;
 }
 
-function EnlaceUsuario({ usuario }: { usuario: UsuarioDto }) {
-  return <Link className="inline-flex min-h-10 items-center break-words text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring" href={`/admin/usuarios/${usuario.id}`}>{usuario.nombre}</Link>;
-}
-
 function PerfilesUsuario({ perfiles }: { perfiles: UsuarioDto["perfiles"] }) {
-  return <div className="flex flex-wrap gap-2">{perfiles.map((perfil) => <Badge key={perfil} variant="neutro" className="whitespace-normal">{ETIQUETA_PERFIL[perfil]}</Badge>)}</div>;
-}
-
-function PaginacionUsuarios({ lista, filtros }: { lista: Lista; filtros: FiltrosUsuarios }) {
-  const paginas = Math.max(1, Math.ceil(lista.total / lista.porPagina));
-  const desde = lista.total === 0 ? 0 : (lista.pagina - 1) * lista.porPagina + 1;
-  const hasta = Math.min(lista.pagina * lista.porPagina, lista.total);
-  return (
-    <nav aria-label="Páginas de usuarios" className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-muted-foreground">Mostrando {desde} a {hasta} de {lista.total}</p>
-      <div className="flex gap-3">
-        {lista.pagina > 1 ? <Button asChild variant="outline" className="min-h-10"><Link href={hrefUsuarios(filtros, lista.pagina - 1)}>Anterior</Link></Button> : null}
-        {lista.pagina < paginas ? <Button asChild variant="outline" className="min-h-10"><Link href={hrefUsuarios(filtros, lista.pagina + 1)}>Siguiente</Link></Button> : null}
-      </div>
-    </nav>
-  );
+  return <div className="flex flex-wrap gap-1.5">{perfiles.map((perfil) => <Badge key={perfil} variant="acento" className="whitespace-normal">{ETIQUETA_PERFIL[perfil]}</Badge>)}</div>;
 }

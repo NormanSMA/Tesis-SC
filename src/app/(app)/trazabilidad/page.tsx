@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/comunes/PageHeader";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AppError } from "@/lib/errores";
+import { ProveedorLista } from "@/lib/listas/contexto-lista";
 import { BuscarTrabajo, FiltrosBitacora } from "@/modules/trazabilidad/componentes/FiltrosBitacora";
 import { TablaBitacora } from "@/modules/trazabilidad/componentes/TablaBitacora";
 import { esquemaConsultaBitacora, leerConsulta } from "@/modules/trazabilidad/schema";
@@ -35,12 +36,14 @@ export default async function PaginaTrazabilidad({ searchParams }: { searchParam
     aviso = error.message;
   }
   const [lista, usuarios] = aviso ? [null, []] : await Promise.all([listarBitacora(consulta, actor), opcionesBitacora(actor)]);
-  return <><PageHeader titulo="Trazabilidad" descripcion="Historial de cambios y responsables de los trabajos."
+  return <><PageHeader titulo="Trazabilidad" tituloVisible={false} descripcion="Historial de cambios y responsables de los trabajos."
       acciones={<p className="text-xs text-muted-foreground">Registro de solo lectura</p>} />
     <div className="min-w-0 space-y-4">
       {can(actor, "orden:ver") ? <BuscarTrabajo /> : null}
-      <FiltrosBitacora consulta={consulta} usuarios={usuarios} />
-      <div aria-live="polite">{aviso ? <ErrorState descripcion={aviso} /> : null}</div>
-      {lista ? <TablaBitacora lista={lista} consulta={consulta} /> : null}
+      <ProveedorLista>
+        <FiltrosBitacora consulta={consulta} usuarios={usuarios} />
+        <div aria-live="polite">{aviso ? <ErrorState descripcion={aviso} /> : null}</div>
+        {lista ? <TablaBitacora lista={lista} consulta={consulta} /> : null}
+      </ProveedorLista>
     </div></>;
 }
