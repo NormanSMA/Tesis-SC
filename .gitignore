@@ -19,3 +19,8 @@ output/
 
 # Archivos locales con claves de demostración
 *.local.md
+
+# Pruebas de carga: sesiones y estado de la siembra (cookies reales de la base sc_carga)
+scripts/carga/sesiones.json
+scripts/carga/concurrencia.json
+scripts/carga/estado.json

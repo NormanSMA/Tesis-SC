@@ -1,0 +1,73 @@
+# Entorno aparte para pruebas de carga y concurrencia (docs/pruebas/carga.md).
+# Reutiliza el servidor db de compose.yaml pero usa la base sc_carga y la app en 127.0.0.1:3100.
+# No toca la base sc_plataforma ni la app del puerto 3000.
+# Uso: docker compose -f compose.yaml -f docker-compose.carga.yml up -d app_carga
+name: sc-plataforma
+
+x-entorno: &entorno
+  env_file:
+    - path: .env.example
+    - path: .env
+      required: false
+
+services:
+  # Crea la base sc_carga si no existe. Idempotente.
+  carga_db:
+    <<: *entorno
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    command:
+      - sh
+      - -c
+      - |
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        existe=$$(psql -h db -U "$$POSTGRES_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'sc_carga'")
+        [ "$$existe" = 1 ] || psql -h db -U "$$POSTGRES_USER" -d postgres -c "CREATE DATABASE sc_carga"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Igual que migrate, apuntando a sc_carga: migra, crea el rol de la aplicacion y siembra el catalogo.
+  carga_migrate:
+    <<: *entorno
+    build:
+      context: .
+      target: tools
+    image: sc-plataforma-tools
+    environment:
+      DB_HOST: db
+      POSTGRES_DB: sc_carga
+    command: ["sh", "/app/scripts/db/preparar.sh"]
+    depends_on:
+      carga_db:
+        condition: service_completed_successfully
+    restart: "no"
+
+  # Misma imagen y mismos limites que app. Los limites de tasa quedan en los valores de produccion (sin LIMITE_*).
+  app_carga:
+    <<: *entorno
+    build:
+      context: .
+      target: runner
+    image: sc-plataforma-app
+    restart: "no"
+    mem_limit: 1g
+    cpus: 2
+    environment:
+      DB_HOST: db
+      POSTGRES_DB: sc_carga
+    ports:
+      - "127.0.0.1:${APP_CARGA_PORT:-3100}:3000"
+    depends_on:
+      carga_migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/salud').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
