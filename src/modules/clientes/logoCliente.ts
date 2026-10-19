@@ -16,16 +16,29 @@ function exportar(lienzo: HTMLCanvasElement, calidad: number): Promise<Blob | nu
   return new Promise((resolver) => lienzo.toBlob(resolver, "image/webp", calidad));
 }
 
-/** Reduce la imagen a 256 px de lado como máximo y la convierte a WebP. Lanza un Error con texto para el usuario. */
-export async function prepararLogo(archivo: File): Promise<Blob> {
+export type AjusteLogo = "completo" | "recortar";
+
+/**
+ * Deja la imagen cuadrada de 256 px en WebP. "completo" la centra sobre blanco sin cortar (logos anchos);
+ * "recortar" llena el cuadro y corta los bordes (fotos). Lanza un Error con texto para el usuario.
+ */
+export async function prepararLogo(archivo: File, ajuste: AjusteLogo = "completo"): Promise<Blob> {
   if (!(TIPOS_LOGO as readonly string[]).includes(archivo.type)) throw new Error("Use una imagen PNG, JPG o WebP.");
   if (archivo.size > LIMITE_ORIGINAL) throw new Error("La imagen supera los 10 MB.");
   const mapa = await createImageBitmap(archivo).catch(() => { throw new Error("No se pudo leer la imagen."); });
-  const escala = Math.min(1, LADO_MAXIMO / Math.max(mapa.width, mapa.height));
   const lienzo = document.createElement("canvas");
-  lienzo.width = Math.max(1, Math.round(mapa.width * escala));
-  lienzo.height = Math.max(1, Math.round(mapa.height * escala));
-  lienzo.getContext("2d")?.drawImage(mapa, 0, 0, lienzo.width, lienzo.height);
+  lienzo.width = LADO_MAXIMO; lienzo.height = LADO_MAXIMO;
+  const contexto = lienzo.getContext("2d");
+  if (contexto) {
+    contexto.fillStyle = "#ffffff";
+    contexto.fillRect(0, 0, LADO_MAXIMO, LADO_MAXIMO);
+    // Con "completo" queda un margen del 12 %: el círculo del avatar no toca el logo.
+    const caja = ajuste === "completo" ? LADO_MAXIMO * 0.76 : LADO_MAXIMO;
+    const escala = ajuste === "completo" ? caja / Math.max(mapa.width, mapa.height) : caja / Math.min(mapa.width, mapa.height);
+    const ancho = mapa.width * escala, alto = mapa.height * escala;
+    contexto.imageSmoothingQuality = "high";
+    contexto.drawImage(mapa, (LADO_MAXIMO - ancho) / 2, (LADO_MAXIMO - alto) / 2, ancho, alto);
+  }
   mapa.close();
   for (const calidad of [0.9, 0.75, 0.6]) {
     const imagen = await exportar(lienzo, calidad);
