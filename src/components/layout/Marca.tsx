@@ -19,17 +19,25 @@ export function Isotipo({ className }: { className?: string }) {
 type PropiedadesMarca = {
   mostrarNombre?: boolean;
   grande?: boolean;
+  /** Isotipo dentro de una caja blanca redondeada (menú lateral). */
+  conCaja?: boolean;
   className?: string;
 };
 
-export function Marca({ mostrarNombre = true, grande = false, className }: PropiedadesMarca) {
+export function Marca({ mostrarNombre = true, grande = false, conCaja = false, className }: PropiedadesMarca) {
   return (
     <span className={cn("flex items-center gap-3", className)}>
-      <Isotipo className={grande ? "h-14" : undefined} />
+      {conCaja ? (
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-card shadow-sm">
+          <Isotipo className="h-6" />
+        </span>
+      ) : (
+        <Isotipo className={grande ? "h-14" : undefined} />
+      )}
       {mostrarNombre ? (
-        <span className="flex flex-col leading-tight">
-          <span className={cn("font-semibold text-foreground", grande ? "text-base" : "text-sm")}>{NOMBRE_PLATAFORMA}</span>
-          <span className="text-xs text-muted-foreground">{NOMBRE_EMPRESA}</span>
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className={cn("truncate font-semibold tracking-tight text-foreground", grande ? "text-base" : "text-[15px]")}>{NOMBRE_PLATAFORMA}</span>
+          <span className="truncate text-xs text-muted-foreground">{NOMBRE_EMPRESA}</span>
         </span>
       ) : null}
     </span>

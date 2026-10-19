@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ETIQUETA_PERFIL } from "@/core/permisos";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
@@ -48,7 +47,7 @@ function BotonSalir({ onClick }: { onClick: () => void }) {
       type="button"
       variant="ghost"
       size="icon"
-      className="shrink-0 text-danger hover:bg-danger-soft hover:text-danger"
+      className="shrink-0 text-slate-500 hover:bg-danger-soft hover:text-danger"
       aria-label="Cerrar sesión"
       title="Cerrar sesión"
       onClick={onClick}
@@ -62,18 +61,15 @@ function BotonSalir({ onClick }: { onClick: () => void }) {
 function TarjetaAmplia({ usuario, className }: { usuario: UsuarioSesion; className?: string }) {
   const cerrarSesion = useCerrarSesion();
   const etiquetaPerfil = usuario.perfiles.length > 1 ? "Perfiles" : "Perfil";
+  const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(" · ");
   return (
-    <section aria-label="Sesión de usuario" className={cn("border-t border-sidebar-border p-3", className)}>
-      <div className="flex items-start gap-3">
-        <Iniciales usuario={usuario} className="size-10" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground" title={usuario.nombre}>{usuario.nombre}</p>
-          <p className="truncate text-xs text-muted-foreground" title={usuario.correo}>{usuario.correo}</p>
-          <p className="mt-1.5 flex flex-wrap gap-1">
-            <span className="sr-only">{etiquetaPerfil}: </span>
-            {usuario.perfiles.map((codigo) => (
-              <Badge key={codigo} variant="acento" className="px-2 py-0.5 text-xs">{ETIQUETA_PERFIL[codigo]}</Badge>
-            ))}
+    <section aria-label="Sesión de usuario" className={cn("p-3", className)}>
+      <div className="flex items-center gap-3 rounded-xl px-1 py-1" title={usuario.correo}>
+        <Iniciales usuario={usuario} className="size-9" />
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-sm font-medium text-foreground" title={usuario.nombre}>{usuario.nombre}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            <span className="sr-only">{etiquetaPerfil}: </span>{perfiles}
           </p>
         </div>
         <BotonSalir onClick={cerrarSesion} />
@@ -87,7 +83,7 @@ function TarjetaRiel({ usuario, className }: { usuario: UsuarioSesion; className
   const cerrarSesion = useCerrarSesion();
   const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(", ");
   return (
-    <section aria-label="Sesión de usuario" className={cn("flex flex-col items-center gap-1 border-t border-sidebar-border p-2", className)}>
+    <section aria-label="Sesión de usuario" className={cn("flex flex-col items-center gap-1 p-2", className)}>
       <span title={`${usuario.nombre} · ${perfiles}`} role="img" aria-label={usuario.nombre}>
         <Iniciales usuario={usuario} className="size-9" />
       </span>

@@ -13,9 +13,6 @@ function indicador(entrada: Omit<IndicadorPanel, "valor" | "numero" | "formato">
 function grafico(titulo: string, subtitulo: string, datos: SerieConteo[]): GraficoPanel {
   return { titulo, subtitulo, tipo: "barras", datos };
 }
-function textoAprobadas(cantidad: number): string {
-  return cantidad === 1 ? "1 cotización aprobada" : `${cantidad} cotizaciones aprobadas`;
-}
 async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const [comercial, ordenes] = await Promise.all([
     can(actor, "cotizacion:ver") ? consultarComercial(hoy) : undefined,
@@ -27,10 +24,10 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
     panel.titulo = tituloGerencia(actual, anterior);
     panel.indicadores.push(indicador({ id: "monto-aprobado", etiqueta: "Monto aprobado", valor: dineroPanel(actual.monto), numero: Number(actual.monto), formato: "moneda",
       comparacion: comparacionPanel(Number(actual.monto), Number(anterior.monto), "el mes anterior"),
-      contexto: `${textoAprobadas(actual.aprobadas)}; ${nombreMes(anterior.mes)}: ${dineroPanel(anterior.monto)}`, tendencia: tendenciaMonto(actual.monto, anterior.monto), destino: "/cotizaciones?estado=APROBADA" }),
+      contexto: `vs. ${dineroPanel(anterior.monto)} en ${nombreMes(anterior.mes)}`, tendencia: tendenciaMonto(actual.monto, anterior.monto), destino: "/cotizaciones?estado=APROBADA" }),
     indicador({ id: "tasa-aprobacion", etiqueta: "Tasa de aprobación", valor: `${Math.round(tasaAprobacion(actual))} %`, numero: tasaAprobacion(actual), formato: "porcentaje", meta: META_APROBACION_PCT,
       comparacion: comparacionPanel(tasaAprobacion(actual), tasaAprobacion(anterior), "el mes anterior"),
-      contexto: `Meta ${META_APROBACION_PCT} %; ${actual.aprobadas} aprobadas de ${actual.respondidas} respondidas`,
+      contexto: `${actual.aprobadas} de ${actual.respondidas} respondidas`,
       tendencia: tendenciaTasa(actual, anterior), destino: "/cotizaciones" }));
     panel.grafico = grafico("Monto aprobado por mes", "Meses con datos (hasta seis)", mesesConActividad(comercial.meses).map((mes) => ({
       clave: mes.mes, etiqueta: nombreMesCorto(mes.mes), valor: Number(formatear(dividir(leerDecimal(mes.monto)!, deEntero(1000)), 1)), texto: dineroPanel(mes.monto), destacado: mes.mes === actual.mes })));
@@ -41,7 +38,7 @@ async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
     panel.indicadores.push(indicador({ id: "en-produccion", etiqueta: "Órdenes en producción", valor: ordenes.enProduccion,
       contexto: `${ordenes.pendientes} por iniciar`, destino: "/ordenes?estado=EN_PRODUCCION" }),
     indicador({ id: "ordenes-atrasadas", mejorSiBaja: true, etiqueta: "Órdenes atrasadas", valor: ordenes.atrasadas,
-      contexto: "Fecha de entrega anterior a hoy", destino: "/ordenes?vencidas=true", alerta: ordenes.atrasadas > 0 }));
+      contexto: "Entrega vencida", destino: "/ordenes?vencidas=true", alerta: ordenes.atrasadas > 0 }));
   }
   return panel;
 }
@@ -56,10 +53,10 @@ async function operaciones(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const datos = await consultarOperacion(hoy);
   return { titulo: tituloOperaciones(datos.accion), pregunta,
     indicadores: [
-      indicador({ id: "por-iniciar", mejorSiBaja: true, etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Meta: 0 órdenes pendientes de iniciar", destino: "/ordenes?estado=PENDIENTE" }),
-      indicador({ id: "sin-responsable", mejorSiBaja: true, etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Meta: 0 órdenes activas sin responsable", destino: "/ordenes?responsable=sin-responsable", alerta: datos.sinResponsable > 0 }),
-      indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Meta: completar todas las órdenes en producción", destino: "/ordenes?estado=EN_PRODUCCION" }),
-      indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, comparacion: comparacionPanel(datos.entregas, datos.entregadasAnteriores, "los siete días anteriores"), contexto: "Meta: entregar a tiempo el 100 %; próximos siete días", destino: "/ordenes" }),
+      indicador({ id: "por-iniciar", mejorSiBaja: true, etiqueta: "Por iniciar", valor: datos.pendientes, contexto: "Meta: 0 sin iniciar", destino: "/ordenes?estado=PENDIENTE" }),
+      indicador({ id: "sin-responsable", mejorSiBaja: true, etiqueta: "Sin responsable", valor: datos.sinResponsable, contexto: "Meta: 0 sin responsable", destino: "/ordenes?responsable=sin-responsable", alerta: datos.sinResponsable > 0 }),
+      indicador({ id: "en-produccion", etiqueta: "En producción", valor: datos.enProduccion, contexto: "Meta: terminarlas a tiempo", destino: "/ordenes?estado=EN_PRODUCCION" }),
+      indicador({ id: "entregas-proximas", etiqueta: "Entregas próximas", valor: datos.entregas, comparacion: comparacionPanel(datos.entregas, datos.entregadasAnteriores, "7 días previos"), contexto: "Meta: 100 % a tiempo", destino: "/ordenes" }),
     ], grafico: { ...grafico("Órdenes por estado", "Órdenes activas; excluye cerradas y canceladas", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, clave: fila.etiqueta, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta }))),
       nota: { texto: "Ver órdenes", destino: "/ordenes" } },
     atencion: [], atencionTotal: 0 };
@@ -72,14 +69,14 @@ async function atencionCliente(actor: Actor, hoy: string): Promise<ContenidoPane
     can(actor, "cliente:ver") ? consultarClientesNuevos(mesAnterior(hoy)) : undefined]);
   if (datos) {
     panel.titulo = `${datos.enviadas} cotizaciones esperan respuesta del cliente`;
-    panel.indicadores.push(indicador({ id: "enviadas", mejorSiBaja: true, etiqueta: "Enviadas sin respuesta", valor: datos.enviadas, contexto: "Meta: 0 cotizaciones vigentes sin respuesta", destino: "/cotizaciones?estado=ENVIADA" }),
-      indicador({ id: "por-vencer", mejorSiBaja: true, etiqueta: "Por vencer", valor: datos.porVencer, contexto: "Meta: 0 cotizaciones por vencer en los próximos tres días", destino: "/cotizaciones?estado=ENVIADA", alerta: datos.porVencer > 0 }),
-      indicador({ id: "aprobadas-mes", etiqueta: "Aprobadas del mes", valor: datos.meses[5].aprobadas, comparacion: comparacionPanel(datos.meses[5].aprobadas, datos.meses[4].aprobadas, "el mes anterior"), contexto: `Mes anterior: ${datos.meses[4].aprobadas} aprobadas`, destino: "/cotizaciones?estado=APROBADA" }));
+    panel.indicadores.push(indicador({ id: "enviadas", mejorSiBaja: true, etiqueta: "Enviadas sin respuesta", valor: datos.enviadas, contexto: "Meta: 0 sin respuesta", destino: "/cotizaciones?estado=ENVIADA" }),
+      indicador({ id: "por-vencer", mejorSiBaja: true, etiqueta: "Por vencer", valor: datos.porVencer, contexto: "Meta: 0 por vencer", destino: "/cotizaciones?estado=ENVIADA", alerta: datos.porVencer > 0 }),
+      indicador({ id: "aprobadas-mes", etiqueta: "Aprobadas del mes", valor: datos.meses[5].aprobadas, comparacion: comparacionPanel(datos.meses[5].aprobadas, datos.meses[4].aprobadas, "el mes anterior"), contexto: `Mes anterior: ${datos.meses[4].aprobadas}`, destino: "/cotizaciones?estado=APROBADA" }));
     panel.grafico = grafico("Cotizaciones por estado", "Creadas en los últimos treinta días", datos.porEstado.filter((fila) => fila.etiqueta !== "CERRADA" && fila.etiqueta !== "CANCELADA").map((fila) => ({ ...fila, clave: fila.etiqueta, etiqueta: textoEstado(fila.etiqueta) ?? fila.etiqueta })));
     panel.grafico.nota = { texto: "Ver cotizaciones", destino: "/cotizaciones" };
 
   }
-  if (clientes !== undefined) panel.indicadores.push(indicador({ id: "clientes-nuevos", etiqueta: "Clientes nuevos", valor: clientes, comparacion: comparacionPanel(clientes, clientesAnteriores!, "el mes anterior"), contexto: "Meta: al menos 1 cliente nuevo al mes", destino: "/clientes" }));
+  if (clientes !== undefined) panel.indicadores.push(indicador({ id: "clientes-nuevos", etiqueta: "Clientes nuevos", valor: clientes, comparacion: comparacionPanel(clientes, clientesAnteriores!, "el mes anterior"), contexto: "Meta: 1 o más al mes", destino: "/clientes" }));
   return panel;
 }
 
@@ -89,13 +86,20 @@ async function produccion(actor: Actor, hoy: string, instante: Date): Promise<Co
   const datos = await consultarProduccion({ hoy, instante, actorId: actor.id });
   return { titulo: `${datos.enCurso + datos.pendientes} etapas por atender hoy`, pregunta,
     indicadores: [
-      indicador({ id: "mis-etapas-en-curso", etiqueta: "Mis etapas en curso", valor: datos.enCurso, contexto: "Meta: 1 etapa en curso a la vez", destino: "/produccion" }),
-      indicador({ id: "mis-etapas-pendientes", mejorSiBaja: true, etiqueta: "Mis etapas pendientes", valor: datos.pendientes, contexto: "Meta: 0 etapas asignadas pendientes", destino: "/produccion" }),
-      indicador({ id: "completadas-hoy", etiqueta: "Completadas hoy por mí", valor: datos.completadasHoy, comparacion: comparacionPanel(datos.completadasHoy, datos.porDia.at(-2)?.valor ?? 0, "ayer"), contexto: "Meta: al menos 1 etapa completada al día", destino: "/produccion" }),
-      indicador({ id: "mis-etapas-atrasadas", mejorSiBaja: true, etiqueta: "Mis etapas atrasadas", valor: datos.atrasadas, contexto: "Meta: 0 etapas con fecha de fin vencida", destino: "/produccion", alerta: datos.atrasadas > 0 }),
+      indicador({ id: "mis-etapas-en-curso", etiqueta: "Mis etapas en curso", valor: datos.enCurso, contexto: "Meta: 1 a la vez", destino: "/produccion" }),
+      indicador({ id: "mis-etapas-pendientes", mejorSiBaja: true, etiqueta: "Mis etapas pendientes", valor: datos.pendientes, contexto: "Meta: 0 pendientes", destino: "/produccion" }),
+      indicador({ id: "completadas-hoy", etiqueta: "Completadas hoy por mí", valor: datos.completadasHoy, comparacion: comparacionPanel(datos.completadasHoy, datos.porDia.at(-2)?.valor ?? 0, "ayer"), contexto: "Meta: 1 o más al día", destino: "/produccion" }),
+      indicador({ id: "mis-etapas-atrasadas", mejorSiBaja: true, etiqueta: "Mis etapas atrasadas", valor: datos.atrasadas, contexto: "Meta: 0 atrasadas", destino: "/produccion", alerta: datos.atrasadas > 0 }),
     ], grafico: { ...grafico("Etapas que completé", "Últimos siete días", datos.porDia.map((fila) => ({ ...fila, clave: fila.etiqueta, etiqueta: etiquetaDia(fila.etiqueta) }))),
       nota: { texto: "Ver producción", destino: "/produccion" } },
     atencion: [], atencionTotal: 0 };
+}
+
+// La comparación es de la semana (no del día): el texto lo dice para no confundir bajo "Consumos de hoy".
+function comparacionSemanal(semanas: SerieConteo[]) {
+  const comparacion = comparacionPanel(semanas.at(-1)?.valor ?? 0, semanas.at(-2)?.valor ?? 0, "la semana anterior");
+  if (comparacion.porcentaje === null) return { ...comparacion, texto: "Sin consumos la semana anterior" };
+  return { ...comparacion, texto: `Esta semana: ${comparacion.texto.replace(/ vs\. la semana anterior$/, "")}` };
 }
 
 async function administracion(actor: Actor, hoy: string): Promise<ContenidoPanel> {
@@ -103,10 +107,10 @@ async function administracion(actor: Actor, hoy: string): Promise<ContenidoPanel
   if (!can(actor, "inventario:ver")) return { ...vacio(), pregunta };
   const [datos, movimientos] = await Promise.all([consultarMaterialesPanel(can(actor, "cotizacion:ver")), consultarMovimientos(hoy)]);
   const indicadores = [indicador({ id: "materiales-bajo-minimo", mejorSiBaja: true, etiqueta: "Materiales bajo el mínimo", valor: datos.bajoMinimo,
-    contexto: "Meta: 0 materiales activos bajo el mínimo", destino: "/inventario?bajoMinimo=true", alerta: datos.bajoMinimo > 0 }),
-  indicador({ id: "consumos-hoy", etiqueta: "Consumos de hoy", valor: movimientos.consumosHoy, comparacion: comparacionPanel(movimientos.semanas.at(-1)?.valor ?? 0, movimientos.semanas.at(-2)?.valor ?? 0, "la semana anterior"), contexto: "Meta: registrar el 100 % de los consumos del día", destino: "/inventario" })];
-  if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), numero: Number(datos.valor), formato: "moneda", contexto: "Meta: valorar el 100 % de las existencias al costo promedio", destino: "/inventario" }));
-  indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Meta: registrar el 100 % de los movimientos; desde el lunes hasta hoy", destino: "/inventario" }));
+    contexto: "Meta: 0 bajo mínimo", destino: "/inventario?bajoMinimo=true", alerta: datos.bajoMinimo > 0 }),
+  indicador({ id: "consumos-hoy", etiqueta: "Consumos de hoy", valor: movimientos.consumosHoy, comparacion: comparacionSemanal(movimientos.semanas), contexto: "Meta: registrar todos", destino: "/inventario" })];
+  if (can(actor, "cotizacion:ver")) indicadores.push(indicador({ id: "valor-inventario", etiqueta: "Valor del inventario", valor: dineroPanel(datos.valor), numero: Number(datos.valor), formato: "moneda", contexto: "Meta: costo promedio", destino: "/inventario" }));
+  indicadores.push(indicador({ id: "movimientos-semana", etiqueta: "Movimientos de la semana", valor: movimientos.movimientosSemana, contexto: "Meta: registrar todos", destino: "/inventario" }));
   return { titulo: datos.bajoMinimo ? `${datos.bajoMinimo} materiales bajo el mínimo` : "El inventario está al día", pregunta, indicadores,
     grafico: { ...grafico("Consumos por semana", "Cantidad de consumos; últimas seis semanas", movimientos.semanas.map((fila) => ({ ...fila, clave: fila.etiqueta, etiqueta: etiquetaSemana(fila.etiqueta) }))),
       nota: { texto: "Ver inventario", destino: "/inventario" } },

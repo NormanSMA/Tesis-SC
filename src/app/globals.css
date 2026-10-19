@@ -54,7 +54,8 @@
   --destructive: #b91c1c;
   --destructive-foreground: #ffffff;
 
-  --sidebar: #ffffff;
+  /* Menú lateral gris claro: el ítem activo resalta como pastilla blanca elevada (estilo Mise). */
+  --sidebar: #f1f5f9;
   --sidebar-foreground: #0f172a;
   --sidebar-border: #e2e8f0;
 

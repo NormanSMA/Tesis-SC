@@ -18,7 +18,7 @@ describe("filtrarNavegacion", () => {
 
   it("oculta el grupo de administración sin permisos de gestión", () => {
     const grupos = filtrarNavegacion(gruposNavegacion, ["panel:ver", "reporte:ver"]);
-    expect(grupos.map((grupo) => grupo.id)).toEqual(["operacion"]);
+    expect(grupos.map((grupo) => grupo.id)).toEqual(["operacion", "analisis"]);
   });
 
   it("muestra el grupo de administración con un permiso de gestión", () => {

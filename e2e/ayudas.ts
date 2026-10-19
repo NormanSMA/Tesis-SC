@@ -94,7 +94,12 @@ export async function verificarMenuExacto(
 
   for (const enlace of enlaces) {
     const ariaLabel = await enlace.getAttribute("aria-label");
-    const texto = await enlace.textContent();
+    // Texto sin las partes aria-hidden (contadores del menú): es lo que forma el nombre accesible.
+    const texto = await enlace.evaluate((nodo) => {
+      const copia = nodo.cloneNode(true) as HTMLElement;
+      copia.querySelectorAll("[aria-hidden='true']").forEach((oculto) => oculto.remove());
+      return copia.textContent;
+    });
     const nombre = ariaLabel ?? texto?.trim();
 
     if (!nombre) {

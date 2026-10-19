@@ -2,11 +2,12 @@
 
 import { PanelLeftClose } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { ListaNavegacion } from "./ListaNavegacion";
+import { ListaNavegacion, type ContadorMenu } from "./ListaNavegacion";
 import { Marca } from "./Marca";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
 
@@ -21,11 +22,46 @@ type PropiedadesBarra = {
   rielExpandido: boolean;
   /** Pantalla grande con el menú reducido a íconos. */
   compacto: boolean;
+  contadores?: Record<string, ContadorMenu>;
+  /** Buscador global; recibe si el menú muestra etiquetas y si esa instancia escucha Ctrl+K. */
+  buscador?: (amplio: boolean, atajo: boolean) => ReactNode;
   alCerrarRiel: () => void;
   alCerrarRielConFoco: () => void;
+  alContraer: () => void;
 };
 
-export function BarraLateral({ usuario, grupos, ruta, rielExpandido, compacto, alCerrarRiel, alCerrarRielConFoco }: PropiedadesBarra) {
+function CabeceraMarca({ rielExpandido, compacto, alCerrarRielConFoco, alContraer }: Pick<PropiedadesBarra, "rielExpandido" | "compacto" | "alCerrarRielConFoco" | "alContraer">) {
+  return (
+    <div className={cn("flex h-16 shrink-0 items-center gap-2 px-3", !compacto && "xl:px-4")}>
+      <Link href="/panel" aria-label="TRACORE, Soluciones Creativas, ir al panel" className="min-w-0 rounded-xl">
+        {rielExpandido ? (
+          <Marca conCaja />
+        ) : (
+          <>
+            <Marca conCaja mostrarNombre={false} className={compacto ? undefined : "xl:hidden"} />
+            {compacto ? null : <Marca conCaja className="hidden xl:flex" />}
+          </>
+        )}
+      </Link>
+      {rielExpandido ? (
+        <Button variant="ghost" size="icon" className="ml-auto text-slate-500 xl:hidden" aria-label="Contraer menú de navegación"
+          onClick={alCerrarRielConFoco} autoFocus>
+          <PanelLeftClose aria-hidden="true" />
+        </Button>
+      ) : null}
+      {/* Desde 1280 px el botón de contraer vive junto a la marca, como en Mise. */}
+      {!compacto && !rielExpandido ? (
+        <Button variant="ghost" size="icon" className="ml-auto hidden text-slate-500 hover:bg-slate-200/60 xl:inline-flex"
+          aria-label="Contraer menú de navegación" aria-expanded aria-controls="menu-principal" onClick={alContraer}>
+          <PanelLeftClose aria-hidden="true" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+export function BarraLateral(propiedades: PropiedadesBarra) {
+  const { usuario, grupos, ruta, rielExpandido, compacto, contadores, buscador, alCerrarRiel } = propiedades;
   return (
     <aside
       id="menu-principal"
@@ -36,32 +72,19 @@ export function BarraLateral({ usuario, grupos, ruta, rielExpandido, compacto, a
         rielExpandido && "w-64 shadow-lg xl:shadow-none",
       )}
     >
-      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
-        <Link href="/panel" aria-label="TRACORE, Soluciones Creativas, ir al panel" className="rounded-md">
-          {rielExpandido ? (
-            <Marca />
-          ) : (
+      <CabeceraMarca {...propiedades} />
+      {buscador ? (
+        <div className={cn("px-3 pb-3", !compacto && "xl:px-4")}>
+          {rielExpandido ? buscador(true, true) : (
             <>
-              <Marca mostrarNombre={false} className={compacto ? undefined : "xl:hidden"} />
-              {compacto ? null : <Marca className="hidden xl:flex" />}
+              <div className={compacto ? undefined : "xl:hidden"}>{buscador(false, compacto)}</div>
+              {compacto ? null : <div className="hidden xl:block">{buscador(true, true)}</div>}
             </>
           )}
-        </Link>
-        {rielExpandido ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto xl:hidden"
-            aria-label="Contraer menú de navegación"
-            onClick={alCerrarRielConFoco}
-            autoFocus
-          >
-            <PanelLeftClose aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
-      <nav aria-label="Principal" className={cn("flex-1 overflow-y-auto p-2", !compacto && "xl:p-3")}>
-        <ListaNavegacion grupos={grupos} ruta={ruta} expandido={rielExpandido} compacto={compacto} alNavegar={alCerrarRiel} />
+        </div>
+      ) : null}
+      <nav aria-label="Principal" className={cn("flex-1 overflow-y-auto px-2 pb-3", !compacto && "xl:px-3")}>
+        <ListaNavegacion grupos={grupos} ruta={ruta} expandido={rielExpandido} compacto={compacto} contadores={contadores} alNavegar={alCerrarRiel} />
       </nav>
       <TarjetaUsuario usuario={usuario} modo={rielExpandido ? "amplia" : compacto ? "riel" : "adaptable"} />
     </aside>

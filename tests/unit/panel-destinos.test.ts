@@ -107,7 +107,7 @@ describe("destinos del panel", () => {
   it("compara las aprobadas con el mes anterior disponible", async () => {
     const panel = await construirPanel({ ...entrada, perfil: "ATENCION_CLIENTE" });
     expect(panel.indicadores.find(({ id }) => id === "aprobadas-mes")).toMatchObject({
-      valor: "3", contexto: "Mes anterior: 7 aprobadas",
+      valor: "3", contexto: "Mes anterior: 7",
     });
   });
 
@@ -129,7 +129,8 @@ describe("destinos del panel", () => {
     const panel = await construirPanel({ ...entrada, perfil: "ADMINISTRACION" });
     expect(panel.indicadores).toHaveLength(3);
     expect(panel.indicadores.some(({ id }) => id === "valor-inventario")).toBe(false);
-    for (const indicador of panel.indicadores) expect(indicador.contexto).toMatch(/^Meta: /);
+    // Pies cortos: una idea por tarjeta, sin cortes en pantalla.
+    for (const indicador of panel.indicadores) expect(indicador.contexto.length).toBeLessThanOrEqual(30);
     expect(panel.grafico?.nota?.destino).toBe("/inventario");
   });
 

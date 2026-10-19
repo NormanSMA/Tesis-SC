@@ -28,7 +28,7 @@ export function construirMigas(ruta: string): Miga[] {
   if (!item) return [];
   const grupo = gruposNavegacion.find((candidato) => candidato.items.includes(item));
   const migas: Miga[] = [];
-  if (grupo?.etiqueta) migas.push({ etiqueta: grupo.etiqueta });
+  if (grupo?.etiqueta && !grupo.soloMenu) migas.push({ etiqueta: grupo.etiqueta });
   const resto = ruta.slice(item.href.length).split("/").filter(Boolean);
   migas.push({ etiqueta: item.etiqueta, href: resto.length > 0 ? item.href : undefined });
   resto.forEach((segmento) => migas.push({ etiqueta: etiquetaSegmento(segmento) }));
@@ -54,7 +54,7 @@ function MigaIntermedia({ miga }: { miga: Miga }) {
 export function Migas({ ruta }: { ruta: string }) {
   const migas = construirMigas(ruta);
   if (esPaginaDeModulo(ruta) && migas.length > 0) {
-    return <p className="truncate text-sm font-medium text-muted-foreground">{migas[migas.length - 1].etiqueta}</p>;
+    return <p className="truncate text-xl font-semibold tracking-tight text-slate-900">{migas[migas.length - 1].etiqueta}</p>;
   }
   return (
     <Breadcrumb className="min-w-0">

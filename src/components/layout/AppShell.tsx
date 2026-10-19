@@ -7,6 +7,8 @@ import type { UsuarioSesion } from "@/lib/auth/sesion";
 import { cn } from "@/lib/utils";
 
 import { BarraLateral } from "./BarraLateral";
+import { BuscadorGlobal } from "./BuscadorGlobal";
+import { useContadoresMenu } from "./useContadoresMenu";
 import { BarraSuperior } from "./BarraSuperior";
 import { MenuMovil } from "./MenuMovil";
 import { filtrarNavegacion, gruposNavegacion } from "./navegacion";
@@ -41,6 +43,7 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
   const grupos = filtrarNavegacion(gruposNavegacion, usuario.permisos);
   const { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco } =
     useEstadoMenu(compactoInicial);
+  const contadores = useContadoresMenu(ruta);
 
   return (
     <div className="min-h-dvh">
@@ -50,15 +53,14 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
         ruta={ruta}
         rielExpandido={rielExpandido}
         compacto={compacto}
+        contadores={contadores}
+        buscador={(amplio, atajo) => <BuscadorGlobal permisos={usuario.permisos} modo={amplio ? "amplio" : "icono"} atajo={atajo} />}
         alCerrarRiel={cerrarRiel}
         alCerrarRielConFoco={cerrarRielConFoco}
+        alContraer={() => setCompacto(() => true)}
       />
       {rielExpandido ? (
-        <div
-          aria-hidden="true"
-          onClick={cerrarRielConFoco}
-          className="fixed inset-0 z-30 hidden bg-foreground/20 md:block xl:hidden"
-        />
+        <div aria-hidden="true" onClick={cerrarRielConFoco} className="fixed inset-0 z-30 hidden bg-foreground/20 md:block xl:hidden" />
       ) : null}
       <div className={cn("transition-[padding] duration-200 md:pl-16", !compacto && "xl:pl-64")}>
         <BarraSuperior
@@ -70,7 +72,7 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
           alAlternarRiel={() => setRielExpandido((valor) => !valor)}
           alAlternarCompacto={() => setCompacto((valor) => !valor)}
         />
-        <main id="contenido" tabIndex={-1} className="px-4 py-6 outline-none xl:px-6">
+        <main id="contenido" tabIndex={-1} className="px-4 py-6 outline-none xl:px-8 xl:py-7">
           {children}
         </main>
       </div>

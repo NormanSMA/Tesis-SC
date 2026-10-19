@@ -25,20 +25,38 @@ export type ItemNavegacion = {
 export type GrupoNavegacion = {
   id: string;
   etiqueta?: string;
+  /** La etiqueta solo titula el grupo en el menú; no aparece en las migas. */
+  soloMenu?: boolean;
   items: ItemNavegacion[];
 };
 
 export const gruposNavegacion: GrupoNavegacion[] = [
   {
     id: "operacion",
+    etiqueta: "Operación",
+    soloMenu: true,
     items: [
       { href: "/panel", etiqueta: "Panel", icono: LayoutDashboard, permiso: "panel:ver" },
       { href: "/clientes", etiqueta: "Clientes", icono: Users, permiso: "cliente:ver" },
       { href: "/cotizaciones", etiqueta: "Cotizaciones", icono: ReceiptText, permiso: "cotizacion:ver" },
       { href: "/ordenes", etiqueta: "Órdenes de trabajo", icono: ClipboardCheck, permiso: "orden:ver" },
       { href: "/produccion", etiqueta: "Producción", icono: BrazoRobot, permiso: "produccion:ver" },
+    ],
+  },
+  {
+    id: "recursos",
+    etiqueta: "Recursos",
+    soloMenu: true,
+    items: [
       { href: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: "inventario:ver" },
       { href: "/catalogo", etiqueta: "Catálogo", icono: BookOpen, permiso: "catalogo:ver" },
+    ],
+  },
+  {
+    id: "analisis",
+    etiqueta: "Análisis",
+    soloMenu: true,
+    items: [
       { href: "/trazabilidad", etiqueta: "Trazabilidad", icono: History, permiso: "bitacora:ver" },
       { href: "/reportes", etiqueta: "Reportes", icono: BarChart3, permiso: "reporte:ver" },
     ],

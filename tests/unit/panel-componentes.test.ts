@@ -65,7 +65,7 @@ describe("Gráfico compacto de estados", () => {
   it("agrupa en seis categorías, conserva el total y expone una tabla accesible", () => {
     const datos = Array.from({ length: 8 }, (_, indice) => ({ etiqueta: `Estado ${indice}`, valor: indice + 1 }));
     const html = renderToStaticMarkup(createElement(GraficoBarrasEstados, { grafico: { ...grafico, datos } }));
-    expect(html.match(/class="animate-bar-grow /g)).toHaveLength(6);
+    expect(html.match(/animate-bar-grow-x/g)).toHaveLength(6);
     expect(html).toContain("Otros: 6");
     expect(html).toContain('animation-delay:200ms');
     expect(html).toContain('<div class="sr-only"><table>');
@@ -73,13 +73,21 @@ describe("Gráfico compacto de estados", () => {
     expect(datos.map(({ valor }) => valor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
+  it("mantiene el orden cronológico en series de tiempo y no agrupa en Otros", () => {
+    const datos = Array.from({ length: 8 }, (_, indice) => ({ clave: `2034-05-0${indice + 1}`, etiqueta: `día ${indice + 1}`, valor: 8 - indice }));
+    const html = renderToStaticMarkup(createElement(GraficoBarrasEstados, { grafico: { ...grafico, datos } }));
+    expect(html).not.toContain("Otros");
+    expect(html.indexOf("día 2")).toBeLessThan(html.indexOf("día 8"));
+    expect(html).not.toContain(">día 1<");
+  });
+
   it("conserva ceros y distingue la categoría destacada", () => {
     const html = renderToStaticMarkup(createElement(GraficoBarrasEstados, { grafico: {
       ...grafico, datos: [{ etiqueta: "Vacío", valor: 0 }, { etiqueta: "Actual", valor: 1, destacado: true }],
     } }));
-    expect(html).toContain("height:0%");
+    expect(html).toContain("width:0%");
     expect(html).toContain("bg-primary");
-    expect(html).toContain("bg-slate-300");
+    expect(html).toContain("bg-slate-400");
     expect(html).not.toMatch(/NaN|Infinity/);
   });
 });
@@ -89,10 +97,10 @@ describe("Feed operativo", () => {
   const fila = { ...crearAtencion("OT-1", "alta"), referencia: "2034-05-07T12:00:00.000Z", dias: 3 };
 
   it.each([
-    { urgencia: "SIN_RESPUESTA", referencia: "2034-05-06T12:00:00.000Z", dias: 4, esperado: "Sin respuesta hace 4 días" },
+    { urgencia: "SIN_RESPUESTA", referencia: "2034-05-06T12:00:00.000Z", dias: 4, esperado: "Hace 4 días" },
     { urgencia: "POR_VENCER", referencia: "2034-05-12T12:00:00.000Z", dias: 2, esperado: "Vence en 2 días" },
     { urgencia: "POR_VENCER", referencia: "2034-05-10T06:00:00.000Z", dias: 0, esperado: "Vence hoy" },
-    { urgencia: "ORDEN_ATRASADA", referencia: "2034-05-07T12:00:00.000Z", dias: 3, esperado: "Atrasada 3 días" },
+    { urgencia: "ORDEN_ATRASADA", referencia: "2034-05-07T12:00:00.000Z", dias: 3, esperado: "3 días de atraso" },
   ] as const)("calcula $urgencia desde generadoEn", ({ urgencia, referencia, dias, esperado }) => {
     expect(tiempoAtencion({ ...fila, urgencia, referencia, dias }, generadoEn)).toBe(esperado);
   });
@@ -102,8 +110,9 @@ describe("Feed operativo", () => {
       generadoEn, atencionTotal: 12, atencion: [{ ...fila, monto: "1250.50", moneda: "USD" }],
     }));
     expect(html).toContain("US$ 1,251");
-    expect(html).toContain("Atrasada 3 días");
-    expect(html).toContain('data-variant="peligro"');
+    expect(html).toContain("3 días de atraso");
+    // Insignia blanca con punto rojo (estilo Mise) para la urgencia alta.
+    expect(html).toMatch(/size-1\.5 rounded-full bg-danger"><\/span>Atrasada/);
     expect(html).toContain("12 elementos requieren atención");
     expect(html).toContain('href="/ordenes"');
     expect(html).toContain("Ver todas");

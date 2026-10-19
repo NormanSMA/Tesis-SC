@@ -6,6 +6,7 @@ import { EncabezadoPanel } from "@/components/panel/EncabezadoPanel";
 import { GraficoBarrasEstados } from "@/components/panel/GraficoBarrasEstados";
 import { ListaAtencion } from "@/components/panel/ListaAtencion";
 import { TarjetaIndicador } from "@/components/panel/TarjetaIndicador";
+import { BandejaMetricas } from "@/components/comunes/TarjetaMetrica";
 import type { PanelDto } from "@/modules/panel/tipos";
 
 const VACIO_OPERACIONES = { texto: "Todas las órdenes activas están al día.", enlace: "Ver órdenes", destino: "/ordenes" };
@@ -53,22 +54,21 @@ export function Panel({ inicial, puedeCrearCotizacion = false }: { inicial: Pane
   const { datos, actualizando, error, actualizar } = useDatosPanel(inicial);
   return (
     <section aria-label="Panel" aria-busy={actualizando} className="min-w-0 max-w-full [&_.transition-colors]:transition-[opacity,transform]">
-      <EncabezadoPanel {...datos} puedeCrearCotizacion={puedeCrearCotizacion} actualizando={actualizando} onActualizar={actualizar}
+      <EncabezadoPanel {...datos} puedeCrearCotizacion={puedeCrearCotizacion} sinDatos={datos.indicadores.length === 0} actualizando={actualizando} onActualizar={actualizar}
         onCambiarPerfil={(perfil) => router.replace(`/panel?perfil=${encodeURIComponent(perfil)}`, { scroll: false })} />
       {error && <p role="alert" aria-live="assertive" className="mb-4 text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
-      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {datos.indicadores.map((indicador) => (
+      <BandejaMetricas>
+        {datos.indicadores.map((indicador, indice) => (
           <div key={indicador.id} className="min-w-0">
-            <TarjetaIndicador indicador={indicador} />
+            <TarjetaIndicador indicador={indicador} destacada={indice === 0} />
           </div>
         ))}
-      </div>
-      <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className={`min-w-0 ${datos.grafico ? "lg:col-span-8" : "lg:col-span-12"}`}>
-          <ListaAtencion atencion={datos.atencion} atencionTotal={datos.atencionTotal} generadoEn={datos.generadoEn}
-            vacio={datos.perfil === "OPERACIONES" ? VACIO_OPERACIONES : undefined} />
-        </div>
-        {datos.grafico && <div className="min-w-0 lg:col-span-4"><GraficoBarrasEstados grafico={datos.grafico} /></div>}
+      </BandejaMetricas>
+      {/* Orden de Mise: métricas, lista de lo que pide acción a todo el ancho y el gráfico debajo. */}
+      <div className="mt-5 flex min-w-0 flex-col gap-5">
+        <ListaAtencion atencion={datos.atencion} atencionTotal={datos.atencionTotal} generadoEn={datos.generadoEn}
+          vacio={datos.perfil === "OPERACIONES" ? VACIO_OPERACIONES : undefined} />
+        {datos.grafico && <GraficoBarrasEstados grafico={datos.grafico} />}
       </div>
     </section>
   );

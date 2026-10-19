@@ -182,7 +182,8 @@ function registrarPerfilesPanel() {
       const actualizada = page.waitForResponse((respuesta) => esRespuestaPanel(respuesta.url()));
       await page.getByRole("button", { name: "Actualizar", exact: true }).click();
       expect((await actualizada).status()).toBe(200);
-      await expect(page.getByRole("status").filter({ hasText: "Actualizado:" })).toBeVisible();
+      // El aviso es solo para lectores de pantalla (la hora visible está en la barra superior).
+      await expect(page.getByRole("status").filter({ hasText: "Actualizado:" })).toBeAttached();
       await verificarEnlaces(page);
     });
     test(`${perfil.codigo}: capturas CF-06, axe y cuatro tamaños`, async ({ page }) => {
