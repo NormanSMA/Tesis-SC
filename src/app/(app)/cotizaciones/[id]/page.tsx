@@ -62,7 +62,7 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
         <AlertTitle>Información de la cotización</AlertTitle><AlertDescription>{aviso}</AlertDescription></Alert>)}
       <div className="grid items-start gap-4 lg:grid-cols-3">
         <TarjetaSeccion titulo="Ítems de cotización" sinRelleno className="lg:col-span-2">
-          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} sinMarco />
+          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} sinMarco apilarEnMovil />
         </TarjetaSeccion>
         <div className="min-w-0 space-y-4">
           <TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} />
