@@ -1,5 +1,7 @@
 import pino from "pino";
 
+import { registrarErrorMedido } from "@/lib/metricas";
+
 const CAMPOS_SENSIBLES = [
   "cookie",
   "authorization",
@@ -23,6 +25,13 @@ export function crearRegistro(destino?: pino.DestinationStream) {
       censor: "[REDACTADO]",
     },
     serializers: { err: pino.stdSerializers.err },
+    // Copia los errores (nivel 50 o más) al búfer de métricas.
+    hooks: {
+      logMethod(argumentos, metodo, nivel) {
+        if (nivel >= 50) registrarErrorMedido(argumentos[0]);
+        metodo.apply(this, argumentos);
+      },
+    },
   };
   return destino ? pino(opciones, destino) : pino(opciones);
 }

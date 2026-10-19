@@ -1,4 +1,3 @@
-import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
 import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -8,6 +7,7 @@ import type { Orden } from "@/lib/listas/orden";
 import type { ColumnaOpcional } from "../columnas";
 import { ETIQUETA_TIPO } from "../schema";
 import type { CampoOrdenCliente, ClienteFila, ListaClientes } from "../tipos";
+import { AvatarCliente } from "./AvatarCliente";
 import { EstadoCliente } from "./EstadoCliente";
 import { NuevoCliente } from "./NuevoCliente";
 
@@ -27,7 +27,7 @@ function celdaCliente(cliente: ClienteFila, elegidas: readonly ColumnaOpcional[]
     elegidas.includes("ruc") ? cliente.ruc : null,
   ].filter(Boolean).join(" · ");
   return <div className="flex items-center gap-3">
-    <AvatarIniciales nombre={cliente.nombre} />
+    <AvatarCliente id={cliente.id} nombre={cliente.nombre} logoVersion={cliente.logoVersion} />
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <Link href={`/clientes/${cliente.id}`} className={ENLACE_FILA}>{cliente.nombre}</Link>

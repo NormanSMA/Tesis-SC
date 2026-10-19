@@ -1,4 +1,5 @@
 import { Package } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -13,6 +14,7 @@ import { formatearPorcentaje } from "@/lib/formato";
 import { textoOrden } from "@/lib/listas/orden";
 import { servicioDeCategoria } from "@/lib/servicios";
 
+import { imagenPorCategoria } from "../imagenes";
 import type { ConsultaProductos } from "../schema";
 import type { ListaProductos, ProductoDto } from "../tipos";
 import { EstadoProducto } from "./EstadoProducto";
@@ -25,18 +27,19 @@ function TarjetaProducto({ producto, puedeGestionar }: { producto: ProductoDto; 
   const margen = margenPct(producto.precioBase, producto.costoUnitario);
   const categoria = producto.categoria.nombre;
   return <article className="relative flex h-full min-w-0 flex-col gap-4 rounded-2xl border border-slate-200/80 bg-card p-4 shadow-sm transition-transform duration-150 ease-out hover:-translate-y-px">
-    <div className="flex min-w-0 items-center gap-3">
-      <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted">
-        {servicioDeCategoria(categoria)
-          ? <IconoServicio categoria={categoria} tamano={40} />
-          : <Package aria-hidden="true" className="size-6 text-muted-foreground" />}
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted-foreground" title={categoria}>{categoria}</p>
-        <p className="font-mono text-xs font-medium text-slate-700">{producto.codigo}</p>
-      </div>
+    {/* Foto de la categoría como portada; el ícono queda debajo mientras carga o si falta la imagen. */}
+    <div className="relative flex aspect-[5/2] w-full items-center justify-center overflow-hidden rounded-xl bg-muted">
+      {servicioDeCategoria(categoria)
+        ? <IconoServicio categoria={categoria} tamano={40} />
+        : <Package aria-hidden="true" className="size-6 text-muted-foreground" />}
+      <Image src={imagenPorCategoria(categoria)} alt={`Producto: ${producto.nombre}`} fill
+        sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
     </div>
-    <h2 className="min-h-12 text-base leading-snug font-medium break-words text-slate-900">
+    <div className="flex min-w-0 items-center justify-between gap-3 text-xs">
+      <p className="truncate text-muted-foreground" title={categoria}>{categoria}</p>
+      <p className="shrink-0 font-mono font-medium text-slate-700">{producto.codigo}</p>
+    </div>
+    <h2 className="-mt-2 min-h-12 text-base leading-snug font-medium break-words text-slate-900">
       <Link className={ENLACE_TARJETA} href={`/catalogo/${producto.id}`}>{producto.nombre}</Link>
     </h2>
     <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2">

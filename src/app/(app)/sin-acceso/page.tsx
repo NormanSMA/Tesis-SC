@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { PageHeader } from "@/components/comunes/PageHeader";
-import { filtrarNavegacion, gruposNavegacion } from "@/components/layout/navegacion";
+import { inicioDeUsuario } from "@/components/layout/navegacion";
 import { Button } from "@/components/ui/button";
 import { destinoPorPerfil } from "@/core/permisos";
 import { obtenerSesion } from "@/lib/auth/sesion";
@@ -15,9 +15,8 @@ export const metadata: Metadata = { title: "Sin acceso" };
 export default async function PaginaSinAcceso() {
   const usuario = await obtenerSesion();
   if (!usuario) redirect("/login");
-  // Si la matriz le quitó el destino habitual, lo lleva a la primera sección que sí puede ver.
-  const primeraPermitida = filtrarNavegacion(gruposNavegacion, usuario.permisos)[0]?.items[0]?.href;
-  const destino = primeraPermitida ?? destinoPorPerfil[usuario.perfil];
+  // Su inicio habitual; si la matriz se lo quitó, la primera sección que sí puede ver.
+  const destino = inicioDeUsuario(destinoPorPerfil[usuario.perfil], usuario.permisos);
 
   return (
     <>

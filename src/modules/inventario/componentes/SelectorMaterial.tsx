@@ -52,8 +52,8 @@ function ListaMateriales({ idLista, datos, valor, activo, alActivar, alElegir }:
             onMouseDown={(evento) => evento.preventDefault()} onClick={() => alElegir(material)} onMouseEnter={() => alActivar(indice)}
             className={cn("flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm", indice === activo && "bg-slate-100")}>
             <Check aria-hidden="true" className={cn("size-4 shrink-0 text-primary", material.id !== valor && "invisible")} />
-            <span className="min-w-0 flex-1 truncate">{material.nombre}</span>
-            <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground">{material.codigo}</span>
+            {/* Código y nombre en el nombre accesible, como en la lista anterior: se busca por cualquiera de los dos. */}
+            <span className="min-w-0 flex-1 truncate"><span className="text-xs text-muted-foreground tabular-nums">{material.codigo}</span> · {material.nombre}</span>
           </li>
         ))}
       </ul>

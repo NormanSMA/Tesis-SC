@@ -52,7 +52,7 @@ test("Atención al cliente cotiza en dólares: encabezado, editor, proforma y li
 
   try {
     await page.goto("/cotizaciones");
-    await page.getByRole("link", { name: "Nueva cotización" }).first().click();
+    await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
     await expect(page.getByRole("heading", { level: 1, name: "Nueva cotización" })).toBeVisible();
     await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
     await elegirEn(page, "moneda", "Dólares (USD)");

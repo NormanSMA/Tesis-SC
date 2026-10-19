@@ -9,6 +9,7 @@ import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
 import { AppError, aErrorHttp, type CamposError } from "@/lib/errores";
 import { ipCliente } from "@/lib/ip-cliente";
 import { limitarPorIp, limitarPorUsuario } from "@/lib/limite-tasa";
+import { registrarPeticion } from "@/lib/metricas";
 import { registro } from "@/lib/registro";
 
 type Params = Record<string, string | string[] | undefined>;
@@ -75,7 +76,7 @@ export function manejar(
 ): RutaHandler {
   // Los overloads garantizan que el handler coincide con `publica`; aquí solo se unifica el tipo.
   const ejecutar = handler as Handler<Actor | null>;
-  return async (req, contexto) => {
+  const atender: RutaHandler = async (req, contexto) => {
     try {
       if (!origenPermitido(req)) {
         throw new AppError({
@@ -91,6 +92,18 @@ export function manejar(
       return await ejecutar({ req, actor, params });
     } catch (e) {
       return responderError(e, req);
+    }
+  };
+  // Mide cada petición: solo ruta, método, estado y duración.
+  return async (req, contexto) => {
+    const inicio = performance.now();
+    let estado = 500;
+    try {
+      const respuesta = await atender(req, contexto);
+      estado = respuesta.status;
+      return respuesta;
+    } finally {
+      registrarPeticion({ ruta: new URL(req.url).pathname, metodo: req.method, estado, duracionMs: performance.now() - inicio });
     }
   };
 }

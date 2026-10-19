@@ -1,6 +1,7 @@
 "use client";
 
 import { FormField } from "@/components/comunes/FormField";
+import { OPCIONES_PARA_BUSCAR, SelectorBuscable } from "@/components/comunes/SelectorBuscable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +14,12 @@ export function SeleccionProduccion({ opciones, vacio = "Seleccione", ...campo }
   opciones: { id: string; nombre: string }[]; vacio?: string;
 }) {
   return <FormField id={campo.id} etiqueta={campo.etiqueta} error={campo.error} requerido={campo.requerido}>
-    {(atributos) => <select {...atributos} value={campo.valor} required={campo.requerido}
+    {(atributos) => opciones.length >= OPCIONES_PARA_BUSCAR
+      // Listas largas de datos (áreas, responsables): se escribe para filtrar además de desplegar.
+      ? <SelectorBuscable id={atributos.id} atributos={atributos} valor={campo.valor} alCambiar={campo.alCambiar}
+        deshabilitado={campo.deshabilitado} marcador={`Buscar ${campo.etiqueta.toLowerCase()}`} vacio={vacio}
+        opciones={campo.requerido ? opciones : [{ id: "", nombre: vacio }, ...opciones]} />
+      : <select {...atributos} value={campo.valor} required={campo.requerido}
       disabled={campo.deshabilitado} className={estiloSeleccion} onChange={(evento) => campo.alCambiar(evento.target.value)}>
       <option value="">{vacio}</option>{opciones.map((opcion) => <option key={opcion.id} value={opcion.id}>{opcion.nombre}</option>)}
     </select>}

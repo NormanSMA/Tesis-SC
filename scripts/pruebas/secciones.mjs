@@ -26,9 +26,9 @@ export const SECCIONES = {
     e2e: ["base", "diseno"],
   },
   acceso: {
-    descripcion: "autenticación, sesión, clave temporal, usuarios, permisos y configuración",
-    unit: ["admin", "auth", "cambiar"],
-    integracion: ["admin", "auth"],
+    descripcion: "autenticación, sesión, clave temporal, usuarios, permisos, configuración y estado del sistema",
+    unit: ["admin", "auth", "cambiar", "metricas", "sistema"],
+    integracion: ["admin", "auth", "sistema"],
     e2e: ["admin"],
   },
   clientes: {

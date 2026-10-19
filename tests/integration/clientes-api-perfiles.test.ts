@@ -159,6 +159,7 @@ describeConBase("clientes: API por perfil", () => {
         "creadoEn",
         "direccion",
         "id",
+        "logoVersion",
         "nombre",
         "notas",
         "ruc",

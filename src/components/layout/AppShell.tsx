@@ -43,7 +43,7 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
   const grupos = filtrarNavegacion(gruposNavegacion, usuario.permisos);
   const { menuMovilAbierto, setMenuMovilAbierto, rielExpandido, setRielExpandido, compacto, setCompacto, cerrarRiel, cerrarRielConFoco } =
     useEstadoMenu(compactoInicial);
-  const contadores = useContadoresMenu(ruta);
+  const contadores = useContadoresMenu(ruta, usuario.permisos.includes("panel:ver"));
 
   return (
     <div className="min-h-dvh">

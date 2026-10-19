@@ -8,6 +8,8 @@ import type {
   TrabajoDeCliente,
 } from "./tipos";
 
+type ClienteConLogo = Cliente & { logo?: { actualizadoEn: Date } | null };
+
 type FilaCotizacion = {
   id: string;
   numero: string;
@@ -37,7 +39,7 @@ function calendarioIso(fecha: Date): string {
   return fecha.toISOString().slice(0, 10);
 }
 
-export function aClienteDto(cliente: Cliente): ClienteDto {
+export function aClienteDto(cliente: ClienteConLogo): ClienteDto {
   return {
     id: cliente.id,
     codigoCliente: cliente.codigoCliente,
@@ -50,12 +52,13 @@ export function aClienteDto(cliente: Cliente): ClienteDto {
     direccion: cliente.direccion,
     notas: cliente.notas,
     activo: cliente.activo,
+    logoVersion: cliente.logo?.actualizadoEn.toISOString() ?? null,
     creadoEn: cliente.creadoEn.toISOString(),
     actualizadoEn: cliente.actualizadoEn.toISOString(),
   };
 }
 
-export function aClienteFila(cliente: Cliente, cotizaciones: number | undefined): ClienteFila {
+export function aClienteFila(cliente: ClienteConLogo, cotizaciones: number | undefined): ClienteFila {
   const fila: ClienteFila = {
     id: cliente.id,
     codigoCliente: cliente.codigoCliente,
@@ -66,6 +69,7 @@ export function aClienteFila(cliente: Cliente, cotizaciones: number | undefined)
     telefono: cliente.telefono,
     correo: cliente.correo,
     activo: cliente.activo,
+    logoVersion: cliente.logo?.actualizadoEn.toISOString() ?? null,
   };
   if (cotizaciones !== undefined) fila.cotizaciones = cotizaciones;
   return fila;

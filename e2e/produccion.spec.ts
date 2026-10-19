@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
-import { elegir } from "./elegir";
+import { elegir, elegirDato } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -95,8 +95,8 @@ async function prepararMaterial(page: Page): Promise<void> {
 
 async function crearCotizacion(page: Page): Promise<void> {
   await page.goto("/cotizaciones");
-  await page.getByRole("link", { name: "Nueva cotización" }).first().click();
-  await elegir(page.getByLabel("Cliente", { exact: false }), CLIENTE, page);
+  await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
+  await elegir(page.getByRole("combobox", { name: /^Cliente/ }), CLIENTE, page);
   await page.getByLabel("Asunto").fill(MARCA);
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Crear cotización" }).click();
@@ -109,7 +109,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   await page.getByLabel("Ancho (m)").fill("2");
   await page.getByLabel("Alto (m)").fill("1.5");
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
-  await elegir(page.getByLabel("Categoría", { exact: false }), CATEGORIA, page);
+  await elegir(page.getByRole("combobox", { name: /^Categoría/ }), CATEGORIA, page);
   await page.getByLabel("Descripción del trabajo").fill(PERSONALIZADO);
   await page.getByRole("button", { name: "Agregar material", exact: true }).click();
   const linea = page.getByRole("group", { name: "Línea 1: Material" });
@@ -189,7 +189,7 @@ async function guardarDialogo(page: Page): Promise<void> {
 
 async function asignar(page: Page, nombre: string): Promise<void> {
   await page.getByRole("button", { name: `Asignar responsable: ${nombre}`, exact: true }).click();
-  await page.getByRole("dialog").getByLabel("Responsable", { exact: true }).selectOption({ label: "Marco López" });
+  await elegirDato(page.getByRole("dialog").getByLabel("Responsable", { exact: true }), "Marco López", page);
   await guardarDialogo(page);
   await expect(filaEtapa(page, nombre)).toContainText("Marco López");
 }
@@ -231,7 +231,7 @@ async function agregar(page: Page, retrabajo = false): Promise<void> {
   const nombre = retrabajo ? RETRABAJO : MANUAL;
   await page.getByRole("button", { name: titulo, exact: true }).click();
   const dialogo = page.getByRole("dialog");
-  await dialogo.getByLabel("Área", { exact: false }).selectOption({ label: orden.etapas[0].area.nombre });
+  await elegirDato(dialogo.getByRole("combobox", { name: /^Área/ }), orden.etapas[0].area.nombre, page);
   await dialogo.getByLabel("Nombre de la etapa").fill(nombre);
   if (retrabajo) await dialogo.getByLabel("Motivo").fill(`${MARCA}-corregir arte`);
   await dialogo.getByRole("button", { name: titulo, exact: true }).click();
@@ -301,9 +301,10 @@ async function consumir(page: Page): Promise<void> {
 async function verificarTablero(page: Page): Promise<void> {
   await page.goto("/produccion");
   await page.getByRole("link", { name: "Mis etapas", exact: true }).click();
-  await expect(page.getByLabel("Responsable", { exact: true })).not.toHaveValue("");
+  // "Mis etapas" filtra por responsable en la URL; la búsqueda se aplica al escribir.
+  await expect(page).toHaveURL(/responsable=/);
   await page.getByLabel("Buscar orden").fill(orden.numero);
-  await page.getByRole("button", { name: "Filtrar", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`q=${orden.numero}`));
   await expect(page.getByRole("columnheader", { name: "Fechas planificadas" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: orden.numero, exact: true })).toHaveCount(1);
   await expect(page.getByRole("main")).toContainText(RETRABAJO);
@@ -312,7 +313,7 @@ async function verificarTablero(page: Page): Promise<void> {
     await expect(page.getByRole("button", { name: vista, exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("link", { name: orden.numero, exact: true })).toBeVisible();
     const grupo = vista === "Por área" ? orden.etapas[0].area.nombre : "Marco López";
-    await expect(page.getByRole("heading", { name: `${grupo} (1)`, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: grupo, exact: true })).toBeVisible();
   }
 }
 

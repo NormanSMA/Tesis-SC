@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { hoyManagua } from "../src/modules/cotizaciones/fechas";
 import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { elegir } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const CAPTURAS = path.join("docs", "capturas", "panel");
@@ -90,16 +91,18 @@ async function verificarEnlaces(page: Page) {
 }
 async function abrirReporte(page: Page, nombre: string) {
   await page.goto("/reportes");
-  await page.getByLabel("Reporte", { exact: true }).selectOption(nombre);
-  await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  // Los filtros se aplican al cambiar: no hay botón "Aplicar filtros".
+  const titulo = REPORTES.find((reporte) => reporte.nombre === nombre)?.titulo ?? nombre;
+  if (nombre !== "cotizaciones-por-estado") await elegir(page.getByLabel("Reporte", { exact: true }), titulo, page);
+  await expect(page).toHaveURL(nombre === "cotizaciones-por-estado" ? /\/reportes/ : new RegExp(`nombre=${nombre}`));
   await expect(page.getByRole("region", { name: "Resultado del reporte", exact: true })).toBeVisible();
 }
 async function aplicarPeriodo(page: Page) {
   const hoy = hoyManagua();
-  await page.getByLabel("Desde", { exact: true }).fill(`${hoy.slice(0, 4)}-01-01`);
+  // El periodo por defecto ya empieza el 1 de enero: se usa el 2 para que el cambio se aplique a la URL.
+  await page.getByLabel("Desde", { exact: true }).fill(`${hoy.slice(0, 4)}-01-02`);
   await page.getByLabel("Hasta", { exact: true }).fill(hoy);
-  await page.getByRole("button", { name: "Aplicar filtros" }).click();
-  await expect(page).toHaveURL(new RegExp(`desde=${hoy.slice(0, 4)}-01-01`));
+  await expect(page).toHaveURL(new RegExp(`desde=${hoy.slice(0, 4)}-01-02`));
   await expect(page.getByRole("region", { name: "Resultado del reporte", exact: true })).toBeVisible();
 }
 function parsearCsv(texto: string) {
@@ -197,14 +200,17 @@ function registrarReportes() {
     if (["cotizaciones-por-estado", "carga-por-operario"].includes(reporte.nombre)) await aplicarPeriodo(page);
     if (reporte.nombre === "existencias") {
       await page.getByLabel("Buscar material").fill("Vinil");
-      await page.getByRole("button", { name: "Aplicar filtros" }).click();
+      await expect(page).toHaveURL(/texto=Vinil/);
     }
     if (reporte.nombre === "ordenes-por-etapa") {
-      const opciones = page.getByLabel("Área", { exact: true }).locator("option");
+      // El área está en "Más filtros" y se elige con búsqueda: se toma la primera área real.
+      await page.getByRole("button", { name: /Más filtros/ }).click();
+      await page.getByLabel("Área", { exact: true }).click();
+      const opciones = page.getByRole("option");
       expect(await opciones.count()).toBeGreaterThan(1);
-      const area = await opciones.nth(1).getAttribute("value");
-      await page.getByLabel("Área", { exact: true }).selectOption(area!);
-      await page.getByRole("button", { name: "Aplicar filtros" }).click();
+      await opciones.nth(1).click();
+      await expect(page).toHaveURL(/area=/);
+      await page.keyboard.press("Escape");
     }
     await expect(page.getByRole("heading", { name: reporte.titulo, exact: true })).toBeVisible();
     await descargarReporte(page, reporte);

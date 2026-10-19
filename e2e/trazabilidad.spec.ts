@@ -97,8 +97,12 @@ async function abrirTrabajo(page: Page) {
 async function comprobarFiltrosYEnlace(page: Page) {
   await page.goto("/trazabilidad");
   await expect(page.getByText("Registro de solo lectura", { exact: true })).toBeVisible();
+  // El número de orden vive en "Más filtros" y se aplica con Enter.
+  await page.getByRole("button", { name: /Más filtros/ }).click();
   await page.getByLabel("Número de orden", { exact: true }).fill(orden.numero);
-  await page.getByRole("button", { name: "Filtrar", exact: true }).click();
+  await page.getByLabel("Número de orden", { exact: true }).press("Enter");
+  await expect(page).toHaveURL(new RegExp(`orden=${orden.numero}`));
+  await page.keyboard.press("Escape");
   const tabla = page.getByRole("table", { name: "Bitácora global" });
   await expect(tabla).toContainText(orden.numero);
   const respuesta = await page.request.get(`/api/v1/bitacora?orden=${orden.numero}&porPagina=100`);

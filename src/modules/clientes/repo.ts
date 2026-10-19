@@ -20,7 +20,12 @@ const COLUMNAS: Record<CampoEditable | "activo", string> = {
 
 export type CondicionEscritura = { id: string; activo: boolean; version: string };
 
-export type FilaListada = Cliente & { _count: { cotizaciones: number } };
+export type FilaListada = Cliente & {
+  _count: { cotizaciones: number };
+  logo: { actualizadoEn: Date } | null;
+};
+
+const VERSION_LOGO = { select: { actualizadoEn: true } } as const;
 
 // Prisma pasa el texto tal cual a ILIKE: sin escapar, % y _ de la búsqueda actuarían como comodines.
 function escaparComodines(texto: string): string {
@@ -55,7 +60,7 @@ export async function consultarClientes(consulta: ConsultaClientes): Promise<{ f
       orderBy: ordenLista(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina,
       take: consulta.porPagina,
-      include: { _count: { select: { cotizaciones: true } } },
+      include: { _count: { select: { cotizaciones: true } }, logo: VERSION_LOGO },
     }),
     prisma.cliente.count({ where }),
   ]);
@@ -73,12 +78,48 @@ export async function consultarConteosClientes(consulta: ConsultaClientes): Prom
   return conteos;
 }
 
-export function buscarCliente(db: Tx, id: string): Promise<Cliente | null> {
-  return db.cliente.findUnique({ where: { id } });
+export function buscarCliente(db: Tx, id: string) {
+  return db.cliente.findUnique({ where: { id }, include: { logo: VERSION_LOGO } });
 }
 
 export function insertarCliente(tx: Tx, datos: EntradaCrearCliente): Promise<Cliente> {
   return tx.cliente.create({ data: datos });
+}
+
+export function buscarLogoCliente(db: Tx, id: string) {
+  return db.cliente.findUnique({
+    where: { id },
+    select: { logo: { select: { contenido: true, tipo: true } } },
+  });
+}
+
+export async function bloquearClienteParaLogo(tx: Tx, id: string) {
+  const filas = await tx.$queryRaw<{ activo: boolean }[]>`
+    SELECT activo FROM cliente WHERE id = ${id}::uuid FOR UPDATE`;
+  return filas[0];
+}
+
+export function buscarVersionLogo(tx: Tx, id: string) {
+  return tx.clienteLogo.findUnique({ where: { clienteId: id }, select: { actualizadoEn: true } });
+}
+
+type EntradaLogo = { id: string; contenido: Uint8Array; tipo: string };
+
+export async function guardarLogoCliente(tx: Tx, { id, contenido, tipo }: EntradaLogo) {
+  const [fila] = await tx.$queryRaw<{ actualizadoEn: Date }[]>`
+    INSERT INTO cliente_logo (cliente_id, contenido, tipo, tamano)
+    VALUES (${id}::uuid, ${Buffer.from(contenido)}, ${tipo}, ${contenido.byteLength})
+    ON CONFLICT (cliente_id) DO UPDATE SET
+      contenido = EXCLUDED.contenido, tipo = EXCLUDED.tipo, tamano = EXCLUDED.tamano,
+      actualizado_en = GREATEST(
+        date_trunc('milliseconds', clock_timestamp()),
+        date_trunc('milliseconds', cliente_logo.actualizado_en) + interval '1 millisecond')
+    RETURNING actualizado_en AS "actualizadoEn"`;
+  return fila.actualizadoEn;
+}
+
+export function borrarLogoCliente(tx: Tx, id: string) {
+  return tx.clienteLogo.deleteMany({ where: { clienteId: id } });
 }
 
 function asignacion(campo: CampoEditable | "activo", valor: unknown): Prisma.Sql {

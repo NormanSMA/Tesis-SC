@@ -66,7 +66,7 @@ export const PERFILES = [
     correo: "roberto.diaz@solucionescreativas.test",
     claveEnv: "SEED_PASSWORD_ADMIN",
     destino: "/admin/usuarios",
-    items: ["Trazabilidad", "Usuarios", "Perfiles y permisos", "Configuración"],
+    items: ["Trazabilidad", "Usuarios", "Perfiles y permisos", "Configuración", "Estado del sistema"],
     rutasProhibidas: ["/panel", "/clientes"],
   },
 ];

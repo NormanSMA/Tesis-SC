@@ -24,6 +24,8 @@ export default async function PaginaPlantillas({ searchParams }: { searchParams:
       <Button asChild variant="outline"><Link href="/produccion">Ver tablero</Link></Button>
       <Button asChild variant="outline"><Link href="/produccion/areas">Ver áreas</Link></Button></>} />
     {categoria ? <ProveedorLista>
+      {/* La pastilla activa ya muestra la categoría: el título queda para lectores de pantalla. */}
+      <h2 className="sr-only">{categoria.nombre}</h2>
       <AdministracionPlantillas key={`${categoria.id}:${plantillas.map((plantilla) => plantilla.actualizadoEn).join("|")}`}
         categoriaId={categoria.id} categorias={opciones.categorias} plantillas={filtradas} conteos={conteos}
         areas={opciones.areas.filter((area) => area.activo)} gestionar={can(actor, "catalogo:gestionar")} />

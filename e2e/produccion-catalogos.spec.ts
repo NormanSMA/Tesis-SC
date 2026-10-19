@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { PERFILES, VIEWPORTS, iniciarSesion, violacionesGraves } from "./ayudas";
+import { elegirDato } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -75,7 +76,7 @@ async function gestionarPlantilla(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Agregar plantilla", exact: true }).click();
   const dialogo = page.getByRole("dialog");
   await dialogo.getByLabel("Nombre de la etapa").fill(PLANTILLA);
-  await dialogo.getByLabel("Área", { exact: false }).selectOption({ label: AREA_EDITADA });
+  await elegirDato(dialogo.getByRole("combobox", { name: /^Área/ }), AREA_EDITADA, page);
   await dialogo.getByRole("button", { name: "Agregar plantilla", exact: true }).click();
   await expect(dialogo).toHaveCount(0);
   await expect(page.getByRole("table", { name: "Plantillas de etapas" })).toContainText(PLANTILLA);

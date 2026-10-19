@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpen,
   Boxes,
   ClipboardCheck,
@@ -68,6 +69,7 @@ export const gruposNavegacion: GrupoNavegacion[] = [
       { href: "/admin/usuarios", etiqueta: "Usuarios", icono: UserCog, permiso: "usuario:gestionar" },
       { href: "/admin/permisos", etiqueta: "Perfiles y permisos", icono: ShieldCheck, permiso: "permiso:gestionar" },
       { href: "/admin/configuracion", etiqueta: "Configuración", icono: Settings, permiso: "configuracion:gestionar" },
+      { href: "/admin/sistema", etiqueta: "Estado del sistema", icono: Activity, permiso: "configuracion:gestionar" },
     ],
   },
 ];
@@ -91,4 +93,13 @@ export function itemActivo(grupos: GrupoNavegacion[], ruta: string): ItemNavegac
   return todos
     .filter((item) => ruta === item.href || ruta.startsWith(`${item.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0];
+}
+
+/**
+ * Inicio de un usuario: el destino de su perfil si puede verlo; si la matriz se lo quitó,
+ * la primera sección permitida. Lo usan el logo del menú y "Ir a mi inicio".
+ */
+export function inicioDeUsuario(destinoPerfil: string, permisos: string[]): string {
+  const permitidas = filtrarNavegacion(gruposNavegacion, permisos).flatMap((grupo) => grupo.items.map((item) => item.href));
+  return permitidas.includes(destinoPerfil) ? destinoPerfil : (permitidas[0] ?? destinoPerfil);
 }

@@ -101,8 +101,8 @@ async function prepararMaterial(page: Page): Promise<void> {
 
 async function crearCotizacion(page: Page): Promise<void> {
   await page.goto("/cotizaciones");
-  await page.getByRole("link", { name: "Nueva cotización" }).first().click();
-  await elegir(page.getByLabel("Cliente", { exact: false }), CLIENTE, page);
+  await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
+  await elegir(page.getByRole("combobox", { name: /^Cliente/ }), CLIENTE, page);
   await page.getByLabel("Asunto").fill(MARCA);
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Crear cotización" }).click();
@@ -111,7 +111,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   cotizacion = (await respuesta.json()).datos as Cotizacion;
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}/editar$`));
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
-  await elegir(page.getByLabel("Categoría", { exact: false }), CATEGORIA, page);
+  await elegir(page.getByRole("combobox", { name: /^Categoría/ }), CATEGORIA, page);
   await page.getByLabel("Descripción del trabajo").fill(`${MARCA}-personalizado`);
   await page.getByRole("button", { name: "Agregar material", exact: true }).click();
   const linea = page.getByRole("group", { name: "Línea 1: Material" });

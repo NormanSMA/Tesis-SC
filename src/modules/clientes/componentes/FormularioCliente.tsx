@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useFormularioCliente, type ModoFormulario } from "../useFormularioCliente";
 import { useHidratado } from "../useHidratado";
 import { CamposAdicionales, CamposContacto, CamposIdentificacion } from "./CamposCliente";
+import { CampoLogo } from "./CampoLogo";
 
 function AvisoConflicto({ alRecargar }: { alRecargar: () => void }) {
   return (
@@ -96,7 +97,8 @@ function useResultadoCliente(resultado: ReturnType<typeof useFormularioCliente>)
 
 export function FormularioCliente(propiedades: ModoFormulario) {
   const resultado = useFormularioCliente(propiedades);
-  const { formulario, enviando, errorGeneral, conflicto, recargar } = resultado;
+  const { formulario, enviando, errorGeneral, conflicto, recargar, cambioLogo, setCambioLogo } = resultado;
+  const nombre = formulario.watch("nombre");
   const { referencia, prefijoError, errores, enviarConFoco } = useResultadoCliente(resultado);
   const hidratado = useHidratado();
   const editando = propiedades.modo === "editar";
@@ -114,7 +116,9 @@ export function FormularioCliente(propiedades: ModoFormulario) {
         {Object.entries(errores).map(([nombre, error]) => <span key={nombre}
           id={`${prefijoError}-${nombre}-error`} hidden>{error?.message}</span>)}
         <fieldset disabled={!hidratado} className="min-w-0 space-y-8">
-          <SeccionFormulario titulo="Identificación" descripcion="Nombre, tipo de cliente y RUC.">
+          <SeccionFormulario titulo="Identificación" descripcion="Logo, nombre, tipo de cliente y RUC.">
+            <CampoLogo id={editando ? propiedades.cliente.id : undefined} nombre={nombre}
+              logoVersion={editando ? propiedades.cliente.logoVersion : null} cambio={cambioLogo} alCambiar={setCambioLogo} />
             <CamposIdentificacion formulario={formulario} />
           </SeccionFormulario>
           <SeccionFormulario titulo="Contacto" descripcion="Indique al menos un teléfono o un correo.">

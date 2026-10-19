@@ -2,26 +2,47 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calculator, ClipboardCheck, CornerDownLeft, Plus, Search, Users, X, type LucideIcon } from "lucide-react";
+import { BookOpen, Boxes, Calculator, ClipboardCheck, CornerDownLeft, Plus, Search, UserCog, Users, X, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { ClienteFila } from "@/modules/clientes/tipos";
-import type { CotizacionFila } from "@/modules/cotizaciones/tipos";
-import type { OrdenFila } from "@/modules/ordenes/tipos";
 
 import { filtrarNavegacion, gruposNavegacion } from "./navegacion";
 
 type Propiedades = { permisos: string[]; modo: "amplio" | "icono" };
 type Resultado = { id: string; titulo: string; detalle?: string; destino: string; icono: LucideIcon };
 type Grupo = { titulo: string; resultados: Resultado[]; fallo: boolean };
-type Recurso = "clientes" | "cotizaciones" | "ordenes";
-const RECURSOS: { recurso: Recurso; permiso: string; titulo: string; icono: LucideIcon }[] = [
-  { recurso: "clientes", permiso: "cliente:ver", titulo: "Clientes", icono: Users },
-  { recurso: "cotizaciones", permiso: "cotizacion:ver", titulo: "Cotizaciones", icono: Calculator },
-  { recurso: "ordenes", permiso: "orden:ver", titulo: "Órdenes", icono: ClipboardCheck },
+type Fila = Record<string, unknown> & { id: string };
+
+// Cada módulo con su permiso: el buscador solo consulta lo que el perfil puede ver.
+type Fuente = { clave: string; ruta: string; permiso: string; titulo: string; icono: LucideIcon;
+  destino: (fila: Fila) => string; nombre: (fila: Fila) => string; detalle: (fila: Fila) => string };
+const texto = (valor: unknown) => (typeof valor === "string" ? valor : "");
+const FUENTES: Fuente[] = [
+  { clave: "clientes", ruta: "clientes", permiso: "cliente:ver", titulo: "Clientes", icono: Users,
+    destino: (fila) => `/clientes/${fila.id}`, nombre: (fila) => texto(fila.nombre), detalle: (fila) => texto(fila.codigoCliente) },
+  { clave: "cotizaciones", ruta: "cotizaciones", permiso: "cotizacion:ver", titulo: "Cotizaciones", icono: Calculator,
+    destino: (fila) => `/cotizaciones/${fila.id}`, nombre: (fila) => texto((fila.cliente as { nombre?: string } | undefined)?.nombre),
+    detalle: (fila) => [texto(fila.numero), texto(fila.asunto)].filter(Boolean).join(" · ") },
+  { clave: "ordenes", ruta: "ordenes", permiso: "orden:ver", titulo: "Órdenes", icono: ClipboardCheck,
+    destino: (fila) => `/ordenes/${fila.id}`, nombre: (fila) => texto((fila.cliente as { nombre?: string } | undefined)?.nombre),
+    detalle: (fila) => texto(fila.numero) },
+  { clave: "productos", ruta: "productos", permiso: "catalogo:ver", titulo: "Productos", icono: BookOpen,
+    destino: (fila) => `/catalogo/${fila.id}`, nombre: (fila) => texto(fila.nombre), detalle: (fila) => texto(fila.codigo) },
+  { clave: "materiales", ruta: "materiales", permiso: "inventario:ver", titulo: "Materiales", icono: Boxes,
+    destino: (fila) => `/inventario/${fila.id}`, nombre: (fila) => texto(fila.nombre), detalle: (fila) => texto(fila.codigo) },
+  { clave: "usuarios", ruta: "usuarios", permiso: "usuario:gestionar", titulo: "Usuarios", icono: UserCog,
+    destino: (fila) => `/admin/usuarios/${fila.id}`, nombre: (fila) => texto(fila.nombre), detalle: (fila) => texto(fila.correo) },
 ];
+/** "Buscar clientes, productos u órdenes": nombra solo los módulos que el perfil puede consultar. */
+function marcadorBusqueda(permisos: string[]): string {
+  const nombres = FUENTES.filter(({ permiso }) => permisos.includes(permiso)).map(({ titulo }) => titulo.toLowerCase());
+  if (!nombres.length) return "Buscar secciones";
+  if (nombres.length === 1) return `Buscar ${nombres[0]} o secciones`;
+  const ultimo = nombres.pop()!;
+  return `Buscar ${nombres.join(", ")} ${/^h?[oó]/i.test(ultimo) ? "u" : "o"} ${ultimo}`;
+}
 const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
 // Secciones del menú y acciones rápidas según permisos: se muestran sin escribir y se filtran al escribir.
@@ -34,33 +55,31 @@ function accesos(permisos: string[], consulta: string): Resultado[] {
   return [...acciones, ...secciones].filter(({ titulo }) => !busqueda || normalizar(titulo).includes(busqueda));
 }
 
-async function buscarGrupo(entrada: { recurso: Recurso; titulo: string; icono: LucideIcon; consulta: string; signal: AbortSignal }): Promise<Grupo> {
-  const { recurso, titulo, icono, consulta, signal } = entrada;
+async function buscarGrupo(fuente: Fuente, consulta: string, signal: AbortSignal): Promise<Grupo> {
   try {
     const parametros = new URLSearchParams({ q: consulta, porPagina: "5" });
-    const respuesta = await fetch(`/api/v1/${recurso}?${parametros}`, { signal, cache: "no-store" });
+    const respuesta = await fetch(`/api/v1/${fuente.ruta}?${parametros}`, { signal, cache: "no-store" });
     if (!respuesta.ok) throw new Error("No se pudo completar la búsqueda.");
-    const cuerpo: { datos: (ClienteFila | CotizacionFila | OrdenFila)[] } = await respuesta.json();
-    const resultados = cuerpo.datos.map((fila) => ({
-      id: fila.id, destino: `/${recurso}/${encodeURIComponent(fila.id)}`, icono,
-      titulo: "nombre" in fila ? fila.nombre : fila.cliente.nombre,
-      detalle: "codigoCliente" in fila ? fila.codigoCliente : fila.numero,
+    const cuerpo: { datos: Fila[] } = await respuesta.json();
+    const resultados = cuerpo.datos.slice(0, 5).map((fila) => ({
+      id: `${fuente.clave}-${fila.id}`, destino: fuente.destino(fila), icono: fuente.icono,
+      titulo: fuente.nombre(fila) || fuente.detalle(fila), detalle: fuente.detalle(fila),
     }));
-    return { titulo, resultados, fallo: false };
+    return { titulo: fuente.titulo, resultados, fallo: false };
   } catch {
-    return { titulo, resultados: [], fallo: true };
+    return { titulo: fuente.titulo, resultados: [], fallo: true };
   }
 }
 
 function useBusqueda(consulta: string, permisos: string[]) {
-  const clave = RECURSOS.filter(({ permiso }) => permisos.includes(permiso)).map(({ recurso }) => recurso).join(",");
+  const clave = FUENTES.filter(({ permiso }) => permisos.includes(permiso)).map((fuente) => fuente.clave).join(",");
   const [respuesta, establecerRespuesta] = useState({ consulta: "", clave: "", grupos: [] as Grupo[] });
   useEffect(() => {
     if (consulta.length < 2) return;
     const controlador = new AbortController();
     const temporizador = window.setTimeout(async () => {
-      const grupos = await Promise.all(RECURSOS.filter(({ recurso }) => clave.split(",").includes(recurso))
-        .map(({ recurso, titulo, icono }) => buscarGrupo({ recurso, titulo, icono, consulta, signal: controlador.signal })));
+      const grupos = await Promise.all(FUENTES.filter((fuente) => clave.split(",").includes(fuente.clave))
+        .map((fuente) => buscarGrupo(fuente, consulta, controlador.signal)));
       if (!controlador.signal.aborted) establecerRespuesta({ consulta, clave, grupos });
     }, 250);
     return () => { window.clearTimeout(temporizador); controlador.abort(); };
@@ -173,7 +192,7 @@ function ContenidoBusqueda({ permisos, cerrar }: { permisos: string[]; cerrar: (
       <div className="flex items-center gap-3 border-b border-slate-100 px-4">
         <Search className="size-5 shrink-0 text-slate-400" aria-hidden="true" />
         <input value={texto} onChange={(evento) => { establecerTexto(evento.target.value); seleccion.reiniciar(); }}
-          onKeyDown={seleccion.manejarTecla} placeholder="Buscar clientes, cotizaciones u órdenes" aria-label="Buscar en TRACORE"
+          onKeyDown={seleccion.manejarTecla} placeholder={marcadorBusqueda(permisos)} aria-label="Buscar en TRACORE"
           role="combobox" aria-expanded="true" aria-controls={listaId} aria-autocomplete="list"
           aria-activedescendant={seleccion.activo} autoComplete="off" maxLength={200}
           className="h-14 min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400" />

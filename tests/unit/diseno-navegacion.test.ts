@@ -25,9 +25,10 @@ describe("filtrarNavegacion", () => {
     expect(hrefs(["usuario:gestionar"])).toEqual(["/admin/usuarios"]);
   });
 
+  // "Estado del sistema" reutiliza configuracion:gestionar: 13 ítems, 12 permisos distintos.
   it("declara los doce permisos del brief", () => {
     const permisos = gruposNavegacion.flatMap((grupo) => grupo.items.map((item) => item.permiso));
-    expect(permisos).toHaveLength(12);
+    expect(permisos).toHaveLength(13);
     expect(new Set(permisos).size).toBe(12);
   });
 });

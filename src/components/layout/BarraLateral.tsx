@@ -11,7 +11,8 @@ import { ListaNavegacion, type ContadorMenu } from "./ListaNavegacion";
 import { Marca } from "./Marca";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
 
-import type { GrupoNavegacion } from "./navegacion";
+import { inicioDeUsuario, type GrupoNavegacion } from "./navegacion";
+import { destinoPorPerfil } from "@/core/permisos";
 import { TarjetaUsuario } from "./TarjetaUsuario";
 
 type PropiedadesBarra = {
@@ -30,10 +31,11 @@ type PropiedadesBarra = {
   alContraer: () => void;
 };
 
-function CabeceraMarca({ rielExpandido, compacto, alCerrarRielConFoco, alContraer }: Pick<PropiedadesBarra, "rielExpandido" | "compacto" | "alCerrarRielConFoco" | "alContraer">) {
+function CabeceraMarca({ usuario, rielExpandido, compacto, alCerrarRielConFoco, alContraer }: Pick<PropiedadesBarra, "usuario" | "rielExpandido" | "compacto" | "alCerrarRielConFoco" | "alContraer">) {
+  const inicio = inicioDeUsuario(destinoPorPerfil[usuario.perfil], usuario.permisos);
   return (
     <div className={cn("flex h-16 shrink-0 items-center gap-2 px-3", !compacto && "xl:px-4")}>
-      <Link href="/panel" aria-label="TRACORE, Soluciones Creativas, ir al panel" className="min-w-0 rounded-xl">
+      <Link href={inicio} aria-label="TRACORE, Soluciones Creativas, ir a mi inicio" className="min-w-0 rounded-xl">
         {rielExpandido ? (
           <Marca conCaja />
         ) : (

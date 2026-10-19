@@ -113,17 +113,17 @@ test.describe("ADMIN gestiona usuarios", () => {
     await page.goto("/admin/usuarios");
 
     await expect(page.getByRole("heading", { level: 1, name: /^\d+ usuarios activos, \d+ bloqueados$/ })).toBeVisible();
-    await expect(page.locator("#usuarios-q")).toBeVisible();
-    await expect(page.locator("#usuarios-perfil")).toBeVisible();
-    await expect(page.locator("#usuarios-estado")).toBeVisible();
+    // Búsqueda en vivo y pastillas: sin botón Buscar.
+    await expect(page.getByLabel("Buscar usuarios")).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "Perfil" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "Estado" })).toBeVisible();
     const tabla = page.getByRole("region", { name: "Lista de usuarios" });
     for (const columna of ["Nombre", "Correo", "Perfiles", "Estado"]) {
       await expect(tabla.getByRole("columnheader", { name: columna, exact: true })).toBeVisible();
     }
     await expect(tabla.getByRole("row").filter({ hasText: ADMIN.correo })).toBeVisible();
 
-    await page.locator("#usuarios-perfil").selectOption("ADMIN");
-    await page.getByRole("button", { name: "Buscar", exact: true }).click();
+    await page.getByRole("radiogroup", { name: "Perfil" }).getByRole("radio", { name: "Administración técnica" }).click();
     await expect(page).toHaveURL(/perfil=ADMIN/);
     await expect(tabla.getByRole("row").filter({ hasText: ADMIN.correo })).toBeVisible();
   });
@@ -153,10 +153,10 @@ test.describe("ADMIN gestiona usuarios", () => {
       await page.getByRole("link", { name: "Ver usuario" }).click();
       await expect(page).toHaveURL(/\/admin\/usuarios\/[0-9a-f-]{36}$/);
       id = page.url().split("/").pop() ?? "";
-      await expect(page.getByRole("heading", { level: 1, name: "Ficha de usuario" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Acciones del usuario" })).toBeVisible();
       await expect(page.getByRole("region", { name: "Clave temporal" })).toHaveCount(0);
       await page.reload();
-      await expect(page.getByRole("heading", { level: 1, name: "Ficha de usuario" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Acciones del usuario" })).toBeVisible();
       await expect(page.getByRole("region", { name: "Clave temporal" })).toHaveCount(0);
       await expect(page.getByText(clave)).toHaveCount(0);
 
@@ -187,7 +187,7 @@ test.describe("ADMIN gestiona usuarios", () => {
     const usuario = await crearUsuarioPorApi(page, ["OPERACIONES"]);
     try {
       await page.goto(`/admin/usuarios/${usuario.id}`);
-      await expect(page.getByRole("heading", { level: 1, name: "Ficha de usuario" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Acciones del usuario" })).toBeVisible();
 
       await page.getByRole("button", { name: "Desactivar", exact: true }).click();
       await page.getByRole("dialog").getByRole("button", { name: "Desactivar", exact: true }).click();

@@ -12,6 +12,7 @@ export type ClienteDto = {
   direccion: string | null;
   notas: string | null;
   activo: boolean;
+  logoVersion: string | null;
   creadoEn: string;
   /** Instante ISO 8601 UTC. Es la versión que debe enviar el PATCH. */
   actualizadoEn: string;
@@ -19,7 +20,7 @@ export type ClienteDto = {
 
 export type ClienteFila = Pick<
   ClienteDto,
-  "id" | "codigoCliente" | "nombre" | "tipo" | "ruc" | "contactoPrincipal" | "telefono" | "correo" | "activo"
+  "id" | "codigoCliente" | "nombre" | "tipo" | "ruc" | "contactoPrincipal" | "telefono" | "correo" | "activo" | "logoVersion"
 > & {
   /** Solo viaja si el actor tiene cotizacion:ver. */
   cotizaciones?: number;

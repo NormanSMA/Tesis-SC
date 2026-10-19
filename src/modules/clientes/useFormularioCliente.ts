@@ -7,6 +7,7 @@ import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+import { aplicarCambioLogo, type CambioLogo } from "./logoCliente";
 import { CAMPOS_EDITABLES, esquemaCrearCliente, type EntradaCrearCliente } from "./schema";
 import type { ClienteDto } from "./tipos";
 
@@ -83,6 +84,7 @@ export function useFormularioCliente(modo: ModoFormulario) {
   const [enviando, setEnviando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [conflicto, setConflicto] = useState(false);
+  const [cambioLogo, setCambioLogo] = useState<CambioLogo>(null);
   const formulario: FormularioCliente = useForm<ValoresFormulario, unknown, EntradaCrearCliente>({
     resolver: zodResolver(esquemaCrearCliente),
     defaultValues: valoresIniciales(modo),
@@ -109,7 +111,10 @@ export function useFormularioCliente(modo: ModoFormulario) {
     setConflicto(false);
     const resultado = await guardarCliente(modo, valores);
     if ("id" in resultado) {
+      // El logo se guarda después del cliente: en un alta todavía no existía el id.
+      const falloLogo = await aplicarCambioLogo(resultado.id, cambioLogo);
       toast.success(modo.modo === "crear" ? "Cliente creado." : "Cambios guardados.");
+      if (falloLogo) toast.error(`El cliente se guardó, pero el logo no: ${falloLogo}`);
       router.push(`/clientes/${resultado.id}`);
       return;
     }
@@ -123,11 +128,7 @@ export function useFormularioCliente(modo: ModoFormulario) {
   }
 
   return {
-    formulario,
-    enviando,
-    errorGeneral,
-    conflicto,
-    recargar,
+    formulario, enviando, errorGeneral, conflicto, recargar, cambioLogo, setCambioLogo,
     enviar: formulario.handleSubmit(enviar, (errores) => enfocarPrimerError(formulario, Object.keys(errores))),
   };
 }

@@ -8,3 +8,9 @@ export async function elegir(campo: Locator, opcion: string | RegExp, page: Page
   }).toPass({ timeout: 10000 });
   await page.getByRole("option", { name: opcion, exact: typeof opcion === "string" }).click();
 }
+
+/** Campo de datos que puede ser lista nativa (pocas opciones) o lista con búsqueda (7 o más). */
+export async function elegirDato(campo: Locator, opcion: string, page: Page): Promise<void> {
+  if (await campo.evaluate((elemento) => elemento.tagName === "SELECT")) await campo.selectOption({ label: opcion });
+  else await elegir(campo, opcion, page);
+}

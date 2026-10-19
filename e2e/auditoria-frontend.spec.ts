@@ -233,7 +233,9 @@ async function buscarClientes(auditoria: Auditoria, busqueda: { termino: string;
   await expect(async () => {
     await buscador.fill(busqueda.termino);
     await expect(buscador).toHaveValue(busqueda.termino);
-    await principal.getByRole("button", { name: "Buscar", exact: true }).click();
+    // Las listas buscan en vivo; solo las pantallas que aún tienen botón lo pulsan.
+    const boton = principal.getByRole("button", { name: "Buscar", exact: true });
+    if (await boton.count()) await boton.click();
     const resultado = busqueda.nombre
       ? principal.getByText(busqueda.nombre, { exact: true }).first()
       : principal.getByText("Sin resultados", { exact: true });

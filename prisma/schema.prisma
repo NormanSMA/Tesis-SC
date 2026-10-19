@@ -313,9 +313,22 @@ model Cliente {
 
   cotizaciones Cotizacion[]
   ordenes      OrdenTrabajo[]
+  logo         ClienteLogo?
 
   @@index([activo, nombre])
   @@map("cliente")
+}
+
+model ClienteLogo {
+  clienteId     String   @id @map("cliente_id") @db.Uuid
+  contenido     Bytes    @db.ByteA
+  tipo          String   @db.Text
+  tamano        Int
+  actualizadoEn DateTime @default(now()) @map("actualizado_en") @db.Timestamptz(6)
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("cliente_logo")
 }
 
 // Tipo de servicio (rotulacion, gran formato, letras corporeas...). Define las etapas de produccion.

@@ -60,8 +60,8 @@ async function abrirPestana(page: Page, nombre: string): Promise<void> {
 
 async function crearMixta(page: Page): Promise<void> {
   await page.goto("/cotizaciones");
-  await page.getByRole("link", { name: "Nueva cotización" }).first().click();
-  await elegir(page.getByLabel("Cliente", { exact: false }), CLIENTE, page);
+  await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
+  await elegir(page.getByRole("combobox", { name: /^Cliente/ }), CLIENTE, page);
   await page.getByLabel("Asunto").fill(MARCA);
   const creada = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/cotizaciones") && respuesta.request().method() === "POST");
   await page.getByRole("button", { name: "Crear cotización" }).click();
@@ -74,7 +74,7 @@ async function crearMixta(page: Page): Promise<void> {
   await page.getByLabel("Ancho (m)").fill("2");
   await page.getByLabel("Alto (m)").fill("1.5");
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
-  await elegir(page.getByLabel("Categoría", { exact: false }), CATEGORIA, page);
+  await elegir(page.getByRole("combobox", { name: /^Categoría/ }), CATEGORIA, page);
   await page.getByLabel("Descripción del trabajo").fill(PERSONALIZADO);
   await page.getByRole("button", { name: "Agregar material", exact: true }).click();
   const linea = page.getByRole("group", { name: "Línea 1: Material" });
@@ -113,7 +113,7 @@ async function abrirConversion(page: Page): Promise<void> {
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
   await expect(page.getByLabel("Especificaciones")).toHaveValue(MARCA);
-  await expect(page.getByLabel("Categoría principal")).toContainText(CATEGORIA);
+  await expect(page.getByRole("combobox", { name: /^Categoría principal/ })).toContainText(CATEGORIA);
   await expect(page.getByRole("main")).toContainText(CLIENTE);
   await expect(page.getByRole("form").getByLabel("Cliente")).toHaveCount(0);
   await expect(page.getByRole("form").getByRole("combobox", { name: /^Producto\b/, includeHidden: true })).toHaveCount(0);

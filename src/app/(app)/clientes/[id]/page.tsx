@@ -4,12 +4,12 @@ import Link from "next/link";
 import { cache } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
 import { CabeceraFicha } from "@/components/comunes/CabeceraFicha";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
+import { AvatarCliente } from "@/modules/clientes/componentes/AvatarCliente";
 import { AccionesEstado } from "@/modules/clientes/componentes/AccionesEstado";
 import { DatosCliente } from "@/modules/clientes/componentes/DatosCliente";
 import { EstadoCliente } from "@/modules/clientes/componentes/EstadoCliente";
@@ -105,7 +105,7 @@ export default async function PaginaFichaCliente({ params }: { params: Promise<{
       <CabeceraFicha
         titulo={ficha.nombre}
         volver={{ href: "/clientes", etiqueta: "Clientes" }}
-        marca={<AvatarIniciales nombre={ficha.nombre} className="size-12 text-sm" />}
+        marca={<AvatarCliente id={ficha.id} nombre={ficha.nombre} logoVersion={ficha.logoVersion} className="size-12 text-sm" />}
         meta={<MetaCliente ficha={ficha} />}
         acciones={
           puedeGestionar ? <AccionesFicha ficha={ficha} puedeCotizar={can(actor, "cotizacion:gestionar")} /> : null

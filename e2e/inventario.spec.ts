@@ -295,7 +295,8 @@ test.describe("Inventario con un material propio", () => {
   });
 });
 
-const COLUMNAS_LISTA = ["Código", "Material", "Existencia", "Stock mínimo", "Estado"];
+// El código va bajo el nombre y el mínimo en la barra de existencia: tres columnas.
+const COLUMNAS_LISTA = ["Material", "Existencia frente al mínimo", "Estado"];
 
 test("Gerencia y Operaciones consultan inventario sin acciones de gestión", async ({ page }) => {
   for (const perfil of [GERENCIA, OPERACIONES]) {
@@ -327,7 +328,7 @@ test("Administración gestiona, registra entradas y ajusta", async ({ page }) =>
   await expect(formulario(page, "Ajustar inventario")).toBeVisible();
 });
 
-test("la lista de materiales tiene cinco columnas y el costo promedio queda en la ficha", async ({ page }) => {
+test("la lista de materiales tiene tres columnas y el costo promedio queda en la ficha", async ({ page }) => {
   await entrarComo(page, ADMINISTRACION);
   await page.goto("/inventario");
   await expect(listaMateriales(page)).toBeVisible();

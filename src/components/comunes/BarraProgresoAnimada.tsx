@@ -14,12 +14,12 @@ type PropiedadesBarra = {
 
 const TONOS = { primario: "bg-primary", exito: "bg-success", advertencia: "bg-warning", peligro: "bg-danger" };
 
-/** Barra horizontal de avance. Crece con scaleX desde la izquierda (350 ms); el ancho final es estático. */
+/** Barra horizontal de avance o de medida (role meter: es un dato, no una carga). Crece con scaleX desde la izquierda (350 ms); el ancho final es estático. */
 export function BarraProgresoAnimada({ valor, total, etiqueta, texto, tono = "primario", className }: PropiedadesBarra) {
   const visible = porcentajeVisible(valor, total);
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={Math.max(total, 0)}
+      <div role="meter" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={Math.max(total, 0)}
         aria-valuenow={Math.max(Math.min(valor, total), 0)} aria-valuetext={texto}
         className="h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-slate-100">
         {visible > 0 ? (

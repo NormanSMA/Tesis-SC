@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import type { ContadoresMenu } from "@/modules/navegacion/contadores";
 
-export function useContadoresMenu(ruta: string): ContadoresMenu {
+/** `activo` es false si el perfil no puede consultar el endpoint (requiere panel:ver): no se pide y no hay 403. */
+export function useContadoresMenu(ruta: string, activo = true): ContadoresMenu {
   const [contadores, establecerContadores] = useState<ContadoresMenu>({});
   useEffect(() => {
+    if (!activo) return;
     let controlador: AbortController | undefined;
     async function actualizar() {
       controlador?.abort();
@@ -23,6 +25,6 @@ export function useContadoresMenu(ruta: string): ContadoresMenu {
     void actualizar();
     const intervalo = window.setInterval(() => void actualizar(), 60_000);
     return () => { controlador?.abort(); window.clearInterval(intervalo); };
-  }, [ruta]);
+  }, [ruta, activo]);
   return contadores;
 }
