@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">TRACORE</title>
+  <desc id="d">Plataforma de gestión para Soluciones Creativas: cliente, cotización, orden, producción, inventario y trazabilidad.</desc>
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f2a6b"/>
+      <stop offset="1" stop-color="#334155"/>
+    </linearGradient>
+    <radialGradient id="brillo" cx="0.85" cy="0.1" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .titulo { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; font-weight: 700; font-size: 84px; letter-spacing: 12px; fill: #ffffff; }
+    .lema { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; font-size: 24px; fill: #cbd5e1; }
+    .etiqueta { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; font-size: 14px; fill: #cbd5e1; text-anchor: middle; }
+    .traza { fill: none; stroke: #c9962f; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; opacity: 0.85; }
+    .base { stroke: #94a3b8; stroke-width: 1; opacity: 0.35; }
+    .punto { fill: #1f2a6b; stroke: #c9962f; stroke-width: 2.5; }
+    .aparece { animation: aparecer 1.2s ease-out both; }
+    .dibuja { animation: dibujar 2s ease-out 0.2s both; }
+    .p1 { animation-delay: 0.3s; } .p2 { animation-delay: 0.6s; } .p3 { animation-delay: 0.9s; }
+    .p4 { animation-delay: 1.2s; } .p5 { animation-delay: 1.5s; } .p6 { animation-delay: 1.8s; }
+    @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes dibujar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .aparece, .dibuja { animation: none; }
+    }
+  </style>
+  <rect width="1200" height="300" fill="url(#fondo)"/>
+  <rect width="1200" height="300" fill="url(#brillo)"/>
+  <text class="titulo aparece" x="80" y="130">TRACORE</text>
+  <text class="lema aparece p2" x="84" y="178">De la cotización a la entrega, con trazabilidad.</text>
+  <line class="base" x1="80" y1="240" x2="1120" y2="240"/>
+  <path class="traza dibuja" pathLength="1" d="M80 240 H1120"/>
+  <g class="aparece p1"><circle class="punto" cx="80" cy="240" r="7"/><text class="etiqueta" x="80" y="274">Cliente</text></g>
+  <g class="aparece p2"><circle class="punto" cx="288" cy="240" r="7"/><text class="etiqueta" x="288" y="274">Cotización</text></g>
+  <g class="aparece p3"><circle class="punto" cx="496" cy="240" r="7"/><text class="etiqueta" x="496" y="274">Orden</text></g>
+  <g class="aparece p4"><circle class="punto" cx="704" cy="240" r="7"/><text class="etiqueta" x="704" y="274">Producción</text></g>
+  <g class="aparece p5"><circle class="punto" cx="912" cy="240" r="7"/><text class="etiqueta" x="912" y="274">Inventario</text></g>
+  <g class="aparece p6"><circle class="punto" cx="1120" cy="240" r="7"/><text class="etiqueta" x="1120" y="274">Trazabilidad</text></g>
+</svg>
