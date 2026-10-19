@@ -16,11 +16,11 @@
 <br>
 
 <p align="center">
-  <img src="docs/readme/logo-uam.png" alt="Universidad Americana (UAM)" height="80">
+  <img src="docs/readme/logo-uam.png" alt="Universidad Americana (UAM)" width="110" align="middle">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/readme/logo-facultad.png" alt="Facultad de Ingeniería y Arquitectura" height="80">
+  <img src="docs/readme/logo-facultad.png" alt="Facultad de Ingeniería y Arquitectura" width="270" align="middle">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/readme/logo-soluciones-creativas.png" alt="Soluciones Creativas" height="80">
+  <img src="docs/readme/logo-soluciones-creativas.png" alt="Soluciones Creativas" width="170" align="middle">
 </p>
 
 </div>
