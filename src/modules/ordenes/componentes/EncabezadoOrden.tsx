@@ -45,10 +45,10 @@ export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
         <span>Entrega: <Fecha valor={orden.fechaEntrega} className="font-medium text-foreground" /></span>
       </>}
       acciones={<AccionesOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />} />
-    <BandejaMetricas className="mb-6">
+    <BandejaMetricas className="mb-6 grid-cols-2">
       <TarjetaMetrica etiqueta="Avance de etapas" numero={porcentaje} texto={`${porcentaje} %`} formato="porcentaje" icono={ListChecks}
         pie={`${cerradas} de ${total} cerradas`}
-        adorno={<AnilloProgreso valor={cerradas} total={total} etiqueta="Etapas cerradas" radio={20} grosor={5} />} />
+        adorno={<AnilloProgreso valor={cerradas} total={total} etiqueta="Etapas cerradas" radio={18} grosor={5} centro="" className="max-sm:hidden" />} />
       <CeldaResumen etiqueta="Fecha de entrega" icono={CalendarClock}>
         <Fecha valor={orden.fechaEntrega} />
         {orden.atrasada ? <span className="flex items-center gap-1 text-sm font-semibold text-danger">

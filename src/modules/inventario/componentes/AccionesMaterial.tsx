@@ -19,7 +19,7 @@ export function AccionesMaterial({ material, permisos }: { material: MaterialDto
     setAbierto(false);
   }
   return <div id="acciones-material" className="min-w-0 space-y-3 max-sm:w-full"><AvisoSolicitud {...solicitud} />
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap max-sm:[&>*]:w-full">
+    <div className="grid grid-cols-3 gap-2 [&>*:first-child]:col-span-3 sm:flex sm:flex-row sm:flex-wrap">
       {material.activo && permisos.entrada ? <Button asChild><Link href={`/inventario/entrada?materialId=${material.id}`}>Registrar entrada</Link></Button> : null}
       {material.activo && permisos.ajustar ? <Button asChild variant="outline"><Link href={`/inventario/ajuste?materialId=${material.id}`}>Ajustar</Link></Button> : null}
       {permisos.gestionar ? <><Button asChild variant="outline"><Link href={`/inventario/${material.id}/editar`}>Editar</Link></Button>

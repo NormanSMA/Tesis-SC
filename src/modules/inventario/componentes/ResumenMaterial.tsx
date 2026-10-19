@@ -10,7 +10,7 @@ export function ResumenMaterial({ material }: { material: FichaMaterial }) {
   const alerta = etiquetaAlertaMaterial(material.alerta);
   const { conciliacion } = material;
   return <div id="existencias-material" className="min-w-0 space-y-6">
-    <BandejaMetricas className="md:grid-cols-3 lg:grid-cols-3">
+    <BandejaMetricas className="grid-cols-2 md:grid-cols-3 lg:grid-cols-3 max-md:[&>*:last-child]:col-span-2">
       <TarjetaSeccion titulo="Existencia"><p className="text-3xl font-normal tracking-tight break-words tabular-nums">
         {formatearCantidadConUnidad(material.existencia, material.unidad)}</p></TarjetaSeccion>
       <TarjetaSeccion titulo="Stock mínimo"><p className="text-3xl font-normal tracking-tight break-words tabular-nums">

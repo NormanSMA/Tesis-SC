@@ -63,7 +63,7 @@ export function Migas({ ruta }: { ruta: string }) {
           const ultima = indice === migas.length - 1;
           return (
             <Fragment key={`${indice}-${miga.etiqueta}`}>
-              {indice > 0 ? <BreadcrumbSeparator className={ultima ? "" : "hidden sm:block"} /> : null}
+              {indice > 0 ? <BreadcrumbSeparator className="hidden sm:block" /> : null}
               <BreadcrumbItem className={ultima ? "min-w-0" : "hidden sm:inline-flex"}>
                 {ultima ? (
                   <BreadcrumbPage className="truncate text-base font-semibold">{miga.etiqueta}</BreadcrumbPage>
