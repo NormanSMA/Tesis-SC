@@ -10,6 +10,7 @@ import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatearPorcentaje } from "@/lib/formato";
+import { textoOrden } from "@/lib/listas/orden";
 import { servicioDeCategoria } from "@/lib/servicios";
 
 import type { ConsultaProductos } from "../schema";
@@ -57,6 +58,7 @@ function hrefPagina(consulta: ConsultaProductos, pagina: number) {
   const parametros = new URLSearchParams({ activo: String(consulta.activo), pagina: String(pagina), porPagina: String(consulta.porPagina) });
   if (consulta.q) parametros.set("q", consulta.q);
   if (consulta.categoriaId) parametros.set("categoriaId", consulta.categoriaId);
+  if (consulta.orden) parametros.set("orden", textoOrden(consulta.orden));
   return `/catalogo?${parametros}`;
 }
 

@@ -7,6 +7,7 @@ import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatearCantidad, formatearCantidadConUnidad, formatearCantidadPorUnidad, formatearFechaHora, nombreUnidad } from "@/lib/formato";
+import { textoOrden, type Orden } from "@/lib/listas/orden";
 import { cn } from "@/lib/utils";
 import type { ListaMateriales, ListaMovimientos, MaterialDto, MovimientoDto } from "../dto";
 
@@ -92,7 +93,9 @@ export function hrefInventario(entrada: { ruta: string; consulta: object; pagina
   const parametros = new URLSearchParams();
   const valores: Record<string, unknown> = { ...entrada.consulta, pagina: entrada.pagina };
   Object.entries(valores).forEach(([campo, valor]) => {
-    if (valor !== undefined && valor !== "") parametros.set(campo, String(valor));
+    if (valor === undefined || valor === "") return;
+    // `ordenar` llega como objeto ya validado; la URL lo guarda como `campo:direccion`.
+    parametros.set(campo, campo === "ordenar" ? textoOrden(valor as Orden<string>) : String(valor));
   });
   return `${entrada.ruta}?${parametros}`;
 }
@@ -104,7 +107,7 @@ function Vacio({ total, filtrado, sinRegistros, limpiar, primera }: {
   return <EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="Nada coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
     accion={<Button asChild variant="outline"><Link href={limpiar}>Limpiar filtros</Link></Button>} />;
 }
-export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: { q?: string; estado?: string; porPagina?: number } }) {
+export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: { q?: string; estado?: string; porPagina?: number; ordenar?: Orden<string> } }) {
   return <ZonaResultados>
     <DataTable titulo="Materiales del inventario" filas={lista.datos} columnas={columnasMaterial}
       vacio={<Vacio total={lista.total} filtrado={Boolean(consulta.q || consulta.estado)} sinRegistros="Registre el primer material para controlar existencias."

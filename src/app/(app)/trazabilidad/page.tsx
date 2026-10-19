@@ -7,9 +7,10 @@ import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AppError } from "@/lib/errores";
 import { ProveedorLista } from "@/lib/listas/contexto-lista";
+import { leerOrden, textoOrden } from "@/lib/listas/orden";
 import { BuscarTrabajo, FiltrosBitacora } from "@/modules/trazabilidad/componentes/FiltrosBitacora";
 import { TablaBitacora } from "@/modules/trazabilidad/componentes/TablaBitacora";
-import { esquemaConsultaBitacora, leerConsulta } from "@/modules/trazabilidad/schema";
+import { CAMPOS_ORDEN_BITACORA, esquemaConsultaBitacora, leerConsulta } from "@/modules/trazabilidad/schema";
 import { buscarOrdenPorNumero, listarBitacora, opcionesBitacora } from "@/modules/trazabilidad/service";
 
 export const metadata: Metadata = { title: "Trazabilidad" };
@@ -18,6 +19,8 @@ type Parametros = Record<string, string | string[] | undefined>;
 function parametrosFiltros(parametros: Parametros) {
   const copia = { ...parametros };
   for (const campo of ["entidad", "accion", "usuario"]) if (copia[campo] === "__todos__") delete copia[campo];
+  const orden = leerOrden(typeof copia.ordenar === "string" ? copia.ordenar.trim() : null, CAMPOS_ORDEN_BITACORA);
+  if (orden) copia.ordenar = textoOrden(orden); else delete copia.ordenar;
   return copia;
 }
 export default async function PaginaTrazabilidad({ searchParams }: { searchParams: Promise<Parametros> }) {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError } from "@/lib/errores";
+import { esquemaOrden } from "@/lib/listas/orden";
 import { objetoDeParametros } from "@/modules/ordenes/schema";
 
 export const ENTIDADES = ["CLIENTE", "CATEGORIA", "AREA", "PRODUCTO", "MATERIAL", "COTIZACION", "ORDEN_TRABAJO",
@@ -8,11 +9,14 @@ export const ACCIONES = ["CREAR", "EDITAR", "CAMBIAR_ESTADO", "ASIGNAR_RESPONSAB
   "REGISTRAR_ENTRADA", "AJUSTAR_INVENTARIO", "CONSUMIR_MATERIAL", "DEVOLVER_MATERIAL", "ARCHIVAR", "REACTIVAR",
   "OTORGAR_PERMISO", "REVOCAR_PERMISO", "INICIAR_SESION", "INICIO_SESION_FALLIDO", "BLOQUEAR_CUENTA",
   "CERRAR_SESION", "CAMBIAR_CLAVE"] as const;
+/** Lista blanca del parámetro ordenar=campo:direccion (`orden` ya filtra por número de orden). */
+export const CAMPOS_ORDEN_BITACORA = ["creadoEn"] as const;
 export const esquemaId = z.uuid({ error: "Seleccione un identificador válido." });
 export const esquemaConsultaBitacora = z.object({
   entidad: z.enum(ENTIDADES).optional(), accion: z.enum(ACCIONES).optional(), usuario: esquemaId.optional(),
   orden: z.string().trim().min(1).max(20).optional(), cotizacion: z.string().trim().min(1).max(20).optional(),
   desde: z.iso.date().optional(), hasta: z.iso.date().optional(), texto: z.string().trim().max(200).optional(),
+  ordenar: esquemaOrden(CAMPOS_ORDEN_BITACORA).optional(),
   pagina: z.coerce.number().int().min(1).max(100000).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 }).refine((consulta) => !consulta.desde || !consulta.hasta || consulta.desde <= consulta.hasta,

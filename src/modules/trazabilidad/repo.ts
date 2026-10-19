@@ -107,11 +107,17 @@ const columnasEventos = Prisma.sql`
     'orden', CASE WHEN oc.id IS NULL THEN NULL ELSE jsonb_build_object('id', oc.id, 'numero', oc.numero) END)
   END AS cotizacion`;
 
+// Fragmentos fijos: el texto del usuario nunca llega al SQL.
+const ordenGlobal = {
+  asc: Prisma.sql`ORDER BY b.creado_en ASC, b.id ASC`,
+  desc: Prisma.sql`ORDER BY b.creado_en DESC, b.id DESC`,
+};
+
 export async function consultarGlobal(tx: Tx, consulta: ConsultaBitacora) {
   const where = filtroGlobal(consulta);
   const [eventos, conteo] = await Promise.all([
     tx.$queryRaw<EventoGuardado[]>(Prisma.sql`SELECT ${columnasEventos} ${relacionesGlobal} ${where}
-      ORDER BY b.creado_en DESC, b.id DESC LIMIT ${consulta.porPagina}
+      ${ordenGlobal[consulta.ordenar?.direccion ?? "desc"]} LIMIT ${consulta.porPagina}
       OFFSET ${(consulta.pagina - 1) * consulta.porPagina}`),
     tx.$queryRaw<{ total: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS total ${relacionesGlobal} ${where}`),
   ]);

@@ -53,7 +53,7 @@ async function Materiales({ parametros, actor }: { parametros: Parametros; actor
     <ProveedorLista>
       <div className="space-y-4">
         <FiltrosMateriales resumen={resumen} />
-        <TablaMateriales lista={lista} consulta={{ q: consulta.q, estado, porPagina: consulta.porPagina }} />
+        <TablaMateriales lista={lista} consulta={{ q: consulta.q, estado, porPagina: consulta.porPagina, ordenar: consulta.ordenar }} />
       </div>
     </ProveedorLista></>;
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
+import { esquemaOrden } from "@/lib/listas/orden";
+import { CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO } from "./tipos";
 
 export const UNIDADES = ["UNIDAD", "METRO", "M2", "YARDA", "PIE", "LITRO", "GALON", "KILOGRAMO", "LIBRA", "PLIEGO", "ROLLO"] as const;
 export const TIPOS_MOVIMIENTO = ["ENTRADA", "CONSUMO", "AJUSTE", "DEVOLUCION"] as const;
@@ -34,10 +36,12 @@ const paginacion = { pagina: z.coerce.number().int().min(1).max(100000).default(
   porPagina: z.coerce.number().int().min(1).max(100).default(20) };
 export const esquemaConsultaMateriales = z.object({ q: z.string().trim().max(200).optional(),
   activo: z.enum(["true", "false", "todos"]).default("true"),
-  bajoMinimo: z.enum(["true", "false"]).default("false"), ...paginacion,
+  bajoMinimo: z.enum(["true", "false"]).default("false"),
+  ordenar: esquemaOrden(CAMPOS_ORDEN_MATERIAL).optional(), ...paginacion,
 });
 export const esquemaConsultaMovimientos = z.object({ material: id.optional(), tipo: z.enum(TIPOS_MOVIMIENTO).optional(),
-  orden: id.optional(), usuario: id.optional(), desde: z.iso.date().optional(), hasta: z.iso.date().optional(), ...paginacion,
+  orden: id.optional(), usuario: id.optional(), desde: z.iso.date().optional(), hasta: z.iso.date().optional(),
+  ordenar: esquemaOrden(CAMPOS_ORDEN_MOVIMIENTO).optional(), ...paginacion,
 }).refine((datos) => !datos.desde || !datos.hasta || datos.desde <= datos.hasta,
   { path: ["hasta"], message: "La fecha final debe ser igual o posterior a la inicial." });
 export function objetoDeParametros(parametros: URLSearchParams | Record<string, string | string[] | undefined>) {

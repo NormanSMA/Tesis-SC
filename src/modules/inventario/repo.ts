@@ -2,8 +2,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 import { incluirMovimiento } from "./dto";
 import { noEncontrado } from "./errores";
+import type { DireccionOrden, Orden } from "@/lib/listas/orden";
 import { limitesFecha } from "./reglas";
 import type { ConsultaMateriales, ConsultaMovimientos, EditarMaterial } from "./schema";
+import { ORDEN_MATERIAL_DEFECTO, ORDEN_MOVIMIENTO_DEFECTO } from "./tipos";
 
 export async function bloquearMaterial(tx: Tx, id: string) {
   await tx.$queryRaw`SELECT id FROM material WHERE id = ${id}::uuid FOR UPDATE`;
@@ -14,6 +16,11 @@ export async function bloquearMaterial(tx: Tx, id: string) {
 export function filtroAlerta(): Prisma.MaterialWhereInput {
   return { activo: true, stockMinimo: { gt: 0 }, existencia: { lte: prisma.material.fields.stockMinimo } };
 }
+/** Campo del orden elegido (lista blanca ya validada) más desempate por id en la misma dirección. */
+function ordenLista<C extends string>(orden: Orden<C> | undefined, defecto: Orden<C>) {
+  const { campo, direccion } = orden ?? defecto;
+  return [{ [campo]: direccion }, { id: direccion }] as [Partial<Record<C, DireccionOrden>>, { id: DireccionOrden }];
+}
 export async function consultarMateriales(consulta: ConsultaMateriales) {
   const where: Prisma.MaterialWhereInput = { activo: consulta.activo === "todos" ? undefined : consulta.activo === "true" };
   if (consulta.q) {
@@ -22,7 +29,7 @@ export async function consultarMateriales(consulta: ConsultaMateriales) {
   }
   if (consulta.bajoMinimo === "true") where.AND = [filtroAlerta()];
   const [filas, total, materiales, enAlerta, sinExistencia] = await Promise.all([
-    prisma.material.findMany({ where, orderBy: [{ nombre: "asc" }, { id: "asc" }],
+    prisma.material.findMany({ where, orderBy: ordenLista(consulta.ordenar, ORDEN_MATERIAL_DEFECTO),
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
     prisma.material.count({ where }), prisma.material.count({ where: { activo: true } }), prisma.material.count({ where: filtroAlerta() }),
     prisma.material.count({ where: { activo: true, existencia: 0 } }),
@@ -60,7 +67,7 @@ export async function consultarMovimientos(consulta: ConsultaMovimientos) {
     ...(consulta.orden && { consumo: { ordenId: consulta.orden } }) };
   const [filas, total] = await Promise.all([
     prisma.movimientoInventario.findMany({ where, include: incluirMovimiento,
-      orderBy: [{ creadoEn: "desc" }, { id: "desc" }], skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
+      orderBy: ordenLista(consulta.ordenar, ORDEN_MOVIMIENTO_DEFECTO), skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
     prisma.movimientoInventario.count({ where }),
   ]);
   return { filas, total };

@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FormField } from "@/components/comunes/FormField";
 import { Button } from "@/components/ui/button";
+import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +14,7 @@ import { ACCION_TEXTO, ENTIDAD_TEXTO } from "../etiquetas";
 import { ACCIONES, ENTIDADES, type ConsultaBitacora } from "../schema";
 
 const TODOS = "__todos__";
+const OPCIONES_ORDEN = [{ valor: "creadoEn:desc", etiqueta: "Más recientes" }, { valor: "creadoEn:asc", etiqueta: "Más antiguos" }];
 const PARAMETROS = { texto: null, entidad: null, accion: null, usuario: null, orden: null, cotizacion: null, desde: null, hasta: null };
 
 function Seleccion({ parametro, etiqueta, valor, opciones }: {
@@ -61,8 +63,8 @@ export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBita
   const avanzados = [consulta.entidad, consulta.accion, consulta.usuario, consulta.orden, consulta.cotizacion].filter(Boolean).length;
   const hayFiltros = avanzados > 0 || Boolean(consulta.texto || consulta.desde || consulta.hasta);
   return <div role="group" aria-label="Filtrar bitácora" className="mb-4 flex flex-wrap items-center gap-3">
-    <BuscadorEnVivo etiqueta="Buscar en la bitácora" parametro="texto" marcador="Buscar por detalle o registro"
-      className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
+    <BuscadorEnVivo etiqueta="Buscar en la bitácora" parametro="texto" marcador="Buscar por detalle"
+      className="basis-full sm:max-w-md lg:min-w-64 lg:basis-auto lg:flex-1" />
     <CampoFecha parametro="desde" etiqueta="Desde" valor={consulta.desde} />
     <CampoFecha parametro="hasta" etiqueta="Hasta" valor={consulta.hasta} />
     <Popover>
@@ -84,6 +86,7 @@ export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBita
         <CampoTexto parametro="cotizacion" etiqueta="Número de cotización" valor={consulta.cotizacion} />
       </PopoverContent>
     </Popover>
+    <SelectorOrden parametro="ordenar" opciones={OPCIONES_ORDEN} valorPorDefecto="creadoEn:desc" />
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10" onClick={() => navegar(PARAMETROS)}>Limpiar filtros</Button> : null}
   </div>;
 }

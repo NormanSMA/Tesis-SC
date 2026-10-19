@@ -5,6 +5,7 @@ import { useId } from "react";
 
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado } from "@/components/comunes/FiltroSegmentado";
+import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +13,11 @@ import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 
 import type { CategoriaDto } from "../tipos";
 
+const OPCIONES_ORDEN = [
+  { valor: "nombre:asc", etiqueta: "Nombre A-Z" }, { valor: "nombre:desc", etiqueta: "Nombre Z-A" },
+  { valor: "precio:asc", etiqueta: "Menor precio" }, { valor: "precio:desc", etiqueta: "Mayor precio" },
+  { valor: "creadoEn:desc", etiqueta: "Más recientes" },
+];
 const ESTADOS = [{ id: "true", nombre: "Activos" }, { id: "false", nombre: "Archivados" }];
 
 function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: string) => void }) {
@@ -45,7 +51,7 @@ export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) 
   const opciones = [{ valor: "todas", etiqueta: "Todas" }, ...categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre }))];
   return <div className="mb-4 flex flex-col gap-3">
    <div className="flex flex-wrap items-center gap-3">
-    <BuscadorEnVivo etiqueta="Buscar productos" marcador="Buscar por código, nombre o descripción" className="min-w-0 flex-1 sm:max-w-md" />
+    <BuscadorEnVivo etiqueta="Buscar productos" marcador="Buscar por código, nombre o descripción" className="basis-full sm:max-w-md sm:flex-1 sm:basis-auto" />
     <Popover>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" className="h-10 gap-2">
@@ -62,6 +68,7 @@ export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) 
         <CampoEstado valor={activo} alCambiar={(valor) => navegar({ activo: valor === "true" ? null : valor })} />
       </PopoverContent>
     </Popover>
+    <SelectorOrden opciones={OPCIONES_ORDEN} valorPorDefecto="nombre:asc" />
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
       onClick={() => navegar({ q: null, categoriaId: null, activo: null })}>Limpiar filtros</Button> : null}
    </div>

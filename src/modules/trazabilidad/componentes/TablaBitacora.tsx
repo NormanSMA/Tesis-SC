@@ -6,6 +6,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { formatearFechaHora } from "@/lib/formato";
+import { textoOrden } from "@/lib/listas/orden";
 import { textoCambioEstado } from "../etiquetas";
 import type { ConsultaBitacora } from "../schema";
 import type { EventoTrazabilidad, ListaBitacora } from "../tipos";
@@ -25,8 +26,10 @@ const columnas: ColumnaTabla<EventoTrazabilidad>[] = [
 ];
 export function TablaBitacora({ lista, consulta }: { lista: ListaBitacora; consulta: ConsultaBitacora }) {
   const hrefPagina = (pagina: number) => {
-    const parametros = new URLSearchParams(Object.entries(consulta).filter(([, valor]) => valor !== undefined)
+    const { ordenar, ...resto } = consulta;
+    const parametros = new URLSearchParams(Object.entries(resto).filter(([, valor]) => valor !== undefined)
       .map(([campo, valor]) => [campo, String(valor)]));
+    if (ordenar) parametros.set("ordenar", textoOrden(ordenar));
     parametros.set("pagina", String(pagina));
     return `/trazabilidad?${parametros}`;
   };

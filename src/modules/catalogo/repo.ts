@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 
 import type { ConsultaCategorias, ConsultaMateriales, ConsultaProductos, EntradaCrearProducto } from "./schema";
+import type { CampoOrdenProducto } from "./tipos";
 
 const COLUMNAS_PRODUCTO = {
   codigo: "codigo", nombre: "nombre", descripcion: "descripcion", categoriaId: "categoria_id",
@@ -15,11 +16,18 @@ export type CambiosCategoria = Partial<Record<keyof typeof COLUMNAS_CATEGORIA, s
 function contiene(texto: string) {
   return { contains: texto.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
 }
+function ordenProductos(orden: ConsultaProductos["orden"]): Prisma.ProductoOrderByWithRelationInput[] {
+  const { campo, direccion } = orden ?? { campo: "nombre", direccion: "asc" };
+  const campos: Record<CampoOrdenProducto, Prisma.ProductoOrderByWithRelationInput> = {
+    nombre: { nombre: direccion }, precio: { precioBase: direccion }, creadoEn: { creadoEn: direccion },
+  };
+  return [campos[campo], { id: direccion }];
+}
 export async function consultarProductos(consulta: ConsultaProductos) {
   const where: Prisma.ProductoWhereInput = { activo: consulta.activo, categoriaId: consulta.categoriaId };
   if (consulta.q) where.OR = [{ nombre: contiene(consulta.q) }, { codigo: contiene(consulta.q) }, { descripcion: contiene(consulta.q) }];
   const [filas, total] = await Promise.all([
-    prisma.producto.findMany({ where, include: { categoria: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }],
+    prisma.producto.findMany({ where, include: { categoria: true }, orderBy: ordenProductos(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
     prisma.producto.count({ where }),
   ]);

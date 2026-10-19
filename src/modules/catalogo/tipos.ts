@@ -1,5 +1,9 @@
 import type { UnidadCobro, UnidadMaterial } from "@/generated/prisma/enums";
 
+/** Campos de la lista blanca del parámetro orden=campo:direccion en la lista de productos. */
+export const CAMPOS_ORDEN_PRODUCTO = ["nombre", "precio", "creadoEn"] as const;
+export type CampoOrdenProducto = (typeof CAMPOS_ORDEN_PRODUCTO)[number];
+
 export type CategoriaDto = {
   id: string; nombre: string; descripcion: string | null; activo: boolean; actualizadoEn: string;
 };

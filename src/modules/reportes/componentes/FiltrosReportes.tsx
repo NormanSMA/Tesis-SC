@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatearFecha } from "@/lib/formato";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { TITULOS_REPORTES } from "../columnas";
 import { NOMBRES_REPORTES, type ConsultaReporte, type NombreReporte } from "../schema";
@@ -32,11 +31,6 @@ function FechaFiltro({ parametro, valor, error }: { parametro: "desde" | "hasta"
     </div>
     {error ? <p id={`${id}-error`} className="text-sm text-danger">{error}</p> : null}
   </div>;
-}
-
-function rotuloPeriodo(consulta: ConsultaReporte): string {
-  if (!consulta.desde || !consulta.hasta) return "";
-  return `Periodo consultado: del ${formatearFecha(consulta.desde)} al ${formatearFecha(consulta.hasta)}. `;
 }
 
 function MasFiltros({ nombre, consulta, areas }: Pick<Propiedades, "nombre" | "consulta" | "areas">) {
@@ -91,6 +85,7 @@ export function FiltrosReportes({ nombre, consulta, areas, campos }: Propiedades
       {conExtras ? <MasFiltros nombre={nombre} consulta={consulta} areas={areas} /> : null}
       {hayFiltros ? <Button type="button" variant="ghost" className="h-10" onClick={() => navegar(LIMPIAR)}>Limpiar filtros</Button> : null}
     </div>
-    {periodo ? <p className="text-sm text-muted-foreground">{rotuloPeriodo(consulta)}Fechas inclusivas de Managua. Periodo máximo: cinco años. Las completadas usan su fecha de finalización.</p> : null}
+    {/* El periodo ya se ve en Desde y Hasta; solo se aclara la regla que no es obvia. */}
+    {nombre === "carga-por-operario" ? <p className="text-sm text-muted-foreground">Las etapas completadas cuentan por su fecha de finalización.</p> : null}
   </div>;
 }

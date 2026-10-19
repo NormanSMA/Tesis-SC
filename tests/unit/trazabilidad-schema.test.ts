@@ -13,6 +13,13 @@ it("acepta todos los filtros y fechas iguales", () => {
   expect(esquemaConsultaBitacora.safeParse({ entidad: "COTIZACION", accion: "EDITAR", usuario: "00000000-0000-4000-8000-000000000001",
     orden: "OT-2026-0001", cotizacion: "COT-2026-0001", desde: "2026-10-06", hasta: "2026-10-06", pagina: "2", porPagina: "5" }).success).toBe(true);
 });
+it("valida ordenar con lista blanca sin tocar el filtro orden", () => {
+  expect(esquemaConsultaBitacora.parse({ orden: "OT-1", ordenar: "creadoEn:asc" }))
+    .toMatchObject({ orden: "OT-1", ordenar: { campo: "creadoEn", direccion: "asc" } });
+  for (const ordenar of ["numero:asc", "creadoEn:arriba", "creadoEn:asc:x"]) {
+    expect(esquemaConsultaBitacora.safeParse({ ordenar }).success).toBe(false);
+  }
+});
 it("incluye todo el día de Managua mediante límite final exclusivo", () => {
   const limites = limitesManagua({ desde: "2026-10-06", hasta: "2026-10-06" });
   expect(limites.gte?.toISOString()).toBe("2026-10-06T06:00:00.000Z");

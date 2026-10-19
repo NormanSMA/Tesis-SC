@@ -95,6 +95,12 @@ describe("catálogo: esquemas", () => {
       expect(esquemaConsultaProductos.safeParse(entrada).success).toBe(false);
     }
   });
+  it("valida el orden de productos con lista blanca", () => {
+    expect(esquemaConsultaProductos.parse({ orden: "precio:desc" }).orden).toEqual({ campo: "precio", direccion: "desc" });
+    for (const orden of ["codigo:asc", "nombre:arriba", "nombre:asc:x"]) {
+      expect(esquemaConsultaProductos.safeParse({ orden }).success).toBe(false);
+    }
+  });
   it("consulta solo materiales activos por defecto y todas las categorías", () => {
     expect(esquemaConsultaMateriales.parse({})).toEqual({ activo: true });
     expect(esquemaConsultaCategorias.parse({}).activo).toBeUndefined();

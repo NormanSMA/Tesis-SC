@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 import { validarItemCatalogo, validarLinea } from "@/core/costeo";
+import { esquemaOrden } from "@/lib/listas/orden";
+
+import { CAMPOS_ORDEN_PRODUCTO } from "./tipos";
 
 export const CAMPOS_PRODUCTO = ["codigo", "nombre", "descripcion", "categoriaId", "unidadCobro", "precioBase", "costoUnitario"] as const;
 export const CAMPOS_CATEGORIA = ["nombre", "descripcion", "activo"] as const;
@@ -73,6 +76,7 @@ const consultaActivos = {
 };
 export const esquemaConsultaProductos = z.object({
   ...consultaActivos, categoriaId: identificador.optional(),
+  orden: esquemaOrden(CAMPOS_ORDEN_PRODUCTO).optional(),
   pagina: z.coerce.number().int().min(1).max(100_000).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 });

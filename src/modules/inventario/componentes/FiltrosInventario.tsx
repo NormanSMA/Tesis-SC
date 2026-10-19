@@ -4,13 +4,16 @@ import { SlidersHorizontal } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
+import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { textoOrden } from "@/lib/listas/orden";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { TIPOS_MOVIMIENTO } from "../schema";
+import { OPCIONES_ORDEN_MATERIAL, OPCIONES_ORDEN_MOVIMIENTO, ORDEN_MATERIAL_DEFECTO, ORDEN_MOVIMIENTO_DEFECTO } from "../tipos";
 
 const TODOS = "todos";
 const CLAVES_MOVIMIENTO = ["tipo", "material", "orden", "usuario", "desde", "hasta"] as const;
@@ -76,6 +79,7 @@ export function FiltrosMateriales({ resumen }: { resumen: { materiales: number; 
     <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos={TODOS} opciones={opciones} />
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
       onClick={() => navegar({ q: null, estado: null })}>Limpiar filtros</Button> : null}
+    <SelectorOrden parametro="ordenar" opciones={OPCIONES_ORDEN_MATERIAL} valorPorDefecto={textoOrden(ORDEN_MATERIAL_DEFECTO)} className="ml-auto" />
   </div>;
 }
 
@@ -100,5 +104,6 @@ export function FiltrosMovimientos({ materialId, opciones }: { materialId?: stri
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
       onClick={() => navegar(Object.fromEntries(CLAVES_MOVIMIENTO.filter((clave) => !(materialId && clave === "material")).map((clave) => [clave, null])))}>
       Limpiar filtros</Button> : null}
+    <SelectorOrden parametro="ordenar" opciones={OPCIONES_ORDEN_MOVIMIENTO} valorPorDefecto={textoOrden(ORDEN_MOVIMIENTO_DEFECTO)} className="ml-auto" />
   </div>;
 }
