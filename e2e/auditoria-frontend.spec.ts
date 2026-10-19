@@ -316,6 +316,8 @@ for (const perfil of PERFILES) {
   test(`auditoría de frontend: ${perfil.codigo}`, async ({ page }, testInfo) => {
     test.skip(!["portatil", "tableta"].includes(testInfo.project.name), "Auditoría limitada a portátil y tableta");
     test.setTimeout(240_000);
+    // Sin animaciones: axe mediría el contraste de una fila a mitad de su entrada (opacidad parcial).
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const auditoria: Auditoria = { page, perfil, ruta: "/login", hallazgos: [] };
     await registrarEventos(auditoria);
     try {

@@ -21,7 +21,7 @@ async function sesion(correo, clave) {
   await pagina.waitForURL((url) => !url.pathname.startsWith("/login"));
   return pagina;
 }
-const C = "7a326c78-d063-4074-8a75-3576b214fee3";
+const C = process.env.CLIENTE_ID;
 let p = await sesion("valentina.castro", "SEED_PASSWORD_ATENCION_CLIENTE");
 await p.goto(`http://127.0.0.1:3000/clientes/${C}/editar`); await p.waitForTimeout(1200);
 await p.locator('input[type="file"]').setInputFiles(logo); await p.waitForTimeout(1200);

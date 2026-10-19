@@ -136,7 +136,8 @@ async function convertirMixta(page: Page): Promise<void> {
   expect(conversion.responsableId).toBeFalsy();
   await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}/editar`);
   await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole("definition").filter({ hasText: fechaVisible(conversion.fechaEntrega) })).toBeVisible();
+  // La fecha de entrega va en la tarjeta de cifras de la cabecera.
+  await expect(page.getByRole("main").getByText(fechaVisible(conversion.fechaEntrega), { exact: true }).first()).toBeVisible();
   // El siguiente paso de una orden pendiente es iniciar la producción.
   await expect(page.getByRole("link", { name: "Iniciar producción", exact: true })).toBeVisible();
   await abrirPestana(page, "Especificaciones");
@@ -354,7 +355,7 @@ function registrarGestion(): void {
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
     await expect(page.getByRole("main").getByText("Gabriel Cortez", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("definition").filter({ hasText: fechaVisible(nuevaFecha) })).toBeVisible();
+    await expect(page.getByRole("main").getByText(fechaVisible(nuevaFecha), { exact: true }).first()).toBeVisible();
     await abrirPestana(page, "Historial");
     const historial = page.getByRole("list", { name: "Historial de la orden" });
     await expect(historial).toContainText("asignó el responsable");

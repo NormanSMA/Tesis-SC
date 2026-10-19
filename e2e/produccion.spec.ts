@@ -479,7 +479,7 @@ function registrarConsultaYCancelacion(): void {
     await entrarComo(page, PRODUCCION);
     await verificarTablero(page);
     await page.getByRole("button", { name: `Iniciar: ${RETRABAJO}`, exact: true }).click();
-    await expect(page.getByRole("table", { name: "Etapas: Marco López", exact: true })).toContainText("En curso");
+    await expect(page.getByRole("list", { name: "Etapas: Marco López", exact: true })).toContainText("En curso");
     // Gerencia solo consulta: la API rechaza la cancelación.
     await entrarComo(page, GERENCIA);
     const vigente = await leer<Orden>(page, `/ordenes/${orden.id}`);
