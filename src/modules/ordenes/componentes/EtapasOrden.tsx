@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
+import { TarjetaSeccion } from "@/components/comunes/TarjetaSeccion";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { Fecha } from "@/components/comunes/ValorFormateado";
 import { formatearFechaHora } from "@/lib/formato";
@@ -84,15 +85,17 @@ export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables 
   // "Marcar lista" vive en el encabezado de la ficha (siguiente paso) mientras la orden está en producción.
   const acciones = orden && permisos && (permisos.planificar || permisos.ejecutar);
   return <section ref={seccion} onClickCapture={(evento) => registrarAccion(evento.target)}
-    aria-labelledby="titulo-etapas"><h2 id="titulo-etapas" className="mb-2 text-xl font-semibold">Etapas</h2>
+    aria-labelledby="titulo-etapas" className="relative min-w-0"><span id="titulo-etapas" className="sr-only">Etapas</span>
     <span ref={estado} role="status" tabIndex={-1} className="sr-only" />
-    <p className="mb-4 text-sm text-muted-foreground">Consulte las etapas y sus fechas.</p>
-    {orden && permisos ? <div className="mb-4"><AccionesProduccionOrden orden={orden} areas={areas}
-      permisos={{ ...permisos, avanzar: permisos.avanzar && orden.estado !== "EN_PRODUCCION" }} /></div> : null}
-    <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
-      acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
-        permisos={permisos} responsables={responsables} /> : undefined}
-      apilarEnMovil
-      className="min-w-0 md:[&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] md:[&_th]:px-2 md:[&_td]:px-2" />
+    <TarjetaSeccion titulo="Etapas" descripcion="Consulte las etapas y sus fechas." sinRelleno>
+      {orden && permisos ? <div className="hidden border-b border-slate-100 p-5 has-[button,p,[role=alert]]:block">
+        <AccionesProduccionOrden orden={orden} areas={areas}
+          permisos={{ ...permisos, avanzar: permisos.avanzar && orden.estado !== "EN_PRODUCCION" }} /></div> : null}
+      <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
+        acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
+          permisos={permisos} responsables={responsables} /> : undefined}
+        apilarEnMovil
+        className="min-w-0 rounded-none border-0 shadow-none md:[&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] md:[&_th]:px-2 md:[&_td]:px-2" />
+    </TarjetaSeccion>
   </section>;
 }

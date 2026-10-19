@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
@@ -64,8 +65,7 @@ export function FiltrosCotizaciones({ conteos, clientes }: {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
-        <CampoSeleccion etiqueta="Cliente" valor={cliente} alCambiar={(valor) => navegar({ cliente: valor === TODOS ? null : valor })}
-          opciones={[{ id: TODOS, nombre: "Todos" }, ...clientes]} />
+        <FiltroBuscable etiqueta="Cliente" parametro="cliente" opciones={clientes} valorTodos={TODOS} />
         <CampoSeleccion etiqueta="Archivo" valor={archivadas} alCambiar={(valor) => navegar({ archivadas: valor === "false" ? null : valor })}
           opciones={ARCHIVADAS} />
       </PopoverContent>

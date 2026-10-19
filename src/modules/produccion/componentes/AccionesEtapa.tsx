@@ -34,7 +34,7 @@ export function AccionesEtapa({ etapa, estadoOrden, permisos, responsables = [],
     await solicitud.enviar({ url: `/api/v1/etapas/${etapa.id}/${accion}`, metodo: "POST", cuerpo: { version: etapa.actualizadoEn } });
   }
   return <div className="min-w-0 space-y-2 text-left"><AvisoProduccion {...solicitud} />
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 max-md:[&>button]:flex-1">
       {acciones.asignar ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
         aria-label={`Asignar responsable: ${etapa.nombre}`} onClick={() => setDialogo("responsable")}>Asignar</Button> : null}
       {acciones.fechas ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}

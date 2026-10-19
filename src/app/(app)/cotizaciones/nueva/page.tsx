@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { z } from "zod";
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { Calculator } from "lucide-react";
+import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { prisma } from "@/lib/db";
 import { NuevaCotizacion } from "@/modules/cotizaciones/componentes/NuevaCotizacion";
@@ -19,7 +20,8 @@ export default async function PaginaNuevaCotizacion({ searchParams }: {
     : null;
   const clienteId = clientes.find(({ id }) => id === cliente?.id)?.id ?? "";
   return <>
-    <PageHeader titulo="Nueva cotización" descripcion="Seleccione el cliente y describa el trabajo." />
+    <CabeceraFicha titulo="Nueva cotización" marca={<MarcaIcono><Calculator /></MarcaIcono>}
+      volver={{ href: "/cotizaciones", etiqueta: "Cotizaciones" }} meta={<span>Seleccione el cliente y describa el trabajo.</span>} />
     <NuevaCotizacion clientes={clientes} condiciones={configuracion.condiciones} clienteId={clienteId} />
   </>;
 }

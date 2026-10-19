@@ -24,7 +24,7 @@ export function CancelarOrden({ orden }: { orden: OrdenDto }) {
     if (await solicitud.enviar({ url: `/api/v1/ordenes/${orden.id}/cancelar`, metodo: "POST", cuerpo })) setAbierto(false);
   }
   return <Dialog open={abierto} onOpenChange={(valor) => !solicitud.enviando && setAbierto(valor)}>
-    <Button type="button" variant="destructive" onClick={() => setAbierto(true)}>Cancelar orden</Button>
+    <Button type="button" variant="outline" className="text-rose-700 hover:text-rose-800" onClick={() => setAbierto(true)}>Cancelar orden</Button>
     <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Cancelar {orden.numero}</DialogTitle>
       <DialogDescription>Omita las etapas pendientes. Conserve las etapas iniciadas y los consumos registrados.</DialogDescription></DialogHeader>
       <form id="cancelar-orden" onSubmit={confirmar} noValidate className="space-y-4">

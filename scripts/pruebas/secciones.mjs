@@ -21,7 +21,7 @@ const require = createRequire(import.meta.url);
 export const SECCIONES = {
   nucleo: {
     descripcion: "reglas puras, errores, cabeceras, siembra, transiciones y concurrencia cruzada",
-    unit: ["costeo", "permisos", "autorizacion", "errores", "http", "limites", "cabeceras", "api", "diseno", "rendimiento", "seed", "respaldo", "secciones", "env", "ip", "limite", "registro", "marca", "moneda"],
+    unit: ["costeo", "permisos", "autorizacion", "errores", "http", "limites", "cabeceras", "api", "diseno", "rendimiento", "seed", "respaldo", "secciones", "env", "ip", "limite", "registro", "marca", "moneda", "avatar", "listas", "navegacion"],
     integracion: ["costeo", "errores", "transiciones", "seed", "salud", "roles", "dto", "concurrencia", "limite"],
     e2e: ["base", "diseno"],
   },
@@ -57,7 +57,7 @@ export const SECCIONES = {
   },
   analitica: {
     descripcion: "trazabilidad, panel y reportes",
-    unit: ["trazabilidad", "panel", "reportes"], integracion: ["trazabilidad", "panel", "reportes"], e2e: ["panel", "trazabilidad"],
+    unit: ["trazabilidad", "panel", "reportes"], integracion: ["trazabilidad", "panel", "reportes", "contadores"], e2e: ["panel", "trazabilidad"],
   },
   interfaz: {
     descripcion: "pruebas de componentes con navegador (Edge), las más lentas",

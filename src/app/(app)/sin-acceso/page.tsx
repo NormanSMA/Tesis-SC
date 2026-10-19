@@ -21,7 +21,8 @@ export default async function PaginaSinAcceso() {
 
   return (
     <>
-      <PageHeader titulo="Sin acceso" />
+      <PageHeader titulo="Sin acceso" tituloVisible={false} />
+      <div className="mx-auto max-w-xl pt-4 sm:pt-10">
       <EmptyState
         icono={ShieldOff}
         titulo="No tiene permiso para ver esta sección"
@@ -32,6 +33,7 @@ export default async function PaginaSinAcceso() {
           </Button>
         }
       />
+      </div>
     </>
   );
 }

@@ -1,47 +1,46 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
-import { Card } from "@/components/ui/card";
+import { ListaDatos, TarjetaSeccion } from "@/components/comunes/TarjetaSeccion";
 import { monedaDe } from "@/modules/cotizaciones/moneda";
 import type { OrdenDto } from "../tipos";
 
-function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
-  return <div className="min-w-0"><dt className="text-sm text-muted-foreground">{etiqueta}</dt>
-    <dd className="mt-1 break-words [overflow-wrap:anywhere]">{children || "—"}</dd></div>;
-}
-
 export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: OrdenDto; verCliente: boolean; verCotizacion: boolean }) {
   const moneda = monedaDe(orden.cotizacion.moneda);
-  return <Card className="min-w-0 px-5"><h2 className="text-lg font-semibold">Cliente y cotización</h2>
-    <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
-      <Dato etiqueta="Cliente">{verCliente ? <Link href={`/clientes/${orden.cliente.id}`} className="text-primary underline">
-        {orden.cliente.nombre}</Link> : orden.cliente.nombre}</Dato>
-      <Dato etiqueta="Tipo">{orden.cliente.tipo === "EMPRESA" ? "Empresa" : "Persona"}</Dato>
-      <Dato etiqueta="Teléfono">{orden.cliente.telefono}</Dato><Dato etiqueta="Correo">{orden.cliente.correo}</Dato>
-      {verCliente ? <><Dato etiqueta="RUC">{orden.cliente.ruc}</Dato><Dato etiqueta="Dirección">{orden.cliente.direccion}</Dato></> : null}
-      <Dato etiqueta="Cotización">{verCotizacion ? <Link href={`/cotizaciones/${orden.cotizacion.id}`} className="text-primary underline">
-        {orden.cotizacion.numero}</Link> : orden.cotizacion.numero}</Dato>
-      <Dato etiqueta="Asunto">{orden.cotizacion.asunto}</Dato>
-    </dl>
-    {orden.cotizacion.total !== undefined ? <dl className="grid gap-4 sm:grid-cols-2">
-      <Dato etiqueta="Subtotal"><Money valor={orden.cotizacion.subtotal} moneda={moneda} /></Dato>
-      <Dato etiqueta="Descuento"><Money valor={orden.cotizacion.descuento} moneda={moneda} /></Dato>
-      <Dato etiqueta={`IVA (${orden.cotizacion.tasaImpuesto} %)`}><Money valor={orden.cotizacion.impuesto} moneda={moneda} /></Dato>
-      <Dato etiqueta="Total"><Money valor={orden.cotizacion.total} moneda={moneda} /></Dato></dl> : null}
-  </Card>;
+  const enlace = (href: string, texto: string) => <Link href={href} className="text-primary underline">{texto}</Link>;
+  return <TarjetaSeccion titulo="Cliente y cotización" className="min-w-0">
+    <div className="space-y-5">
+      <ListaDatos datos={[
+        { etiqueta: "Cliente", valor: verCliente ? enlace(`/clientes/${orden.cliente.id}`, orden.cliente.nombre) : orden.cliente.nombre },
+        { etiqueta: "Tipo", valor: orden.cliente.tipo === "EMPRESA" ? "Empresa" : "Persona" },
+        { etiqueta: "Teléfono", valor: orden.cliente.telefono || null }, { etiqueta: "Correo", valor: orden.cliente.correo || null },
+        ...(verCliente ? [{ etiqueta: "RUC", valor: orden.cliente.ruc || null }, { etiqueta: "Dirección", valor: orden.cliente.direccion || null }] : []),
+        { etiqueta: "Cotización", valor: verCotizacion ? enlace(`/cotizaciones/${orden.cotizacion.id}`, orden.cotizacion.numero) : orden.cotizacion.numero },
+        { etiqueta: "Asunto", valor: orden.cotizacion.asunto || null },
+      ]} />
+      {orden.cotizacion.total !== undefined ? <ListaDatos className="border-t border-slate-100 pt-5" datos={[
+        { etiqueta: "Subtotal", valor: <Money valor={orden.cotizacion.subtotal} moneda={moneda} /> },
+        { etiqueta: "Descuento", valor: <Money valor={orden.cotizacion.descuento} moneda={moneda} /> },
+        { etiqueta: `IVA (${orden.cotizacion.tasaImpuesto} %)`, valor: <Money valor={orden.cotizacion.impuesto} moneda={moneda} /> },
+        { etiqueta: "Total", valor: <Money valor={orden.cotizacion.total} moneda={moneda} /> },
+      ]} /> : null}
+    </div>
+  </TarjetaSeccion>;
 }
 
 export function DatosOrden({ orden }: { orden: OrdenDto }) {
-  return <Card className="min-w-0 px-5"><h2 className="text-lg font-semibold">Datos de la orden</h2>
-    <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
-      <Dato etiqueta="Inicio real"><Fecha valor={orden.fechaInicioReal} /></Dato>
-      <Dato etiqueta="Entrega real"><Fecha valor={orden.fechaEntregaReal} /></Dato>
-      <Dato etiqueta="Cierre"><Fecha valor={orden.fechaCierre} /></Dato>
-      <Dato etiqueta="Creación"><Fecha valor={orden.creadoEn} /></Dato>
-    </dl>
-    <div><h3 className="font-medium">Especificaciones</h3><p className="mt-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-      {orden.especificaciones || "Sin especificaciones."}</p></div>
-    {orden.motivoCancelacion ? <div><h3 className="font-medium">Motivo de cancelación</h3>
-      <p className="mt-2 break-words [overflow-wrap:anywhere]">{orden.motivoCancelacion}</p></div> : null}
-  </Card>;
+  return <TarjetaSeccion titulo="Datos de la orden" className="min-w-0">
+    <div className="space-y-5">
+      <ListaDatos datos={[
+        { etiqueta: "Inicio real", valor: orden.fechaInicioReal ? <Fecha valor={orden.fechaInicioReal} /> : null },
+        { etiqueta: "Entrega real", valor: orden.fechaEntregaReal ? <Fecha valor={orden.fechaEntregaReal} /> : null },
+        { etiqueta: "Cierre", valor: orden.fechaCierre ? <Fecha valor={orden.fechaCierre} /> : null },
+        { etiqueta: "Creación", valor: <Fecha valor={orden.creadoEn} /> },
+      ]} />
+      <div><h3 className="text-xs font-medium text-slate-500">Especificaciones</h3>
+        <p className="mt-1 text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+          {orden.especificaciones || "Sin especificaciones."}</p></div>
+      {orden.motivoCancelacion ? <div><h3 className="text-xs font-medium text-slate-500">Motivo de cancelación</h3>
+        <p className="mt-1 text-sm break-words [overflow-wrap:anywhere]">{orden.motivoCancelacion}</p></div> : null}
+    </div>
+  </TarjetaSeccion>;
 }

@@ -1,12 +1,11 @@
 "use client";
 
 import { SlidersHorizontal } from "lucide-react";
-import { useId } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import type { ConteosOrdenes, ReferenciaOrden } from "../tipos";
 
@@ -25,19 +24,6 @@ function opcionesVista(conteos?: ConteosOrdenes): OpcionSegmento[] {
     { valor: "CERRADA", etiqueta: "Cerradas", conteo: conteos?.CERRADA },
     { valor: "CANCELADA", etiqueta: "Canceladas", conteo: conteos?.CANCELADA },
   ];
-}
-
-function CampoSeleccion({ etiqueta, valor, opciones, alCambiar }: {
-  etiqueta: string; valor: string; opciones: ReferenciaOrden[]; alCambiar: (valor: string) => void;
-}) {
-  const id = useId();
-  return <div className="flex flex-col gap-1.5">
-    <label htmlFor={id} className="text-sm font-medium">{etiqueta}</label>
-    <Select value={valor} onValueChange={alCambiar}>
-      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
-      <SelectContent>{opciones.map((opcion) => <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>)}</SelectContent>
-    </Select>
-  </div>;
 }
 
 /** Barra de la lista: búsqueda en vivo, vistas rápidas y responsable. Todo vive en la URL. */
@@ -61,9 +47,8 @@ export function FiltrosOrdenes({ conteos, responsables }: { conteos?: ConteosOrd
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
-          <CampoSeleccion etiqueta="Responsable" valor={responsable}
-            alCambiar={(valor) => navegar({ responsable: valor === TODOS ? null : valor })}
-            opciones={[{ id: TODOS, nombre: "Todos" }, { id: "sin-responsable", nombre: "Sin responsable" }, ...responsables]} />
+          <FiltroBuscable etiqueta="Responsable" parametro="responsable" valorTodos={TODOS}
+            opciones={[{ id: "sin-responsable", nombre: "Sin responsable" }, ...responsables]} />
         </PopoverContent>
       </Popover>
       {hayFiltros ? <Button type="button" variant="ghost" className="h-10"

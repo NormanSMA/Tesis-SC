@@ -2,7 +2,7 @@
 
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelectorBuscable } from "@/components/comunes/SelectorBuscable";
 import { CampoArea, CampoSeleccion } from "@/modules/cotizaciones/componentes/CamposEditor";
 import type { OpcionesOrden } from "../tipos";
 
@@ -18,15 +18,9 @@ export function CamposOrden({ entrada, opciones, errores, hoy, convertir, soloRe
       opciones={opciones.categorias.map((categoria) => ({ id: categoria.id, nombre: `${categoria.nombre} (${categoria.etapas} etapas)` }))}
       ayuda="La categoría define las etapas de la orden." /> : null}
     <FormField id="responsableId" etiqueta="Responsable" error={errores.responsableId}>
-      {(atributos) => <Select value={entrada.responsableId || "sin-responsable"}
-        onValueChange={(valor) => alCambiar("responsableId", valor === "sin-responsable" ? "" : valor)}>
-        <SelectTrigger {...atributos}><SelectValue>
-          {opciones.responsables.find((responsable) => responsable.id === entrada.responsableId)?.nombre ?? "Sin responsable"}
-        </SelectValue></SelectTrigger>
-        <SelectContent><SelectItem value="sin-responsable">Sin responsable</SelectItem>
-          {opciones.responsables.map((responsable) => <SelectItem key={responsable.id} value={responsable.id}>
-            {responsable.nombre}</SelectItem>)}</SelectContent>
-      </Select>}
+      {(atributos) => <SelectorBuscable id={atributos.id} atributos={atributos} valor={entrada.responsableId || "sin-responsable"}
+        alCambiar={(valor) => alCambiar("responsableId", valor === "sin-responsable" ? "" : valor)} marcador="Buscar responsable"
+        opciones={[{ id: "sin-responsable", nombre: "Sin responsable" }, ...opciones.responsables]} />}
     </FormField>
     {!soloResponsable ? <><FormField id="fechaEntrega" etiqueta="Fecha de entrega" requerido error={errores.fechaEntrega}>
       {(atributos) => <Input {...atributos} type="date" min={hoy} value={entrada.fechaEntrega}

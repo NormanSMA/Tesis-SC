@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { CabeceraFicha } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { FormularioCliente } from "@/modules/clientes/componentes/FormularioCliente";
 
@@ -10,9 +10,10 @@ export default async function PaginaNuevoCliente() {
   await exigirPermisoPagina("cliente:gestionar");
   return (
     <>
-      <PageHeader
+      <CabeceraFicha
         titulo="Nuevo cliente"
-        descripcion="Registre una persona o empresa. Indique al menos un teléfono o un correo."
+        volver={{ href: "/clientes", etiqueta: "Clientes" }}
+        meta={<span>Registre una persona o empresa.</span>}
       />
       <FormularioCliente modo="crear" />
     </>

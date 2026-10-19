@@ -18,8 +18,8 @@ export function AccionesMaterial({ material, permisos }: { material: MaterialDto
     await solicitud.enviar({ url: `/api/v1/materiales/${material.id}/${accion}`, cuerpo: { version: material.actualizadoEn } });
     setAbierto(false);
   }
-  return <div id="acciones-material" className="space-y-3"><AvisoSolicitud {...solicitud} />
-    <div className="flex flex-wrap gap-3">
+  return <div id="acciones-material" className="min-w-0 space-y-3 max-sm:w-full"><AvisoSolicitud {...solicitud} />
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap max-sm:[&>*]:w-full">
       {material.activo && permisos.entrada ? <Button asChild><Link href={`/inventario/entrada?materialId=${material.id}`}>Registrar entrada</Link></Button> : null}
       {material.activo && permisos.ajustar ? <Button asChild variant="outline"><Link href={`/inventario/ajuste?materialId=${material.id}`}>Ajustar</Link></Button> : null}
       {permisos.gestionar ? <><Button asChild variant="outline"><Link href={`/inventario/${material.id}/editar`}>Editar</Link></Button>

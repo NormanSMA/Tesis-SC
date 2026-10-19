@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId, useState } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,11 +53,8 @@ function MasFiltros({ nombre, consulta, areas }: Pick<Propiedades, "nombre" | "c
           <SelectTrigger id="soloAlertas"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="false">Todos los materiales activos</SelectItem>
             <SelectItem value="true">Solo materiales en alerta</SelectItem></SelectContent></Select></div> : null}
-      {nombre === "ordenes-por-etapa" ? <div className="flex flex-col gap-1.5"><Label htmlFor="area">Área</Label>
-        <Select value={consulta.area ?? TODAS} onValueChange={(valor) => navegar({ area: valor === TODAS ? null : valor })}>
-          <SelectTrigger id="area"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value={TODAS}>Todas las áreas</SelectItem>
-            {areas.map((area) => <SelectItem key={area.id} value={area.id}>{area.nombre}</SelectItem>)}</SelectContent></Select></div> : null}
+      {nombre === "ordenes-por-etapa" ? <FiltroBuscable etiqueta="Área" parametro="area" opciones={areas}
+        textoTodos="Todas las áreas" valorTodos={TODAS} /> : null}
     </PopoverContent>
   </Popover>;
 }

@@ -2,28 +2,15 @@
 
 import { CircleAlert, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useId, useLayoutEffect, useRef, type ReactNode, type RefObject, type SubmitEvent } from "react";
+import { useId, useLayoutEffect, useRef, type RefObject, type SubmitEvent } from "react";
 
+import { CuerpoFormulario, PieFormulario, SeccionFormulario } from "@/components/comunes/SeccionFormulario";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 import { useFormularioCliente, type ModoFormulario } from "../useFormularioCliente";
 import { useHidratado } from "../useHidratado";
 import { CamposAdicionales, CamposContacto, CamposIdentificacion } from "./CamposCliente";
-
-function SeccionFormulario({ id, titulo, children }: { id: string; titulo: string; children: ReactNode }) {
-  return (
-    <Card role="group" aria-labelledby={id}>
-      <div className="space-y-5 px-5">
-        <h2 id={id} className="text-base font-semibold text-foreground">
-          {titulo}
-        </h2>
-        {children}
-      </div>
-    </Card>
-  );
-}
 
 function AvisoConflicto({ alRecargar }: { alRecargar: () => void }) {
   return (
@@ -120,32 +107,33 @@ export function FormularioCliente(propiedades: ModoFormulario) {
       onSubmit={enviarConFoco}
       noValidate
       aria-label={editando ? "Editar cliente" : "Nuevo cliente"}
-      className="max-w-3xl space-y-5"
     >
-      {conflicto ? <AvisoConflicto alRecargar={recargar} /> : null}
-      {errorGeneral ? <AvisoError mensaje={errorGeneral} /> : null}
-      {Object.entries(errores).map(([nombre, error]) => <span key={nombre}
-        id={`${prefijoError}-${nombre}-error`} hidden>{error?.message}</span>)}
-      <fieldset disabled={!hidratado} className="min-w-0 space-y-5">
-        <SeccionFormulario id="seccion-identificacion" titulo="Identificación">
-          <CamposIdentificacion formulario={formulario} />
-        </SeccionFormulario>
-        <SeccionFormulario id="seccion-contacto" titulo="Contacto">
-          <CamposContacto formulario={formulario} />
-        </SeccionFormulario>
-        <SeccionFormulario id="seccion-adicional" titulo="Información adicional">
-          <CamposAdicionales formulario={formulario} />
-        </SeccionFormulario>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" aria-disabled={enviando}>
-            {enviando ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
-            {editando ? "Guardar cambios" : "Guardar cliente"}
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href={cancelar}>Cancelar</Link>
-          </Button>
-        </div>
-      </fieldset>
+      <CuerpoFormulario>
+        {conflicto ? <AvisoConflicto alRecargar={recargar} /> : null}
+        {errorGeneral ? <AvisoError mensaje={errorGeneral} /> : null}
+        {Object.entries(errores).map(([nombre, error]) => <span key={nombre}
+          id={`${prefijoError}-${nombre}-error`} hidden>{error?.message}</span>)}
+        <fieldset disabled={!hidratado} className="min-w-0 space-y-8">
+          <SeccionFormulario titulo="Identificación" descripcion="Nombre, tipo de cliente y RUC.">
+            <CamposIdentificacion formulario={formulario} />
+          </SeccionFormulario>
+          <SeccionFormulario titulo="Contacto" descripcion="Indique al menos un teléfono o un correo.">
+            <CamposContacto formulario={formulario} />
+          </SeccionFormulario>
+          <SeccionFormulario titulo="Información adicional" descripcion="Dirección y notas.">
+            <CamposAdicionales formulario={formulario} />
+          </SeccionFormulario>
+          <PieFormulario>
+            <Button asChild variant="outline">
+              <Link href={cancelar}>Cancelar</Link>
+            </Button>
+            <Button type="submit" aria-disabled={enviando}>
+              {enviando ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
+              {editando ? "Guardar cambios" : "Guardar cliente"}
+            </Button>
+          </PieFormulario>
+        </fieldset>
+      </CuerpoFormulario>
     </form>
   );
 }

@@ -2,13 +2,13 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId, type ReactNode } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
 import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { textoOrden } from "@/lib/listas/orden";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
@@ -30,15 +30,7 @@ function Campo({ etiqueta, id, children }: { etiqueta: string; id: string; child
 
 /** Select que escribe su valor en la URL al cambiar. "Todos" quita el parámetro. */
 function CampoSelect({ etiqueta, parametro, opciones }: { etiqueta: string; parametro: string; opciones: { id: string; nombre: string }[] }) {
-  const id = useId();
-  const { parametros, navegar } = useParametrosUrl();
-  return <Campo etiqueta={etiqueta} id={id}>
-    <Select value={parametros.get(parametro) ?? TODOS} onValueChange={(valor) => navegar({ [parametro]: valor === TODOS ? null : valor })}>
-      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
-      <SelectContent>{[{ id: TODOS, nombre: "Todos" }, ...opciones].map((opcion) =>
-        <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>)}</SelectContent>
-    </Select>
-  </Campo>;
+  return <FiltroBuscable etiqueta={etiqueta} parametro={parametro} opciones={opciones} valorTodos={TODOS} />;
 }
 
 /** Fecha sin controlar: navegar con cada cambio no debe devolver el valor viejo mientras llega la URL nueva. */

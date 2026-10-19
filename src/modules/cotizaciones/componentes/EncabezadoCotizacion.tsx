@@ -1,34 +1,20 @@
-import type { ReactNode } from "react";
 import { Fecha } from "@/components/comunes/ValorFormateado";
-import { Card } from "@/components/ui/card";
+import { ListaDatos, TarjetaSeccion, type DatoFicha } from "@/components/comunes/TarjetaSeccion";
 import { nombreMoneda } from "../moneda";
 import type { CotizacionDto } from "../tipos";
-import { EstadoCotizacion } from "./EstadoCotizacion";
 
-/** Resumen de la ficha: cliente, versión, estado y resultado de la respuesta, con el siguiente paso en `children`. */
-export function EncabezadoCotizacion({ cotizacion, children }: { cotizacion: CotizacionDto; children: ReactNode }) {
-  const respuesta = cotizacion.usuarioAprobacion || cotizacion.referenciaAprobacion || cotizacion.motivoRechazo || cotizacion.motivoAjuste;
-  return <Card className="px-5" aria-label="Resumen de la cotización">
-    <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-      <div className="min-w-0"><dt className="text-muted-foreground">Cliente</dt><dd className="break-words font-medium">{cotizacion.cliente.nombre}</dd></div>
-      <div className="flex gap-1"><dt className="text-muted-foreground">Moneda:</dt>
-        <dd>{nombreMoneda(cotizacion.moneda)}</dd></div>
-      {cotizacion.moneda !== "NIO" ? <div className="flex gap-1"><dt className="text-muted-foreground">Tipo de cambio:</dt>
-        <dd>C$ {cotizacion.tipoCambio} por US$ 1</dd></div> : null}
-      <div><dt className="text-muted-foreground">Estado</dt><dd className="mt-1"><EstadoCotizacion estado={cotizacion.estado} /></dd></div>
-      <div><dt className="text-muted-foreground">Versión</dt><dd>Versión {cotizacion.version}</dd></div>
-      <div><dt className="text-muted-foreground">Vencimiento</dt><dd><Fecha valor={cotizacion.fechaVencimiento} /></dd></div>
-    </dl>
-    {respuesta ? <dl className="grid gap-4 rounded-md bg-muted p-4 text-sm sm:grid-cols-2">
-      {cotizacion.usuarioAprobacion ? <div><dt className="text-muted-foreground">Aprobación registrada por</dt>
-        <dd className="font-medium">{cotizacion.usuarioAprobacion.nombre}</dd></div> : null}
-      {cotizacion.referenciaAprobacion ? <div className="min-w-0"><dt className="text-muted-foreground">Referencia de aprobación</dt>
-        <dd className="break-words font-medium">{cotizacion.referenciaAprobacion}</dd></div> : null}
-      {cotizacion.motivoRechazo ? <div className="sm:col-span-2"><dt className="text-muted-foreground">Motivo del rechazo</dt>
-        <dd className="break-words">{cotizacion.motivoRechazo}</dd></div> : null}
-      {cotizacion.motivoAjuste ? <div className="sm:col-span-2"><dt className="text-muted-foreground">Motivo del ajuste</dt>
-        <dd className="break-words">{cotizacion.motivoAjuste}</dd></div> : null}
-    </dl> : null}
-    <div className="border-t pt-4">{children}</div>
-  </Card>;
+/** Resumen de la ficha: moneda, vencimiento y resultado de la respuesta. Cliente, estado y versión van en la cabecera. */
+export function EncabezadoCotizacion({ cotizacion }: { cotizacion: CotizacionDto }) {
+  const datos: DatoFicha[] = [
+    { etiqueta: "Moneda:", valor: nombreMoneda(cotizacion.moneda) },
+    ...(cotizacion.moneda !== "NIO" ? [{ etiqueta: "Tipo de cambio:", valor: `C$ ${cotizacion.tipoCambio} por US$ 1` }] : []),
+    { etiqueta: "Vencimiento", valor: <Fecha valor={cotizacion.fechaVencimiento} /> },
+    ...(cotizacion.usuarioAprobacion ? [{ etiqueta: "Aprobación registrada por", valor: cotizacion.usuarioAprobacion.nombre }] : []),
+    ...(cotizacion.referenciaAprobacion ? [{ etiqueta: "Referencia de aprobación", valor: cotizacion.referenciaAprobacion }] : []),
+    ...(cotizacion.motivoRechazo ? [{ etiqueta: "Motivo del rechazo", valor: cotizacion.motivoRechazo, ancho: true }] : []),
+    ...(cotizacion.motivoAjuste ? [{ etiqueta: "Motivo del ajuste", valor: cotizacion.motivoAjuste, ancho: true }] : []),
+  ];
+  return <div role="group" aria-label="Resumen de la cotización">
+    <TarjetaSeccion titulo="Resumen"><ListaDatos datos={datos} className="lg:grid-cols-1" /></TarjetaSeccion>
+  </div>;
 }

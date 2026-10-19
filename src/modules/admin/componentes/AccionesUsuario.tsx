@@ -41,9 +41,9 @@ export function AccionesUsuario(props: Propiedades) {
     setAccion(null);
   }
   return (
-    <section aria-label="Acciones del usuario" className="space-y-4">
+    <section aria-label="Acciones del usuario" className="space-y-3">
       {error ? <AvisoAdmin mensaje={error} /> : null}
-      <div className="flex flex-wrap gap-3">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 [&>button]:w-full">
         <Button className="min-h-10" variant="outline" disabled={enviando} onClick={() => setAccion("desbloquear")}>Desbloquear</Button>
         <Button className="min-h-10" variant="outline" disabled={enviando} onClick={() => setAccion(props.usuario.activo ? "desactivar" : "reactivar")}>
           {props.usuario.activo ? "Desactivar" : "Reactivar"}

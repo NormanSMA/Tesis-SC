@@ -20,13 +20,13 @@ export function LineaMovimientoOrden({ linea, indice, resumen, errores, cambiar,
     cambiar({ materialId: material?.id ?? "", codigo: material?.codigo ?? "", nombre: material?.nombre ?? "", existencia: material?.existencia ?? "0.000", unidad: material?.unidad ?? "" });
   }
   return <Card className="min-w-0 gap-4 px-5"><fieldset className="min-w-0 space-y-4">
-    <legend className="text-base font-semibold">Línea {indice + 1}: {linea.nombre || "Seleccione material"}</legend>
+    <legend className="max-w-full text-base font-semibold break-words">Línea {indice + 1}: {linea.nombre || "Seleccione material"}</legend>
     <SelectorMaterial id={`${prefijo}.materialId`} valor={linea.materialId} error={errores[`${prefijo}.materialId`]}
       cambiar={seleccionar} />
     <p className="text-sm">Existencia disponible: {formatearCantidadConUnidad(disponible, linea.unidad)}</p>
     <FormField id={`${prefijo}.cantidad`} etiqueta="Cantidad" requerido error={errores[`${prefijo}.cantidad`]
       ?? errores[`${prefijo}.disponible`] ?? errores[linea.materialId]}>{(atributos) => <Input {...atributos} inputMode="decimal"
         value={linea.cantidad} onChange={(e) => cambiar({ cantidad: e.target.value })} />}</FormField>
-    <Button type="button" variant="outline" onClick={quitar} aria-label={`Quitar línea ${indice + 1}`}>Quitar línea</Button>
+    <Button type="button" variant="outline" className="max-sm:w-full" onClick={quitar} aria-label={`Quitar línea ${indice + 1}`}>Quitar línea</Button>
   </fieldset></Card>;
 }

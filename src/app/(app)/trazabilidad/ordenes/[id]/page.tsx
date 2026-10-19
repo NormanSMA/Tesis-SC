@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { ClipboardList } from "lucide-react";
+import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AppError } from "@/lib/errores";
 import { CadenaTrabajo } from "@/modules/trazabilidad/componentes/CadenaTrabajo";
@@ -15,7 +16,8 @@ export default async function PaginaTrabajo({ params }: { params: Promise<{ id: 
     if (error instanceof AppError && error.status === 404) notFound();
     throw error;
   });
-  return <><PageHeader titulo={`Trazabilidad completa: ${trazabilidad.cadena.orden.numero}`}
-    descripcion="Consulte la cadena vinculada, los materiales y todos los eventos del trabajo." />
+  return <><CabeceraFicha titulo={`Trazabilidad completa: ${trazabilidad.cadena.orden.numero}`}
+    marca={<MarcaIcono><ClipboardList /></MarcaIcono>} volver={{ href: "/trazabilidad", etiqueta: "Trazabilidad" }}
+    meta={<span>Consulte la cadena vinculada, los materiales y todos los eventos del trabajo.</span>} />
     <div className="min-w-0 space-y-6"><CadenaTrabajo cadena={trazabilidad.cadena} /><DetalleTrabajo trazabilidad={trazabilidad} /></div></>;
 }

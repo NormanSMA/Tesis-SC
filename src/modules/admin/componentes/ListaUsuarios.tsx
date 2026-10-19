@@ -83,7 +83,7 @@ const ESTADOS_USUARIO: Record<EstadoUsuario, { etiqueta: string; tono: "exito" |
   INACTIVO: { etiqueta: "Inactivo", tono: "neutro", icono: CircleMinus },
 };
 
-function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
+export function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
   const { etiqueta, tono, icono: Icono } = ESTADOS_USUARIO[estado];
   return <Badge variant={tono}><Icono aria-hidden="true" />{etiqueta}</Badge>;
 }

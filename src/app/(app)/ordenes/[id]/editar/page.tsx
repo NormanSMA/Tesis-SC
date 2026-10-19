@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { CabeceraFicha } from "@/components/comunes/CabeceraFicha";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
@@ -18,6 +18,7 @@ export default async function PaginaEditarOrden({ params }: { params: Promise<{ 
   const orden = await cargarOrden((await params).id, actor);
   if (!EDITABLES.includes(orden.estado)) redirect(`/ordenes/${orden.id}`);
   const opciones = await opcionesOrden(actor);
-  return <><PageHeader titulo={`Editar ${orden.numero}`} descripcion={orden.cliente.nombre} />
+  return <><CabeceraFicha titulo={`Editar ${orden.numero}`} meta={<span>{orden.cliente.nombre}</span>}
+    volver={{ href: `/ordenes/${orden.id}`, etiqueta: orden.numero }} className="mx-auto max-w-2xl" />
     <FormularioOrden key={orden.actualizadoEn} orden={orden} opciones={opciones} hoy={hoyManagua()} soloResponsable={!gestionar} /></>;
 }

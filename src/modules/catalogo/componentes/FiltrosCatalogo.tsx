@@ -3,6 +3,7 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useId } from "react";
 
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado } from "@/components/comunes/FiltroSegmentado";
 import { SelectorOrden } from "@/components/comunes/SelectorOrden";
@@ -31,17 +32,6 @@ function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: s
   </div>;
 }
 
-function CampoCategoria({ opciones, valor, alCambiar }: { opciones: { valor: string; etiqueta: string }[]; valor: string; alCambiar: (valor: string) => void }) {
-  const id = useId();
-  return <div className="flex flex-col gap-1.5 md:hidden">
-    <label htmlFor={id} className="text-sm font-medium">Categoría</label>
-    <Select value={valor} onValueChange={alCambiar}>
-      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
-      <SelectContent>{opciones.map((opcion) => <SelectItem key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</SelectItem>)}</SelectContent>
-    </Select>
-  </div>;
-}
-
 /** Barra de la lista: búsqueda en vivo, categorías como pastillas y estado en "Más filtros". Todo vive en la URL. */
 export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) {
   const { parametros, navegar } = useParametrosUrl();
@@ -63,8 +53,8 @@ export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) 
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
         {/* En móvil la categoría vive aquí: las pastillas ocuparían varias líneas. */}
-        <CampoCategoria opciones={opciones} valor={parametros.get("categoriaId") ?? "todas"}
-          alCambiar={(valor) => navegar({ categoriaId: valor === "todas" ? null : valor })} />
+        <FiltroBuscable etiqueta="Categoría" parametro="categoriaId" valorTodos="todas" textoTodos="Todas" className="md:hidden"
+          opciones={categorias.map((categoria) => ({ id: categoria.id, nombre: categoria.nombre }))} />
         <CampoEstado valor={activo} alCambiar={(valor) => navegar({ activo: valor === "true" ? null : valor })} />
       </PopoverContent>
     </Popover>

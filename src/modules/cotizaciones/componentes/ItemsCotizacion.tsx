@@ -65,13 +65,16 @@ export function CostosInternosCotizacion({ items, margenPct, moneda }: { items: 
 }
 
 /** `categorias` traduce categoriaId a nombre para mostrar la ilustración del servicio. Sin ella, no hay ilustración. */
-export function ItemsCotizacion({ items, moneda, mostrarCostos = true, categorias = [] }: {
+export function ItemsCotizacion({ items, moneda, mostrarCostos = true, categorias = [], sinMarco = false }: {
   items: ItemDto[]; moneda?: string; mostrarCostos?: boolean; categorias?: { id: string; nombre: string }[];
+  /** Quita borde y sombra de la tabla cuando va dentro de una `TarjetaSeccion`. */
+  sinMarco?: boolean;
 }) {
   const monedaItems = monedaDe(moneda);
   const nombres = new Map(categorias.map((categoria) => [categoria.id, categoria.nombre]));
   return <div className="space-y-4">
-    <DataTable titulo="Ítems de cotización" columnas={columnasItems(nombres, monedaItems)} filas={items} idFila={(item) => item.id} />
+    <DataTable titulo="Ítems de cotización" columnas={columnasItems(nombres, monedaItems)} filas={items} idFila={(item) => item.id}
+      className={sinMarco ? "rounded-none border-0 shadow-none" : undefined} />
     {mostrarCostos ? items.filter((item) => item.tipo === "PERSONALIZADO").map((item) => <CostosItem key={item.id} item={item} moneda={monedaItems} />) : null}
   </div>;
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PageHeader } from "@/components/comunes/PageHeader";
-import { Button } from "@/components/ui/button";
+import { Calculator } from "lucide-react";
+import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { prisma } from "@/lib/db";
 import { ImprimirProforma } from "@/modules/cotizaciones/componentes/ImprimirProforma";
@@ -16,8 +15,9 @@ export default async function PaginaImprimirCotizacion({ params }: { params: Pro
   await exigirPermisoPagina("cotizacion:ver");
   const [cotizacion, configuracion] = await Promise.all([cargarCotizacion((await params).id), configuracionCotizacion(prisma)]);
   return <>
-    <div className="controles-impresion"><PageHeader titulo="Proforma imprimible" descripcion="Imprima o guarde la proforma como PDF."
-      acciones={<><ImprimirProforma /><Button asChild variant="outline"><Link href={`/cotizaciones/${cotizacion.id}`}>Volver al detalle</Link></Button></>} /></div>
+    <div className="controles-impresion"><CabeceraFicha titulo="Proforma imprimible" marca={<MarcaIcono><Calculator /></MarcaIcono>}
+      meta={<span>Imprima o guarde la proforma como PDF.</span>}
+      volver={{ href: `/cotizaciones/${cotizacion.id}`, etiqueta: "Volver al detalle" }} acciones={<ImprimirProforma />} /></div>
     <Proforma cotizacion={cotizacion} empresaNombre={configuracion.empresaNombre} />
   </>;
 }

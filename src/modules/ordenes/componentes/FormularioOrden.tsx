@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { CuerpoFormulario, PieFormulario, SeccionFormulario } from "@/components/comunes/SeccionFormulario";
 import { Card } from "@/components/ui/card";
 import { enfocarError, erroresEsquema } from "@/modules/cotizaciones/useSolicitudCotizacion";
 import { esquemaCrearOrden, esquemaEditarOrden } from "../schema";
@@ -36,16 +37,22 @@ export function FormularioOrden({ opciones, hoy, orden, propuesta, soloResponsab
   const responsableActual = orden?.responsable;
   const responsables = responsableActual && !opciones.responsables.some((responsable) => responsable.id === responsableActual.id)
     ? [...opciones.responsables, { ...responsableActual, nombre: `${responsableActual.nombre} (responsable actual)` }] : opciones.responsables;
+  const campo = <CamposOrden entrada={entrada} opciones={{ ...opciones, responsables }} errores={campos} hoy={hoy} convertir={!orden} soloResponsable={soloResponsable}
+    alCambiar={(nombre, valor) => { setErrores({}); setEntrada({ ...entrada, [nombre]: valor }); }} />;
   return <form id="formulario-orden" onSubmit={guardar} noValidate aria-label={orden ? "Editar orden" : "Convertir cotización en orden"}
-    className="max-w-3xl space-y-5">
-    <AvisoGuardado {...solicitud} />
-    <Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
-      <CamposOrden entrada={entrada} opciones={{ ...opciones, responsables }} errores={campos} hoy={hoy} convertir={!orden} soloResponsable={soloResponsable}
-        alCambiar={(campo, valor) => { setErrores({}); setEntrada({ ...entrada, [campo]: valor }); }} />
-    </fieldset></Card>
-    <div className="flex flex-wrap gap-3"><Button type="submit" disabled={solicitud.enviando}>
-      {orden ? "Guardar cambios" : "Convertir en orden"}</Button>
+    className={orden ? "mx-auto w-full max-w-2xl space-y-5" : undefined}>
+    {orden ? <>
+      <AvisoGuardado {...solicitud} />
+      <Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">{campo}</fieldset></Card>
+    </> : <CuerpoFormulario>
+      <AvisoGuardado {...solicitud} />
+      <SeccionFormulario titulo="Datos de la orden" descripcion="La categoría define las etapas. Indique responsable, entrega y especificaciones.">
+        <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">{campo}</fieldset>
+      </SeccionFormulario>
+    </CuerpoFormulario>}
+    <PieFormulario>
       <Button asChild variant="outline"><Link href={orden ? `/ordenes/${orden.id}` : "/ordenes"}>Cancelar</Link></Button>
-    </div>
+      <Button type="submit" disabled={solicitud.enviando}>{orden ? "Guardar cambios" : "Convertir en orden"}</Button>
+    </PieFormulario>
   </form>;
 }

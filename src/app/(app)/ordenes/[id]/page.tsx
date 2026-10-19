@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { cache } from "react";
-import { PageHeader } from "@/components/comunes/PageHeader";
-import { EstadoBadge } from "@/components/comunes/EstadoBadge";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { MaterialesOrden } from "@/modules/inventario/componentes/MaterialesOrden";
@@ -34,10 +32,9 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
     avanzar: can(actor, "orden:avanzar") };
   const opciones = can(actor, "produccion:ver") && (permisosEtapas.planificar || permisosEtapas.avanzar)
     ? await opcionesProduccion(actor) : { areas: [], responsables: [] };
-  return <>
-    <PageHeader titulo={orden.numero} descripcion={orden.cliente.nombre} acciones={<EstadoBadge tipo="orden" estado={orden.estado} />} />
-    <div className="min-w-0 space-y-6" key={orden.actualizadoEn}>
-      <EncabezadoOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+  return <div className="min-w-0" key={orden.actualizadoEn}>
+    <EncabezadoOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+    <div className="min-w-0 space-y-6">
       <EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas}
         areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
       <FichaOrden
@@ -47,5 +44,5 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
         materiales={can(actor, "inventario:ver") ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : undefined}
         historial={<LineaTiempoOrden eventos={orden.eventos} />} />
     </div>
-  </>;
+  </div>;
 }

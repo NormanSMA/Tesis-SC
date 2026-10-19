@@ -1,36 +1,23 @@
 "use client";
 
 import { SlidersHorizontal } from "lucide-react";
-import { useId } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import type { ReferenciaOrden } from "@/modules/ordenes/tipos";
 
 const TODOS = "__todos__";
 
 function CampoArea({ areas }: { areas: ReferenciaOrden[] }) {
-  const { parametros, navegar } = useParametrosUrl();
-  const id = useId();
-  return <div className="flex flex-col gap-1.5 md:hidden">
-    <label htmlFor={id} className="text-sm font-medium">Área</label>
-    <Select value={parametros.get("area") ?? TODOS} onValueChange={(valor) => navegar({ area: valor === TODOS ? null : valor })}>
-      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value={TODOS}>Todas las áreas</SelectItem>
-        {areas.map((area) => <SelectItem key={area.id} value={area.id}>{area.nombre}</SelectItem>)}
-      </SelectContent>
-    </Select>
-  </div>;
+  return <FiltroBuscable etiqueta="Área" parametro="area" opciones={areas} textoTodos="Todas las áreas" valorTodos={TODOS} className="md:hidden" />;
 }
 
 /** Barra del tablero: búsqueda en vivo, estado y área en pastillas, responsable en "Más filtros" (y área en móvil). Todo vive en la URL. */
 export function FiltrosProduccion({ opciones }: { opciones: { areas: ReferenciaOrden[]; responsables: ReferenciaOrden[] } }) {
   const { parametros, navegar } = useParametrosUrl();
-  const idResponsable = useId();
   const responsable = parametros.get("responsable") ?? TODOS;
   const secundarios = Number(responsable !== TODOS);
   const hayFiltros = secundarios > 0 || ["q", "area", "estado"].some((clave) => Boolean(parametros.get(clave)));
@@ -52,16 +39,8 @@ export function FiltrosProduccion({ opciones }: { opciones: { areas: ReferenciaO
         <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
           {/* En móvil el área vive aquí: las pastillas ocuparían varias líneas. */}
           <CampoArea areas={opciones.areas} />
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={idResponsable} className="text-sm font-medium">Responsable</label>
-            <Select value={responsable} onValueChange={(valor) => navegar({ responsable: valor === TODOS ? null : valor })}>
-              <SelectTrigger id={idResponsable}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos los responsables</SelectItem>
-                {opciones.responsables.map((usuario) => <SelectItem key={usuario.id} value={usuario.id}>{usuario.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <FiltroBuscable etiqueta="Responsable" parametro="responsable" opciones={opciones.responsables}
+            textoTodos="Todos los responsables" valorTodos={TODOS} />
         </PopoverContent>
       </Popover>
       {hayFiltros ? <Button type="button" variant="ghost" className="h-10"

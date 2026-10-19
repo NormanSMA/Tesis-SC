@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { ETIQUETA_ESTADO_ORDEN, etiquetar } from "../etiquetas";
 import { useRef, useState, type FormEvent } from "react";
+import { PieFormulario } from "@/components/comunes/SeccionFormulario";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { enfocarError, erroresEsquema } from "@/modules/cotizaciones/useSolicitudCotizacion";
 import { esquemaMovimientosOrden, type ResumenOrdenInventario } from "../contrato-orden";
 import { pendienteEstimado } from "../reglas";
@@ -54,9 +56,9 @@ function useMovimientosOrden({ resumen, tipo, recargar }: { resumen: ResumenOrde
 function EditorMovimientos({ resumen, numeroOrden, tipo, recargar }: { resumen: ResumenOrdenInventario; numeroOrden: string; tipo: Tipo; recargar: () => void }) {
   const movimientos = useMovimientosOrden({ resumen, tipo, recargar });
   const { lineas, errores, solicitud, admite, cambiar, guardar } = movimientos;
-  return <form id="formulario-movimientos-orden" className="max-w-3xl space-y-5" onSubmit={guardar} noValidate
+  return <form id="formulario-movimientos-orden" className="min-w-0 space-y-5" onSubmit={guardar} noValidate
     aria-label={tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante"}>
-    <p>Estado de la orden: {etiquetar(ETIQUETA_ESTADO_ORDEN, resumen.estadoOrden)}</p>
+    <Card className="min-w-0 px-5"><p>Estado de la orden: {etiquetar(ETIQUETA_ESTADO_ORDEN, resumen.estadoOrden)}</p>
     <AvisoSolicitud {...solicitud} exito={tipo === "devolucion" && solicitud.exito} />
     {tipo === "consumo" && solicitud.exito ? <p role="status">Consumo registrado</p> : null}
     {!admite ? <p role="alert">El estado de la orden no admite esta operación.</p> : null}
@@ -65,12 +67,14 @@ function EditorMovimientos({ resumen, numeroOrden, tipo, recargar }: { resumen: 
       {lineas.map((linea, indice) => <LineaMovimientoOrden key={linea.clave} linea={linea} indice={indice} resumen={resumen}
         errores={{ ...errores, ...solicitud.campos }} quitar={() => cambiar(lineas.filter((fila) => fila.clave !== linea.clave))}
         cambiar={(valores) => cambiar(lineas.map((fila) => fila.clave === linea.clave ? { ...fila, ...valores } : fila))} />)}
-      <Button type="button" variant="outline" disabled={lineas.length >= 50} onClick={() => cambiar([...lineas,
+      <Button type="button" variant="outline" className="max-sm:w-full" disabled={lineas.length >= 50} onClick={() => cambiar([...lineas,
         { clave: crypto.randomUUID(), materialId: "", codigo: "", nombre: "", cantidad: "", existencia: "0.000", unidad: "" }])}>Agregar material</Button>
       {errores.lineas ? <p role="alert">{errores.lineas}</p> : null}
-    </fieldset>
-    <div className="flex flex-wrap gap-3"><Button id="registrar-movimiento" type="submit" disabled={solicitud.enviando || !admite}>{tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante"}</Button>
-      <Button asChild variant="outline"><Link id="volver-orden" href={`/ordenes/${resumen.ordenId}`}>Volver a la orden</Link></Button></div>
+    </fieldset></Card>
+    <PieFormulario className="max-sm:[&>div]:flex-col max-sm:[&>div>*]:w-full">
+      <Button asChild variant="outline"><Link id="volver-orden" href={`/ordenes/${resumen.ordenId}`}>Volver a la orden</Link></Button>
+      <Button id="registrar-movimiento" type="submit" disabled={solicitud.enviando || !admite}>{tipo === "consumo" ? "Registrar consumo" : "Devolver sobrante"}</Button>
+    </PieFormulario>
     {tipo === "consumo" ? <ConfirmarConsumo abierto={movimientos.pendientes !== null} numeroOrden={numeroOrden}
       lineas={resumirConsumo(movimientos.pendientes ?? [])} cerrar={movimientos.cerrar}
       confirmar={movimientos.confirmar} devolverFoco={movimientos.devolverFoco} /> : null}
@@ -78,7 +82,7 @@ function EditorMovimientos({ resumen, numeroOrden, tipo, recargar }: { resumen: 
 }
 export function FormularioMovimientosOrden({ ordenId, numeroOrden = "", tipo }: { ordenId: string; numeroOrden?: string; tipo: Tipo }) {
   const { resumen, error, recargar } = useResumenOrden(ordenId);
-  if (error) return <div role="alert"><p>{error}</p><Button onClick={recargar}>Reintentar</Button></div>;
+  if (error) return <div role="alert"><p>{error}</p><Button className="max-sm:w-full" onClick={recargar}>Reintentar</Button></div>;
   if (!resumen) return <p role="status">Cargando materiales de la orden…</p>;
   return <EditorMovimientos key={`${ordenId}:${tipo}`} resumen={resumen} numeroOrden={numeroOrden} tipo={tipo} recargar={recargar} />;
 }

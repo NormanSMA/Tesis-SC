@@ -4,13 +4,14 @@ import Link from "next/link";
 import { cache } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
+import { CabeceraFicha } from "@/components/comunes/CabeceraFicha";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AccionesEstado } from "@/modules/clientes/componentes/AccionesEstado";
 import { DatosCliente } from "@/modules/clientes/componentes/DatosCliente";
-import { EncabezadoFicha } from "@/modules/clientes/componentes/EncabezadoFicha";
 import { EstadoCliente } from "@/modules/clientes/componentes/EstadoCliente";
 import {
   ActividadCliente,
@@ -83,6 +84,16 @@ function detalleDe(ficha: FichaCliente): string {
   return ficha.ruc ? `${ETIQUETA_TIPO[ficha.tipo]} · RUC ${ficha.ruc}` : ETIQUETA_TIPO[ficha.tipo];
 }
 
+function MetaCliente({ ficha }: { ficha: FichaCliente }) {
+  return (
+    <>
+      <span className="font-medium text-foreground">{ficha.codigoCliente}</span>
+      <EstadoCliente activo={ficha.activo} />
+      <span>{detalleDe(ficha)}</span>
+    </>
+  );
+}
+
 const LISTA_PESTANAS = "h-auto w-full flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto";
 const PESTANA = "h-10 min-h-10 flex-none px-4";
 
@@ -91,11 +102,11 @@ export default async function PaginaFichaCliente({ params }: { params: Promise<{
   const puedeGestionar = can(actor, "cliente:gestionar");
   return (
     <>
-      <EncabezadoFicha
+      <CabeceraFicha
         titulo={ficha.nombre}
-        codigo={ficha.codigoCliente}
-        estado={<EstadoCliente activo={ficha.activo} />}
-        detalle={detalleDe(ficha)}
+        volver={{ href: "/clientes", etiqueta: "Clientes" }}
+        marca={<AvatarIniciales nombre={ficha.nombre} className="size-12 text-sm" />}
+        meta={<MetaCliente ficha={ficha} />}
         acciones={
           puedeGestionar ? <AccionesFicha ficha={ficha} puedeCotizar={can(actor, "cotizacion:gestionar")} /> : null
         }
@@ -109,7 +120,7 @@ export default async function PaginaFichaCliente({ params }: { params: Promise<{
           <TabsTrigger value="actividad" className={PESTANA}>Actividad</TabsTrigger>
         </TabsList>
         <TabsContent value="resumen" className="pt-4">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid items-start gap-4 lg:grid-cols-3">
             <DatosCliente cliente={ficha} className={ficha.resumen ? "lg:col-span-2" : "lg:col-span-3"} />
             {ficha.resumen ? <ResumenCliente resumen={ficha.resumen} /> : null}
           </div>

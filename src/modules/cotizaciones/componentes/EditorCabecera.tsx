@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { validarCotizacion } from "@/core/costeo";
 import { descuentoParaGuardar, montoDePorcentajeEscrito, porcentajeDeMonto, type ModoDescuento } from "../calculo";
 import { esquemaEditarCotizacion } from "../schema";
@@ -46,8 +45,8 @@ export function EditorCabecera({ cotizacion }: { cotizacion: CotizacionDto }) {
   }
   return <form id="cabecera-cotizacion" aria-label="Datos de cotización" onSubmit={guardar} noValidate className="space-y-4">
     <AvisoGuardado {...solicitud} />
-    <Card className="px-5"><fieldset disabled={solicitud.enviando} className="space-y-4">
-      <legend className="mb-4 text-xl font-semibold">Datos de cotización</legend>
+    <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-4">
+      <legend className="sr-only">Datos de cotización</legend>
       <CampoTexto id="cabecera-asunto" etiqueta="Asunto" requerido valor={entrada.asunto} error={campos.asunto} alCambiar={(valor) => actualizar("asunto", valor)} />
       <CampoArea id="cabecera-condiciones" etiqueta="Condiciones comerciales" valor={entrada.condiciones} error={campos.condiciones} alCambiar={(valor) => actualizar("condiciones", valor)} />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -60,7 +59,7 @@ export function EditorCabecera({ cotizacion }: { cotizacion: CotizacionDto }) {
       <p className="text-sm text-muted-foreground">{modo === "PORCENTAJE"
         ? "El monto se calcula sobre el subtotal vigente y se recalcula solo al guardar los ítems."
         : "Guarde los ítems antes de aplicar un descuento sobre su nuevo subtotal."}</p>
-      <Button type="submit" disabled={solicitud.enviando}>Guardar datos</Button>
-    </fieldset></Card>
+      <Button type="submit" disabled={solicitud.enviando} className="max-sm:w-full">Guardar datos</Button>
+    </fieldset>
   </form>;
 }

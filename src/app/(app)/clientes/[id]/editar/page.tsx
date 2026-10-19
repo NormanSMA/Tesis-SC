@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { CabeceraFicha } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { FormularioCliente } from "@/modules/clientes/componentes/FormularioCliente";
 import { cargarCliente } from "@/modules/clientes/paginas";
@@ -15,7 +15,11 @@ export default async function PaginaEditarCliente({ params }: { params: Promise<
   if (!cliente.activo) redirect(`/clientes/${cliente.id}`);
   return (
     <>
-      <PageHeader titulo="Editar cliente" descripcion={cliente.nombre} />
+      <CabeceraFicha
+        titulo="Editar cliente"
+        volver={{ href: `/clientes/${cliente.id}`, etiqueta: cliente.nombre }}
+        meta={<span className="font-medium text-foreground">{cliente.codigoCliente}</span>}
+      />
       <FormularioCliente key={cliente.actualizadoEn} modo="editar" cliente={cliente} />
     </>
   );

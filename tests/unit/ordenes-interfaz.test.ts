@@ -61,7 +61,7 @@ function contenido(pantalla: "lista" | "ficha" | "nueva" | "editar"): ReactNode[
     createElement(FiltrosOrdenes, { key: "filtros", conteos, responsables: [responsable] }),
     createElement(TablaOrdenes, { key: "lista", ...propiedadesTabla,
       lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20, conteos } })];
-  if (pantalla === "ficha") return [encabezado,
+  if (pantalla === "ficha") return [
     createElement(EncabezadoOrden, { key: "resumen", orden, permisos, permisosEtapas }),
     createElement(EtapasOrden, { key: "etapas", etapas: orden.etapas }),
     createElement(FichaOrden, { key: "ficha",
@@ -151,7 +151,7 @@ describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
       try {
         for (const pantalla of ["lista", "ficha", "nueva", "editar"] as const) {
           const cuerpo = renderToStaticMarkup(createElement("div", { className: "md:pl-16 xl:pl-64" },
-            createElement("main", { className: "space-y-6 px-4 py-6 xl:px-6" }, contenido(pantalla))));
+            createElement("main", { className: "space-y-6 px-4 py-6 xl:px-8" }, contenido(pantalla))));
           await pagina.setContent(`<!doctype html><html lang="es"><head><title>Órdenes</title><style>${css}</style></head><body>${cuerpo}</body></html>`);
           const desbordes = await pagina.evaluate(() => ({ pagina: document.documentElement.scrollWidth > window.innerWidth,
             tablas: [...document.querySelectorAll('[data-slot="table-container"]')].some((tabla) => tabla.scrollWidth > tabla.clientWidth) }));

@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
-import { Archive, CircleAlert } from "lucide-react";
-import { PageHeader } from "@/components/comunes/PageHeader";
+import { Archive, Calculator, CircleAlert } from "lucide-react";
+import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
+import { TarjetaSeccion } from "@/components/comunes/TarjetaSeccion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { AccionesCotizacion } from "@/modules/cotizaciones/componentes/AccionesCotizacion";
 import { DatosCotizacion } from "@/modules/cotizaciones/componentes/DatosCotizacion";
+import { accionesDisponibles } from "@/modules/cotizaciones/componentes/accionesDisponibles";
 import { EncabezadoCotizacion } from "@/modules/cotizaciones/componentes/EncabezadoCotizacion";
+import { EstadoCotizacion } from "@/modules/cotizaciones/componentes/EstadoCotizacion";
 import { monedaDe } from "@/modules/cotizaciones/moneda";
 import { CostosInternosCotizacion, ItemsCotizacion } from "@/modules/cotizaciones/componentes/ItemsCotizacion";
 import { TotalesCotizacion } from "@/modules/cotizaciones/componentes/TotalesCotizacion";
@@ -36,27 +39,38 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
   ]);
   const permisos = { gestionar: can(actor, "cotizacion:gestionar"), enviar: can(actor, "cotizacion:enviar"),
     responder: can(actor, "cotizacion:responder") };
+  const ordenVisible = orden && can(actor, "orden:ver") ? orden : null;
+  const { siguientePaso } = accionesDisponibles({ cotizacion, permisos });
   return <>
-    <PageHeader titulo={cotizacion.numero} descripcion={cotizacion.asunto ?? "Cotización"} />
-    <div className="space-y-6">
+    <CabeceraFicha titulo={cotizacion.numero} marca={<MarcaIcono><Calculator /></MarcaIcono>}
+      volver={{ href: "/cotizaciones", etiqueta: "Cotizaciones" }}
+      className="max-sm:[&>div:last-child]:flex-col max-sm:[&>div:last-child>div]:w-full"
+      meta={<><span>{cotizacion.cliente.nombre}</span><EstadoCotizacion estado={cotizacion.estado} />
+        {cotizacion.version > 1 ? <span>Versión {cotizacion.version}</span> : null}
+        {cotizacion.asunto ? <span className="break-words">{cotizacion.asunto}</span> : null}</>}
+      acciones={<AccionesCotizacion cotizacion={cotizacion} permisos={permisos} hoy={hoyManagua()}>
+        {cotizacion.estado === "APROBADA" ? orden ? <Button asChild>
+          <Link href={`/ordenes/${orden.id}`}>Ver orden {orden.numero}</Link></Button> : can(actor, "orden:crear") ?
+          <Button asChild><Link href={`/ordenes/nueva?cotizacionId=${cotizacion.id}`}>Convertir en orden</Link></Button> : null : null}
+        {ordenVisible ? <Button asChild variant="outline">
+          <Link href={`/trazabilidad/ordenes/${ordenVisible.id}`}>Trazabilidad completa</Link></Button> : null}
+      </AccionesCotizacion>} />
+    <div className="min-w-0 space-y-4">
       {cotizacion.archivada ? <Alert role="status"><Archive aria-hidden="true" /><AlertTitle>Cotización archivada</AlertTitle>
         <AlertDescription>Conserve los datos de esta cotización para consulta.</AlertDescription></Alert> : null}
       {cotizacion.avisos.map((aviso) => <Alert key={aviso} role="status"><CircleAlert aria-hidden="true" />
         <AlertTitle>Información de la cotización</AlertTitle><AlertDescription>{aviso}</AlertDescription></Alert>)}
-      <EncabezadoCotizacion cotizacion={cotizacion}>
-        <AccionesCotizacion cotizacion={cotizacion} permisos={permisos} hoy={hoyManagua()}>
-          {orden && can(actor, "orden:ver") ? <Button asChild variant="outline">
-            <Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button> : null}
-          {cotizacion.estado === "APROBADA" ? orden ? <Button asChild>
-            <Link href={`/ordenes/${orden.id}`}>Ver orden {orden.numero}</Link></Button> : can(actor, "orden:crear") ?
-            <Button asChild><Link href={`/ordenes/nueva?cotizacionId=${cotizacion.id}`}>Convertir en orden</Link></Button> : null : null}
-        </AccionesCotizacion>
-      </EncabezadoCotizacion>
-      <div className="grid items-start gap-5 lg:grid-cols-3">
-        <section aria-labelledby="titulo-items" className="min-w-0 lg:col-span-2">
-          <h2 id="titulo-items" className="mb-4 text-xl font-semibold">Ítems de cotización</h2>
-          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} /></section>
-        <TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} /></div>
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <TarjetaSeccion titulo="Ítems de cotización" sinRelleno className="lg:col-span-2">
+          <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} sinMarco />
+        </TarjetaSeccion>
+        <div className="min-w-0 space-y-4">
+          <TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} />
+          <div className="rounded-xl border border-border/80 bg-card p-5 text-sm shadow-sm">
+            <span className="font-semibold">Siguiente paso:</span> {siguientePaso}</div>
+          <EncabezadoCotizacion cotizacion={cotizacion} />
+        </div>
+      </div>
       <DatosCotizacion cotizacion={cotizacion} />
       <CostosInternosCotizacion items={cotizacion.items} margenPct={cotizacion.margenPct} moneda={monedaDe(cotizacion.moneda)} />
     </div>

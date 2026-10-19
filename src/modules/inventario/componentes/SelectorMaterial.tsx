@@ -1,52 +1,107 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { useEffect, useId, useState, type KeyboardEvent } from "react";
+
 import { FormField } from "@/components/comunes/FormField";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
 import type { MaterialDto } from "../dto";
 
-export function SelectorMaterial({ id, valor, error, cambiar }: {
-  id: string; valor: string; error?: string; cambiar: (material: MaterialDto | null) => void;
-}) {
-  const [q, setQ] = useState("");
-  const [pagina, setPagina] = useState(1);
-  const [respuesta, setRespuesta] = useState<{ datos: MaterialDto[]; total: number }>({ datos: [], total: 0 });
-  const [fallo, setFallo] = useState("");
-  const [externo, setExterno] = useState<{ id: string; texto: string } | null>(null);
+const texto = (material: Pick<MaterialDto, "codigo" | "nombre">) => `${material.codigo} · ${material.nombre}`;
+
+// Consulta la base con cada texto (250 ms de espera): cubre cualquier cantidad de materiales sin paginar a mano.
+function useMateriales(consulta: string) {
+  const [estado, setEstado] = useState<{ consulta: string | null; datos: MaterialDto[]; fallo: string }>({ consulta: null, datos: [], fallo: "" });
   useEffect(() => {
     const controlador = new AbortController();
-    fetch(`/api/v1/materiales?activo=true&porPagina=20&pagina=${pagina}&q=${encodeURIComponent(q)}`, { signal: controlador.signal })
-      .then(async (resultado) => { if (!resultado.ok) throw new Error("No se pudieron cargar los materiales."); return resultado.json(); })
-      .then((datos) => { setRespuesta(datos); setFallo(""); })
-      .catch((causa) => { if (!controlador.signal.aborted) setFallo(causa.message ?? "No se pudieron cargar los materiales."); });
-    return () => controlador.abort();
-  }, [q, pagina]);
-  // El material puede venir de la URL y no estar en la página cargada: se consulta para mostrar su nombre.
+    const espera = setTimeout(() => {
+      fetch(`/api/v1/materiales?activo=true&porPagina=30&pagina=1&q=${encodeURIComponent(consulta)}`, { signal: controlador.signal })
+        .then(async (resultado) => { if (!resultado.ok) throw new Error("No se pudieron cargar los materiales."); return resultado.json(); })
+        .then((datos: { datos: MaterialDto[] }) => setEstado({ consulta, datos: datos.datos, fallo: "" }))
+        .catch((causa) => { if (!controlador.signal.aborted) setEstado({ consulta, datos: [], fallo: causa.message ?? "No se pudieron cargar los materiales." }); });
+    }, consulta ? 250 : 0);
+    return () => { clearTimeout(espera); controlador.abort(); };
+  }, [consulta]);
+  return { ...estado, cargando: estado.consulta !== consulta };
+}
+
+// El material puede venir de la URL y no estar en la lista cargada: se consulta para mostrar su nombre.
+function useNombreExterno(valor: string, conocido: boolean) {
+  const [externo, setExterno] = useState<{ id: string; texto: string } | null>(null);
   useEffect(() => {
-    if (!valor || externo?.id === valor || respuesta.datos.some((material) => material.id === valor)) return;
+    if (!valor || conocido || externo?.id === valor) return;
     const controlador = new AbortController();
     fetch(`/api/v1/materiales/${valor}`, { signal: controlador.signal })
       .then((resultado) => (resultado.ok ? resultado.json() : null))
-      .then((datos) => { if (datos?.datos) setExterno({ id: valor, texto: `${datos.datos.codigo} · ${datos.datos.nombre}` }); })
+      .then((datos) => { if (datos?.datos) setExterno({ id: valor, texto: texto(datos.datos) }); })
       .catch(() => undefined);
     return () => controlador.abort();
-  }, [valor, externo, respuesta.datos]);
-  return <div className="min-w-0 space-y-3">
-    <FormField id={`${id}-buscar`} etiqueta="Buscar material">{(atributos) => <Input {...atributos} value={q}
-      onChange={(e) => { setQ(e.target.value); setPagina(1); }} placeholder="Nombre o código" />}</FormField>
-    <FormField id={id} etiqueta="Material" requerido error={error}>{(atributos) => <select {...atributos} value={valor}
-      className="h-11 w-full min-w-0 rounded-md border border-input bg-background px-3"
-      onChange={(e) => cambiar(respuesta.datos.find((material) => material.id === e.target.value) ?? null)}>
-      <option value="">Seleccione un material</option>
-      {valor && !respuesta.datos.some((material) => material.id === valor) ? <option value={valor}>{externo?.id === valor ? externo.texto : "Material seleccionado"}</option> : null}
-      {respuesta.datos.map((material) => <option key={material.id} value={material.id}>{material.codigo} · {material.nombre}</option>)}
-    </select>}</FormField>
-    <p role="status" className="text-sm text-danger">{fallo}</p>
-    <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" variant="outline" disabled={pagina === 1} onClick={() => setPagina(pagina - 1)}>Anteriores</Button>
-      <span className="text-sm">Página {pagina}</span>
-      <Button type="button" variant="outline" disabled={pagina * 20 >= respuesta.total} onClick={() => setPagina(pagina + 1)}>Siguientes</Button>
-    </div>
-  </div>;
+  }, [valor, conocido, externo]);
+  return externo?.id === valor ? externo.texto : null;
+}
+
+function ListaMateriales({ idLista, datos, valor, activo, alActivar, alElegir }: {
+  idLista: string; datos: MaterialDto[]; valor: string; activo: number; alActivar: (indice: number) => void; alElegir: (material: MaterialDto) => void;
+}) {
+  return (
+      <ul id={idLista} role="listbox" aria-label="Materiales" className="max-h-72 overflow-y-auto p-1">
+        {datos.map((material, indice) => (
+          <li key={material.id} id={`${idLista}-${material.id}`} role="option" aria-selected={material.id === valor}
+            onMouseDown={(evento) => evento.preventDefault()} onClick={() => alElegir(material)} onMouseEnter={() => alActivar(indice)}
+            className={cn("flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm", indice === activo && "bg-slate-100")}>
+            <Check aria-hidden="true" className={cn("size-4 shrink-0 text-primary", material.id !== valor && "invisible")} />
+            <span className="min-w-0 flex-1 truncate">{material.nombre}</span>
+            <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground">{material.codigo}</span>
+          </li>
+        ))}
+      </ul>
+  );
+}
+
+/** Material con búsqueda: se escribe el nombre o el código y se elige de la lista. Teclado: flechas, Enter, Escape. */
+export function SelectorMaterial({ id, valor, error, cambiar }: {
+  id: string; valor: string; error?: string; cambiar: (material: MaterialDto | null) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [q, setQ] = useState("");
+  const [activo, setActivo] = useState(0);
+  const [elegido, setElegido] = useState<MaterialDto | null>(null);
+  const idLista = useId();
+  const { datos, fallo, cargando } = useMateriales(q.trim());
+  const enLista = datos.find((material) => material.id === valor) ?? (elegido?.id === valor ? elegido : undefined);
+  const externo = useNombreExterno(valor, Boolean(enLista));
+  const visible = enLista ? texto(enLista) : (externo ?? (valor ? "Material seleccionado" : null));
+
+  function elegir(material: MaterialDto) { setElegido(material); cambiar(material); setAbierto(false); setQ(""); }
+  function alTeclear(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === "ArrowDown") { evento.preventDefault(); setActivo((indice) => Math.min(indice + 1, datos.length - 1)); }
+    if (evento.key === "ArrowUp") { evento.preventDefault(); setActivo((indice) => Math.max(indice - 1, 0)); }
+    if (evento.key === "Enter" && datos[activo]) { evento.preventDefault(); elegir(datos[activo]); }
+  }
+
+  return <FormField id={id} etiqueta="Material" requerido error={error}>{(atributos) =>
+    <Popover open={abierto} onOpenChange={(siguiente) => { setAbierto(siguiente); setActivo(0); if (!siguiente) setQ(""); }}>
+      <PopoverTrigger asChild>
+        <button type="button" role="combobox" aria-expanded={abierto} aria-haspopup="listbox" aria-controls={idLista} {...atributos}
+          className="flex h-11 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-card px-3 text-left text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive md:text-sm">
+          <span className={cn("min-w-0 flex-1 truncate", !visible && "text-muted-foreground")}>{visible ?? "Buscar material por nombre o código"}</span>
+          <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-72 p-0">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-3">
+          <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <input autoFocus value={q} onChange={(evento) => { setQ(evento.target.value); setActivo(0); }} onKeyDown={alTeclear}
+            aria-label="Buscar material por nombre o código" aria-controls={idLista} aria-autocomplete="list"
+            aria-activedescendant={datos[activo] ? `${idLista}-${datos[activo].id}` : undefined}
+            placeholder="Nombre o código" className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+        </div>
+        <ListaMateriales idLista={idLista} datos={datos} valor={valor} activo={activo} alActivar={setActivo} alElegir={elegir} />
+        {datos.length === 0 || fallo ? <p role="status" className={cn("border-t border-slate-100 px-4 py-3 text-sm", fallo ? "text-danger" : "text-muted-foreground")}>
+          {fallo || (cargando ? "Buscando…" : "Sin coincidencias.")}</p> : null}
+      </PopoverContent>
+    </Popover>}
+  </FormField>;
 }

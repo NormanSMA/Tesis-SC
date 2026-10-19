@@ -2,13 +2,13 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId, useState } from "react";
+import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FormField } from "@/components/comunes/FormField";
 import { Button } from "@/components/ui/button";
 import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ACCION_TEXTO, ENTIDAD_TEXTO } from "../etiquetas";
 import { ACCIONES, ENTIDADES, type ConsultaBitacora } from "../schema";
@@ -20,14 +20,9 @@ const PARAMETROS = { texto: null, entidad: null, accion: null, usuario: null, or
 function Seleccion({ parametro, etiqueta, valor, opciones }: {
   parametro: "entidad" | "accion" | "usuario"; etiqueta: string; valor?: string; opciones: { id: string; nombre: string }[];
 }) {
-  const { navegar } = useParametrosUrl();
-  return <FormField id={`filtro-${parametro}`} etiqueta={etiqueta} className="min-w-0 [&_label]:text-sm [&_label]:font-medium">
-    {(atributos) => <Select value={valor ?? TODOS} onValueChange={(nuevo) => navegar({ [parametro]: nuevo === TODOS ? null : nuevo })}>
-      <SelectTrigger {...atributos} className="w-full"><SelectValue /></SelectTrigger>
-      <SelectContent><SelectItem value={TODOS}>Todos</SelectItem>
-        {opciones.map((opcion) => <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>)}
-      </SelectContent></Select>}
-  </FormField>;
+  // valor llega del servidor; FiltroBuscable lo lee de la misma URL.
+  void valor;
+  return <FiltroBuscable etiqueta={etiqueta} parametro={parametro} opciones={opciones} valorTodos={TODOS} className="min-w-0" />;
 }
 
 /** Campo con texto local: aplica el valor a la URL al pulsar Enter o al salir del campo. */

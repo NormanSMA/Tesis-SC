@@ -12,6 +12,7 @@ import { esquemaCrearCotizacion, type EntradaCrearCotizacion } from "../schema";
 import { enfocarError, useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
 import { FormField } from "@/components/comunes/FormField";
+import { PieFormulario } from "@/components/comunes/SeccionFormulario";
 import { CampoArea, CampoSeleccion, CampoTexto } from "./CamposEditor";
 import { SelectorCliente } from "./SelectorCliente";
 
@@ -66,14 +67,16 @@ export function NuevaCotizacion(propiedades: Propiedades) {
     <CamposNuevaCotizacion formulario={formulario} propiedades={propiedades} campos={campos} />
   </fieldset>;
   return <form id="nueva-cotizacion" onSubmit={guardar} noValidate aria-label="Nueva cotización"
-    aria-busy={solicitud.enviando} className="max-w-3xl space-y-5">
-    <AvisoGuardado {...solicitud} />
-    {variante === "pagina" ? <Card className="px-5">{contenido}</Card> : contenido}
-    {variante === "pagina" ? <div className="flex gap-3">
-      <Button type="submit" disabled={solicitud.enviando || !clientes.length}>Crear cotización</Button>
+    aria-busy={solicitud.enviando} className={variante === "pagina" ? "space-y-5" : "max-w-3xl space-y-5"}>
+    <div className={variante === "pagina" ? "mx-auto w-full max-w-2xl space-y-5" : "space-y-5"}>
+      <AvisoGuardado {...solicitud} />
+      {variante === "pagina" ? <Card className="px-5">{contenido}</Card> : contenido}
+      {!clientes.length ? <p role="status">Registre un cliente activo para crear una cotización.</p> : null}
+    </div>
+    {variante === "pagina" ? <PieFormulario>
       {alCancelar ? <Button type="button" variant="outline" onClick={alCancelar}>Cancelar</Button> :
         <Button asChild variant="outline"><Link href="/cotizaciones">Cancelar</Link></Button>}
-    </div> : null}
-    {!clientes.length ? <p role="status">Registre un cliente activo para crear una cotización.</p> : null}
+      <Button type="submit" disabled={solicitud.enviando || !clientes.length}>Crear cotización</Button>
+    </PieFormulario> : null}
   </form>;
 }

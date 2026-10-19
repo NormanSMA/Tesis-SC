@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { PieFormulario } from "@/components/comunes/SeccionFormulario";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/comunes/FormField";
@@ -32,7 +34,7 @@ export function FormularioLibro({ tipo, inicial }: { tipo: "entrada" | "ajuste";
   function cambiar(campo: keyof ValoresLibro, valor: string) {
     setValores({ ...valores, [campo]: valor }); setErrores({}); solicitud.cambiarContenido();
   }
-  return <form id="formulario-libro" className="max-w-3xl space-y-5" onSubmit={guardar} noValidate aria-label={tipo === "entrada" ? "Registrar entrada" : "Ajustar inventario"}>
+  return <form id="formulario-libro" className="min-w-0 space-y-5" onSubmit={guardar} noValidate aria-label={tipo === "entrada" ? "Registrar entrada" : "Ajustar inventario"}>
     <AvisoSolicitud {...solicitud} /><Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0 space-y-5">
       <SelectorMaterial id="materialId" valor={material?.id ?? ""} error={errores.materialId ?? solicitud.campos.materialId}
         cambiar={(nuevo) => { setMaterial(nuevo); setErrores({}); solicitud.cambiarContenido(); }} />
@@ -40,6 +42,10 @@ export function FormularioLibro({ tipo, inicial }: { tipo: "entrada" | "ajuste";
       <FormField id="cantidad" etiqueta="Cantidad" requerido error={errores.cantidad ?? solicitud.campos.cantidad}>{(atributos) =>
         <Input {...atributos} inputMode="decimal" value={valores.cantidad} onChange={(e) => cambiar("cantidad", e.target.value)} />}</FormField>
       <CamposLibro tipo={tipo} valores={valores} errores={{ ...errores, ...solicitud.campos }} cambiar={cambiar} />
-    </fieldset></Card><Button type="submit" disabled={solicitud.enviando}>{tipo === "entrada" ? "Registrar entrada" : "Registrar ajuste"}</Button>
+    </fieldset></Card>
+    <PieFormulario className="max-sm:[&>div]:flex-col max-sm:[&>div>*]:w-full">
+      <Button asChild variant="outline"><Link href="/inventario">Cancelar</Link></Button>
+      <Button type="submit" disabled={solicitud.enviando}>{tipo === "entrada" ? "Registrar entrada" : "Registrar ajuste"}</Button>
+    </PieFormulario>
   </form>;
 }

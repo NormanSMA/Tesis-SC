@@ -28,17 +28,17 @@ function AccionesSecundarias({ cotizacion, acciones, enviando, seleccionar }: {
   cotizacion: CotizacionDto; acciones: ReturnType<typeof accionesDisponibles>;
   enviando: boolean; seleccionar: (accion: Accion) => void;
 }) {
-  return <div className="flex flex-wrap gap-3">
+  return <>
     {acciones.editar ? <Button asChild variant="outline"><Link href={`/cotizaciones/${cotizacion.id}/editar`}>Editar</Link></Button> : null}
     {acciones.duplicar ? <Button type="button" variant="outline" disabled={acciones.borradorDeshabilitado || enviando}
       onClick={() => seleccionar("duplicar")}>Duplicar</Button> : null}
     <Button asChild variant="outline"><Link href={`/cotizaciones/${cotizacion.id}/imprimir`}>Ver proforma</Link></Button>
-    {acciones.archivar ? <Button type="button" variant="outline" disabled={enviando}
+    {acciones.archivar ? <Button type="button" variant="outline" disabled={enviando} className="text-rose-700 hover:text-rose-800"
       onClick={() => seleccionar("archivar")}>Archivar</Button> : null}
-  </div>;
+  </>;
 }
 
-/** `children`: acciones propias del estado aprobado (orden), que se muestran junto al paso principal. */
+/** Acciones de la cabecera de la ficha. `children`: acciones propias del estado aprobado (orden), antes de las secundarias. */
 export function AccionesCotizacion({ cotizacion, permisos, hoy, children }: {
   cotizacion: CotizacionDto; permisos: PermisosCotizacion; hoy: string; children?: ReactNode;
 }) {
@@ -53,10 +53,8 @@ export function AccionesCotizacion({ cotizacion, permisos, hoy, children }: {
       destino: creaBorrador ? "editar" : "detalle" });
     setAccion(null);
   }
-  return <div className="space-y-4">
-    <AvisoGuardado {...solicitud} />
-    <p className="text-sm"><span className="font-semibold">Siguiente paso:</span> {acciones.siguientePaso}</p>
-    <div className="flex flex-wrap items-center gap-3">
+  return <div className="space-y-3">
+    <div className="flex flex-wrap items-center gap-2 sm:justify-end max-sm:[&>*]:flex-1">
       {acciones.enviar ?
         <Button type="button" disabled={acciones.envioDeshabilitado || solicitud.enviando} onClick={() => setAccion("enviar")}>Enviar cotización</Button> : null}
       {acciones.responder ?
@@ -65,8 +63,9 @@ export function AccionesCotizacion({ cotizacion, permisos, hoy, children }: {
         <Button type="button" disabled={acciones.borradorDeshabilitado || solicitud.enviando}
           onClick={() => setAccion("version-corregida")}>Crear versión corregida</Button> : null}
       {children}
+      <AccionesSecundarias cotizacion={cotizacion} acciones={acciones} enviando={solicitud.enviando} seleccionar={setAccion} />
     </div>
-    <AccionesSecundarias cotizacion={cotizacion} acciones={acciones} enviando={solicitud.enviando} seleccionar={setAccion} />
+    {solicitud.error ? <div className="max-w-md"><AvisoGuardado {...solicitud} /></div> : null}
     {accion ? <ConfirmDialog abierto alCambiarAbierto={(abierto) => !abierto && setAccion(null)}
       {...CONFIRMACION[accion]} etiquetaConfirmar={ETIQUETA_CONFIRMAR[accion]}
       cargando={solicitud.enviando} alConfirmar={confirmar} /> : null}

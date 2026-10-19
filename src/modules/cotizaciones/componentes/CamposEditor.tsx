@@ -1,5 +1,6 @@
 "use client";
 
+import { OPCIONES_PARA_BUSCAR, SelectorBuscable } from "@/components/comunes/SelectorBuscable";
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +25,10 @@ export function CampoArea(campo: Campo) {
 
 export function CampoSeleccion({ opciones, ...campo }: Campo & { opciones: { id: string; nombre: string }[] }) {
   return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido}>
-    {(atributos) => <Select value={campo.valor || undefined} onValueChange={campo.alCambiar} disabled={campo.deshabilitado}>
+    {(atributos) => opciones.length >= OPCIONES_PARA_BUSCAR
+      ? <SelectorBuscable id={atributos.id} atributos={atributos} valor={campo.valor} opciones={opciones} alCambiar={campo.alCambiar}
+        deshabilitado={campo.deshabilitado} marcador={`Buscar ${campo.etiqueta.toLowerCase()}`} vacio="Seleccione una opción" />
+      : <Select value={campo.valor || undefined} onValueChange={campo.alCambiar} disabled={campo.deshabilitado}>
       <SelectTrigger {...atributos}><SelectValue placeholder="Seleccione una opción" /></SelectTrigger>
       <SelectContent>{opciones.map((opcion) => <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>)}</SelectContent>
     </Select>}

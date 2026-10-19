@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { CuerpoFormulario, PieFormulario } from "@/components/comunes/SeccionFormulario";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
 import { enfocarError, erroresEsquema } from "@/modules/cotizaciones/useSolicitudCotizacion";
 import type { MaterialDto } from "../dto";
@@ -32,13 +32,14 @@ export function FormularioMaterial({ material }: { material?: MaterialDto }) {
     setValores({ ...valores, [campo]: valor }); setErrores({}); solicitud.cambiarContenido();
   }
   return <form id="formulario-material" aria-label={material ? "Editar material" : "Crear material"}
-    className="max-w-3xl space-y-5" onSubmit={guardar} noValidate>
+    className="min-w-0 space-y-5" onSubmit={guardar} noValidate>
     <AvisoSolicitud {...solicitud} />
-    <Card className="min-w-0 px-5"><fieldset disabled={solicitud.enviando} className="min-w-0">
+    <fieldset disabled={solicitud.enviando} className="min-w-0"><CuerpoFormulario>
       <CamposMaterial valores={valores} errores={{ ...errores, ...solicitud.campos }} editar={Boolean(material)}
         conExistencia={Boolean(material && comparar(leerDecimal(material.existencia)!, CERO) !== 0)} cambiar={cambiar} />
-    </fieldset></Card>
-    <div className="flex flex-wrap gap-3"><Button type="submit" disabled={solicitud.enviando}>Guardar material</Button>
-      <Button asChild variant="outline"><Link href={material ? `/inventario/${material.id}` : "/inventario"}>Cancelar</Link></Button></div>
+    </CuerpoFormulario></fieldset>
+    <PieFormulario className="max-sm:[&>div]:flex-col max-sm:[&>div>*]:w-full">
+      <Button asChild variant="outline"><Link href={material ? `/inventario/${material.id}` : "/inventario"}>Cancelar</Link></Button>
+      <Button type="submit" disabled={solicitud.enviando}>Guardar material</Button></PieFormulario>
   </form>;
 }
