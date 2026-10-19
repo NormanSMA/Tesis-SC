@@ -68,7 +68,8 @@ export function BuscadorEnVivo({ etiqueta, marcador = "Buscar…", parametro = "
         {pendiente ? (
           <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-muted-foreground" />
         ) : (
-          <kbd aria-hidden="true" className="rounded border border-border bg-muted px-1.5 text-[11px] text-muted-foreground">/</kbd>
+          // Pista de teclado solo con puntero fino (mouse): en táctil no hay tecla "/".
+          <kbd aria-hidden="true" className="hidden rounded border border-border bg-muted px-1.5 text-[11px] text-muted-foreground [@media(pointer:fine)]:inline">/</kbd>
         )}
       </span>
     </div>

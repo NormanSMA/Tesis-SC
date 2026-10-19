@@ -169,7 +169,7 @@ export function BuscadorGlobal({ permisos, modo, atajo = true }: Propiedades & {
         <button type="button" aria-label="Buscar en TRACORE" title="Buscar"
           className={`flex items-center rounded-xl border border-slate-200 bg-card text-sm text-slate-600 shadow-xs transition-colors duration-100 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-ring ${modo === "amplio" ? "h-10 w-full gap-2 px-3" : "size-10 justify-center"}`}>
           <Search className="size-4" aria-hidden="true" />
-          {modo === "amplio" && <><span>Buscar</span><kbd aria-hidden="true" className="ml-auto rounded-md border border-slate-200 bg-card px-1.5 text-[11px] text-slate-500">Ctrl K</kbd></>}
+          {modo === "amplio" && <><span>Buscar</span><kbd aria-hidden="true" className="ml-auto hidden rounded-md border border-slate-200 bg-card px-1.5 text-[11px] text-slate-500 [@media(pointer:fine)]:inline">Ctrl K</kbd></>}
         </button>
       </DialogTrigger>
       <DialogContent className="top-[12vh] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-xl bg-white p-0 sm:max-w-xl [&>button]:transition-[opacity,transform] [&>button]:duration-150 motion-reduce:animate-none">

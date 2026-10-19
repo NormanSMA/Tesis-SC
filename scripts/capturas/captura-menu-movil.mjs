@@ -11,7 +11,7 @@ const claves = Object.fromEntries(readFileSync(path.join(repo, ".env.example"), 
   .filter((linea) => linea.startsWith("SEED_PASSWORD_")).map((linea) => linea.split("=").map((parte) => parte.trim().replace(/^"|"$/g, ""))));
 const navegador = await chromium.launch();
 for (const [nombre, usuario, clave] of [["gerencia", "gerardo.jimenez", "SEED_PASSWORD_GERENCIA"], ["admin-sistema", "roberto.diaz", "SEED_PASSWORD_ADMIN"]]) {
-  const pagina = await (await navegador.newContext({ viewport: { width: 390, height: 844 }, locale: "es-NI" })).newPage();
+  const pagina = await (await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "es-NI" })).newPage();
   await pagina.goto("http://127.0.0.1:3000/login");
   await pagina.getByLabel("Correo electrónico").fill(`${usuario}@solucionescreativas.test`);
   await pagina.locator("#contrasena").fill(claves[clave]);
