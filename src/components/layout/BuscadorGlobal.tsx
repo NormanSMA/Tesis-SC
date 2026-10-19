@@ -2,35 +2,49 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Calculator, ClipboardCheck, CornerDownLeft, Plus, Search, Users, X, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { ClienteFila } from "@/modules/clientes/tipos";
 import type { CotizacionFila } from "@/modules/cotizaciones/tipos";
 import type { OrdenFila } from "@/modules/ordenes/tipos";
 
+import { filtrarNavegacion, gruposNavegacion } from "./navegacion";
+
 type Propiedades = { permisos: string[]; modo: "amplio" | "icono" };
-type Resultado = { id: string; codigo: string; nombre: string; destino: string };
+type Resultado = { id: string; titulo: string; detalle?: string; destino: string; icono: LucideIcon };
 type Grupo = { titulo: string; resultados: Resultado[]; fallo: boolean };
 type Recurso = "clientes" | "cotizaciones" | "ordenes";
-const RECURSOS: { recurso: Recurso; permiso: string; titulo: string }[] = [
-  { recurso: "clientes", permiso: "cliente:ver", titulo: "Clientes" },
-  { recurso: "cotizaciones", permiso: "cotizacion:ver", titulo: "Cotizaciones" },
-  { recurso: "ordenes", permiso: "orden:ver", titulo: "Órdenes" },
+const RECURSOS: { recurso: Recurso; permiso: string; titulo: string; icono: LucideIcon }[] = [
+  { recurso: "clientes", permiso: "cliente:ver", titulo: "Clientes", icono: Users },
+  { recurso: "cotizaciones", permiso: "cotizacion:ver", titulo: "Cotizaciones", icono: Calculator },
+  { recurso: "ordenes", permiso: "orden:ver", titulo: "Órdenes", icono: ClipboardCheck },
 ];
+const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-async function buscarGrupo(entrada: { recurso: Recurso; titulo: string; consulta: string; signal: AbortSignal }): Promise<Grupo> {
-  const { recurso, titulo, consulta, signal } = entrada;
+// Secciones del menú y acciones rápidas según permisos: se muestran sin escribir y se filtran al escribir.
+function accesos(permisos: string[], consulta: string): Resultado[] {
+  const secciones: Resultado[] = filtrarNavegacion(gruposNavegacion, permisos).flatMap(({ items }) => items)
+    .map(({ href, etiqueta, icono }) => ({ id: `ir-${href}`, titulo: etiqueta, detalle: "Ir a la sección", destino: href, icono }));
+  const acciones: Resultado[] = permisos.includes("cotizacion:gestionar")
+    ? [{ id: "accion-nueva-cotizacion", titulo: "Nueva cotización", detalle: "Acción", destino: "/cotizaciones?crear=1", icono: Plus }] : [];
+  const busqueda = normalizar(consulta.trim());
+  return [...acciones, ...secciones].filter(({ titulo }) => !busqueda || normalizar(titulo).includes(busqueda));
+}
+
+async function buscarGrupo(entrada: { recurso: Recurso; titulo: string; icono: LucideIcon; consulta: string; signal: AbortSignal }): Promise<Grupo> {
+  const { recurso, titulo, icono, consulta, signal } = entrada;
   try {
     const parametros = new URLSearchParams({ q: consulta, porPagina: "5" });
     const respuesta = await fetch(`/api/v1/${recurso}?${parametros}`, { signal, cache: "no-store" });
     if (!respuesta.ok) throw new Error("No se pudo completar la búsqueda.");
     const cuerpo: { datos: (ClienteFila | CotizacionFila | OrdenFila)[] } = await respuesta.json();
     const resultados = cuerpo.datos.map((fila) => ({
-      id: fila.id, destino: `/${recurso}/${encodeURIComponent(fila.id)}`,
-      codigo: "codigoCliente" in fila ? fila.codigoCliente : fila.numero,
-      nombre: "nombre" in fila ? fila.nombre : fila.cliente.nombre,
+      id: fila.id, destino: `/${recurso}/${encodeURIComponent(fila.id)}`, icono,
+      titulo: "nombre" in fila ? fila.nombre : fila.cliente.nombre,
+      detalle: "codigoCliente" in fila ? fila.codigoCliente : fila.numero,
     }));
     return { titulo, resultados, fallo: false };
   } catch {
@@ -46,7 +60,7 @@ function useBusqueda(consulta: string, permisos: string[]) {
     const controlador = new AbortController();
     const temporizador = window.setTimeout(async () => {
       const grupos = await Promise.all(RECURSOS.filter(({ recurso }) => clave.split(",").includes(recurso))
-        .map(({ recurso, titulo }) => buscarGrupo({ recurso, titulo, consulta, signal: controlador.signal })));
+        .map(({ recurso, titulo, icono }) => buscarGrupo({ recurso, titulo, icono, consulta, signal: controlador.signal })));
       if (!controlador.signal.aborted) establecerRespuesta({ consulta, clave, grupos });
     }, 250);
     return () => { window.clearTimeout(temporizador); controlador.abort(); };
@@ -55,42 +69,50 @@ function useBusqueda(consulta: string, permisos: string[]) {
   return { cargando, grupos: consulta.length < 2 || cargando ? [] : respuesta.grupos };
 }
 
-function EstadoBusqueda({ consulta, cargando, grupos }: { consulta: string; cargando: boolean; grupos: Grupo[] }) {
-  if (consulta.length < 2) return <p className="p-6 text-center text-sm text-slate-500">Escriba al menos 2 caracteres</p>;
+function EstadoBusqueda({ consulta, cargando, grupos, hayAccesos }: { consulta: string; cargando: boolean; grupos: Grupo[]; hayAccesos: boolean }) {
+  if (consulta.length < 2) return null;
   if (cargando) return (
-    <div role="status" className="space-y-3 p-4">
+    <div role="status" className="space-y-2 px-3 pb-3">
       <span className="sr-only">Buscando</span>
-      {[0, 1, 2].map((indice) => <Skeleton key={indice} className="h-9 rounded-lg bg-slate-100 motion-reduce:animate-none" aria-hidden="true" />)}
+      {[0, 1, 2].map((indice) => <Skeleton key={indice} className="h-11 rounded-lg bg-slate-100 motion-reduce:animate-none" aria-hidden="true" />)}
     </div>
   );
-  if (grupos.some(({ fallo }) => fallo)) return (
-    <p role="status" className="px-4 py-3 text-sm text-slate-500">No se pudieron consultar algunos módulos.</p>
-  );
-  if (grupos.every(({ resultados }) => resultados.length === 0)) return (
-    <p role="status" className="p-6 text-center text-sm text-slate-500">Sin resultados</p>
+  if (grupos.some(({ fallo }) => fallo)) return <p role="status" className="px-5 pb-3 text-sm text-slate-500">No se pudieron consultar algunos módulos.</p>;
+  if (!hayAccesos && grupos.every(({ resultados }) => resultados.length === 0)) return (
+    <div role="status" className="px-5 py-8 text-center">
+      <p className="text-sm font-medium text-slate-900">Sin resultados para «{consulta}»</p>
+      <p className="mt-1 text-sm text-slate-500">Pruebe con el código, el nombre del cliente o el RUC.</p>
+    </div>
   );
   return null;
 }
 
-function ListaResultados(entrada: {
-  grupos: Grupo[]; listaId: string; activo?: string; seleccionar: (id: string) => void; cerrar: () => void;
-}) {
+function FilaResultado({ fila, id, activo, seleccionar, cerrar }: { fila: Resultado; id: string; activo: boolean; seleccionar: (id: string) => void; cerrar: () => void }) {
+  const Icono = fila.icono;
+  return (
+    <Link id={id} href={fila.destino} role="option" aria-selected={activo} tabIndex={-1} prefetch={false} onClick={cerrar}
+      onMouseEnter={() => seleccionar(id)}
+      className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-100", activo ? "bg-slate-100" : "hover:bg-slate-50")}>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-card text-slate-600">
+        <Icono aria-hidden="true" className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate font-medium text-slate-900">{fila.titulo}</span>
+      {fila.detalle ? <span className="shrink-0 text-xs text-slate-500">{fila.detalle}</span> : null}
+      <CornerDownLeft aria-hidden="true" className={cn("size-3.5 shrink-0 text-slate-400", !activo && "invisible")} />
+    </Link>
+  );
+}
+
+function ListaResultados(entrada: { grupos: Grupo[]; listaId: string; activo?: string; seleccionar: (id: string) => void; cerrar: () => void }) {
   const { grupos, listaId, activo, seleccionar, cerrar } = entrada;
   return (
-    <div id={listaId} role="listbox" aria-label="Resultados de búsqueda" className="max-h-[50vh] overflow-y-auto p-2">
+    <div id={listaId} role="listbox" aria-label="Resultados de búsqueda" className="max-h-[55vh] overflow-y-auto px-2 pb-2">
       {grupos.filter(({ resultados }) => resultados.length > 0).map(({ titulo, resultados }, indice) => (
         <div key={titulo} role="group" aria-labelledby={`${listaId}-grupo-${indice}`}>
-          <h3 id={`${listaId}-grupo-${indice}`} className="px-3 py-2 text-xs font-medium text-slate-500">{titulo}</h3>
+          <h3 id={`${listaId}-grupo-${indice}`} className="px-3 pt-3 pb-1.5 text-xs font-semibold text-slate-500">{titulo}</h3>
           {resultados.map((fila) => {
-            const id = `${listaId}-${fila.destino}`;
-            return (
-              <Link key={fila.id} id={id} href={fila.destino} role="option" aria-selected={activo === id}
-                tabIndex={-1} prefetch={false} onClick={cerrar} onMouseEnter={() => seleccionar(id)}
-                className={`flex gap-3 rounded-lg px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-slate-500 ${activo === id ? "bg-slate-100" : ""}`}>
-                <strong className="shrink-0 font-semibold text-slate-900">{fila.codigo}</strong>
-                <span className="truncate text-slate-500">{fila.nombre}</span>
-              </Link>
-            );
+            const id = `${listaId}-${fila.id}`;
+            return <FilaResultado key={fila.id} fila={fila} id={id} activo={activo === id} seleccionar={seleccionar} cerrar={cerrar} />;
           })}
         </div>
       ))}
@@ -104,7 +126,7 @@ function useSeleccion(entrada: { filas: Resultado[]; listaId: string; cerrar: ()
   const [seleccion, seleccionar] = useState(0);
   const indice = Math.min(seleccion, Math.max(0, filas.length - 1));
   const fila = filas[indice];
-  const activo = fila ? `${listaId}-${fila.destino}` : undefined;
+  const activo = fila ? `${listaId}-${fila.id}` : undefined;
   useEffect(() => { if (activo) document.getElementById(activo)?.scrollIntoView({ block: "nearest" }); }, [activo]);
   function manejarTecla(evento: KeyboardEvent<HTMLInputElement>) {
     if (evento.nativeEvent.isComposing || filas.length === 0) return;
@@ -119,32 +141,50 @@ function useSeleccion(entrada: { filas: Resultado[]; listaId: string; cerrar: ()
     }
   }
   return { activo, manejarTecla, reiniciar: () => seleccionar(0),
-    seleccionar: (id: string) => seleccionar(filas.findIndex((fila) => `${listaId}-${fila.destino}` === id)) };
+    seleccionar: (id: string) => seleccionar(filas.findIndex((candidata) => `${listaId}-${candidata.id}` === id)) };
+}
+
+const Tecla = ({ children }: { children: string }) => <kbd className="rounded border border-slate-200 bg-card px-1.5 text-[11px] text-slate-600">{children}</kbd>;
+
+// Pistas de teclado solo con mouse y teclado (en táctil no aplican).
+function PieTeclado() {
+  return (
+    <div aria-hidden="true" className="hidden items-center gap-4 border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-xs text-slate-500 [@media(pointer:fine)]:flex">
+      <span className="flex items-center gap-1.5"><Tecla>↑</Tecla><Tecla>↓</Tecla>navegar</span>
+      <span className="flex items-center gap-1.5"><Tecla>Enter</Tecla>abrir</span>
+      <span className="flex items-center gap-1.5"><Tecla>Esc</Tecla>cerrar</span>
+    </div>
+  );
 }
 
 function ContenidoBusqueda({ permisos, cerrar }: { permisos: string[]; cerrar: () => void }) {
   const [texto, establecerTexto] = useState("");
   const consulta = texto.trim();
   const listaId = useId();
-  const { cargando, grupos } = useBusqueda(consulta, permisos);
+  const { cargando, grupos: remotos } = useBusqueda(consulta, permisos);
+  const atajos = accesos(permisos, consulta);
+  const grupos: Grupo[] = [...remotos, { titulo: consulta ? "Secciones y acciones" : "Ir a", resultados: atajos, fallo: false }];
   const filas = grupos.flatMap(({ resultados }) => resultados);
   const seleccion = useSeleccion({ filas, listaId, cerrar });
   return (
     <>
       <DialogTitle className="sr-only">Buscar en TRACORE</DialogTitle>
-      <DialogDescription className="sr-only">Busque clientes, cotizaciones y órdenes mediante su código o nombre.</DialogDescription>
-      <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 pr-12">
+      <DialogDescription className="sr-only">Busque clientes, cotizaciones y órdenes por código o nombre, o vaya a una sección.</DialogDescription>
+      <div className="flex items-center gap-3 border-b border-slate-100 px-4">
         <Search className="size-5 shrink-0 text-slate-400" aria-hidden="true" />
         <input value={texto} onChange={(evento) => { establecerTexto(evento.target.value); seleccion.reiniciar(); }}
-          onKeyDown={seleccion.manejarTecla} placeholder="Buscar en TRACORE" aria-label="Buscar en TRACORE"
+          onKeyDown={seleccion.manejarTecla} placeholder="Buscar clientes, cotizaciones u órdenes" aria-label="Buscar en TRACORE"
           role="combobox" aria-expanded="true" aria-controls={listaId} aria-autocomplete="list"
           aria-activedescendant={seleccion.activo} autoComplete="off" maxLength={200}
-          className="h-10 min-w-0 flex-1 rounded text-lg text-slate-900 placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-slate-400" />
+          className="h-14 min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400" />
+        <DialogClose className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors duration-100 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-ring">
+          <X aria-hidden="true" className="size-4" /><span className="sr-only">Cerrar</span>
+        </DialogClose>
       </div>
-      <EstadoBusqueda consulta={consulta} cargando={cargando} grupos={grupos} />
-      <ListaResultados grupos={grupos} listaId={listaId} activo={seleccion.activo}
-        seleccionar={seleccion.seleccionar} cerrar={cerrar} />
+      <EstadoBusqueda consulta={consulta} cargando={cargando} grupos={remotos} hayAccesos={atajos.length > 0} />
+      <ListaResultados grupos={grupos} listaId={listaId} activo={seleccion.activo} seleccionar={seleccion.seleccionar} cerrar={cerrar} />
       {filas.length > 0 && <p role="status" className="sr-only">{filas.length} resultados</p>}
+      <PieTeclado />
     </>
   );
 }
@@ -172,7 +212,8 @@ export function BuscadorGlobal({ permisos, modo, atajo = true }: Propiedades & {
           {modo === "amplio" && <><span>Buscar</span><kbd aria-hidden="true" className="ml-auto hidden rounded-md border border-slate-200 bg-card px-1.5 text-[11px] text-slate-500 [@media(pointer:fine)]:inline">Ctrl K</kbd></>}
         </button>
       </DialogTrigger>
-      <DialogContent className="top-[12vh] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-xl bg-white p-0 sm:max-w-xl [&>button]:transition-[opacity,transform] [&>button]:duration-150 motion-reduce:animate-none">
+      <DialogContent showCloseButton={false}
+        className="top-[12vh] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-2xl bg-white p-0 sm:max-w-xl motion-reduce:animate-none">
         <ContenidoBusqueda permisos={permisos} cerrar={() => establecerAbierto(false)} />
       </DialogContent>
     </Dialog>

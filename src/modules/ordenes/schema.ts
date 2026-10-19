@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { esquemaOrden } from "@/lib/listas/orden";
+import { CAMPOS_ORDEN_ORDENES } from "./tipos";
 
 export const ESTADOS = ["PENDIENTE", "EN_PRODUCCION", "LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as const;
 export const version = z.iso.datetime({ offset: true, error: "Falta la versión de la orden. Recargue los datos." });
@@ -24,6 +26,7 @@ export const esquemaConsultaOrdenes = z.object({
   responsable: z.union([id, z.literal("sin-responsable")]).optional(), cliente: id.optional(),
   vencidas: z.enum(["true", "false"]).default("false"),
   terminales: z.enum(["true", "false", "todas"]).default("false"),
+  orden: esquemaOrden(CAMPOS_ORDEN_ORDENES).optional(),
   pagina: z.coerce.number().int().min(1).max(100000).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 });

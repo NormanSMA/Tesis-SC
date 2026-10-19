@@ -185,8 +185,7 @@ async function abrirSembrada(page: Page): Promise<void> {
   expect(filas.length, "Debe existir una orden sembrada pendiente.").toBeGreaterThan(0);
   await page.goto("/ordenes");
   await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
-  await page.getByLabel("Buscar", { exact: true }).fill(filas[0].numero);
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByLabel("Buscar órdenes", { exact: true }).fill(filas[0].numero);
   await page.getByRole("link", { name: filas[0].numero, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(filas[0].numero);
 }
@@ -298,15 +297,14 @@ function registrarCapturas(): void {
 }
 
 function registrarListaYAsignacion(): void {
-  test("la lista enlaza la fila, no tiene Categoría y ofrece Sin responsable", async ({ page }, info) => {
+  test("la lista enlaza la fila, no tiene Categoría y muestra Sin responsable", async ({ page }, info) => {
     soloPortatil(info.project.name);
     if (!orden) throw new Error("Falta la orden convertida.");
     await entrarComo(page, OPERACIONES);
     await page.goto("/ordenes");
     await expect(page.getByRole("region", { name: "Listado de órdenes de trabajo" })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Categoría" })).toHaveCount(0);
-    await page.getByLabel("Buscar", { exact: true }).fill(orden.numero);
-    await page.getByRole("button", { name: "Buscar", exact: true }).click();
+    await page.getByLabel("Buscar órdenes", { exact: true }).fill(orden.numero);
     const fila = page.getByRole("row").filter({ hasText: orden.numero });
     await expect(fila.getByRole("link", { name: orden.numero, exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}`);
     await expect(fila.getByRole("cell").filter({ hasText: "Sin responsable" }).first()).toBeVisible();

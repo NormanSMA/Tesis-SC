@@ -25,7 +25,7 @@ export function PanelInformativo() {
         <h2 id="titulo-plataforma" className="text-4xl leading-tight font-semibold tracking-tight">
           Cotice, produzca y controle en un solo lugar
         </h2>
-        <ul className="space-y-5 text-base leading-relaxed text-border">
+        <ul className="space-y-5 border-t border-white/10 pt-8 text-base leading-relaxed text-slate-300">
           {beneficios.map(({ Icono, texto }) => (
             <li key={texto} className="flex items-start gap-4">
               <Icono aria-hidden="true" className="mt-0.5 size-6 shrink-0" />

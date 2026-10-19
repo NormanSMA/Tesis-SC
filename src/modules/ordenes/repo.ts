@@ -1,8 +1,11 @@
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, type EstadoOrden } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
 import { TERMINALES } from "./reglas";
 import type { ConsultaOrdenes } from "./schema";
+import type { CampoOrdenOrdenes, ConteosOrdenes, OrdenFila } from "./tipos";
+
+const TERMINALES_CONTEOS: EstadoOrden[] = ["CERRADA", "CANCELADA"];
 
 const incluirCotizacion = {
   cliente: true,
@@ -40,13 +43,13 @@ export function buscarCotizacion(tx: Tx, id: string): Promise<CotizacionGuardada
   return tx.cotizacion.findUnique({ where: { id }, include: incluirCotizacion });
 }
 
-function filtroLista(consulta: ConsultaOrdenes): Prisma.OrdenTrabajoWhereInput {
+function filtroLista(consulta: ConsultaOrdenes, hoy: string): Prisma.OrdenTrabajoWhereInput {
   const condiciones: Prisma.OrdenTrabajoWhereInput[] = [];
   if (consulta.terminales !== "todas") condiciones.push({ estado: consulta.terminales === "true" ? { in: TERMINALES } : { notIn: TERMINALES } });
   if (consulta.estado) condiciones.push({ estado: consulta.estado });
   if (consulta.responsable) condiciones.push({ responsableId: consulta.responsable === "sin-responsable" ? null : consulta.responsable });
   if (consulta.cliente) condiciones.push({ clienteId: consulta.cliente });
-  if (consulta.vencidas === "true") condiciones.push({ fechaEntrega: { lt: new Date(hoyManagua()) }, estado: { notIn: TERMINALES } });
+  if (consulta.vencidas === "true") condiciones.push({ fechaEntrega: { lt: new Date(hoy) }, estado: { notIn: TERMINALES } });
   if (consulta.q) {
     const texto = { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
     condiciones.push({ OR: [{ numero: texto }, { cotizacion: { asunto: texto } }, { cliente: { nombre: texto } }] });
@@ -54,14 +57,56 @@ function filtroLista(consulta: ConsultaOrdenes): Prisma.OrdenTrabajoWhereInput {
   return { AND: condiciones };
 }
 
-export async function consultarOrdenes(consulta: ConsultaOrdenes) {
-  const where = filtroLista(consulta);
+function ordenLista(orden: ConsultaOrdenes["orden"]): Prisma.OrdenTrabajoOrderByWithRelationInput[] {
+  const { campo, direccion } = orden ?? { campo: "creadoEn", direccion: "desc" };
+  const campos: Record<CampoOrdenOrdenes, Prisma.OrdenTrabajoOrderByWithRelationInput> = {
+    numero: { numero: direccion }, cliente: { cliente: { nombre: direccion } },
+    fechaEntrega: { fechaEntrega: direccion }, creadoEn: { creadoEn: direccion },
+  };
+  return [campos[campo], { id: direccion }];
+}
+
+async function consultarAvances(ids: string[]) {
+  const avances = new Map<string, NonNullable<OrdenFila["avance"]>>();
+  if (!ids.length) return avances;
+  const etapas = await prisma.etapaOrden.groupBy({ by: ["ordenId", "estado"],
+    where: { ordenId: { in: ids }, estado: { not: "OMITIDA" } }, _count: { _all: true } });
+  for (const etapa of etapas) {
+    const avance = avances.get(etapa.ordenId) ?? { completadas: 0, total: 0 };
+    avance.total += etapa._count._all;
+    if (etapa.estado === "COMPLETADA") avance.completadas += etapa._count._all;
+    avances.set(etapa.ordenId, avance);
+  }
+  return avances;
+}
+
+export async function consultarOrdenes(consulta: ConsultaOrdenes, hoy = hoyManagua()) {
+  const where = filtroLista(consulta, hoy);
   const [filas, total] = await Promise.all([
-    prisma.ordenTrabajo.findMany({ where, include: incluirLista, orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
+    prisma.ordenTrabajo.findMany({ where, include: incluirLista, orderBy: ordenLista(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
     prisma.ordenTrabajo.count({ where }),
   ]);
-  return { filas, total };
+  const avances = await consultarAvances(filas.map((fila) => fila.id));
+  return { filas, total, avances };
+}
+
+export async function consultarConteosOrdenes(consulta: ConsultaOrdenes, hoy = hoyManagua()): Promise<ConteosOrdenes> {
+  const where = filtroLista({ ...consulta, estado: undefined, responsable: undefined,
+    vencidas: "false", terminales: "todas" }, hoy);
+  const activas = { estado: { notIn: TERMINALES_CONTEOS } };
+  const [porEstado, atrasadas, sinResponsable] = await Promise.all([
+    prisma.ordenTrabajo.groupBy({ by: ["estado"], where, _count: { _all: true } }),
+    prisma.ordenTrabajo.count({ where: { AND: [where, activas, { fechaEntrega: { lt: new Date(hoy) } }] } }),
+    prisma.ordenTrabajo.count({ where: { AND: [where, activas, { responsableId: null }] } }),
+  ]);
+  const conteos: ConteosOrdenes = { PENDIENTE: 0, EN_PRODUCCION: 0, LISTA: 0, ENTREGADA: 0,
+    CERRADA: 0, CANCELADA: 0, activas: 0, atrasadas, sinResponsable };
+  for (const fila of porEstado) {
+    conteos[fila.estado] = fila._count._all;
+    if (!TERMINALES_CONTEOS.includes(fila.estado)) conteos.activas += fila._count._all;
+  }
+  return conteos;
 }
 
 export type CambiosOrden = {

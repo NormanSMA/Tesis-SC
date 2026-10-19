@@ -23,7 +23,7 @@ export function FiltroSegmentado({ etiqueta, opciones, parametro, valorTodos = "
   return (
     <ToggleGroup.Root type="single" value={actual} aria-label={etiqueta}
       onValueChange={(valor) => { if (valor !== "" && valor !== actual) navegar({ [parametro]: valor === valorTodos ? null : valor }); }}
-      className={cn("inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border/80 bg-slate-100/70 p-1", className)}>
+      className={cn("inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-border/80 bg-slate-100/70 p-1", className)}>
       {opciones.map((opcion) => (
         <ToggleGroup.Item key={opcion.valor} value={opcion.valor}
           className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors duration-100 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm">

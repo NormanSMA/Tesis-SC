@@ -11,12 +11,16 @@ import { nombreMoneda } from "../moneda";
 import { esquemaCrearCotizacion, type EntradaCrearCotizacion } from "../schema";
 import { enfocarError, useSolicitudCotizacion } from "../useSolicitudCotizacion";
 import { AvisoGuardado } from "./AvisoGuardado";
+import { FormField } from "@/components/comunes/FormField";
 import { CampoArea, CampoSeleccion, CampoTexto } from "./CamposEditor";
+import { SelectorCliente } from "./SelectorCliente";
 
 type Propiedades = {
   clientes: { id: string; nombre: string }[]; condiciones: string; clienteId?: string;
   variante?: "pagina" | "drawer"; alGuardar?: (id: string, numero?: string) => void;
-  alCancelar?: () => void; puedeCrearCliente?: boolean; alNuevoCliente?: () => void;
+  alCancelar?: () => void; puedeCrearCliente?: boolean;
+  /** Abre el alta rápida; recibe el texto buscado para prellenar el nombre. */
+  alNuevoCliente?: (nombre?: string) => void;
 };
 type Formulario = UseFormReturn<EntradaCrearCotizacion>;
 
@@ -31,10 +35,12 @@ function CamposNuevaCotizacion({ formulario, propiedades, campos }: {
     {moneda === "USD" ? <p className="text-sm text-muted-foreground">El tipo de cambio se toma de la configuración al crear la cotización y queda congelado.</p> : null}
     <div className="flex items-end gap-3"><div className="min-w-0 flex-1">
       <Controller control={formulario.control} name="clienteId" render={({ field }) =>
-        <CampoSeleccion id="clienteId" etiqueta="Cliente" valor={field.value} opciones={propiedades.clientes}
-          requerido error={campos.clienteId} alCambiar={field.onChange} />} />
+        <FormField id="clienteId" etiqueta="Cliente" requerido error={campos.clienteId}>
+          {(atributos) => <SelectorCliente atributos={atributos} valor={field.value} opciones={propiedades.clientes}
+            alCambiar={field.onChange} alCrear={propiedades.puedeCrearCliente ? propiedades.alNuevoCliente : undefined} />}
+        </FormField>} />
     </div>{propiedades.puedeCrearCliente && propiedades.alNuevoCliente ?
-      <Button id="nuevo-cliente-cotizacion" type="button" variant="outline" onClick={propiedades.alNuevoCliente}>Nuevo cliente</Button> : null}</div>
+      <Button id="nuevo-cliente-cotizacion" type="button" variant="outline" onClick={() => propiedades.alNuevoCliente?.()}>Nuevo cliente</Button> : null}</div>
     <Controller control={formulario.control} name="asunto" render={({ field }) =>
       <CampoTexto id="asunto" etiqueta="Asunto" valor={field.value} requerido error={campos.asunto} alCambiar={field.onChange} />} />
     <Controller control={formulario.control} name="condiciones" render={({ field }) =>

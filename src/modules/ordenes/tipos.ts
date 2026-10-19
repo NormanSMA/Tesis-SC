@@ -9,8 +9,18 @@ export type OrdenFila = {
   id: string; numero: string; estado: EstadoOrden; categoria: ReferenciaOrden; responsable: ReferenciaOrden | null;
   cliente: ClienteOrden; cotizacion: { id: string; numero: string; asunto: string | null };
   fechaEntrega: string; atrasada: boolean; actualizadoEn: string; creadoEn: string;
+  /** Avance de etapas para la barra de progreso: completadas sobre total sin contar omitidas. Opcional en la ficha. */
+  avance?: { completadas: number; total: number };
 };
-export type ListaOrdenes = { datos: OrdenFila[]; total: number; pagina: number; porPagina: number };
+/** Lista blanca del parámetro orden=campo:direccion (R7). */
+export const CAMPOS_ORDEN_ORDENES = ["numero", "cliente", "fechaEntrega", "creadoEn"] as const;
+export type CampoOrdenOrdenes = (typeof CAMPOS_ORDEN_ORDENES)[number];
+/**
+ * Conteos para las pastillas: mismos filtros q y cliente, sin estado, vencidas, responsable ni terminales.
+ * activas = no CERRADA ni CANCELADA; atrasadas y sinResponsable se cuentan solo entre activas.
+ */
+export type ConteosOrdenes = Record<EstadoOrden, number> & { activas: number; atrasadas: number; sinResponsable: number };
+export type ListaOrdenes = { datos: OrdenFila[]; total: number; pagina: number; porPagina: number; conteos: ConteosOrdenes };
 export type LineaOrden = {
   id: string; secuencia: number; tipo: TipoLineaCosto; descripcion: string; unidad: string; cantidad: string;
   material: (ReferenciaOrden & { unidad: string }) | null; mermaPct: string; costoUnitario?: string; importe?: string;

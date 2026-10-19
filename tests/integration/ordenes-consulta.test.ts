@@ -8,6 +8,10 @@ const CAMPOS_DINERO = /^(precioUnitario|importe|subtotal|descuento|impuesto|tota
 function comprobarSinDinero(valor: unknown): void {
   if (!valor || typeof valor !== "object") return;
   for (const [clave, contenido] of Object.entries(valor)) {
+    if (clave === "avance") {
+      expect(contenido).toEqual({ completadas: expect.any(Number), total: expect.any(Number) });
+      continue;
+    }
     expect(clave).not.toMatch(CAMPOS_DINERO);
     comprobarSinDinero(contenido);
   }

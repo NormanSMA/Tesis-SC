@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,6 +22,8 @@ type Propiedades = {
   idRetorno?: string;
   /** Enlace al formulario completo de cliente (solo fuera del drawer de cotización). */
   enlaceCompleto?: string;
+  /** Nombre escrito en el buscador de clientes: prellena el campo al abrir. */
+  nombreInicial?: string;
 };
 const esquemaCliente = z.object({ id: z.string(), nombre: z.string() });
 const CAMPOS = [
@@ -51,9 +54,11 @@ function useClienteRapido(alGuardar: Propiedades["alGuardar"]) {
 }
 
 export function ModalClienteRapido({ abierto, alCambiar, alGuardar, descripcion = "Registre el cliente para esta cotización.",
-  idRetorno = "nuevo-cliente-cotizacion", enlaceCompleto }: Propiedades) {
+  idRetorno = "nuevo-cliente-cotizacion", enlaceCompleto, nombreInicial }: Propiedades) {
   const { formulario, guardar } = useClienteRapido(alGuardar);
   const { errors, isSubmitting } = formulario.formState;
+  const { setValue } = formulario;
+  useEffect(() => { if (abierto && nombreInicial) setValue("nombre", nombreInicial); }, [abierto, nombreInicial, setValue]);
   return <Dialog open={abierto} onOpenChange={(valor) => { if (!isSubmitting) alCambiar(valor); }}>
     <DialogContent className="sm:max-w-md" onCloseAutoFocus={(evento) => {
       evento.preventDefault(); document.getElementById(idRetorno)?.focus();

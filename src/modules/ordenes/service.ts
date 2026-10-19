@@ -1,10 +1,11 @@
 import { can, exigir, type Actor } from "@/core/autorizacion";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { hoyManagua } from "@/modules/cotizaciones/fechas";
 import { aOrdenDto, aOrdenFila } from "./dto";
 import { exigirOrden, guardarCambios, leerVersion, registrarCambio, transaccionOrden, validarResponsable } from "./escritura";
 import { cambiosEdicion, exigirEditable, validarFechaEntrega } from "./reglas";
-import { consultarOpciones, consultarOrdenes } from "./repo";
+import { consultarConteosOrdenes, consultarOpciones, consultarOrdenes } from "./repo";
 import type { ConsultaOrdenes, EntradaEditarOrden } from "./schema";
 import type { ListaOrdenes, OpcionesOrden } from "./tipos";
 
@@ -19,8 +20,12 @@ export async function obtenerOrden(id: string, actor: Actor) {
 
 export async function listarOrdenes(consulta: ConsultaOrdenes, actor: Actor): Promise<ListaOrdenes> {
   exigir(actor, "orden:ver");
-  const { filas, total } = await consultarOrdenes(consulta);
-  return { datos: filas.map((fila) => aOrdenFila(fila, actor)), total, pagina: consulta.pagina, porPagina: consulta.porPagina };
+  const hoy = hoyManagua();
+  const [{ filas, total, avances }, conteos] = await Promise.all([
+    consultarOrdenes(consulta, hoy), consultarConteosOrdenes(consulta, hoy),
+  ]);
+  return { datos: filas.map((fila) => ({ ...aOrdenFila(fila, actor), avance: avances.get(fila.id) ?? { completadas: 0, total: 0 } })),
+    total, pagina: consulta.pagina, porPagina: consulta.porPagina, conteos };
 }
 
 export async function opcionesOrden(actor: Actor): Promise<OpcionesOrden> {

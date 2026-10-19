@@ -21,13 +21,13 @@ function CampoContrasena({ error, registro }: { error?: string; registro: UseFor
             {...registro}
             type={visible ? "text" : "password"}
             autoComplete="current-password"
-            className="pr-12"
+            className="rounded-lg pr-12"
           />
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-md"
+            className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-lg text-slate-500"
             aria-label="Mostrar contraseña"
             aria-pressed={visible}
             onClick={() => setVisible((valor) => !valor)}
@@ -65,11 +65,12 @@ export function FormularioLogin() {
             inputMode="email"
             autoCapitalize="none"
             spellCheck={false}
+            className="rounded-lg"
           />
         )}
       </FormField>
       <CampoContrasena error={formState.errors.contrasena?.message} registro={register("contrasena")} />
-      <Button type="submit" size="lg" className="w-full" aria-disabled={enviando}>
+      <Button type="submit" size="lg" className="w-full rounded-xl" aria-disabled={enviando}>
         {enviando ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
         {enviando ? "Ingresando…" : "Ingresar"}
       </Button>

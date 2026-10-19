@@ -94,6 +94,7 @@ function SesionCreador({ abierto, clienteId: inicial, puedeCrearCliente, cerrar 
   const [pie, setPie] = useState<HTMLElement | null>(null);
   const { datos, setDatos, error } = usePreparacion();
   const [modal, setModal] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState("");
   const [clienteId, setClienteId] = useState(inicial);
   function agregarCliente(cliente: { id: string; nombre: string }) {
     setDatos((actuales) => actuales ? { ...actuales, clientes: [...actuales.clientes, cliente] } : actuales);
@@ -107,10 +108,10 @@ function SesionCreador({ abierto, clienteId: inicial, puedeCrearCliente, cerrar 
       {creacion.creada ? <PasoItems id={creacion.creada.id} pie={pie} alGuardar={creacion.finalizar} /> :
         error ? <p role="alert">No se pudo preparar la cotización. Cierre e intente nuevamente.</p> : datos ?
         <NuevaCotizacion {...datos} clienteId={clienteId} variante="drawer" alGuardar={creacion.guardar}
-          alCancelar={cerrar} puedeCrearCliente={puedeCrearCliente} alNuevoCliente={() => setModal(true)} /> :
+          alCancelar={cerrar} puedeCrearCliente={puedeCrearCliente} alNuevoCliente={(nombre) => { setNombreNuevo(nombre ?? ""); setModal(true); }} /> :
         <div role="status" aria-label="Cargando cotización"><EsqueletoFilas cantidad={4} /></div>}
     </DrawerFormulario>
-    <ModalClienteRapido abierto={modal} alCambiar={setModal} alGuardar={agregarCliente} />
+    <ModalClienteRapido abierto={modal} alCambiar={setModal} alGuardar={agregarCliente} nombreInicial={nombreNuevo} />
   </>;
 }
 
