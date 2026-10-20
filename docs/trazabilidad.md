@@ -30,7 +30,7 @@ Las rutas son relativas a la raíz del repositorio. Las restricciones de base de
 
 | Código | Atributo y medida | Implementación | Pruebas | Estado | Nota |
 |---|---|---|---|---|---|
-| RNF-01 | Tiempo de respuesta. Al menos 95 % de operaciones en 2 s o menos, con 20 sesiones concurrentes. | `scripts/rendimiento.mjs`. | Corrida final: `docs/pruebas/resultado-rendimiento.json`; informe: `docs/pruebas/rendimiento-RNF-01.md`. | Cubierto | 20 sesiones, 60 s, 14 850 operaciones, p95 106,54 ms, 100 % en 2 s o menos, 0 errores y 0 respuestas 429 (corrida del 2026-10-13, con límite de tasa activo). |
+| RNF-01 | Tiempo de respuesta. Al menos 95 % de operaciones en 2 s o menos, con 20 sesiones concurrentes. | `scripts/rendimiento.mjs`. | Informe: `docs/pruebas/rendimiento-RNF-01.md`. | Cubierto | 20 sesiones, 60 s, 14 850 operaciones, p95 106,54 ms, 100 % en 2 s o menos, 0 errores y 0 respuestas 429 (corrida del 2026-10-13, con límite de tasa activo). |
 | RNF-02 | Autenticación. 100 % de funciones protegidas rechaza solicitudes sin sesión válida. | `src/lib/http.ts` (`manejar`); `src/lib/auth/sesion.ts`; `src/lib/auth/guardia.ts`; `src/modules/auth/service.ts`. | `tests/integration/auth-http.test.ts`; `tests/integration/auth-sesion.test.ts`; `tests/integration/auth-login.test.ts`; `tests/integration/ordenes-api-perfiles.test.ts` (todas sin sesión responden 401); `tests/integration/produccion-api-perfiles.test.ts`; `tests/integration/reportes-api.test.ts`; `e2e/base.spec.ts` | Cubierto | Cubre sesión expirada, revocada y usuario desactivado. |
 | RNF-03 | Autorización. 100 % de casos no autorizados rechazado sin modificar información. | `src/core/autorizacion.ts` (`exigir`); `src/lib/http.ts` (`manejar` con permiso por acción). | `tests/integration/ordenes-api-perfiles.test.ts` (escrituras rechazadas conservan cabecera, etapas y bitácora); `tests/integration/cotizaciones-api-perfiles.test.ts` (conservan cotización y bitácora); `tests/integration/admin-permisos-api.test.ts`; `e2e/clientes.spec.ts` | Cubierto | La comprobación de no modificación está en órdenes y cotizaciones. El resto verifica el 403. |
 | RNF-04 | Confidencialidad en tránsito. 100 % de conexiones HTTPS con TLS 1.2 o superior. | `src/lib/auth/cookies.ts` (atributo `Secure` con `SESSION_COOKIE_SECURE=true`); `docs/seguridad.md`. TLS lo termina el proxy Caddy (`infra/Caddyfile`, ADR-017). | `scripts/verificar-tls.mjs` (TLS 1.2 y 1.3 aceptados; 1.0 y 1.1 rechazados; HSTS; redirección 308); `tests/integration/auth-login.test.ts` (cookie `Secure` por solicitud); `e2e/base.spec.ts` sobre `https://tracore.localhost:8443` (112 pruebas) | Cubierto | Evidencia en `docs/pruebas/tls.md`. El certificado es interno; en producción se usa uno público. |
@@ -99,10 +99,10 @@ Códigos v9 sin equivalente antiguo: RNF-04, RNF-06, RNF-07, RNF-01 (solo fila t
 5. RNF-03: la comprobación de no modificación existe en órdenes y cotizaciones. Extenderla a clientes, inventario, producción y catálogo.
 6. RB-02: falta una prueba que intente insertar una cotización sin cliente directamente en la base.
 7. RNF-06: copiar el volumen `sc_respaldos` fuera del equipo del servidor para la operación real.
-8. Los archivos de captura en `docs/capturas/` conservan nombres con códigos CF (por ejemplo `CF-01-gerencia-escritorio.png`). Renombrar al regenerarlos.
+8. Las capturas de evidencia se generan con las E2E en `docs/capturas/` y no se versionan en git.
 
 ## Funcionalidad fuera de v9 que el sistema ya cubre
-Lo siguiente no tiene código v9 propio. Las pruebas existen y se listan en `docs/trazabilidad-v6-historico.md`.
+Lo siguiente no tiene código v9 propio. Las pruebas existen en `tests/` y `e2e/`.
 
 | Funcionalidad | Implementación | Pruebas |
 |---|---|---|

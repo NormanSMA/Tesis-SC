@@ -5,7 +5,7 @@ Material para el Capítulo IV.
 
 | ID | Fecha | Decisión | Razón | Descartado |
 |---|---|---|---|---|
-| ADR-001 | 2026-10-05 | Stack: Next.js 16, Prisma 7.10.0, PostgreSQL 17, Tailwind 4, shadcn/ui, Docker Compose | Un repositorio, un contenedor, experiencia previa, plazo. Ver docs/capitulo-iv/comparacion-stack.md | NestJS con React, Django con HTMX, Laravel con Filament |
+| ADR-001 | 2026-10-05 | Stack: Next.js 16, Prisma 7.10.0, PostgreSQL 17, Tailwind 4, shadcn/ui, Docker Compose | Un repositorio, un contenedor, experiencia previa, plazo. La comparación completa está en el capítulo IV de la tesis | NestJS con React, Django con HTMX, Laravel con Filament |
 | ADR-002 | 2026-10-05 | Prisma fijo en 7.10.0 | La etiqueta latest de npm es 8.0.0-rc.20 | Versión candidata |
 | ADR-003 | 2026-10-05 | Modelo de datos con reglas en PostgreSQL: CHECK, triggers y transiciones | La integridad no depende del código de la aplicación. Ver docs/analisis/05-modelo-datos.md | Reglas solo en el servicio |
 | ADR-004 | 2026-10-05 | Margen sobre precio de venta, por ítem personalizado | Decisión del usuario. Mantiene el porcentaje entre 0 y 100 | Recargo sobre costo |

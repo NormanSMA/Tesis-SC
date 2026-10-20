@@ -1,7 +1,7 @@
 # Informe de rendimiento RNF-01
 
 Estado: corrida corregida registrada; resultado `CUMPLE` (2026-10-11).
-Evidencia: [resultado-rendimiento.json](resultado-rendimiento.json), fecha UTC 2026-10-11T16:55:14Z.
+Evidencia: `docs/pruebas/resultado-rendimiento.json`, fecha UTC 2026-10-11T16:55:14Z. El archivo de datos crudos se conserva en local y no se versiona por su tamaño (3,6 MB); se regenera con `node scripts/rendimiento.mjs`.
 La primera corrida y la corrida intermedia quedan como antecedentes en las secciones siguientes.
 
 ## Resultado vigente (2026-10-13, código final)

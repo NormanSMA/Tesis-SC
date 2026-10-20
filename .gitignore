@@ -12,7 +12,6 @@ src/generated/
 tsconfig.tsbuildinfo
 audit/
 respaldos/
-docs/capturas/_wip/
 output/
 .claude/
 .dev-lock/
@@ -24,3 +23,22 @@ output/
 scripts/carga/sesiones.json
 scripts/carga/concurrencia.json
 scripts/carga/estado.json
+
+# Documentación de trabajo: se conserva en local y no se publica en GitHub.
+# Capturas de evidencia (las E2E las regeneran en cada corrida) y datos crudos de rendimiento.
+docs/capturas/
+docs/pruebas/resultado-rendimiento.json
+# Notas de trabajo de la tesis, maqueta antigua e históricos.
+docs/maqueta/
+docs/capitulo-iv/
+docs/analisis/*
+!docs/analisis/05-modelo-datos.md
+docs/trazabilidad-v6-historico.md
+docs/pruebas/pulido-visual-*.md
+docs/modulos/03-pruebas-e2e-pendientes.md
+docs/modulos/11-cambios-ui-v9.md
+# Instrucciones locales del asistente (AGENTS.md sí se publica: convenciones del código).
+CLAUDE.md
+
+# Copias comprimidas locales.
+*.zip
