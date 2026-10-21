@@ -7,7 +7,7 @@ import type { CotizacionDto, ItemDto } from "@/modules/cotizaciones/tipos";
 
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import { cargarAuth } from "../helpers/auth";
-import { abrirSesion as abrirSesionComun, nombreUnico as crearNombreUnico } from "../helpers/fabricas";
+import { abrirSesion as abrirSesionComun, crearCategoriaBase, crearClienteBase, crearMaterialBase, nombreUnico as crearNombreUnico } from "../helpers/fabricas";
 
 export { conPermisoRevocado, invocar } from "../helpers/fabricas";
 export type { RespuestaApi, Sesion as SesionCotizacion } from "../helpers/fabricas";
@@ -42,19 +42,15 @@ export function nombreUnico(prefijo = "Cotización") {
 }
 
 export async function crearReferencias(db: PrismaClient) {
-  const cliente = await db.cliente.create({
-    data: { nombre: nombreUnico("Cliente cotizaciones"), tipo: "EMPRESA", telefono: "8888 0101" },
-  });
-  const categoria = await db.categoria.create({ data: { nombre: nombreUnico("Categoría cotizaciones") } });
+  const cliente = await db.cliente.create({ data: crearClienteBase({ nombre: nombreUnico("Cliente cotizaciones"), telefono: "8888 0101" }) });
+  const categoria = await db.categoria.create({ data: crearCategoriaBase({ nombre: nombreUnico("Categoría cotizaciones") }) });
   const unidad = await db.producto.create({
     data: { codigo: nombreUnico("CU"), nombre: "Rótulo unitario", categoriaId: categoria.id, unidadCobro: "UNIDAD", precioBase: "1320" },
   });
   const superficie = await db.producto.create({
     data: { codigo: nombreUnico("CM"), nombre: "Impresión por superficie", categoriaId: categoria.id, unidadCobro: "M2", precioBase: "1025" },
   });
-  const material = await db.material.create({
-    data: { codigo: nombreUnico("MAT"), nombre: "Material cotizaciones", unidad: "UNIDAD", costoPromedio: "2850" },
-  });
+  const material = await db.material.create({ data: crearMaterialBase({ nombre: "Material cotizaciones", costoPromedio: "2850" }) });
   return { cliente, categoria, unidad, superficie, material };
 }
 

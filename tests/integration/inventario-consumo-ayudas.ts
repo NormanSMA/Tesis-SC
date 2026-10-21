@@ -3,6 +3,7 @@ import type { Actor } from "@/core/autorizacion";
 import type { EstadoOrden, PrismaClient } from "@/generated/prisma/client";
 import type { RespuestaMovimientosOrden } from "@/modules/inventario/contrato-orden";
 import { ORIGEN } from "../helpers/auth";
+import { crearMaterialBase } from "../helpers/fabricas";
 import { abrirSesion, nombreUnico } from "./cotizaciones-ayudas";
 import { crearAprobada, entradaConversion, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
 
@@ -31,13 +32,12 @@ type OpcionesMaterial = { existencia?: string; costo?: string; activo?: boolean 
 
 /** Material propio con existencia inicial por ENTRADA (la base no admite otra vía, SC006). */
 export async function crearMaterial(entorno: EntornoConsumo, opciones: OpcionesMaterial = {}) {
-  const { db } = entorno;
-  const material = await db.material.create({ data: { codigo: nombreUnico("MC").slice(0, 30), nombre: nombreUnico("Material consumo"),
-    unidad: "UNIDAD", costoPromedio: opciones.costo ?? "10" } });
+  const material = await entorno.db.material.create({ data: crearMaterialBase({ codigo: nombreUnico("MC").slice(0, 30),
+    nombre: nombreUnico("Material consumo"), costoPromedio: opciones.costo ?? "10" }) });
   if (opciones.existencia && Number(opciones.existencia) > 0) {
     await registrarEntrada(entorno, { materialId: material.id, cantidad: opciones.existencia, costo: opciones.costo });
   }
-  if (opciones.activo === false) await db.material.update({ where: { id: material.id }, data: { activo: false } });
+  if (opciones.activo === false) await entorno.db.material.update({ where: { id: material.id }, data: { activo: false } });
   return material;
 }
 

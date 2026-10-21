@@ -5,7 +5,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { cargarAuth, type ModulosAuth } from "../helpers/auth";
 import {
   abrirSesion as abrirSesionComun, invocar as invocarApi, nombreUnico as crearNombreUnico,
-  type Manejador, type RespuestaApi, type Sesion,
+  crearCategoriaBase, crearClienteBase, type Manejador, type RespuestaApi, type Sesion,
 } from "../helpers/fabricas";
 
 export { conPermisoRevocado } from "../helpers/fabricas";
@@ -43,17 +43,15 @@ export function nombreUnico(prefijo = "Cliente"): string {
 }
 
 export function cuerpoCliente(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { nombre: nombreUnico(), tipo: "EMPRESA", telefono: "8888 0000", ...extra };
+  return crearClienteBase(extra);
 }
 
 export async function crearCategoriaPrueba(db: PrismaClient): Promise<string> {
-  return (await db.categoria.create({ data: { nombre: nombreUnico("Categoría de prueba") } })).id;
+  return (await db.categoria.create({ data: crearCategoriaBase() })).id;
 }
 
 export async function crearClienteDirecto(db: PrismaClient, extra: Record<string, unknown> = {}) {
-  return db.cliente.create({
-    data: { nombre: nombreUnico(), tipo: "EMPRESA", telefono: "8888 0000", ...extra },
-  });
+  return db.cliente.create({ data: crearClienteBase(extra) });
 }
 
 type DatosCotizacion = {

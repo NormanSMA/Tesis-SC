@@ -1,13 +1,13 @@
 import { expect } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
-import { nombreBaseDeDatos, urlPropietario } from "../helpers/entorno-bd";
+import { exigirBaseTest } from "../helpers/fabricas";
 import { consumir, crearMaterial, devolver, registrarEntrada } from "./inventario-consumo-ayudas";
 import { crearOrden } from "./ordenes-ayudas";
 import { prepararProduccion } from "./produccion-ayudas";
 
 export type EntornoTrazabilidad = Awaited<ReturnType<typeof prepararTrazabilidad>>;
 export async function prepararTrazabilidad(db: PrismaClient) {
-  if (!nombreBaseDeDatos(urlPropietario()).endsWith("_test")) throw new Error("Use una base terminada en _test.");
+  exigirBaseTest();
   const produccion = await prepararProduccion(db);
   const servicio = await import("@/modules/trazabilidad/service");
   const global = await import("@/app/api/v1/bitacora/route");

@@ -1,14 +1,14 @@
-import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import type { Actor } from "@/core/autorizacion";
 import type { PrismaClient } from "@/generated/prisma/client";
-import { nombreBaseDeDatos, urlParaPg, urlPropietario } from "../helpers/entorno-bd";
+import { urlParaPg, urlPropietario } from "../helpers/entorno-bd";
+import { crearAreaBase, exigirBaseTest, nombreUnico } from "../helpers/fabricas";
 import { prepararConsumo, capturar, type EntornoConsumo } from "./inventario-consumo-ayudas";
 import { crearOrden, leerOrden } from "./ordenes-ayudas";
 
 export type EntornoProduccion = Awaited<ReturnType<typeof prepararProduccion>>;
 export async function prepararProduccion(db: PrismaClient) {
-  if (!nombreBaseDeDatos(urlPropietario()).endsWith("_test")) throw new Error("Use una base terminada en _test.");
+  exigirBaseTest();
   const consumo = await prepararConsumo(db);
   const servicio = await import("@/modules/produccion/service");
   const rutas = { etapas: await import("@/app/api/v1/ordenes/[id]/etapas/route"), etapa: await import("@/app/api/v1/etapas/[id]/route"),
@@ -47,7 +47,7 @@ export async function prepararLista(entorno: EntornoProduccion) {
   return leerOrden(entorno.ordenes, orden.id);
 }
 export async function crearAreaLibre(entorno: EntornoProduccion) {
-  return entorno.servicio.crearArea({ nombre: `Área producción ${randomUUID().slice(0, 8)}` }, entorno.operaciones);
+  return entorno.servicio.crearArea(crearAreaBase({ nombre: nombreUnico("Área producción") }), entorno.operaciones);
 }
 async function esperarBloqueados(cliente: Client, pid: number, cantidad: number) {
   const limite = Date.now() + 10000;

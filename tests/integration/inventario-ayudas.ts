@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@/generated/prisma/client";
 import type { CrearMaterial } from "@/modules/inventario/schema";
 import { crearCliente } from "@/lib/db";
-
+import { urlPropietario } from "../helpers/entorno-bd";
+import { crearMaterialBase, exigirBaseTest, nombreUnico } from "../helpers/fabricas";
 export { invocar } from "./ordenes-ayudas";
 export type EntornoInventario = Awaited<ReturnType<typeof prepararInventario>>;
 export async function prepararInventario(db: PrismaClient) {
@@ -18,8 +19,8 @@ export async function prepararInventario(db: PrismaClient) {
   return { cotizaciones, modulos, sesiones: { GERENCIA, ADMINISTRACION, OPERACIONES, ATENCION_CLIENTE: cotizaciones.ventas, PRODUCCION, ADMIN } };
 }
 export function entradaMaterial(cambios: Partial<CrearMaterial> = {}): CrearMaterial {
-  return { codigo: `INV-${randomUUID().slice(0, 12)}`, nombre: `Material ${randomUUID().slice(0, 8)}`,
-    unidad: "METRO", stockMinimo: "2.000", costoPromedio: "5.1234", ...cambios };
+  return crearMaterialBase({ codigo: nombreUnico("INV", { separador: "-", longitud: 12 }),
+    unidad: "METRO", stockMinimo: "2.000", costoPromedio: "5.1234", ...cambios });
 }
 export function crearMaterial(entorno: EntornoInventario, cambios: Partial<CrearMaterial> = {}) {
   return entorno.modulos.servicio.crearMaterial(entradaMaterial(cambios), entorno.sesiones.ADMINISTRACION.actor);
@@ -36,7 +37,6 @@ export function peticionLibro(entrada: { ruta: string; cookie?: string; cuerpo: 
   return solicitud;
 }
 export function clienteInventario() {
-  const texto = process.env.TEST_DATABASE_URL;
-  if (!texto || !new URL(texto).pathname.endsWith("_test")) throw new Error("TEST_DATABASE_URL debe apuntar a una base _test.");
-  return crearCliente(texto);
+  exigirBaseTest();
+  return crearCliente(urlPropietario());
 }

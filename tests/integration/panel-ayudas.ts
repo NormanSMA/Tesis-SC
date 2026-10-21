@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -7,11 +6,12 @@ import type { TestProject } from "vitest/node";
 import type { EstadoCotizacion, Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { NombreReporte } from "@/modules/reportes/schema";
 import type { PanelDto } from "@/modules/panel/tipos";
-import { nombreBaseDeDatos, urlParaPg, urlPropietario } from "../helpers/entorno-bd";
+import { urlParaPg, urlPropietario } from "../helpers/entorno-bd";
+import { crearMaterialBase, exigirBaseTest, nombreUnico } from "../helpers/fabricas";
 
 export type EntornoPanel = Awaited<ReturnType<typeof prepararPanel>>;
 export async function prepararPanel(db: PrismaClient) {
-  if (!nombreBaseDeDatos(urlPropietario()).endsWith("_test")) throw new Error("Use una base terminada en _test.");
+  exigirBaseTest();
   const { prepararOrdenes } = await import("./ordenes-ayudas");
   const ordenes = await prepararOrdenes(db);
   return { db, ordenes, sesiones: ordenes.sesiones,
@@ -93,9 +93,9 @@ export async function completarEtapaPanel(entorno: EntornoPanel, entrada: {
 export async function crearMaterialPanel(entorno: EntornoPanel, entrada: {
   nombre?: string; existencia?: string; minimo?: string; costo?: string; activo?: boolean;
 } = {}) {
-  const material = await entorno.db.material.create({ data: { codigo: `PAN-${randomUUID().slice(0, 12)}`,
-    nombre: entrada.nombre ?? `Material ${randomUUID().slice(0, 8)}`, unidad: "METRO", stockMinimo: entrada.minimo ?? "2.000",
-    costoPromedio: entrada.costo ?? "1.2345", activo: entrada.activo ?? true } });
+  const material = await entorno.db.material.create({ data: { ...crearMaterialBase({ codigo: nombreUnico("PAN", { separador: "-", longitud: 12 }),
+    nombre: entrada.nombre ?? nombreUnico("Material"), unidad: "METRO", stockMinimo: entrada.minimo ?? "2.000",
+    costoPromedio: entrada.costo ?? "1.2345" }), activo: entrada.activo ?? true } });
   if (entrada.existencia && entrada.existencia !== "0") await entorno.db.movimientoInventario.create({ data: {
     materialId: material.id, tipo: "ENTRADA", cantidad: entrada.existencia, costoUnitario: entrada.costo ?? "1.2345",
     usuarioId: entorno.sesiones.ADMINISTRACION.usuarioId, existenciaResultante: "0", costoPromedioResultante: "0" } });
@@ -122,7 +122,7 @@ export function solicitarReporte(entorno: EntornoPanel, entrada: { nombre: Nombr
 // Evita pnpm en el sandbox y preserva los datos de bases de prueba ya preparadas.
 export default async function prepararBasePanel(proyecto: TestProject) {
   const url = urlPropietario();
-  if (!nombreBaseDeDatos(url).endsWith("_test")) throw new Error("Use una base terminada en _test.");
+  exigirBaseTest();
   const raiz = process.cwd();
   const resultado = spawnSync(process.execPath, [path.join(raiz, "node_modules/prisma/build/index.js"), "migrate", "deploy"], {
     cwd: raiz, env: { ...process.env, DATABASE_URL_MIGRACION: url }, encoding: "utf8",

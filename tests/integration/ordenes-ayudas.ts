@@ -1,16 +1,10 @@
 import type { EstadoOrden, PrismaClient } from "@/generated/prisma/client";
 import type { EntradaItem } from "@/modules/cotizaciones/schema";
 import type { EntradaCrearOrden } from "@/modules/ordenes/schema";
-
+import { crearAreaBase } from "../helpers/fabricas";
 export type EntornoOrdenes = Awaited<ReturnType<typeof prepararOrdenes>>;
 
-type Manejador = (req: Request, contexto?: { params?: Promise<Record<string, string>> }) => Promise<Response>;
-export async function invocar<T = unknown>(manejador: Manejador, solicitud: Request, id?: string) {
-  const respuesta = await manejador(solicitud, id ? { params: Promise.resolve({ id }) } : undefined);
-  const cuerpo = await respuesta.json() as Record<string, unknown>;
-  return { status: respuesta.status, datos: cuerpo.datos as T, cuerpo,
-    error: cuerpo.error as { codigo: string; mensaje: string; campos?: Record<string, string> } | undefined };
-}
+export { invocar } from "../helpers/fabricas";
 
 export async function prepararOrdenes(db: PrismaClient) {
   const { prepararCotizaciones, abrirSesion, nombreUnico } = await import("./cotizaciones-ayudas");
@@ -20,7 +14,7 @@ export async function prepararOrdenes(db: PrismaClient) {
   const admin = await abrirSesion(db, cotizaciones.modulos, "ADMIN");
   const operaciones = await abrirSesion(db, cotizaciones.modulos, "OPERACIONES");
   const administracion = await abrirSesion(db, cotizaciones.modulos, "ADMINISTRACION");
-  const area = await db.area.create({ data: { nombre: nombreUnico("Área órdenes") } });
+  const area = await db.area.create({ data: crearAreaBase({ nombre: nombreUnico("Área órdenes") }) });
   const categoriaId = cotizaciones.referencias.categoria.id;
   await db.etapaPlantilla.createMany({ data: [
     { categoriaId, areaId: area.id, nombre: "Diseño", secuencia: 1 },
