@@ -1,24 +1,20 @@
 import { randomUUID } from "node:crypto";
 
-import type { Actor } from "@/core/autorizacion";
 import type { PerfilCodigo } from "@/core/permisos";
 import type { PrismaClient } from "@/generated/prisma/client";
 import type { EntradaItem } from "@/modules/cotizaciones/schema";
 import type { CotizacionDto, ItemDto } from "@/modules/cotizaciones/tipos";
 
 import { sembrarReferencia } from "../../prisma/seed/referencia";
-import { cargarAuth, crearUsuarioPrueba, iniciarSesionPrueba, peticion } from "../helpers/auth";
+import { cargarAuth } from "../helpers/auth";
+import { abrirSesion as abrirSesionComun, nombreUnico as crearNombreUnico } from "../helpers/fabricas";
+
+export { conPermisoRevocado, invocar } from "../helpers/fabricas";
+export type { RespuestaApi, Sesion as SesionCotizacion } from "../helpers/fabricas";
 
 export type ModulosCotizaciones = Awaited<ReturnType<typeof cargarModuloCotizaciones>>;
-export type SesionCotizacion = { usuarioId: string; cookie: string; actor: Actor };
 export type Referencias = Awaited<ReturnType<typeof crearReferencias>>;
 export type EntornoCotizaciones = Awaited<ReturnType<typeof prepararCotizaciones>>;
-export type RespuestaApi<T = unknown> = {
-  status: number; datos: T; cuerpo: Record<string, unknown>;
-  error?: { codigo: string; mensaje: string; campos?: Record<string, string> };
-};
-type Manejador = (req: Request, contexto?: { params?: Promise<Record<string, string>> }) => Promise<Response>;
-
 export async function cargarModuloCotizaciones() {
   const auth = await cargarAuth();
   return {
@@ -38,21 +34,11 @@ export async function cargarModuloCotizaciones() {
 }
 
 export async function abrirSesion(db: PrismaClient, modulos: ModulosCotizaciones, perfil: PerfilCodigo) {
-  const usuario = await crearUsuarioPrueba(db, { perfil });
-  const { cookie } = await iniciarSesionPrueba(modulos.auth, usuario.correo);
-  const actor = await modulos.auth.sesion.obtenerSesionDeRequest(peticion("GET", "/", { cookie }));
-  if (!actor) throw new Error("La sesión de prueba no se resolvió.");
-  return { usuarioId: usuario.id, cookie, actor };
-}
-
-export async function invocar<T = unknown>(manejador: Manejador, solicitud: Request, id?: string): Promise<RespuestaApi<T>> {
-  const respuesta = await manejador(solicitud, id ? { params: Promise.resolve({ id }) } : undefined);
-  const cuerpo = await respuesta.json() as Record<string, unknown>;
-  return { status: respuesta.status, datos: cuerpo.datos as T, cuerpo, error: cuerpo.error as RespuestaApi["error"] };
+  return abrirSesionComun(db, modulos, perfil);
 }
 
 export function nombreUnico(prefijo = "Cotización") {
-  return `${prefijo} ${randomUUID().slice(0, 8)}`;
+  return crearNombreUnico(prefijo);
 }
 
 export async function crearReferencias(db: PrismaClient) {
@@ -166,15 +152,3 @@ export async function conConfiguracion<T>(
   }
 }
 
-export async function conPermisoRevocado<T>(
-  db: PrismaClient, opciones: { perfil: PerfilCodigo; permiso: string }, prueba: () => Promise<T>,
-): Promise<T> {
-  const [recurso, accion] = opciones.permiso.split(":");
-  const fila = await db.perfilPermiso.findFirstOrThrow({
-    where: { perfil: { codigo: opciones.perfil }, permiso: { recurso, accion } },
-  });
-  await db.perfilPermiso.delete({ where: { perfilId_permisoId: { perfilId: fila.perfilId, permisoId: fila.permisoId } } });
-  try { return await prueba(); } finally {
-    await db.perfilPermiso.createMany({ data: [fila], skipDuplicates: true });
-  }
-}

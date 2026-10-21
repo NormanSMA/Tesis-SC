@@ -1,24 +1,17 @@
-import { randomUUID } from "node:crypto";
-
-import type { Actor } from "@/core/autorizacion";
 import type { PerfilCodigo } from "@/core/permisos";
 import type { EstadoCotizacion } from "@/generated/prisma/enums";
 import type { PrismaClient } from "@/generated/prisma/client";
 
-import { cargarAuth, crearUsuarioPrueba, iniciarSesionPrueba, peticion, type ModulosAuth } from "../helpers/auth";
+import { cargarAuth, type ModulosAuth } from "../helpers/auth";
+import {
+  abrirSesion as abrirSesionComun, invocar as invocarApi, nombreUnico as crearNombreUnico,
+  type Manejador, type RespuestaApi, type Sesion,
+} from "../helpers/fabricas";
+
+export { conPermisoRevocado } from "../helpers/fabricas";
+export type { RespuestaApi, Sesion } from "../helpers/fabricas";
 
 export type ModuloClientes = Awaited<ReturnType<typeof cargarModuloClientes>>;
-
-export type Sesion = { usuarioId: string; cookie: string; actor: Actor };
-
-export type RespuestaApi<T = unknown> = {
-  status: number;
-  datos: T;
-  error?: { codigo: string; mensaje: string; campos?: Record<string, string> };
-  cuerpo: Record<string, unknown>;
-};
-
-type Manejador = (req: Request, contexto?: { params?: Promise<Record<string, string>> }) => Promise<Response>;
 
 // src/lib/db.ts toma DATABASE_URL al importarse: las rutas se cargan después de apuntarla a la base de pruebas.
 export async function cargarModuloClientes() {
@@ -34,11 +27,7 @@ export async function cargarModuloClientes() {
 }
 
 export async function abrirSesion(db: PrismaClient, modulos: ModuloClientes, perfil: PerfilCodigo): Promise<Sesion> {
-  const usuario = await crearUsuarioPrueba(db, { perfil });
-  const { cookie } = await iniciarSesionPrueba(modulos.auth, usuario.correo);
-  const actor = await modulos.auth.sesion.obtenerSesionDeRequest(peticion("GET", "/", { cookie }));
-  if (!actor) throw new Error("La sesión de prueba no se resolvió.");
-  return { usuarioId: usuario.id, cookie, actor };
+  return abrirSesionComun(db, modulos, perfil);
 }
 
 export async function invocar<T = Record<string, unknown>>(
@@ -46,18 +35,11 @@ export async function invocar<T = Record<string, unknown>>(
   solicitud: Request,
   id?: string,
 ): Promise<RespuestaApi<T>> {
-  const respuesta = await manejador(solicitud, id ? { params: Promise.resolve({ id }) } : undefined);
-  const cuerpo = (await respuesta.json()) as Record<string, unknown>;
-  return {
-    status: respuesta.status,
-    datos: cuerpo.datos as T,
-    error: cuerpo.error as RespuestaApi["error"],
-    cuerpo,
-  };
+  return invocarApi<T>(manejador, solicitud, id);
 }
 
 export function nombreUnico(prefijo = "Cliente"): string {
-  return `${prefijo} ${randomUUID().slice(0, 8)}`;
+  return crearNombreUnico(prefijo);
 }
 
 export function cuerpoCliente(extra: Record<string, unknown> = {}): Record<string, unknown> {
@@ -170,20 +152,3 @@ export async function crearOrdenPrueba(db: PrismaClient, datos: DatosOrden) {
   });
 }
 
-// Quita un permiso de la matriz de un perfil y lo restituye siempre, incluso si la prueba falla.
-export async function conPermisoRevocado<T>(
-  db: PrismaClient,
-  { perfil, permiso }: { perfil: PerfilCodigo; permiso: string },
-  prueba: () => Promise<T>,
-): Promise<T> {
-  const [recurso, accion] = permiso.split(":");
-  const fila = await db.perfilPermiso.findFirstOrThrow({
-    where: { perfil: { codigo: perfil }, permiso: { recurso, accion } },
-  });
-  await db.perfilPermiso.delete({ where: { perfilId_permisoId: { perfilId: fila.perfilId, permisoId: fila.permisoId } } });
-  try {
-    return await prueba();
-  } finally {
-    await db.perfilPermiso.createMany({ data: [fila], skipDuplicates: true });
-  }
-}
