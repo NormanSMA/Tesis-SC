@@ -16,8 +16,6 @@ type PropiedadesTarjeta = {
   texto: string;
   formato: FormatoNumero;
   moneda?: Moneda;
-  /** Reportes: la cifra final conserva los decimales del texto del servidor. */
-  textoExacto?: boolean;
   tendencia?: TendenciaMetrica;
   /** Invierte el color: bajar es bueno (atrasadas, sin responsable). */
   mejorSiBaja?: boolean;
@@ -65,7 +63,7 @@ function Tendencia({ tendencia, mejorSiBaja }: { tendencia: TendenciaMetrica; me
  * número grande de trazo ligero y fila de tendencia con texto comparativo.
  */
 export function TarjetaMetrica(propiedades: PropiedadesTarjeta) {
-  const { etiqueta, numero, texto, formato, moneda, textoExacto, tendencia, mejorSiBaja = false, pie, alerta, destino, icono: Icono = Activity, destacada, adorno } = propiedades;
+  const { etiqueta, numero, texto, formato, moneda, tendencia, mejorSiBaja = false, pie, alerta, destino, icono: Icono = Activity, destacada, adorno } = propiedades;
   const contenido = (
     <>
       <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
@@ -84,7 +82,7 @@ export function TarjetaMetrica(propiedades: PropiedadesTarjeta) {
       </div>
       <div className="flex flex-1 flex-col justify-between gap-3 px-4 pt-4 pb-4">
         <div className="flex items-center justify-between gap-3">
-          <ContadorMetrica numero={numero} texto={texto} formato={formato} moneda={moneda} textoExacto={textoExacto}
+          <ContadorMetrica numero={numero} texto={texto} formato={formato} moneda={moneda}
             className="text-[2.25rem] leading-none font-normal tracking-tight text-slate-900" />
           {adorno}
         </div>

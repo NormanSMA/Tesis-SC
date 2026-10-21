@@ -32,7 +32,7 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
     <section aria-label="Totales del reporte" className="space-y-3"><h3 className="sr-only">Totales</h3>
       <BandejaMetricas className={COLUMNAS_TOTALES[Object.keys(reporte.totales).length] ?? "lg:grid-cols-3"}>{Object.entries(reporte.totales).map(([campo, valor]) =>
         <TarjetaMetrica key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} numero={numeroTotal(valor)}
-          texto={String(totalVisible(campo, valor) ?? "")} formato={formatoTotal(campo)} textoExacto />)}</BandejaMetricas></section>
+          texto={String(totalVisible(campo, valor) ?? "")} formato={formatoTotal(campo)} />)}</BandejaMetricas></section>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
       idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
       vacio={<EmptyState ilustracion="video-marketing" titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />

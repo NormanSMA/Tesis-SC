@@ -16,8 +16,6 @@ type PropiedadesContador = {
   texto: string;
   formato: FormatoNumero;
   moneda?: Moneda;
-  /** Muestra al final el texto del servidor tal cual (con decimales), sin redondear ni compactar. */
-  textoExacto?: boolean;
   duracionMs?: number;
   className?: string;
 };
@@ -41,11 +39,11 @@ const escapar = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&
  *   así un re-render del padre no pisa el conteo en curso.
  * - Lectores de pantalla oyen solo el valor final (sr-only); el número animado es aria-hidden.
  */
-export function ContadorMetrica({ numero, texto, formato, moneda = "NIO", textoExacto = false, duracionMs = 400, className }: PropiedadesContador) {
+export function ContadorMetrica({ numero, texto, formato, moneda = "NIO", duracionMs = 400, className }: PropiedadesContador) {
   const nodo = useRef<HTMLSpanElement>(null);
   const anterior = useRef(0);
-  const visibleFinal = numero === null ? "—" : textoExacto ? texto : formatear(numero, formato, moneda);
-  const compacto = !textoExacto && numero !== null && Math.abs(numero) >= UMBRAL_COMPACTO;
+  const visibleFinal = numero === null ? "—" : formatear(numero, formato, moneda);
+  const compacto = numero !== null && Math.abs(numero) >= UMBRAL_COMPACTO;
 
   // Antes de pintar, el nodo arranca en el valor anterior para que no se vea un salto.
   useLayoutEffect(() => {
