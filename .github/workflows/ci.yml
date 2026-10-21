@@ -66,6 +66,15 @@ jobs:
       - name: Generar cliente Prisma
         run: pnpm db:generate
 
+      # Guarda la caché de ESLint (.next/cache/eslint) y la de compilación de Next entre corridas.
+      - name: Restaurar caché de Next y ESLint
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'next.config.ts', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Verificar estilo
         run: pnpm lint
 
@@ -79,8 +88,8 @@ jobs:
         run: pnpm build
 
 
+  # Corre en paralelo con verificar: cada sección tiene su propia base y no depende de la compilación.
   pruebas:
-    needs: verificar
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:

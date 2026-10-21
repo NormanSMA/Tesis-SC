@@ -12,6 +12,12 @@ jobs:
   portatil:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Tres máquinas con su propia base y servidor; Playwright reparte archivos completos (playwright.dev/docs/test-sharding).
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       PRISMA_HIDE_UPDATE_MESSAGE: "1"
@@ -86,6 +92,14 @@ jobs:
       - name: Instalar navegador de Playwright
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Restaurar caché de compilación de Next
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'next.config.ts', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Compilar aplicación
         run: pnpm build
 
@@ -108,14 +122,14 @@ jobs:
           process.exit(1);
           NODE
 
-      - name: Ejecutar proyecto portátil
-        run: pnpm e2e --project=portatil --retries=1
+      - name: Ejecutar proyecto portátil (parte ${{ matrix.shardIndex }} de ${{ matrix.shardTotal }})
+        run: pnpm e2e --project=portatil --retries=1 --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Subir informe de Playwright
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shardIndex }}
           path: audit/e2e/informe
           if-no-files-found: warn
           retention-days: 14
