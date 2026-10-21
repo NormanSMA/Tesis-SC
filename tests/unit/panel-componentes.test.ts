@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { formatearDescripcionGrafico, GraficoBarrasEstados } from "@/components/panel/GraficoBarrasEstados";
 import { ListaAtencion, ordenarPorGravedad, tiempoAtencion } from "@/components/panel/ListaAtencion";
-import { TarjetaIndicador } from "@/components/panel/TarjetaIndicador";
+import { TarjetaIndicador } from "@/modules/panel/componentes/TarjetaIndicador";
 import { URGENCIAS } from "@/components/panel/urgencias";
 import type { AtencionPanel, GraficoPanel } from "@/modules/panel/tipos";
 

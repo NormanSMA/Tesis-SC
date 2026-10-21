@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EncabezadoPanel } from "@/components/panel/EncabezadoPanel";
 import { GraficoBarrasEstados } from "@/components/panel/GraficoBarrasEstados";
 import { ListaAtencion } from "@/components/panel/ListaAtencion";
-import { TarjetaIndicador } from "@/components/panel/TarjetaIndicador";
+import { TarjetaIndicador } from "./TarjetaIndicador";
 import { BandejaMetricas } from "@/components/comunes/TarjetaMetrica";
 import type { PanelDto } from "@/modules/panel/tipos";
 

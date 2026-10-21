@@ -4,8 +4,8 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { ErrorState } from "@/components/comunes/ErrorState";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
-import { KpiCard } from "@/components/comunes/KpiCard";
 import { LoadingState } from "@/components/comunes/LoadingState";
+import { BandejaMetricas, TarjetaMetrica } from "@/components/comunes/TarjetaMetrica";
 import { Timeline } from "@/components/comunes/Timeline";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,12 @@ export function SeccionTabla() {
 export function SeccionTarjetas() {
   return (
     <Seccion id="tarjetas" titulo="Indicadores" descripcion="Valor con guion cuando aún no hay dato.">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard etiqueta="Cotizaciones enviadas" valor={12} icono={FileText} ayuda="Pendientes de respuesta" />
-        <KpiCard etiqueta="Órdenes en producción" valor={7} icono={ClipboardList} ayuda="Con etapa en curso" />
-        <KpiCard etiqueta="Entregas próximas" valor={3} icono={Truck} ayuda="Siguientes 7 días" />
-        <KpiCard etiqueta="Materiales bajo mínimo" icono={PackageX} ayuda="Sin datos todavía" />
-      </div>
+      <BandejaMetricas>
+        <TarjetaMetrica etiqueta="Cotizaciones enviadas" numero={12} texto="12" formato="entero" icono={FileText} pie="Pendientes de respuesta" />
+        <TarjetaMetrica etiqueta="Órdenes en producción" numero={7} texto="7" formato="entero" icono={ClipboardList} pie="Con etapa en curso" />
+        <TarjetaMetrica etiqueta="Entregas próximas" numero={3} texto="3" formato="entero" icono={Truck} pie="Siguientes 7 días" />
+        <TarjetaMetrica etiqueta="Materiales bajo mínimo" numero={null} texto="" formato="entero" icono={PackageX} pie="Sin datos todavía" />
+      </BandejaMetricas>
     </Seccion>
   );
 }

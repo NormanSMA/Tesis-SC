@@ -122,7 +122,7 @@ Ese endpoint es un supuesto. El agente de autenticación debe crearlo.
 |---|---|
 | `PageHeader` | Título, descripción y acciones de cada página |
 | `EstadoBadge({ tipo, estado })` | Estado de cotización, orden, etapa o existencia |
-| `KpiCard` | Indicador con guion si no hay dato |
+| `TarjetaMetrica` | Indicador con guion si no hay dato; agrupar con `BandejaMetricas` |
 | `EmptyState` | Lista o sección sin datos |
 | `ErrorState` | Error de carga con acción de reintento |
 | `LoadingState` | Esqueleto de carga con `role="status"` |

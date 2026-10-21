@@ -1,10 +1,22 @@
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { ZonaResultados } from "@/components/comunes/ZonaResultados";
-import { KpiCard } from "@/components/comunes/KpiCard";
-import { celdaVisible, columnasReporte, etiquetaVisible, ETIQUETAS_TOTALES, TITULOS_REPORTES, totalVisible } from "../columnas";
+import { BandejaMetricas, TarjetaMetrica } from "@/components/comunes/TarjetaMetrica";
+import type { FormatoNumero } from "@/components/comunes/ContadorMetrica";
+import { celdaVisible, columnasReporte, etiquetaVisible, ETIQUETAS_TOTALES, MONETARIAS, TITULOS_REPORTES, totalVisible } from "../columnas";
 import type { NombreReporte } from "../schema";
-import type { FilaReporte, ReporteDto } from "../tipos";
+import type { FilaReporte, ReporteDto, ValorReporte } from "../tipos";
+
+// Valor crudo de un total: sin dato o no numérico queda en null (la tarjeta muestra guion).
+function numeroTotal(valor: ValorReporte): number | null {
+  if (valor === null || valor === "") return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+function formatoTotal(campo: string): FormatoNumero {
+  if (MONETARIAS.has(campo)) return "moneda";
+  return campo === "tasaAprobacion" ? "porcentaje" : "entero";
+}
 
 // Una fila de tarjetas en escritorio, sin huecos: tantas columnas como totales.
 const COLUMNAS_TOTALES: Record<number, string> = { 1: "lg:grid-cols-3", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5" };
@@ -18,8 +30,9 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
     {/* El selector ya nombra el reporte y el reloj da la hora: el título queda para lectores de pantalla. */}
     <h2 className="sr-only">{TITULOS_REPORTES[nombre]}</h2>
     <section aria-label="Totales del reporte" className="space-y-3"><h3 className="sr-only">Totales</h3>
-      <div className={`grid gap-3 sm:grid-cols-2 ${COLUMNAS_TOTALES[Object.keys(reporte.totales).length] ?? "lg:grid-cols-3"} [&_p]:break-words [&_[data-slot=card]]:rounded-2xl [&_[data-slot=card]]:border-slate-200/80`}>{Object.entries(reporte.totales).map(([campo, valor]) =>
-        <KpiCard key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} valor={totalVisible(campo, valor)} />)}</div></section>
+      <BandejaMetricas className={COLUMNAS_TOTALES[Object.keys(reporte.totales).length] ?? "lg:grid-cols-3"}>{Object.entries(reporte.totales).map(([campo, valor]) =>
+        <TarjetaMetrica key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} numero={numeroTotal(valor)}
+          texto={String(totalVisible(campo, valor) ?? "")} formato={formatoTotal(campo)} />)}</BandejaMetricas></section>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
       idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
       vacio={<EmptyState ilustracion="video-marketing" titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />
