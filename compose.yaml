@@ -79,7 +79,8 @@ services:
     environment:
       POSTGRES_DB: sc_test
     # fsync apagado: la base de pruebas es desechable y vive en memoria.
-    command: ["postgres", "-c", "fsync=off", "-c", "jit=off"]
+    # 300 conexiones: ci:local corre las 9 secciones a la vez, cada una con pools de dueño y de app.
+    command: ["postgres", "-c", "fsync=off", "-c", "jit=off", "-c", "max_connections=300"]
     tmpfs:
       - /var/lib/postgresql/data
     ports:
