@@ -37,7 +37,7 @@ paso("verificar", "Verificar el reparto de pruebas por secciones", () => ejecuta
 if (!args.includes("--sin-build")) paso("verificar", "Compilar aplicación", () => ejecutar("pnpm", ["build"]));
 
 // Job "dependencias-y-secretos" y "migraciones" de auditoria.yml
-paso("auditoria", "Auditar dependencias de producción (solo CRITICAL)", () => ejecutar("pnpm", ["audit", "--prod", "--audit-level=critical"]));
+paso("auditoria", "Auditar dependencias de producción (solo CRITICAL)", () => ejecutar("pnpm", ["audit:security"]));
 paso("auditoria", "Ciclos y violaciones de capas", () => ejecutar("node", ["scripts/auditoria/ciclos.mjs"]));
 paso("auditoria", "Escanear secretos con gitleaks (historial completo)", () =>
   ejecutar("docker", ["run", "--rm", "-v", `${raiz}:/repo:ro`, "zricethezav/gitleaks:latest", "detect", "--source", "/repo",

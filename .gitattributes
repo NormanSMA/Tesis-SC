@@ -1,1 +1,7 @@
 * text=auto eol=lf
+
+# Fuera de git archive: evidencia y herramientas locales que no forman parte del entregable.
+docs/auditoria/** export-ignore
+docs/analisis/** export-ignore
+e2e/instantaneas/** export-ignore
+scripts/capturas/** export-ignore

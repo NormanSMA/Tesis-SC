@@ -19,11 +19,34 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
-    globalSetup: ["tests/helpers/global-setup.ts"],
     setupFiles: ["tests/helpers/forzar-base-prueba.ts"],
     testTimeout: 60000,
     hookTimeout: 120000,
-    fileParallelism: false,
+    // globalSetup no se hereda de la raiz: solo integration prepara la base.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["tests/unit/**/*.test.ts"],
+          exclude: ["tests/unit/**/*-interfaz.test.ts"],
+        },
+      },
+      {
+        // Render completo con axe: lento, fuera del ciclo rapido de unit.
+        extends: true,
+        test: { name: "interfaz", include: ["tests/unit/**/*-interfaz.test.ts"] },
+      },
+      {
+        extends: true,
+        test: {
+          name: "integration",
+          include: ["tests/integration/**/*.test.ts"],
+          globalSetup: ["tests/helpers/global-setup.ts"],
+          // Todas las pruebas comparten una base: un archivo a la vez.
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 });

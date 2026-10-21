@@ -20,7 +20,7 @@
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="docs/readme/logo-facultad.png" alt="Facultad de Ingeniería y Arquitectura" width="270" align="middle">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/readme/logo-soluciones-creativas.png" alt="Soluciones Creativas" width="170" align="middle">
+  <img src="public/brand/logo-completo.png" alt="Soluciones Creativas" width="170" align="middle">
 </p>
 
 </div>
@@ -331,6 +331,14 @@ El servicio `respaldo` guarda una copia al arrancar y cada 23 horas.
 Consulte el registro con `docker compose exec respaldo cat /respaldos/registro.log`.
 
 </details>
+
+---
+
+## Capturas
+
+`pnpm capturas <subcomando>` genera capturas de pantalla con Playwright. La app debe estar en `http://127.0.0.1:3000` (o use `--base`).
+Subcomandos: `pantallas`, `paneles`, `recorrido`, `pagina`, `maqueta` y `desborde`. Use `pnpm capturas --help` para ver las opciones.
+Las claves `SEED_PASSWORD_*` salen del entorno y, si faltan, de `.env.example`. La salida va a `docs/capturas/<subcomando>`.
 
 ---
 
