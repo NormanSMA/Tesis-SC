@@ -31,20 +31,26 @@ export default defineConfig({
   },
   // RNF-08 (tesis v9): 1920, 1366, 1024 y 768 px.
   projects: [
+    // Inicia sesión una vez por perfil y guarda las cookies (playwright.dev/docs/auth).
+    { name: "setup", testMatch: /autenticacion\.setup\.ts/ },
     {
       name: "escritorio",
+      dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 }, colorScheme: "light" },
     },
     {
       name: "portatil",
+      dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 768 } },
     },
     {
       name: "tableta-horizontal",
+      dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 768 }, hasTouch: true },
     },
     {
       name: "tableta",
+      dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1024 }, hasTouch: true },
     },
   ],

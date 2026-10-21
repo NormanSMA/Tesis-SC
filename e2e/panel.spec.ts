@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { hoyManagua } from "../src/modules/cotizaciones/fechas";
-import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
 import { elegir } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
@@ -39,11 +39,7 @@ test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
 const esRespuestaPanel = (url: string) => new URL(url).pathname === "/api/v1/panel";
 
 async function entrarComo(page: Page, perfil: Perfil) {
-  const clave = process.env[perfil.claveEnv];
-  if (!clave) throw new Error(`Falta ${perfil.claveEnv}.`);
-  await page.context().clearCookies();
-  await iniciarSesion(page, perfil.correo, clave);
-  await page.waitForURL(`**${perfil.destino}`);
+  await usarSesion(page, perfil);
 }
 function regionPanel(page: Page) {
   return page.getByRole("region", { name: "Panel", exact: true });

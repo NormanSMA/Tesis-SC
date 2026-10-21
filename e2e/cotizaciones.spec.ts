@@ -2,7 +2,7 @@
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import { PERFILES, VIEWPORTS, iniciarSesion, violacionesGraves } from "./ayudas";
+import { PERFILES, VIEWPORTS, usarSesion, violacionesGraves } from "./ayudas";
 dotenv.config();
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const CARPETA_CAPTURAS = path.join("docs", "capturas", "cotizaciones");
@@ -24,16 +24,8 @@ const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
 let mixta: { id: string; numero: string; totales: Totales } | null = null;
 let referenciaAprobacion: string | null = null;
 let conAjustes: { id: string } | null = null;
-function claveDe(perfil: Perfil): string {
-  const directa = process.env[perfil.claveEnv];
-  if (directa) return directa;
-  const ejemplo = fs.readFileSync(".env.example", "utf-8");
-  const coincidencia = ejemplo.match(new RegExp(`^${perfil.claveEnv}=(.+)$`, "m"));
-  if (!coincidencia) throw new Error(`No se encontró ${perfil.claveEnv}`);
-  return coincidencia[1];
-}
 async function entrarComo(page: Page, perfil: Perfil): Promise<void> {
-  await iniciarSesion(page, perfil.correo, claveDe(perfil)); await page.waitForURL(`**${perfil.destino}`, { timeout: 15_000 });
+  await usarSesion(page, perfil);
 }
 function marcaE2E(): string {
   return `E2E-${Date.now()}-${Math.floor(Math.random() * 1000)}`;

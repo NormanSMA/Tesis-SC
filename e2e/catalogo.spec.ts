@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 
-import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
 
 dotenv.config();
 
@@ -24,18 +24,9 @@ const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_C
 const PRODUCCION = PERFILES.find((perfil) => perfil.codigo === "PRODUCCION") as Perfil;
 const ADMIN = PERFILES.find((perfil) => perfil.codigo === "ADMIN") as Perfil;
 
-function claveDe(perfil: Perfil): string {
-  const directa = process.env[perfil.claveEnv];
-  if (directa) return directa;
-  const ejemplo = fs.readFileSync(".env.example", "utf-8");
-  const coincidencia = ejemplo.match(new RegExp(`^${perfil.claveEnv}=(.+)$`, "m"));
-  if (!coincidencia) throw new Error(`No se encontró ${perfil.claveEnv}`);
-  return coincidencia[1];
-}
 
 async function entrarComo(page: Page, perfil: Perfil): Promise<void> {
-  await iniciarSesion(page, perfil.correo, claveDe(perfil));
-  await page.waitForURL(`**${perfil.destino}`, { timeout: 15_000 });
+  await usarSesion(page, perfil);
 }
 
 function marcaE2E(): string {

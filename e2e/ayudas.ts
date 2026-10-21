@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
 
 // RNF-08 (tesis v9): 768, 1024, 1366 y 1920 px.
 export const VIEWPORTS = [
@@ -81,6 +83,48 @@ export async function iniciarSesion(
   await page.getByLabel("Correo electrónico").fill(correo);
   await page.locator("#contrasena").fill(clave);
   await page.getByRole("button", { name: "Ingresar" }).click();
+}
+
+// Sesión guardada por perfil (e2e/autenticacion.setup.ts). Lleva cookies: vive en .next/, fuera de git.
+const CARPETA_SESIONES = path.join(".next", "cache", "playwright-auth");
+const archivoSesion = (codigo: string) => path.join(CARPETA_SESIONES, `${codigo}.json`);
+type PerfilSesion = { codigo: string; correo: string; claveEnv: string; destino: string };
+
+/** Clave del perfil: primero el entorno, luego .env.example (claves de la siembra de demostración). */
+export function claveDePerfil(perfil: { claveEnv: string }): string {
+  const directa = process.env[perfil.claveEnv];
+  if (directa) return directa;
+  const ejemplo = fs.existsSync(".env.example") ? fs.readFileSync(".env.example", "utf-8") : "";
+  const coincidencia = ejemplo.match(new RegExp(`^${perfil.claveEnv}=(.+)$`, "m"));
+  if (!coincidencia) throw new Error(`Falta la variable ${perfil.claveEnv}`);
+  return coincidencia[1];
+}
+
+/** Inicia sesión por la interfaz, espera el destino del perfil y guarda las cookies para reutilizarlas. */
+export async function entrarYGuardar(page: Page, perfil: PerfilSesion): Promise<void> {
+  const clave = claveDePerfil(perfil);
+  await page.context().clearCookies();
+  await iniciarSesion(page, perfil.correo, clave);
+  await page.waitForURL(`**${perfil.destino}`, { timeout: 15_000 });
+  fs.mkdirSync(CARPETA_SESIONES, { recursive: true });
+  await page.context().storageState({ path: archivoSesion(perfil.codigo) });
+}
+
+/**
+ * Entra como el perfil con la sesión guardada y abre su destino, sin pagar el hash de la clave.
+ * Si la sesión falta o venció (por ejemplo tras demo:reiniciar), inicia sesión de nuevo y la guarda.
+ */
+export async function usarSesion(page: Page, perfil: PerfilSesion): Promise<void> {
+  const contexto = page.context();
+  await contexto.clearCookies();
+  const archivo = archivoSesion(perfil.codigo);
+  if (fs.existsSync(archivo)) {
+    const { cookies } = JSON.parse(fs.readFileSync(archivo, "utf8"));
+    await contexto.addCookies(cookies);
+    await page.goto(perfil.destino);
+    if (!new URL(page.url()).pathname.startsWith("/login")) return;
+  }
+  await entrarYGuardar(page, perfil);
 }
 
 export async function verificarMenuExacto(

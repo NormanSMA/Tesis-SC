@@ -1,8 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import dotenv from "dotenv";
-import fs from "fs";
 
-import { PERFILES, iniciarSesion } from "./ayudas";
+import { PERFILES, usarSesion } from "./ayudas";
 
 dotenv.config();
 
@@ -15,15 +14,6 @@ const CLIENTE_SEMBRADO = "Agencia Viajes Tropical";
 test.use({ baseURL: BASE });
 
 const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_CLIENTE") as (typeof PERFILES)[number];
-
-function claveDe(perfil: (typeof PERFILES)[number]): string {
-  const directa = process.env[perfil.claveEnv];
-  if (directa) return directa;
-  const ejemplo = fs.readFileSync(".env.example", "utf-8");
-  const coincidencia = ejemplo.match(new RegExp(`^${perfil.claveEnv}=(.+)$`, "m"));
-  if (!coincidencia) throw new Error(`No se encontró ${perfil.claveEnv}`);
-  return coincidencia[1];
-}
 
 async function elegirEn(page: Page, id: string, opcion: string | RegExp): Promise<void> {
   await page.locator(`[id="${id}"]`).click();
@@ -47,8 +37,7 @@ test("Atención al cliente cotiza en dólares: encabezado, editor, proforma y li
   const asunto = `E2E-USD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   let id: string | null = null;
 
-  await iniciarSesion(page, ATENCION_CLIENTE.correo, claveDe(ATENCION_CLIENTE));
-  await page.waitForURL(`**${ATENCION_CLIENTE.destino}`, { timeout: 15_000 });
+  await usarSesion(page, ATENCION_CLIENTE);
 
   try {
     await page.goto("/cotizaciones");

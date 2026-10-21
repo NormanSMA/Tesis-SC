@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import dotenv from "dotenv";
 
 import { COLUMNAS } from "@/modules/importacion/tipos";
-import { PERFILES, iniciarSesion } from "./ayudas";
+import { PERFILES, usarSesion } from "./ayudas";
 
 dotenv.config();
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000" });
@@ -20,8 +20,7 @@ test("importa el cliente válido e informa la fila inválida", async ({ page }, 
     `${nombre} inválido,PERSONA,,,,,,`,
   ].join("\n");
 
-  await iniciarSesion(page, perfil.correo, clave);
-  await page.waitForURL(`**${perfil.destino}`);
+  await usarSesion(page, perfil);
   await page.goto("/importar");
   await page.getByLabel("Tipo de datos").selectOption("clientes");
   await page.getByLabel("Archivo CSV").setInputFiles({

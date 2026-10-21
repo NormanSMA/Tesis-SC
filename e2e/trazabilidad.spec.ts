@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { ListaBitacora, TrazabilidadOrden } from "../src/modules/trazabilidad/tipos";
-import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGEN = new URL(BASE).origin;
@@ -25,10 +25,7 @@ test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
   ? { browserName: "chromium" as const, channel: process.env.E2E_BROWSER_CHANNEL } : {}) });
 
 async function entrarComo(page: Page, actor: Perfil) {
-  const clave = process.env[actor.claveEnv];
-  if (!clave) throw new Error(`Falta la variable ${actor.claveEnv}`);
-  await page.context().clearCookies();
-  await iniciarSesion(page, actor.correo, clave); await page.waitForURL(`**${actor.destino}`);
+  await usarSesion(page, actor);
 }
 function soloPortatil(proyecto: string) {
   test.skip(proyecto !== "portatil", "Los efectos y las capturas corren únicamente en portatil.");

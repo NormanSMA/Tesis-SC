@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 
-import { PERFILES, VIEWPORTS, iniciarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -30,11 +30,7 @@ test.use({ baseURL: BASE, ...(process.env.E2E_BROWSER_CHANNEL
   ? { browserName: "chromium" as const, channel: process.env.E2E_BROWSER_CHANNEL } : {}) });
 
 async function entrarComo(page: Page, perfil: Perfil): Promise<void> {
-  const clave = process.env[perfil.claveEnv];
-  if (!clave) throw new Error(`Falta la variable ${perfil.claveEnv}`);
-  await page.context().clearCookies();
-  await iniciarSesion(page, perfil.correo, clave);
-  await page.waitForURL(`**${perfil.destino}`);
+  await usarSesion(page, perfil);
 }
 
 function soloPortatil(proyecto: string): void {
