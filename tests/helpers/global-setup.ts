@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
 import type { TestProject } from "vitest/node";
+import { clonarDesdePlantilla } from "../../scripts/pruebas/plantilla-bd.mjs";
 import { nombreBaseDeDatos, urlParaPg, urlPropietario } from "./entorno-bd";
 
 declare module "vitest" {
@@ -54,9 +55,24 @@ async function crearRolDeLaAplicacion(cliente: Client) {
   await cliente.query(readFileSync(path.join(raiz, "scripts", "db", "roles.sql"), "utf8"));
 }
 
+function urlAdministracion(url: string): string {
+  const admin = new URL(url);
+  admin.pathname = "/postgres";
+  return admin.toString();
+}
+
+// Ruta antigua: borra el esquema y aplica todas las migraciones. Solo con SC_SIN_PLANTILLA=1.
+async function prepararSinPlantilla(url: string, conexion: Client) {
+  await conexion.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+  migrar(url);
+  await crearRolDeLaAplicacion(conexion);
+}
+
 export default async function setup(project: TestProject) {
   const url = urlPropietario();
-  const conexion = await intentarConectar(url);
+  const sinPlantilla = process.env.SC_SIN_PLANTILLA === "1";
+  // Con plantilla, la base destino puede no existir todavia: se comprueba el servidor en la base postgres.
+  const conexion = await intentarConectar(sinPlantilla ? url : urlAdministracion(url));
 
   if (typeof conexion === "string") {
     const aviso = `La base de pruebas no responde (${conexion}). Levanta: docker compose --profile test up -d db_test`;
@@ -71,9 +87,17 @@ export default async function setup(project: TestProject) {
 
   try {
     exigirBaseDeTest(url);
-    await conexion.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
-    migrar(url);
-    await crearRolDeLaAplicacion(conexion);
+    if (sinPlantilla) {
+      await prepararSinPlantilla(url, conexion);
+    } else {
+      const { reconstruida, milisegundos } = await clonarDesdePlantilla({
+        url: urlParaPg(url),
+        migrar,
+        aplicarRoles: crearRolDeLaAplicacion,
+        rolApp: process.env.APP_DB_USER ?? "sc_app",
+      });
+      console.warn(`[integracion] Base clonada de la plantilla en ${milisegundos} ms${reconstruida ? " (plantilla reconstruida)" : ""}.`);
+    }
   } finally {
     await conexion.end();
   }

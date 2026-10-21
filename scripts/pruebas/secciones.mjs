@@ -147,7 +147,8 @@ function correr(comando, args, entorno) {
 
 async function correrVitest(nombre, extra, entorno) {
   const url = urlBase(`seccion_${nombre}_test`, entorno);
-  await asegurarBase(url);
+  // Con plantilla, global-setup clona la base; solo la ruta antigua necesita que exista antes.
+  if (entorno.SC_SIN_PLANTILLA === "1") await asegurarBase(url);
   return correr("pnpm", ["exec", "vitest", "run", ...extra], { ...entorno, TEST_DATABASE_URL: url });
 }
 
