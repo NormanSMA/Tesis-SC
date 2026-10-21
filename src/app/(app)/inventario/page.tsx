@@ -10,11 +10,13 @@ import { can, type Actor } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { formatearCantidad } from "@/lib/formato";
 import { ProveedorLista } from "@/lib/listas/contexto-lista";
+import { leerOrden, textoOrden } from "@/lib/listas/orden";
+import { CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO } from "@/modules/inventario/campos-orden";
 import { FiltrosMateriales, FiltrosMovimientos } from "@/modules/inventario/componentes/FiltrosInventario";
 import { PestanasInventario } from "@/modules/inventario/componentes/PestanasInventario";
 import { TablaMateriales, TablaMovimientos } from "@/modules/inventario/componentes/TablasInventario";
 import { consultaPagina } from "@/modules/inventario/paginas";
-import { esquemaConsultaMateriales, esquemaConsultaMovimientos } from "@/modules/inventario/schema";
+import { esquemaConsultaMateriales, esquemaConsultaMovimientos, objetoDeParametros } from "@/modules/inventario/schema";
 import { listarMateriales, listarMovimientos, opcionesLibro } from "@/modules/inventario/service";
 
 export const metadata: Metadata = { title: "Inventario" };
@@ -70,8 +72,11 @@ async function Movimientos({ parametros, actor }: { parametros: Parametros; acto
 }
 export default async function PaginaInventario({ searchParams }: { searchParams: Promise<Parametros> }) {
   const actor = await exigirPermisoPagina("inventario:ver");
-  const parametros = await searchParams;
+  const parametros = objetoDeParametros(await searchParams);
   const seleccion = parametros.pestana === "movimientos" ? "movimientos" : "materiales";
+  const camposOrden = seleccion === "materiales" ? CAMPOS_ORDEN_MATERIAL : CAMPOS_ORDEN_MOVIMIENTO;
+  const orden = leerOrden(parametros.ordenar, camposOrden);
+  if (orden) parametros.ordenar = textoOrden(orden); else delete parametros.ordenar;
   const ruta = seleccion === "materiales" ? rutaConEstado(parametros) : null;
   if (ruta) redirect(ruta);
   return <><PageHeader titulo="Inventario" tituloVisible={false} descripcion="Consulte materiales, existencias y movimientos." acciones={<>

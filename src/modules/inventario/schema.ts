@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
 import { esquemaOrden } from "@/lib/listas/orden";
-import { CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO } from "./tipos";
+import { CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO } from "./campos-orden";
 
 export const UNIDADES = ["UNIDAD", "METRO", "M2", "YARDA", "PIE", "LITRO", "GALON", "KILOGRAMO", "LIBRA", "PLIEGO", "ROLLO"] as const;
 export const TIPOS_MOVIMIENTO = ["ENTRADA", "CONSUMO", "AJUSTE", "DEVOLUCION"] as const;

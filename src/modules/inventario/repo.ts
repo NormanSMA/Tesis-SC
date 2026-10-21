@@ -17,7 +17,7 @@ export function filtroAlerta(): Prisma.MaterialWhereInput {
   return { activo: true, stockMinimo: { gt: 0 }, existencia: { lte: prisma.material.fields.stockMinimo } };
 }
 /** Campo del orden elegido (lista blanca ya validada) más desempate por id en la misma dirección. */
-function ordenLista<C extends string>(orden: Orden<C> | undefined, defecto: Orden<C>) {
+export function ordenLista<C extends string>(orden: Orden<C> | undefined, defecto: Orden<C>) {
   const { campo, direccion } = orden ?? defecto;
   return [{ [campo]: direccion }, { id: direccion }] as [Partial<Record<C, DireccionOrden>>, { id: DireccionOrden }];
 }

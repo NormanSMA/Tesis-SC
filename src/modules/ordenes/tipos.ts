@@ -13,8 +13,7 @@ export type OrdenFila = {
   avance?: { completadas: number; total: number };
 };
 /** Lista blanca del parámetro orden=campo:direccion (R7). */
-export const CAMPOS_ORDEN_ORDENES = ["numero", "cliente", "fechaEntrega", "creadoEn"] as const;
-export type CampoOrdenOrdenes = (typeof CAMPOS_ORDEN_ORDENES)[number];
+export { CAMPOS_ORDEN_ORDENES, type CampoOrdenOrdenes } from "./campos-orden";
 /**
  * Conteos para las pastillas: mismos filtros q y cliente, sin estado, vencidas, responsable ni terminales.
  * activas = no CERRADA ni CANCELADA; atrasadas y sinResponsable se cuentan solo entre activas.

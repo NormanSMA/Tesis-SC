@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AppError } from "@/lib/errores";
 import { esquemaOrden } from "@/lib/listas/orden";
 import { objetoDeParametros } from "@/modules/ordenes/schema";
+import { CAMPOS_ORDEN_BITACORA } from "./campos-orden";
 
 export const ENTIDADES = ["CLIENTE", "CATEGORIA", "AREA", "PRODUCTO", "MATERIAL", "COTIZACION", "ORDEN_TRABAJO",
   "ETAPA_ORDEN", "MOVIMIENTO_INVENTARIO", "USUARIO", "PERFIL_PERMISO", "CONFIGURACION"] as const;
@@ -10,7 +11,7 @@ export const ACCIONES = ["CREAR", "EDITAR", "CAMBIAR_ESTADO", "ASIGNAR_RESPONSAB
   "OTORGAR_PERMISO", "REVOCAR_PERMISO", "INICIAR_SESION", "INICIO_SESION_FALLIDO", "BLOQUEAR_CUENTA",
   "CERRAR_SESION", "CAMBIAR_CLAVE"] as const;
 /** Lista blanca del parámetro ordenar=campo:direccion (`orden` ya filtra por número de orden). */
-export const CAMPOS_ORDEN_BITACORA = ["creadoEn"] as const;
+export { CAMPOS_ORDEN_BITACORA, type CampoOrdenBitacora } from "./campos-orden";
 export const esquemaId = z.uuid({ error: "Seleccione un identificador válido." });
 export const esquemaConsultaBitacora = z.object({
   entidad: z.enum(ENTIDADES).optional(), accion: z.enum(ACCIONES).optional(), usuario: esquemaId.optional(),

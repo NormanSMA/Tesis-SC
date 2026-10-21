@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { esquemaOrden } from "@/lib/listas/orden";
-import { CAMPOS_ORDEN_ORDENES } from "./tipos";
+import { CAMPOS_ORDEN_ORDENES } from "./campos-orden";
 
 export const ESTADOS = ["PENDIENTE", "EN_PRODUCCION", "LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as const;
 export const version = z.iso.datetime({ offset: true, error: "Falta la versión de la orden. Recargue los datos." });

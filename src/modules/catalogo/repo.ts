@@ -16,7 +16,7 @@ export type CambiosCategoria = Partial<Record<keyof typeof COLUMNAS_CATEGORIA, s
 function contiene(texto: string) {
   return { contains: texto.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
 }
-function ordenProductos(orden: ConsultaProductos["orden"]): Prisma.ProductoOrderByWithRelationInput[] {
+export function ordenProductos(orden: ConsultaProductos["orden"]): Prisma.ProductoOrderByWithRelationInput[] {
   const { campo, direccion } = orden ?? { campo: "nombre", direccion: "asc" };
   const campos: Record<CampoOrdenProducto, Prisma.ProductoOrderByWithRelationInput> = {
     nombre: { nombre: direccion }, precio: { precioBase: direccion }, creadoEn: { creadoEn: direccion },

@@ -1,9 +1,9 @@
 import type { Orden } from "@/lib/listas/orden";
+import type { CampoOrdenMaterial, CampoOrdenMovimiento } from "./campos-orden";
 
-export const CAMPOS_ORDEN_MATERIAL = ["nombre", "creadoEn", "existencia"] as const;
-export type CampoOrdenMaterial = (typeof CAMPOS_ORDEN_MATERIAL)[number];
-export const CAMPOS_ORDEN_MOVIMIENTO = ["creadoEn"] as const;
-export type CampoOrdenMovimiento = (typeof CAMPOS_ORDEN_MOVIMIENTO)[number];
+export {
+  CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO, type CampoOrdenMaterial, type CampoOrdenMovimiento,
+} from "./campos-orden";
 
 export const ORDEN_MATERIAL_DEFECTO: Orden<CampoOrdenMaterial> = { campo: "nombre", direccion: "asc" };
 export const ORDEN_MOVIMIENTO_DEFECTO: Orden<CampoOrdenMovimiento> = { campo: "creadoEn", direccion: "desc" };

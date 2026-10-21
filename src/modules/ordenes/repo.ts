@@ -57,7 +57,7 @@ function filtroLista(consulta: ConsultaOrdenes, hoy: string): Prisma.OrdenTrabaj
   return { AND: condiciones };
 }
 
-function ordenLista(orden: ConsultaOrdenes["orden"]): Prisma.OrdenTrabajoOrderByWithRelationInput[] {
+export function ordenLista(orden: ConsultaOrdenes["orden"]): Prisma.OrdenTrabajoOrderByWithRelationInput[] {
   const { campo, direccion } = orden ?? { campo: "creadoEn", direccion: "desc" };
   const campos: Record<CampoOrdenOrdenes, Prisma.OrdenTrabajoOrderByWithRelationInput> = {
     numero: { numero: direccion }, cliente: { cliente: { nombre: direccion } },

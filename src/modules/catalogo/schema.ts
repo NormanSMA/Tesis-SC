@@ -3,7 +3,7 @@ import { z } from "zod";
 import { validarItemCatalogo, validarLinea } from "@/core/costeo";
 import { esquemaOrden } from "@/lib/listas/orden";
 
-import { CAMPOS_ORDEN_PRODUCTO } from "./tipos";
+import { CAMPOS_ORDEN_PRODUCTO } from "./campos-orden";
 
 export const CAMPOS_PRODUCTO = ["codigo", "nombre", "descripcion", "categoriaId", "unidadCobro", "precioBase", "costoUnitario"] as const;
 export const CAMPOS_CATEGORIA = ["nombre", "descripcion", "activo"] as const;
