@@ -1,4 +1,10 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+
+// Igual que vitest.config.mts: el entorno real gana a .env, y .env a .env.example (claves de la siembra).
+for (const archivo of [".env", ".env.example"]) {
+  if (existsSync(archivo)) process.loadEnvFile(archivo);
+}
 
 export default defineConfig({
   testDir: "./e2e",

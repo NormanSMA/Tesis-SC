@@ -89,7 +89,9 @@ export async function clonarDesdePlantilla({ url, migrar, aplicarRoles, rolApp, 
   const inicio = Date.now();
   try {
     await admin.query("SELECT pg_advisory_lock(hashtext($1))", [plantilla]);
-    const huellaNueva = huella(RUTAS_ESQUEMA);
+    // El rol y su clave viven en el clúster: si cambian, la plantilla se reconstruye y aplica roles.sql otra vez.
+    const credenciales = createHash("sha256").update(`${rolApp ?? ""}:${process.env.APP_DB_PASSWORD ?? ""}`).digest("hex");
+    const huellaNueva = `${huella(RUTAS_ESQUEMA)}:${credenciales}`;
     const reconstruida = (await leerHuella(admin, plantilla)) !== huellaNueva;
     if (reconstruida) await reconstruir(admin, { url, plantilla, huellaNueva, migrar, aplicarRoles });
     await admin.query(`DROP DATABASE IF EXISTS ${ident(destino)} WITH (FORCE)`);
