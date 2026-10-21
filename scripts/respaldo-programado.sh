@@ -20,6 +20,16 @@ anotar() {
 respaldar() {
   archivo="$destino/sc-plataforma-$(date -u +%Y%m%d-%H%M%S).dump"
   export PGPASSWORD="$POSTGRES_PASSWORD"
+  # El contenedor solo monta este script; conserva el criterio de db/purgar-sesiones.sql.
+  if ! psql -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <<'SQL'
+DELETE FROM sesion
+WHERE expira_en < now() - interval '24 hours'
+   OR revocada_en < now() - interval '24 hours';
+SQL
+  then
+    echo "Aviso: fallo la purga de sesiones. Se continua con el respaldo." >&2
+    anotar "AVISO purga de sesiones"
+  fi
   if ! pg_dump -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom -f "$archivo"; then
     rm -f "$archivo"
     anotar "FALLO pg_dump"

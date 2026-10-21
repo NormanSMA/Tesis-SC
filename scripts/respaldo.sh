@@ -12,6 +12,10 @@ mkdir -p "$carpeta"
 archivo="$carpeta/sc-plataforma-$(date +%Y%m%d-%H%M%S).dump"
 
 # El socket local del contenedor confia en el usuario del sistema postgres: no pide clave.
+if ! docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < "$raiz/scripts/db/purgar-sesiones.sql"; then
+  echo "Aviso: fallo la purga de sesiones. Se continua con el respaldo." >&2
+fi
+
 if ! docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "$archivo"; then
   rm -f "$archivo"
   echo "El respaldo fallo. No se dejo ningun archivo." >&2

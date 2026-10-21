@@ -1,4 +1,5 @@
 import { exigir, type Actor } from "@/core/autorizacion";
+import { registrarEvento } from "@/lib/bitacora";
 import { prisma } from "@/lib/db";
 import { listarErrores, resumirMetricas, type ErrorMedido, type ResumenMetricas } from "@/lib/metricas";
 import { version } from "../../../package.json";
@@ -6,6 +7,21 @@ import { version } from "../../../package.json";
 import { evaluarEstado, type EstadoGeneral } from "./reglas";
 
 const VENTANA_24H_MS = 24 * 60 * 60 * 1000;
+
+export async function purgarSesionesCaducadas(actor: Actor, ahora = new Date()): Promise<{ borradas: number }> {
+  exigir(actor, "configuracion:gestionar");
+  const limite = new Date(ahora.getTime() - VENTANA_24H_MS);
+  return prisma.$transaction(async (tx) => {
+    const { count: borradas } = await tx.sesion.deleteMany({
+      where: { OR: [{ expiraEn: { lt: limite } }, { revocadaEn: { lt: limite } }] },
+    });
+    await registrarEvento(tx, {
+      entidad: "USUARIO", entidadId: actor.id, accion: "EDITAR", actorId: actor.id,
+      detalle: { operacion: "PURGAR_SESIONES_CADUCADAS", borradas },
+    });
+    return { borradas };
+  });
+}
 
 export type EstadoSistemaDto = {
   generadoEn: string;
