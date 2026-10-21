@@ -125,7 +125,7 @@ Ese endpoint es un supuesto. El agente de autenticación debe crearlo.
 | `TarjetaMetrica` | Indicador con guion si no hay dato; agrupar con `BandejaMetricas` |
 | `EmptyState` | Lista o sección sin datos |
 | `ErrorState` | Error de carga con acción de reintento |
-| `LoadingState` | Esqueleto de carga con `role="status"` |
+| `Esqueletos` | Esqueletos de carga: `EsqueletoTarjetas`, `EsqueletoFilas`, `EsqueletoTabla` |
 | `FormField` | Etiqueta, ayuda y error asociados al control |
 | `DataTable` | Tabla con encabezado fijo, acciones y paginación |
 | `Paginacion` | Pie de tabla con enlaces a páginas |

@@ -1,5 +1,9 @@
-import { LoadingState } from "@/components/comunes/LoadingState";
+import { EsqueletoFilas, EsqueletoTarjetas } from "@/components/comunes/Esqueletos";
 
 export default function CargandoProduccion() {
-  return <LoadingState filas={6} />;
+  return <div role="status" className="flex flex-col gap-4">
+    <span className="sr-only">Cargando producción</span>
+    <EsqueletoTarjetas />
+    <EsqueletoFilas cantidad={6} />
+  </div>;
 }

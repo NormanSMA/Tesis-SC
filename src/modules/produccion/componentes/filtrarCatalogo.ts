@@ -1,4 +1,4 @@
-import type { ConteosCatalogo } from "./FiltrosCatalogo";
+import type { ConteosCatalogo } from "./FiltrosCatalogoProduccion";
 
 type Parametros = Record<string, string | string[] | undefined>;
 

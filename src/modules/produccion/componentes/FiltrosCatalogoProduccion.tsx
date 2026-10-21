@@ -10,7 +10,7 @@ import type { ReferenciaOrden } from "@/modules/ordenes/tipos";
 export type ConteosCatalogo = { todas: number; activas: number; archivadas: number };
 
 /** Barra de los catálogos: búsqueda en vivo, estado en pastillas y, si aplica, categoría. Todo vive en la URL. */
-export function FiltrosCatalogo({ busqueda, marcador, conteos, categorias, children }: {
+export function FiltrosCatalogoProduccion({ busqueda, marcador, conteos, categorias, children }: {
   busqueda: string; marcador: string; conteos: ConteosCatalogo; categorias?: ReferenciaOrden[]; children?: ReactNode;
 }) {
   const { parametros, navegar } = useParametrosUrl();

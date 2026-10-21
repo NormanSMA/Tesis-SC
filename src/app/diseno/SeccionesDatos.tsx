@@ -4,7 +4,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { ErrorState } from "@/components/comunes/ErrorState";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
-import { LoadingState } from "@/components/comunes/LoadingState";
+import { EsqueletoFilas } from "@/components/comunes/Esqueletos";
 import { BandejaMetricas, TarjetaMetrica } from "@/components/comunes/TarjetaMetrica";
 import { Timeline } from "@/components/comunes/Timeline";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
@@ -80,7 +80,7 @@ export function SeccionEstadosVista() {
             </Button>
           }
         />
-        <LoadingState filas={4} />
+        <EsqueletoFilas cantidad={4} />
       </div>
     </Seccion>
   );

@@ -12,7 +12,7 @@ import type { ReferenciaOrden } from "@/modules/ordenes/tipos";
 import type { PlantillaDto } from "../tipos";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
 import { AvisoProduccion, SeleccionProduccion, TextoProduccion } from "./CamposProduccion";
-import { FiltrosCatalogo, type ConteosCatalogo } from "./FiltrosCatalogo";
+import { FiltrosCatalogoProduccion, type ConteosCatalogo } from "./FiltrosCatalogoProduccion";
 
 const columnas: ColumnaTabla<PlantillaDto>[] = [
   { id: "nombre", encabezado: "Posición y etapa", principal: true, celda: (plantilla) => <span className="flex min-w-0 items-center gap-3">
@@ -88,9 +88,9 @@ export function AdministracionPlantillas({ categoriaId, categorias, plantillas, 
     descripcion={filtrado ? "Ninguna plantilla coincide con la consulta. Pruebe otros términos o quite los filtros."
       : "Agregue la primera etapa de esta categoría."} />;
   return <div className="min-w-0">
-    <FiltrosCatalogo busqueda="Buscar plantillas" marcador="Buscar por etapa o área" conteos={conteos} categorias={categorias}>
+    <FiltrosCatalogoProduccion busqueda="Buscar plantillas" marcador="Buscar por etapa o área" conteos={conteos} categorias={categorias}>
       {gestionar ? <Button type="button" className="h-10" onClick={() => setEdicion(null)}>Agregar plantilla</Button> : null}
-    </FiltrosCatalogo>
+    </FiltrosCatalogoProduccion>
     <ZonaResultados><DataTable titulo="Plantillas de etapas" columnas={columnas} filas={plantillas} idFila={(plantilla) => plantilla.id} vacio={vacio}
       acciones={gestionar ? (plantilla) => <AccionesPlantilla key={plantilla.actualizadoEn} plantilla={plantilla}
         editar={() => setEdicion(plantilla)} /> : undefined}

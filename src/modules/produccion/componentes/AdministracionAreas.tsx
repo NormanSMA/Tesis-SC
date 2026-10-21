@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { AreaDto } from "../tipos";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
 import { AvisoProduccion, TextoProduccion } from "./CamposProduccion";
-import { FiltrosCatalogo, type ConteosCatalogo } from "./FiltrosCatalogo";
+import { FiltrosCatalogoProduccion, type ConteosCatalogo } from "./FiltrosCatalogoProduccion";
 
 const columnas: ColumnaTabla<AreaDto>[] = [
   { id: "nombre", encabezado: "Área", principal: true, celda: (area) => <span className="flex min-w-0 items-center gap-3">
@@ -66,9 +66,9 @@ export function AdministracionAreas({ areas, conteos, gestionar }: { areas: Area
   const vacio = <EmptyState titulo={filtrado ? "Sin resultados" : "Sin áreas"}
     descripcion={filtrado ? "Ninguna área coincide con la consulta. Pruebe otros términos o quite los filtros." : "Cree la primera área de producción."} />;
   return <div className="min-w-0">
-    <FiltrosCatalogo busqueda="Buscar áreas" marcador="Buscar por nombre del área" conteos={conteos}>
+    <FiltrosCatalogoProduccion busqueda="Buscar áreas" marcador="Buscar por nombre del área" conteos={conteos}>
       {gestionar ? <Button type="button" className="h-10" onClick={() => setEdicion(null)}>Crear área</Button> : null}
-    </FiltrosCatalogo>
+    </FiltrosCatalogoProduccion>
     <ZonaResultados><DataTable titulo="Áreas de producción" columnas={columnas} filas={areas} idFila={(area) => area.id} vacio={vacio}
       acciones={gestionar ? (area) => <AccionesArea key={area.actualizadoEn} area={area} editar={() => setEdicion(area)} /> : undefined}
       className="min-w-0 [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere]" /></ZonaResultados>
