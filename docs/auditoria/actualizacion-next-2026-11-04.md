@@ -12,6 +12,10 @@ Avisos del mantenedor con versión corregida 16.4.1:
 El resultado de la auditoría identifica paquetes afectados; no demuestra que la aplicación haya sido explotada.
 La actualización no cambia el modelo de datos ni las reglas de negocio.
 
+La prueba de dimensiones de imágenes deja de importar `getSharp` desde una API interna de Next.js,
+retirada en esta versión. Usa directamente Sharp 0.35.5, declarado como dependencia de desarrollo,
+y conserva la verificación de formato WebP y dimensiones de 640 por 640 píxeles.
+
 También se corrige la ejecución de Docker desde `scripts/ci-local.mjs` en Windows:
 se pasan sus argumentos directamente al proceso, para conservar las rutas con espacios.
 Los comandos de pnpm siguen usando el intérprete necesario para sus lanzadores `.cmd`.

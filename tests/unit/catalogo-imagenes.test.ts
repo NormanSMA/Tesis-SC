@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { getSharp } from "next/dist/server/image-optimizer";
+import sharp from "sharp";
 import { expect, it } from "vitest";
 
 import { imagenPorCategoria } from "@/modules/catalogo/imagenes";
@@ -20,6 +20,6 @@ it("los ocho archivos existen y tienen 640 por 640 píxeles", async () => {
   for (const archivo of new Set(casos.map(([, archivo]) => archivo))) {
     const ruta = path.join("public", "seed", "productos", `${archivo}.webp`);
     expect(existsSync(ruta)).toBe(true);
-    expect(await getSharp(undefined, undefined)(ruta).metadata()).toMatchObject({ width: 640, height: 640, format: "webp" });
+    expect(await sharp(ruta).metadata()).toMatchObject({ width: 640, height: 640, format: "webp" });
   }
 });
