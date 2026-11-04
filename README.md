@@ -29,6 +29,9 @@
 
 ## Qué es TRACORE
 
+Para preparar los usuarios reales de Soluciones Creativas después de instalar el prototipo,
+consulta [Usuarios para la validación inicial](docs/usuarios-reales.md).
+
 TRACORE es una plataforma web de gestión para **Soluciones Creativas**, empresa de Estelí, Nicaragua.
 Es el piloto del Proyecto de Culminación de Estudios (PCE) de la Universidad Americana (UAM).
 

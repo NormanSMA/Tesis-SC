@@ -18,6 +18,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed/index.ts",
+    "usuarios:reales": "node scripts/usuarios-reales.mjs",
     "demo:reiniciar": "node scripts/reiniciar-demo.mjs",
     "capturas": "node scripts/capturas/cli.mjs",
     "db:studio": "prisma studio",
