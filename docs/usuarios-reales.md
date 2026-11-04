@@ -4,11 +4,12 @@ Después de actualizar el repositorio, con Docker Desktop, Node y pnpm disponibl
 
 ```sh
 git pull --ff-only
-docker compose up -d
+docker compose up -d --build
 pnpm usuarios:reales
 ```
 
-El comando construye la imagen de herramientas con el código actualizado. No reinicia ni borra la base.
+`up --build` actualiza las imágenes de la plataforma antes de arrancar.
+El comando de usuarios construye la imagen de herramientas con el código actualizado. No reinicia ni borra la base.
 Es una operación explícita: el arranque normal y la siembra de pruebas conservan su comportamiento.
 No requiere instalar las dependencias de Node en el equipo anfitrión.
 
