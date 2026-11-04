@@ -17,7 +17,9 @@ const DOCKER_SIN_RUTAS = { env: { ...process.env, MSYS_NO_PATHCONV: "1" } };
 // Asíncrono: los pasos de verificar y auditoria avanzan mientras las secciones de pruebas corren.
 function ejecutar(comando, argumentos, opciones = {}) {
   return new Promise((resolver) => {
-    const hijo = spawn(comando, argumentos, { cwd: raiz, stdio: "inherit", shell: process.platform === "win32", ...opciones });
+    const hijo = spawn(comando, argumentos, { cwd: raiz, stdio: "inherit",
+      // Docker recibe las rutas con espacios como un argumento; cmd.exe las separaría.
+      shell: process.platform === "win32" && comando !== "docker", ...opciones });
     hijo.on("close", (estado) => resolver(estado ?? 1));
   });
 }

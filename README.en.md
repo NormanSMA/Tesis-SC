@@ -10,7 +10,7 @@
 ![Use](https://img.shields.io/badge/use-academic-c9962f?style=flat-square)
 ![Node](https://img.shields.io/badge/Node.js-24-5FA04E?style=flat-square&logo=nodedotjs&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-11.1.1-F69220?style=flat-square&logo=pnpm&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-16.3.8-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16.4.1-000000?style=flat-square&logo=nextdotjs&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 
 <br>
@@ -99,7 +99,7 @@ flowchart LR
 
 | Layer | Technology | Version |
 |---|---|---|
-| UI | Next.js (App Router) | 16.3.8 |
+| UI | Next.js (App Router) | 16.4.1 |
 | UI | React | 19.3.0 |
 | Language | TypeScript (strict mode) | 5.x |
 | Styling | Tailwind CSS, shadcn/ui and Radix | 4.x |
