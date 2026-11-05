@@ -56,7 +56,8 @@ describe("cotizaciones: esquemas", () => {
 
   it("editar conserva campos omitidos y limita vigencia", () => {
     expect(esquemaEditarCotizacion.parse({ version: VERSION, asunto: "B" })).toEqual({ version: VERSION, asunto: "B" });
-    for (const vigenciaDias of [0, 1.5, 36501, "15"]) expect(esquemaEditarCotizacion.safeParse({ version: VERSION, vigenciaDias }).success).toBe(false);
+    for (const vigenciaDias of [0, 1.5, 366, 36500, "15"]) expect(esquemaEditarCotizacion.safeParse({ version: VERSION, vigenciaDias }).success).toBe(false);
+    expect(esquemaEditarCotizacion.safeParse({ version: VERSION, vigenciaDias: 365 }).success).toBe(true);
   });
 
   it("editar acepta descuento como monto o como porcentaje, no ambos", () => {

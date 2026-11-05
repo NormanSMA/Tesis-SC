@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError } from "@/lib/errores";
+import { esquemaFechaConsulta } from "@/lib/listas/fecha";
 import { esquemaOrden } from "@/lib/listas/orden";
 import { objetoDeParametros } from "@/modules/ordenes/schema";
 import { CAMPOS_ORDEN_BITACORA } from "./campos-orden";
@@ -16,7 +17,7 @@ export const esquemaId = z.uuid({ error: "Seleccione un identificador válido." 
 export const esquemaConsultaBitacora = z.object({
   entidad: z.enum(ENTIDADES).optional(), accion: z.enum(ACCIONES).optional(), usuario: esquemaId.optional(),
   orden: z.string().trim().min(1).max(20).optional(), cotizacion: z.string().trim().min(1).max(20).optional(),
-  desde: z.iso.date().optional(), hasta: z.iso.date().optional(), texto: z.string().trim().max(200).optional(),
+  desde: esquemaFechaConsulta.optional(), hasta: esquemaFechaConsulta.optional(), texto: z.string().trim().max(200).optional(),
   ordenar: esquemaOrden(CAMPOS_ORDEN_BITACORA).optional(),
   pagina: z.coerce.number().int().min(1).max(100000).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),

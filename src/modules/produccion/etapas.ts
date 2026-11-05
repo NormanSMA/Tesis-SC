@@ -6,7 +6,7 @@ import { aEtapaDto } from "./dto";
 import { campoInvalido, noEncontrado, regla } from "./errores";
 import { registrarEtapa, tomarEtapa, transaccionProduccion } from "./escritura";
 import { actualizarEtapa, bloquearOrden, incluirEtapa, validarArea, validarResponsable, type CambiosEtapa, type EtapaGuardada } from "./repo";
-import { exigirOrdenEditable, exigirTransicionEtapa, validarFechas, validarMotivo, type AccionEtapa } from "./reglas";
+import { exigirOrdenEditable, exigirTransicionEtapa, validarFechas, validarMotivo, validarRangoPlan, type AccionEtapa } from "./reglas";
 import type { EntradaAgregarEtapa, EntradaEditarEtapa, EntradaOmitirEtapa, EntradaVersion } from "./schema";
 
 export async function obtenerEtapasOrden(id: string, actor: Actor) {
@@ -47,6 +47,8 @@ async function validarPlanificacion(tx: Tx, actual: EtapaGuardada, cambios: Camb
   if (cambiaFechas && actual.estado === "OMITIDA") throw regla("ETAPA_NO_EDITABLE", "Restaure la etapa antes de modificar las fechas.");
   if (cambios.responsableId === null && actual.estado === "EN_CURSO") throw campoInvalido("responsableId", "Una etapa en curso necesita responsable.");
   if (cambios.responsableId) await validarResponsable(tx, cambios.responsableId);
+  validarRangoPlan({ fechaInicioPlan: cambios.fechaInicioPlan?.toISOString().slice(0, 10),
+    fechaFinPlan: cambios.fechaFinPlan?.toISOString().slice(0, 10) });
   validarFechas((cambios.fechaInicioPlan === undefined ? actual.fechaInicioPlan : cambios.fechaInicioPlan)?.toISOString().slice(0, 10) ?? null,
     (cambios.fechaFinPlan === undefined ? actual.fechaFinPlan : cambios.fechaFinPlan)?.toISOString().slice(0, 10) ?? null);
 }

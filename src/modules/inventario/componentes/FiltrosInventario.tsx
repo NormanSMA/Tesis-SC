@@ -9,6 +9,7 @@ import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { fechaFiltroNavegable, limitesFiltroFecha } from "@/lib/listas/fecha";
 import { textoOrden } from "@/lib/listas/orden";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
@@ -38,8 +39,10 @@ function CampoFecha({ etiqueta, parametro }: { etiqueta: string; parametro: stri
   const id = useId();
   const { parametros, navegar } = useParametrosUrl();
   return <Campo etiqueta={etiqueta} id={id}>
-    <Input id={id} type="date" defaultValue={parametros.get(parametro) ?? ""}
-      onChange={(evento) => navegar({ [parametro]: evento.target.value || null })} />
+    <Input id={id} type="date" defaultValue={parametros.get(parametro) ?? ""} {...limitesFiltroFecha()}
+      onChange={(evento) => {
+        if (fechaFiltroNavegable(evento.target.value)) navegar({ [parametro]: evento.target.value || null });
+      }} />
   </Campo>;
 }
 

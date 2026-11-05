@@ -55,7 +55,7 @@ function registrarPerfiles() {
   }
 }
 function registrarValidaciones() {
-  for (const parametros of ["desde=2026-02-30", "hasta=2025-02-29", "desde=2034-05-02&hasta=2034-05-01",
+  for (const parametros of ["desde=2026-02-30", "hasta=2025-02-29", "desde=2012-05-02&hasta=2012-05-01",
     "desde=2025-05-01&hasta=2030-05-02", "formato=pdf", "area=no", "soloAlertas=si"]) {
     it(`responde 422: ${parametros}`, async () => {
       const respuesta = await solicitarReporte(entorno, { nombre: "cotizaciones-por-estado", parametros, cookie: entorno.sesiones.GERENCIA.cookie });
@@ -75,7 +75,7 @@ function registrarExportaciones() {
     it(`${nombre}: CSV coincide con JSON, BOM, cabeceras y nombre local`, async () => {
       const cookie = entorno.sesiones.GERENCIA.cookie;
       const parametros = nombre === "cotizaciones-por-estado" || nombre === "carga-por-operario"
-        ? "desde=2041-01-01&hasta=2041-01-01" : "";
+        ? "desde=2014-01-01&hasta=2014-01-01" : "";
       const json = await solicitarReporte(entorno, { nombre, parametros, cookie });
       const reporte = (await json.json()).datos as ReporteDto;
       const respuesta = await solicitarReporte(entorno, { nombre, parametros: `${parametros}&formato=csv`, cookie });
@@ -92,7 +92,7 @@ function registrarExportaciones() {
     it(`${nombre}: XLSX coincide con JSON, tipo y nombre local`, async () => {
       const cookie = entorno.sesiones.GERENCIA.cookie;
       const parametros = nombre === "cotizaciones-por-estado" || nombre === "carga-por-operario"
-        ? "desde=2041-01-01&hasta=2041-01-01" : "";
+        ? "desde=2014-01-01&hasta=2014-01-01" : "";
       const json = await solicitarReporte(entorno, { nombre, parametros, cookie });
       const reporte = (await json.json()).datos as ReporteDto;
       const respuesta = await solicitarReporte(entorno, { nombre, parametros: `${parametros}&formato=xlsx`, cookie });
@@ -159,7 +159,7 @@ describeConBase("reportes: API y exportaciones por perfil", () => {
   db = crearClientePropietario();
   beforeAll(async () => {
     entorno = await prepararPanel(db);
-    await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "123.45", creadoEn: "2041-01-01T12:00:00Z" });
+    await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "123.45", creadoEn: "2014-01-01T12:00:00Z" });
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
   registrarPerfiles(); registrarValidaciones(); registrarExportaciones(); registrarRevocaciones();

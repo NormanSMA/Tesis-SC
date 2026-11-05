@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { hoyManagua, rangoPlanificacion } from "@/core/fechas";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { EtapaOrdenDto, ReferenciaOrden } from "@/modules/ordenes/tipos";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
@@ -15,6 +16,7 @@ export function EditarEtapa({ etapa, responsables, tipo, cerrar }: Propiedades) 
   const [inicio, setInicio] = useState(etapa.fechaInicioPlan ?? "");
   const [fin, setFin] = useState(etapa.fechaFinPlan ?? "");
   const solicitud = useSolicitudProduccion(`editar-${etapa.id}`);
+  const rango = rangoPlanificacion(hoyManagua());
   const opciones = etapa.responsable && !responsables.some((usuario) => usuario.id === etapa.responsable!.id)
     ? [...responsables, { ...etapa.responsable, nombre: `${etapa.responsable.nombre} (responsable actual)` }] : responsables;
   async function guardar(evento: FormEvent) {
@@ -33,9 +35,9 @@ export function EditarEtapa({ etapa, responsables, tipo, cerrar }: Propiedades) 
           {tipo === "responsable" ? <SeleccionProduccion id={`responsable-${etapa.id}`} etiqueta="Responsable"
             valor={responsableId} opciones={opciones} vacio="Sin responsable" alCambiar={setResponsableId} error={solicitud.campos.responsableId} />
             : <><TextoProduccion id={`inicio-${etapa.id}`} etiqueta="Inicio planificado" tipo="date" valor={inicio}
-              alCambiar={setInicio} error={solicitud.campos.fechaInicioPlan} />
+              rangoFecha={rango} alCambiar={setInicio} error={solicitud.campos.fechaInicioPlan} />
               <TextoProduccion id={`fin-${etapa.id}`} etiqueta="Fin planificado" tipo="date" valor={fin}
-                alCambiar={setFin} error={solicitud.campos.fechaFinPlan} /></>}
+                rangoFecha={rango} alCambiar={setFin} error={solicitud.campos.fechaFinPlan} /></>}
         </fieldset><DialogFooter>
           <Button type="button" variant="outline" disabled={solicitud.enviando} onClick={cerrar}>Volver</Button>
           <Button type="submit" disabled={solicitud.enviando}>Guardar cambios</Button>

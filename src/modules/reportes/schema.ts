@@ -1,10 +1,11 @@
 import { z } from "zod";
 
+import { esquemaFechaConsulta } from "@/lib/listas/fecha";
+
 export const NOMBRES_REPORTES = ["cotizaciones-por-estado", "existencias", "carga-por-operario", "ordenes-por-etapa"] as const;
 export type NombreReporte = typeof NOMBRES_REPORTES[number];
 export const esquemaNombre = z.enum(NOMBRES_REPORTES);
-const fecha = z.iso.date({ error: "Ingrese una fecha válida con formato AAAA-MM-DD." })
-  .refine((valor) => !valor.startsWith("0000"), "Ingrese un año mayor que cero.").optional();
+const fecha = esquemaFechaConsulta.optional();
 
 export const esquemaPeriodo = z.object({ desde: fecha, hasta: fecha }).superRefine((periodo, contexto) => {
   if (!periodo.desde || !periodo.hasta) return;

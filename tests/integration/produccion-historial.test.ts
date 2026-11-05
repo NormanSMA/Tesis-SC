@@ -2,6 +2,7 @@ import { Client } from "pg";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { crearUsuarioPrueba, liberarClienteGlobal } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
+import { diaRelativo } from "../helpers/fabricas";
 import { urlParaPg, urlPropietario } from "../helpers/entorno-bd";
 import { asignarEtapa, nuevaOrden, prepararProduccion, type EntornoProduccion } from "./produccion-ayudas";
 
@@ -57,7 +58,7 @@ describeConBase("producción: historial propio de etapas", () => {
     const retirada = await entorno.servicio.editarEtapa(asignada.id,
       { version: reasignada.actualizadoEn, responsableId: null }, entorno.planificador);
     const fechas = await entorno.servicio.editarEtapa(retirada.id,
-      { version: retirada.actualizadoEn, fechaInicioPlan: "2026-10-10" }, entorno.planificador);
+      { version: retirada.actualizadoEn, fechaInicioPlan: diaRelativo(6) }, entorno.planificador);
     await entorno.servicio.editarEtapa(fechas.id, { version: fechas.actualizadoEn, responsableId: null }, entorno.planificador);
     const historial = await db.historialEtapa.findMany({ where: { etapaId: inicial.id, estadoAnterior: { not: null } },
       orderBy: [{ creadoEn: "asc" }, { id: "asc" }] });

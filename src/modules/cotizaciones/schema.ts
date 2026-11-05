@@ -15,7 +15,7 @@ const decimal = z.string({ error: "Ingrese una cadena decimal con punto." });
 const descuentoPct = z.string({ error: "Ingrese una cadena decimal con punto." })
   .regex(/^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/, "Ingrese un porcentaje de 0 a 100 con hasta 2 decimales.");
 const medidas ={ ancho: decimal.nullish(), alto: decimal.nullish() };
-const vigenciaDias = z.number().int().min(1, "Debe ser mayor que 0.").max(36500, "Admite hasta 36500 días.");
+const vigenciaDias = z.number().int().min(1, "Debe ser mayor que 0.").max(365, "Admite hasta 365 días.");
 const condiciones = z.string().trim().max(2000, "Admite hasta 2000 caracteres.").nullable();
 
 export const esquemaCrearCotizacion = z.object({

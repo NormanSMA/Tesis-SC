@@ -5,6 +5,10 @@ import { liberarClienteGlobal } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
 import { abrirSesion } from "./cotizaciones-ayudas";
 import { crearOrden, leerOrden, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
+import { diaRelativo } from "../helpers/fabricas";
+
+/** Dentro del año permitido para la fecha de entrega. */
+const ENTREGA_NUEVA = diaRelativo(200);
 
 describeConBase("órdenes: edición, transiciones y bitácora", () => {
   const db = crearClientePropietario();
@@ -59,8 +63,8 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     const etapa = orden.etapas[0];
     await db.etapaOrden.update({ where: { id: etapa.id }, data: { responsableId: entorno.sesiones.PRODUCCION.usuarioId } });
     const nueva = await entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn,
-      responsableId: responsable.usuarioId, fechaEntrega: "2099-12-31", especificaciones: "Especificaciones nuevas" }, entorno.sesiones.OPERACIONES.actor);
-    expect(nueva).toMatchObject({ especificaciones: "Especificaciones nuevas", fechaEntrega: "2099-12-31" });
+      responsableId: responsable.usuarioId, fechaEntrega: ENTREGA_NUEVA, especificaciones: "Especificaciones nuevas" }, entorno.sesiones.OPERACIONES.actor);
+    expect(nueva).toMatchObject({ especificaciones: "Especificaciones nuevas", fechaEntrega: ENTREGA_NUEVA });
     expect(nueva.responsable?.id).toBe(responsable.usuarioId);
     expect(nueva.etapas[0].responsable?.id).toBe(entorno.sesiones.PRODUCCION.usuarioId);
     expect(new Date(nueva.actualizadoEn).getTime()).toBeGreaterThan(new Date(orden.actualizadoEn).getTime());
@@ -69,7 +73,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     expect(eventos.find((evento) => evento.accion === "ASIGNAR_RESPONSABLE")?.detalle)
       .toEqual({ responsableId: { anterior: entorno.sesiones.PRODUCCION.usuarioId, nuevo: responsable.usuarioId } });
     expect(eventos.find((evento) => evento.accion === "EDITAR")?.detalle).toEqual({
-      fechaEntrega: { anterior: orden.fechaEntrega, nuevo: "2099-12-31" },
+      fechaEntrega: { anterior: orden.fechaEntrega, nuevo: ENTREGA_NUEVA },
       especificaciones: { anterior: orden.especificaciones, nuevo: "Especificaciones nuevas" },
     });
   });

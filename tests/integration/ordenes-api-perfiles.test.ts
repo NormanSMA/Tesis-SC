@@ -192,6 +192,11 @@ describeConBase("órdenes: API por perfil", () => {
     expect(cambio.status).toBe(422);
     expect(cambio.error?.campos?.fechaEntrega).toBeTruthy();
     expect(cambio.error?.campos?.responsableId).toBeTruthy();
+    const lejana = await invocar(entorno.modulos.ficha.PATCH, peticion("PATCH", `/api/v1/ordenes/${orden.id}`, {
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { version: orden.actualizadoEn, fechaEntrega: "2099-12-31" },
+    }), orden.id);
+    expect(lejana.status).toBe(422);
+    expect(lejana.error?.campos?.fechaEntrega).toBe("La fecha de entrega no puede superar un año desde hoy.");
     const motivo = await invocar(entorno.modulos.cancelar.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/cancelar`, {
       cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: { version: orden.actualizadoEn, motivo: "no" },
     }), orden.id);

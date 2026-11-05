@@ -1,3 +1,4 @@
+import { rangoPlanificacion } from "@/core/fechas";
 import type { EstadoOrden } from "@/generated/prisma/enums";
 import { AppError } from "@/lib/errores";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
@@ -12,9 +13,10 @@ export function estaAtrasada(orden: { estado: EstadoOrden; fechaEntrega: string 
 }
 
 export function validarFechaEntrega(fecha: string, hoy = hoyManagua()): void {
-  if (fecha >= hoy) return;
-  throw new AppError({ codigo: "VALIDACION", status: 422, mensaje: "Hay campos con errores.",
-    campos: { fechaEntrega: "La fecha de entrega no puede ser anterior a hoy." } });
+  const mensaje = fecha < hoy ? "La fecha de entrega no puede ser anterior a hoy."
+    : fecha > rangoPlanificacion(hoy).maximo ? "La fecha de entrega no puede superar un año desde hoy." : null;
+  if (!mensaje) return;
+  throw new AppError({ codigo: "VALIDACION", status: 422, mensaje: "Hay campos con errores.", campos: { fechaEntrega: mensaje } });
 }
 
 export function exigirEditable(estado: EstadoOrden): void {

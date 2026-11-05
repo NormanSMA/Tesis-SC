@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { crearUsuarioPrueba, liberarClienteGlobal } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
+import { diaRelativo } from "../helpers/fabricas";
 import { leerOrden, ponerEstado } from "./ordenes-ayudas";
 import { asignarEtapa, completarPrimera, nuevaOrden, prepararLista, prepararProduccion, type EntornoProduccion } from "./produccion-ayudas";
 
@@ -13,7 +14,7 @@ function registrarFlujo() {
     const { servicio, actor } = entorno;
     const orden = await nuevaOrden(entorno);
     const primera = await servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
-      responsableId: actor.id, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07" }, entorno.planificador);
+      responsableId: actor.id, fechaInicioPlan: diaRelativo(1), fechaFinPlan: diaRelativo(2) }, entorno.planificador);
     expect((await leerOrden(entorno.ordenes, orden.id)).actualizadoEn).toBe(orden.actualizadoEn);
     const iniciada = await servicio.iniciarEtapa(primera.id, { version: primera.actualizadoEn }, actor);
     const produciendo = await leerOrden(entorno.ordenes, orden.id);
@@ -106,8 +107,8 @@ function registrarPlanificacion() {
   it("PATCH valida fechas contra valores existentes y no retira responsable en curso", async () => {
     const orden = await nuevaOrden(entorno);
     const etapa = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
-      responsableId: entorno.actor.id, fechaInicioPlan: "2026-10-10" }, entorno.planificador);
-    await expect(entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, fechaFinPlan: "2026-10-09" }, entorno.planificador))
+      responsableId: entorno.actor.id, fechaInicioPlan: diaRelativo(6) }, entorno.planificador);
+    await expect(entorno.servicio.editarEtapa(etapa.id, { version: etapa.actualizadoEn, fechaFinPlan: diaRelativo(5) }, entorno.planificador))
       .rejects.toMatchObject({ status: 422 });
     const iniciada = await entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, entorno.actor);
     await expect(entorno.servicio.editarEtapa(etapa.id, { version: iniciada.actualizadoEn, responsableId: null }, entorno.planificador))
@@ -136,7 +137,7 @@ function registrarEtapasCerradas() {
     await expect(entorno.servicio.editarEtapa(completada.id, { version: completada.actualizadoEn, responsableId: null }, entorno.planificador))
       .rejects.toMatchObject({ codigo: "ETAPA_NO_EDITABLE" });
     const omitida = await entorno.servicio.omitirEtapa(orden.etapas[1].id, { version: orden.etapas[1].actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
-    await expect(entorno.servicio.editarEtapa(omitida.id, { version: omitida.actualizadoEn, fechaFinPlan: "2026-10-10" }, entorno.planificador))
+    await expect(entorno.servicio.editarEtapa(omitida.id, { version: omitida.actualizadoEn, fechaFinPlan: diaRelativo(6) }, entorno.planificador))
       .rejects.toMatchObject({ codigo: "ETAPA_NO_EDITABLE" });
   });
 }

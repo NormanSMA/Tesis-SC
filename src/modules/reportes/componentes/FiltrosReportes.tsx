@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fechaFiltroNavegable, limitesFiltroFecha } from "@/lib/listas/fecha";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { TITULOS_REPORTES } from "../columnas";
 import { NOMBRES_REPORTES, type ConsultaReporte, type NombreReporte } from "../schema";
@@ -27,8 +28,11 @@ function FechaFiltro({ parametro, valor, error }: { parametro: "desde" | "hasta"
     <div className="flex items-center gap-2">
       <Label htmlFor={id}>{parametro === "desde" ? "Desde" : "Hasta"}</Label>
       <Input id={id} name={parametro} type="date" lang="es" value={fecha} className="w-auto" aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        onChange={(evento) => { setFecha(evento.target.value); navegar({ [parametro]: evento.target.value || null }); }} />
+        aria-describedby={error ? `${id}-error` : undefined} {...limitesFiltroFecha()}
+        onChange={(evento) => {
+          setFecha(evento.target.value);
+          if (fechaFiltroNavegable(evento.target.value)) navegar({ [parametro]: evento.target.value || null });
+        }} />
     </div>
     {error ? <p id={`${id}-error`} className="text-sm text-danger">{error}</p> : null}
   </div>;

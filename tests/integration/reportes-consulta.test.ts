@@ -10,16 +10,16 @@ import { crearBorrador, itemUnidad, prepararCotizaciones } from "./cotizaciones-
 
 let db: PrismaClient;
 let entorno: EntornoPanel;
-const instante = new Date("2034-05-10T12:00:00Z");
+const instante = new Date("2012-05-10T12:00:00Z");
 function reporte(nombre: "cotizaciones-por-estado" | "existencias" | "carga-por-operario" | "ordenes-por-etapa", filtros: object = {}) {
   return entorno.reportes.obtenerReporte({ nombre, consulta: esquemaConsulta.parse(filtros), actor: entorno.sesiones.GERENCIA.actor, instante });
 }
 async function cotizacionesConTotales() {
-  const filtros = { desde: "2040-01-01", hasta: "2040-01-01" };
+  const filtros = { desde: "2013-01-01", hasta: "2013-01-01" };
   const anterior = await reporte("cotizaciones-por-estado", filtros);
   const estados = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA"] as const;
-  for (const estado of estados) await crearCotizacionPanel(entorno, { estado, total: "10.01", creadoEn: "2040-01-01T12:00:00Z" });
-  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "0.02", creadoEn: "2040-01-01T13:00:00Z" });
+  for (const estado of estados) await crearCotizacionPanel(entorno, { estado, total: "10.01", creadoEn: "2013-01-01T12:00:00Z" });
+  await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "0.02", creadoEn: "2013-01-01T13:00:00Z" });
   const actual = await reporte("cotizaciones-por-estado", filtros);
   expect(actual.totales.cantidad).toBe(Number(anterior.totales.cantidad) + 6);
   expect(actual.totales.importe).toBe(formatear(sumar(leerDecimal(String(anterior.totales.importe))!, leerDecimal("50.07")!), 2));
@@ -57,15 +57,15 @@ async function cargaConPeriodo() {
   const areaId = (await db.area.create({ data: { nombre: `Carga ${entorno.sesiones.GERENCIA.usuarioId}` } })).id;
   const base = { ordenId: orden.id, areaId, responsableId: entorno.sesiones.PRODUCCION.usuarioId };
   for (const etapa of [
-    { ...base, secuencia: 1, nombre: "Pendiente", fechaFinPlan: new Date("2034-05-09") },
-    { ...base, secuencia: 2, nombre: "En curso", estado: "EN_CURSO", fechaInicioReal: new Date("2034-05-01T12:00:00Z") },
-    { ...base, secuencia: 3, nombre: "Completada al inicio", estado: "COMPLETADA", fechaInicioReal: new Date("2034-04-01T12:00:00Z"), fechaFinReal: new Date("2034-05-01T06:00:00Z") },
-    { ...base, secuencia: 4, nombre: "Completada al final", estado: "COMPLETADA", fechaInicioReal: new Date("2034-04-01T12:00:00Z"), fechaFinReal: new Date("2034-05-02T05:59:59.999Z") },
-    { ...base, secuencia: 5, nombre: "Completada fuera", estado: "COMPLETADA", fechaInicioReal: new Date("2034-04-01T12:00:00Z"), fechaFinReal: new Date("2034-05-02T06:00:00Z") },
-    { ...base, ordenId: terminal.id, secuencia: 1, nombre: "Terminal pendiente", fechaFinPlan: new Date("2034-05-09") },
-    { ...base, ordenId: terminal.id, secuencia: 2, nombre: "Terminal completada", estado: "COMPLETADA", fechaInicioReal: new Date("2034-04-01T12:00:00Z"), fechaFinReal: new Date("2034-05-01T12:00:00Z") },
+    { ...base, secuencia: 1, nombre: "Pendiente", fechaFinPlan: new Date("2012-05-09") },
+    { ...base, secuencia: 2, nombre: "En curso", estado: "EN_CURSO", fechaInicioReal: new Date("2012-05-01T12:00:00Z") },
+    { ...base, secuencia: 3, nombre: "Completada al inicio", estado: "COMPLETADA", fechaInicioReal: new Date("2012-04-01T12:00:00Z"), fechaFinReal: new Date("2012-05-01T06:00:00Z") },
+    { ...base, secuencia: 4, nombre: "Completada al final", estado: "COMPLETADA", fechaInicioReal: new Date("2012-04-01T12:00:00Z"), fechaFinReal: new Date("2012-05-02T05:59:59.999Z") },
+    { ...base, secuencia: 5, nombre: "Completada fuera", estado: "COMPLETADA", fechaInicioReal: new Date("2012-04-01T12:00:00Z"), fechaFinReal: new Date("2012-05-02T06:00:00Z") },
+    { ...base, ordenId: terminal.id, secuencia: 1, nombre: "Terminal pendiente", fechaFinPlan: new Date("2012-05-09") },
+    { ...base, ordenId: terminal.id, secuencia: 2, nombre: "Terminal completada", estado: "COMPLETADA", fechaInicioReal: new Date("2012-04-01T12:00:00Z"), fechaFinReal: new Date("2012-05-01T12:00:00Z") },
   ] as const) await crearEtapaPanel(entorno, etapa);
-  const actual = await reporte("carga-por-operario", { desde: "2034-05-01", hasta: "2034-05-01" });
+  const actual = await reporte("carga-por-operario", { desde: "2012-05-01", hasta: "2012-05-01" });
   const fila = actual.filas.find((fila) => fila.responsableId === base.responsableId);
   expect(fila).toMatchObject({ pendientes: 1, enCurso: 1, completadas: 3, atrasadas: 1, ordenes: 1 });
   for (const campo of Object.keys(actual.totales)) expect(actual.totales[campo]).toBe(actual.filas.reduce((suma, fila) => suma + Number(fila[campo]), 0));
@@ -73,7 +73,7 @@ async function cargaConPeriodo() {
 async function primeraEtapa() {
   const area = await db.area.create({ data: { nombre: `Etapa actual ${entorno.sesiones.GERENCIA.usuarioId}` } });
   const otra = await db.area.create({ data: { nombre: `Etapa posterior ${entorno.sesiones.GERENCIA.usuarioId}` } });
-  for (const fechaEntrega of ["2034-05-09", "2034-05-10"]) {
+  for (const fechaEntrega of ["2012-05-09", "2012-05-10"]) {
     const orden = await crearOrdenPanel(entorno, { fechaEntrega });
     for (const etapa of [
       { ordenId: orden.id, areaId: otra.id, secuencia: 1, nombre: "Omitida", estado: "OMITIDA" },
@@ -90,7 +90,7 @@ async function primeraEtapa() {
 }
 async function sinEtapaAbierta() {
   const anterior = await reporte("ordenes-por-etapa");
-  await crearOrdenPanel(entorno, { fechaEntrega: "2034-05-09" });
+  await crearOrdenPanel(entorno, { fechaEntrega: "2012-05-09" });
   const actual = await reporte("ordenes-por-etapa");
   const filaAntes = anterior.filas.find((fila) => fila.etapa === "Sin etapa abierta");
   const fila = actual.filas.find((fila) => fila.etapa === "Sin etapa abierta");
@@ -98,9 +98,9 @@ async function sinEtapaAbierta() {
   expect(fila?.atrasadas).toBe(Number(filaAntes?.atrasadas ?? 0) + 1);
 }
 async function bordesCotizaciones() {
-  const filtros = { desde: "2040-02-01", hasta: "2040-02-01" };
+  const filtros = { desde: "2013-02-01", hasta: "2013-02-01" };
   const anterior = await reporte("cotizaciones-por-estado", filtros);
-  for (const creadoEn of ["2040-02-01T05:59:59.999Z", "2040-02-01T06:00:00Z", "2040-02-02T05:59:59.999Z", "2040-02-02T06:00:00Z"]) {
+  for (const creadoEn of ["2013-02-01T05:59:59.999Z", "2013-02-01T06:00:00Z", "2013-02-02T05:59:59.999Z", "2013-02-02T06:00:00Z"]) {
     await crearCotizacionPanel(entorno, { creadoEn, total: "0.10" });
   }
   const actual = await reporte("cotizaciones-por-estado", filtros);
@@ -108,9 +108,9 @@ async function bordesCotizaciones() {
   expect(actual.totales.importe).toBe(formatear(sumar(leerDecimal(String(anterior.totales.importe))!, leerDecimal("0.20")!), 2));
 }
 async function dosMonedas() {
-  const filtros = { desde: "2042-03-01", hasta: "2042-03-01" };
+  const filtros = { desde: "2015-03-01", hasta: "2015-03-01" };
   const anterior = await reporte("cotizaciones-por-estado", filtros);
-  const creadoEn = "2042-03-01T12:00:00Z";
+  const creadoEn = "2015-03-01T12:00:00Z";
   await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "1000", creadoEn });
   await crearCotizacionPanel(entorno, { estado: "APROBADA", total: "100", moneda: "USD", tipoCambio: "36.6243", creadoEn });
   const actual = await reporte("cotizaciones-por-estado", filtros);
@@ -125,11 +125,11 @@ async function ajustesSolicitados() {
   // creado_en es inmutable: se fija con los triggers desactivados, igual que errores-bd.test.ts.
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SET LOCAL session_replication_role = replica`;
-    await tx.$executeRaw`UPDATE cotizacion SET creado_en = '2041-01-01T12:00:00Z'::timestamptz WHERE id = ${borrador.id}::uuid`;
+    await tx.$executeRaw`UPDATE cotizacion SET creado_en = '2014-01-01T12:00:00Z'::timestamptz WHERE id = ${borrador.id}::uuid`;
   });
   const actualizada = await servicio.obtenerCotizacion(borrador.id);
   const enviada = await servicio.enviarCotizacion(borrador.id, actualizada.actualizadoEn, cotizaciones.ventas.actor);
-  const filtros = { desde: "2041-01-01", hasta: "2041-01-01" };
+  const filtros = { desde: "2014-01-01", hasta: "2014-01-01" };
   const anterior = await reporte("cotizaciones-por-estado", filtros);
   const solicitada = await servicio.responderCotizacion(enviada.id, {
     version: enviada.actualizadoEn, resultado: "AJUSTE_SOLICITADO", motivoAjuste: "Cambiar las medidas",

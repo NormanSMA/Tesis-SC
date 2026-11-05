@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
+import { esquemaFechaConsulta } from "@/lib/listas/fecha";
 import { esquemaOrden } from "@/lib/listas/orden";
 import { CAMPOS_ORDEN_MATERIAL, CAMPOS_ORDEN_MOVIMIENTO } from "./campos-orden";
 
@@ -40,7 +41,7 @@ export const esquemaConsultaMateriales = z.object({ q: z.string().trim().max(200
   ordenar: esquemaOrden(CAMPOS_ORDEN_MATERIAL).optional(), ...paginacion,
 });
 export const esquemaConsultaMovimientos = z.object({ material: id.optional(), tipo: z.enum(TIPOS_MOVIMIENTO).optional(),
-  orden: id.optional(), usuario: id.optional(), desde: z.iso.date().optional(), hasta: z.iso.date().optional(),
+  orden: id.optional(), usuario: id.optional(), desde: esquemaFechaConsulta.optional(), hasta: esquemaFechaConsulta.optional(),
   ordenar: esquemaOrden(CAMPOS_ORDEN_MOVIMIENTO).optional(), ...paginacion,
 }).refine((datos) => !datos.desde || !datos.hasta || datos.desde <= datos.hasta,
   { path: ["hasta"], message: "La fecha final debe ser igual o posterior a la inicial." });

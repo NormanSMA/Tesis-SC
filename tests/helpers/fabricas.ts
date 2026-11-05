@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Actor } from "@/core/autorizacion";
+import { hoyManagua } from "@/core/fechas";
 import type { PerfilCodigo } from "@/core/permisos";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { CrearMaterial } from "@/modules/inventario/schema";
@@ -80,4 +81,11 @@ export async function conPermisoRevocado<T>(
 
 export function exigirBaseTest(): void {
   if (!nombreBaseDeDatos(urlPropietario()).endsWith("_test")) throw new Error("Use una base terminada en _test.");
+}
+
+/** Fecha AAAA-MM-DD a n días de hoy en Managua: las fechas planificadas deben quedar dentro de un año. */
+export function diaRelativo(dias: number): string {
+  const fecha = new Date(`${hoyManagua()}T00:00:00Z`);
+  fecha.setUTCDate(fecha.getUTCDate() + dias);
+  return fecha.toISOString().slice(0, 10);
 }

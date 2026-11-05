@@ -1,6 +1,7 @@
 "use client";
 
 import { FormField } from "@/components/comunes/FormField";
+import { rangoPlanificacion } from "@/core/fechas";
 import { Input } from "@/components/ui/input";
 import { SelectorBuscable } from "@/components/comunes/SelectorBuscable";
 import { CampoArea, CampoSeleccion } from "@/modules/cotizaciones/componentes/CamposEditor";
@@ -23,7 +24,7 @@ export function CamposOrden({ entrada, opciones, errores, hoy, convertir, soloRe
         opciones={[{ id: "sin-responsable", nombre: "Sin responsable" }, ...opciones.responsables]} />}
     </FormField>
     {!soloResponsable ? <><FormField id="fechaEntrega" etiqueta="Fecha de entrega" requerido error={errores.fechaEntrega}>
-      {(atributos) => <Input {...atributos} type="date" min={hoy} value={entrada.fechaEntrega}
+      {(atributos) => <Input {...atributos} type="date" min={hoy} max={rangoPlanificacion(hoy).maximo} value={entrada.fechaEntrega}
         onChange={(evento) => alCambiar("fechaEntrega", evento.target.value)} />}
     </FormField>
     <CampoArea id="especificaciones" etiqueta="Especificaciones" valor={entrada.especificaciones}

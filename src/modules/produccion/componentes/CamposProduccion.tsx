@@ -26,12 +26,13 @@ export function SeleccionProduccion({ opciones, vacio = "Seleccione", ...campo }
   </FormField>;
 }
 
-export function TextoProduccion({ tipo = "text", maximo, minimo, ...campo }: Campo & {
-  tipo?: "text" | "date" | "number"; maximo?: number; minimo?: number;
+export function TextoProduccion({ tipo = "text", maximo, minimo, rangoFecha, ...campo }: Campo & {
+  tipo?: "text" | "date" | "number"; maximo?: number; minimo?: number; rangoFecha?: { minimo: string; maximo: string };
 }) {
   return <FormField id={campo.id} etiqueta={campo.etiqueta} error={campo.error} requerido={campo.requerido}>
     {(atributos) => <Input {...atributos} type={tipo} value={campo.valor} required={campo.requerido}
-      maxLength={maximo} min={minimo} disabled={campo.deshabilitado} onChange={(evento) => campo.alCambiar(evento.target.value)} />}
+      maxLength={maximo} min={rangoFecha?.minimo ?? minimo} max={rangoFecha?.maximo} disabled={campo.deshabilitado}
+      onChange={(evento) => campo.alCambiar(evento.target.value)} />}
   </FormField>;
 }
 

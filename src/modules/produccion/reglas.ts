@@ -1,3 +1,4 @@
+import { fueraDeRango, hoyManagua, rangoPlanificacion } from "@/core/fechas";
 import type { EstadoEtapa, EstadoOrden } from "@/generated/prisma/enums";
 import { campoInvalido, regla } from "./errores";
 
@@ -27,6 +28,14 @@ export function exigirLista(estados: readonly EstadoEtapa[]) {
 }
 export function validarFechas(inicio: string | null, fin: string | null) {
   if (inicio && fin && fin < inicio) throw campoInvalido("fechaFinPlan", "El fin no puede ser anterior al inicio.");
+}
+/** Solo revisa las fechas que cambian: una fecha guardada antes no bloquea otras ediciones. */
+export function validarRangoPlan(cambios: { fechaInicioPlan?: string | null; fechaFinPlan?: string | null }, hoy = hoyManagua()) {
+  const rango = rangoPlanificacion(hoy);
+  for (const campo of ["fechaInicioPlan", "fechaFinPlan"] as const) {
+    const fecha = cambios[campo];
+    if (fecha && fueraDeRango(fecha, rango)) throw campoInvalido(campo, "Use una fecha dentro de un año antes o después de hoy.");
+  }
 }
 export function validarMotivo(motivo: string) {
   const limpio = motivo.trim();

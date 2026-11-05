@@ -11,15 +11,16 @@ describe("tasa de aprobación", () => {
     });
 });
 describe("periodos de Managua", () => {
-  it.each([{}, { desde: "2034-05-01" }, { hasta: "2034-05-01" }, { desde: "2034-05-01", hasta: "2034-05-01" },
-    { desde: "2024-02-29", hasta: "2029-02-28" }, { desde: "2025-05-01", hasta: "2030-05-01" },
-    { desde: "9998-01-01", hasta: "9999-01-01" }])("acepta %j", (periodo) => {
+  it.each([{}, { desde: "2026-05-01" }, { hasta: "2026-05-01" }, { desde: "2026-05-01", hasta: "2026-05-01" },
+    { desde: "2020-02-29", hasta: "2025-02-28" }, { desde: "2020-05-01", hasta: "2025-05-01" },
+    { desde: "2000-01-01", hasta: "2004-12-31" }])("acepta %j", (periodo) => {
     expect(esquemaPeriodo.safeParse(periodo).success).toBe(true);
   });
-  it.each([{ desde: "2026-02-30" }, { hasta: "2025-02-29" }, { desde: "01-05-2034" },
-    { desde: "2034-05-02", hasta: "2034-05-01" }, { desde: "2025-05-01", hasta: "2030-05-02" },
-    { desde: "2024-02-29", hasta: "2029-03-01" }, { desde: "0000-01-01" },
-    { desde: "2034-99-99", hasta: "2035-01-01" }])("rechaza %j", (periodo) => {
+  it.each([{ desde: "2026-02-30" }, { hasta: "2025-02-29" }, { desde: "01-05-2026" },
+    { desde: "2026-05-02", hasta: "2026-05-01" }, { desde: "2020-05-01", hasta: "2025-05-02" },
+    { desde: "2020-02-29", hasta: "2025-03-01" }, { desde: "0000-01-01" }, { desde: "1999-12-31" },
+    { hasta: "2099-01-01" }, { desde: "9998-01-01", hasta: "9999-01-01" },
+    { desde: "2026-99-99", hasta: "2027-01-01" }])("rechaza %j", (periodo) => {
     expect(esquemaPeriodo.safeParse(periodo).success).toBe(false);
   });
   it("rechaza filtros y formato inválidos", () => {

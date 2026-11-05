@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { liberarClienteGlobal } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
+import { diaRelativo } from "../helpers/fabricas";
 import { consumir } from "./inventario-consumo-ayudas";
 import { leerOrden } from "./ordenes-ayudas";
 import { asignarEtapa, nuevaOrden, prepararProduccion, type EntornoProduccion } from "./produccion-ayudas";
@@ -41,7 +42,7 @@ function registrarAgrupacion() {
   it("tablero agrupa por área y responsable con atraso de fecha de Managua", async () => {
     const orden = await nuevaOrden(entorno);
     const primera = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
-      responsableId: entorno.actor.id, fechaFinPlan: "2000-01-01" }, entorno.planificador);
+      responsableId: entorno.actor.id, fechaFinPlan: diaRelativo(-30) }, entorno.planificador);
     const tablero = await entorno.servicio.obtenerTablero({ q: orden.numero }, entorno.actor);
     expect(tablero.datos).toHaveLength(2);
     expect(tablero.datos.find((fila) => fila.id === primera.id)?.atrasada).toBe(true);

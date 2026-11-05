@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { fechaFiltroNavegable, limitesFiltroFecha } from "@/lib/listas/fecha";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ACCION_TEXTO, ENTIDAD_TEXTO } from "../etiquetas";
 import { ACCIONES, ENTIDADES, type ConsultaBitacora } from "../schema";
@@ -47,8 +48,11 @@ function CampoFecha({ parametro, etiqueta, valor }: { parametro: "desde" | "hast
   if ((valor ?? "") !== previo) { setPrevio(valor ?? ""); setFecha(valor ?? ""); }
   return <div className="flex items-center gap-2">
     <label htmlFor={id} className="text-sm font-medium">{etiqueta}</label>
-    <Input id={id} type="date" lang="es" value={fecha} className="w-auto"
-      onChange={(evento) => { setFecha(evento.target.value); navegar({ [parametro]: evento.target.value || null }); }} />
+    <Input id={id} type="date" lang="es" value={fecha} className="w-auto" {...limitesFiltroFecha()}
+      onChange={(evento) => {
+        setFecha(evento.target.value);
+        if (fechaFiltroNavegable(evento.target.value)) navegar({ [parametro]: evento.target.value || null });
+      }} />
   </div>;
 }
 

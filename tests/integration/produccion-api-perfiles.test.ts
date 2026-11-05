@@ -6,6 +6,7 @@ import type { RutaHandler } from "@/lib/http";
 import type { EtapaTablero } from "@/modules/produccion/tipos";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
+import { diaRelativo } from "../helpers/fabricas";
 import { abrirSesion, conPermisoRevocado } from "./cotizaciones-ayudas";
 import { invocar, leerOrden, ponerEstado } from "./ordenes-ayudas";
 import { asignarEtapa, crearAreaLibre, nuevaOrden, prepararLista, prepararProduccion, type EntornoProduccion } from "./produccion-ayudas";
@@ -231,7 +232,8 @@ function registrarValidacion() {
   });
   it("rechaza fechas inválidas, fechas invertidas y motivos cortos con 422", async () => {
     const llamada = await preparar("editarEtapa");
-    for (const fechas of [{ fechaInicioPlan: "2026-02-30" }, { fechaInicioPlan: "2026-10-10", fechaFinPlan: "2026-10-09" }]) {
+    for (const fechas of [{ fechaInicioPlan: "2026-02-30" }, { fechaInicioPlan: diaRelativo(6), fechaFinPlan: diaRelativo(5) },
+      { fechaInicioPlan: "0001-01-01" }, { fechaFinPlan: "9999-12-31" }, { fechaFinPlan: diaRelativo(400) }]) {
       expect((await ejecutar({ ...llamada, cuerpo: { ...llamada.cuerpo, ...fechas } }, cookie("OPERACIONES"))).status).toBe(422);
     }
     for (const operacion of ["omitir", "retrabajo"] as const) {

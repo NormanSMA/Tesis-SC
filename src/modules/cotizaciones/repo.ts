@@ -104,7 +104,7 @@ export async function configuracionCotizacion(tx: Tx) {
   } });
   const valores = Object.fromEntries(filas.map(({ clave, valor }) => [clave, valor]));
   const vigenciaDias = Number(valores.cotizacion_vigencia_dias);
-  if (!valores.iva_porcentaje || !Number.isInteger(vigenciaDias) || vigenciaDias < 1 || vigenciaDias > 36500) {
+  if (!valores.iva_porcentaje || !Number.isInteger(vigenciaDias) || vigenciaDias < 1 || vigenciaDias > 365) {
     throw new AppError({ codigo: "CONFIGURACION_INVALIDA", status: 409,
       mensaje: "Revise el IVA y la vigencia en la configuración." });
   }
