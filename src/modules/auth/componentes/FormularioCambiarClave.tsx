@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { destinoPorPerfil, type PerfilCodigo } from "@/core/permisos";
 import type { CamposError } from "@/lib/errores";
+import { BotonVerClave } from "@/modules/auth/componentes/BotonVerClave";
 import { esquemaFormularioCambiarClave, type EntradaCambiarClave, type ValoresCambiarClave } from "@/modules/auth/schema";
 
 type ErrorCambioClave = { codigo?: string; mensaje: string; campos?: CamposError };
@@ -40,15 +41,19 @@ export async function solicitarCambioClave(entrada: EntradaCambiarClave): Promis
 export function CampoClave({ registro, etiqueta, error }: {
   registro: UseFormRegisterReturn; etiqueta: string; error?: string;
 }) {
+  const [visible, setVisible] = useState(false);
   const nueva = registro.name !== "claveActual";
   const idError = `${registro.name}-error`;
   return (
     <FormField id={registro.name} etiqueta={etiqueta} ayuda={nueva ? "Mínimo 14 caracteres." : undefined} requerido>
       {(atributos) => <>
-        <Input {...atributos} {...registro} type="password" required maxLength={256}
-          minLength={nueva ? 14 : undefined} autoComplete={nueva ? "new-password" : "current-password"}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={[atributos["aria-describedby"], error ? idError : undefined].filter(Boolean).join(" ") || undefined} />
+        <div className="relative">
+          <Input {...atributos} {...registro} type={visible ? "text" : "password"} required maxLength={256}
+            minLength={nueva ? 14 : undefined} autoComplete={nueva ? "new-password" : "current-password"}
+            className="pr-12" aria-invalid={error ? true : undefined}
+            aria-describedby={[atributos["aria-describedby"], error ? idError : undefined].filter(Boolean).join(" ") || undefined} />
+          <BotonVerClave etiqueta={etiqueta.toLowerCase()} visible={visible} alternar={() => setVisible((valor) => !valor)} />
+        </div>
         {error ? <p id={idError} role="alert" className="text-sm font-medium text-danger">{error}</p> : null}
       </>}
     </FormField>

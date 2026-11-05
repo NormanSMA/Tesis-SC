@@ -1,12 +1,13 @@
 "use client";
 
-import { CircleAlert, Eye, EyeOff, Loader2 } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 
 import { FormField } from "@/components/comunes/FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BotonVerClave } from "@/modules/auth/componentes/BotonVerClave";
 
 import { useFormularioLogin } from "./useFormularioLogin";
 
@@ -23,17 +24,7 @@ function CampoContrasena({ error, registro }: { error?: string; registro: UseFor
             autoComplete="current-password"
             className="rounded-lg pr-12"
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-lg text-slate-500"
-            aria-label="Mostrar contraseña"
-            aria-pressed={visible}
-            onClick={() => setVisible((valor) => !valor)}
-          >
-            {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-          </Button>
+          <BotonVerClave etiqueta="contraseña" visible={visible} alternar={() => setVisible((valor) => !valor)} />
         </div>
       )}
     </FormField>

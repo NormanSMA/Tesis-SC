@@ -134,6 +134,14 @@ describe("Formulario de cambio de clave", () => {
     expect(html).toContain("Cambiar clave");
   });
 
+  it("ofrece mostrar cada clave, oculta por defecto", () => {
+    const html = renderToStaticMarkup(createElement(FormularioCambiarClave, { perfil: "ADMIN" }));
+    for (const etiqueta of ["clave actual", "clave nueva", "confirmación de clave"]) {
+      expect(html).toContain(`aria-label="Mostrar ${etiqueta}" aria-pressed="false"`);
+    }
+    expect(html.match(/type="password"/g)).toHaveLength(3);
+  });
+
   it("desactiva los campos durante el envío", () => {
     dobles.enviando = true;
     const html = renderToStaticMarkup(createElement(FormularioCambiarClave, { perfil: "ADMIN" }));
