@@ -1,4 +1,4 @@
-import { Package } from "lucide-react";
+import { BookOpen, Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -71,7 +71,7 @@ export function TarjetasCatalogo({ lista, consulta, puedeGestionar }: { lista: L
       ? <ListaEscalonada key={JSON.stringify(consulta)} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {lista.datos.map((producto) => <TarjetaProducto key={producto.id} producto={producto} puedeGestionar={puedeGestionar} />)}
       </ListaEscalonada>
-      : <EmptyState ilustracion="gran-formato" titulo="Sin resultados" descripcion="No hay productos para los filtros seleccionados."
+      : <EmptyState icono={BookOpen} titulo="Sin resultados" descripcion="No hay productos para los filtros seleccionados."
         accion={<Button asChild variant="outline"><Link href="/catalogo">Limpiar filtros</Link></Button>} />}
     <Paginacion pagina={lista.pagina} total={lista.total} tamano={lista.porPagina} hrefPagina={(pagina) => hrefPagina(consulta, pagina)} />
   </ZonaResultados>;

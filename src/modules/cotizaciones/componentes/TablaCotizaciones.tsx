@@ -1,3 +1,4 @@
+import { Calculator } from "lucide-react";
 import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -40,7 +41,7 @@ const CLASES_TABLA = [
 export function TablaCotizaciones({ lista, parametros, orden, puedeGestionar }: {
   lista: ListaCotizaciones; parametros: Record<string, string>; orden: Orden<CampoOrdenCotizacion> | null; puedeGestionar: boolean;
 }) {
-  const vacio = <EmptyState ilustracion="marketing-digital" titulo={lista.total ? "Esa página no existe" : "Sin cotizaciones"}
+  const vacio = <EmptyState icono={Calculator} titulo={lista.total ? "Esa página no existe" : "Sin cotizaciones"}
     descripcion={lista.total ? "Abra la primera página para consultar los resultados." : "Cree una cotización o ajuste los filtros."}
     accion={<div className="flex flex-wrap gap-3"><Button asChild variant="outline"><Link href={hrefPagina(parametros, 1)}>Primera página</Link></Button>
       {puedeGestionar ? <Button asChild><Link href="/cotizaciones/nueva">Nueva cotización</Link></Button> : null}</div>} />;

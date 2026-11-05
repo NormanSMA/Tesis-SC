@@ -1,3 +1,4 @@
+import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
 import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
@@ -77,10 +78,10 @@ export function TablaOrdenes({ lista, parametros, orden, referencia }: {
 }) {
   const filtrado = ["q", "vista", "responsable", "cliente"].some((clave) => clave in parametros);
   const vacio = lista.total > 0
-    ? <EmptyState ilustracion="rotulacion" titulo="Esa página no existe"
+    ? <EmptyState icono={ClipboardCheck} titulo="Esa página no existe"
       descripcion={`La consulta tiene ${lista.total} resultados en menos páginas.`}
       accion={<Button asChild variant="outline"><Link href={hrefPagina(parametros, 1)}>Ir a la primera página</Link></Button>} />
-    : <EmptyState ilustracion="rotulacion" titulo={filtrado ? "Sin resultados" : "Sin órdenes"}
+    : <EmptyState icono={ClipboardCheck} titulo={filtrado ? "Sin resultados" : "Sin órdenes"}
       descripcion={filtrado ? "Ninguna orden coincide con la consulta. Pruebe otros términos o quite los filtros."
         : "Convierta una cotización aprobada para crear la primera orden."}
       accion={filtrado ? <Button asChild variant="outline"><Link href="/ordenes">Limpiar filtros</Link></Button> : undefined} />;

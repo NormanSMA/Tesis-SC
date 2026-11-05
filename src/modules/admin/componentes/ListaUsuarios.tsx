@@ -1,4 +1,4 @@
-import { CircleCheck, CircleMinus, Lock, type LucideIcon } from "lucide-react";
+import { UserCog, CircleCheck, CircleMinus, Lock, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
@@ -60,10 +60,10 @@ function columnasDe(ahora: number): ColumnaTabla<UsuarioDto>[] {
 
 export function TablaUsuarios({ lista, filtros }: { lista: Lista; filtros: FiltrosUsuarios }) {
   const vacio = lista.total
-    ? <EmptyState ilustracion="reconocimientos" titulo="Esa página no existe"
+    ? <EmptyState icono={UserCog} titulo="Esa página no existe"
       descripcion={`La búsqueda tiene ${lista.total} resultados en menos páginas.`}
       accion={<Button asChild variant="outline"><Link href={hrefUsuarios(filtros, 1)}>Volver a la primera página</Link></Button>} />
-    : <EmptyState ilustracion="reconocimientos" titulo="Sin resultados"
+    : <EmptyState icono={UserCog} titulo="Sin resultados"
       descripcion="Ningún usuario coincide con los filtros. Pruebe con otros términos o quite los filtros."
       accion={<Button asChild variant="outline"><Link href="/admin/usuarios">Limpiar filtros</Link></Button>} />;
   return (

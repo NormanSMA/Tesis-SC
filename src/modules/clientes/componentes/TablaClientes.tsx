@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -80,14 +81,14 @@ export function TablaClientes({ lista, parametros, orden, puedeGestionar, conCot
   const filtrado = Object.keys(parametros).some((clave) => clave === "q" || clave === "tipo" || clave === "activo");
   const sinClientes = lista.total === 0 && !filtrado;
   const vacio = lista.total > 0
-    ? <EmptyState ilustracion="reconocimientos" titulo="Esa página no existe"
+    ? <EmptyState icono={Users} titulo="Esa página no existe"
       descripcion={`La búsqueda tiene ${lista.total} resultados en menos páginas.`}
       accion={<Button asChild variant="outline"><Link href={hrefPagina(parametros, 1)}>Ir a la primera página</Link></Button>} />
     : sinClientes
-      ? <EmptyState ilustracion="reconocimientos" titulo="Aún no hay clientes"
+      ? <EmptyState icono={Users} titulo="Aún no hay clientes"
         descripcion="Registre el primer cliente para empezar a cotizar."
         accion={puedeGestionar ? <NuevoCliente conEnlace={false} /> : undefined} />
-      : <EmptyState ilustracion="reconocimientos" titulo="Sin resultados"
+      : <EmptyState icono={Users} titulo="Sin resultados"
         descripcion="Ningún cliente coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
         accion={<Button asChild variant="outline"><Link href="/clientes">Limpiar filtros</Link></Button>} />;
   return <ZonaResultados>

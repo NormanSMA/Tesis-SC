@@ -1,3 +1,4 @@
+import { Boxes } from "lucide-react";
 import Link from "next/link";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
@@ -101,10 +102,10 @@ export function hrefInventario(entrada: { ruta: string; consulta: object; pagina
 }
 function Vacio({ total, filtrado, sinRegistros, limpiar, primera }: {
   total: number; filtrado: boolean; sinRegistros: string; limpiar: string; primera: string }) {
-  if (total > 0) return <EmptyState ilustracion="muebles" titulo="Esa página no existe" descripcion={`La búsqueda tiene ${total} resultados en menos páginas.`}
+  if (total > 0) return <EmptyState icono={Boxes} titulo="Esa página no existe" descripcion={`La búsqueda tiene ${total} resultados en menos páginas.`}
     accion={<Button asChild variant="outline"><Link href={primera}>Ir a la primera página</Link></Button>} />;
-  if (!filtrado) return <EmptyState ilustracion="muebles" titulo="Sin registros" descripcion={sinRegistros} />;
-  return <EmptyState ilustracion="muebles" titulo="Sin resultados" descripcion="Nada coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
+  if (!filtrado) return <EmptyState icono={Boxes} titulo="Sin registros" descripcion={sinRegistros} />;
+  return <EmptyState icono={Boxes} titulo="Sin resultados" descripcion="Nada coincide con la búsqueda. Pruebe con otros términos o quite los filtros."
     accion={<Button asChild variant="outline"><Link href={limpiar}>Limpiar filtros</Link></Button>} />;
 }
 export function TablaMateriales({ lista, consulta }: { lista: ListaMateriales; consulta: { q?: string; estado?: string; porPagina?: number; ordenar?: Orden<string> } }) {

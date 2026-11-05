@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
 import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
 import { EmptyState } from "@/components/comunes/EmptyState";
+import { BrazoRobot } from "@/components/layout/IconoBrazoRobot";
 import { InsigniaPunto } from "@/components/comunes/FilaOperativa";
 import { PuntoEnVivo } from "@/components/comunes/PuntoEnVivo";
 import { Fecha } from "@/components/comunes/ValorFormateado";
@@ -104,7 +105,7 @@ export function TableroProduccion({ porArea, porResponsable, permisos, vistaInic
         <ul aria-label={`Etapas: ${grupo.nombre}`} className="flex flex-col gap-1.5 p-2">
           {grupo.etapas.map((etapa) => <FilaEtapa key={etapa.id} etapa={etapa} vista={vista} permisos={permisos} referencia={referencia} />)}
         </ul>
-      </section>) : <EmptyState ilustracion="corte-grabado-laser" titulo="Sin etapas abiertas" descripcion="No hay etapas pendientes ni en curso con estos filtros." />}
+      </section>) : <EmptyState icono={BrazoRobot} titulo="Sin etapas abiertas" descripcion="No hay etapas pendientes ni en curso con estos filtros." />}
     </ZonaResultados>
   </div>;
 }

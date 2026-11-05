@@ -1,5 +1,6 @@
 "use client";
 
+import { Boxes } from "lucide-react";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
@@ -37,7 +38,7 @@ export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrd
     <TarjetaSeccion titulo="Materiales" sinRelleno>
         <DataTable titulo="Materiales del trabajo" filas={trazabilidad.materiales} columnas={columnasMateriales("costoRealTotal" in trazabilidad)}
           idFila={(fila) => fila.material.id} apilarEnMovil className={claseTabla}
-          vacio={<EmptyState ilustracion="uv-dtf" titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." className="rounded-none border-0" />} />
+          vacio={<EmptyState icono={Boxes} titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." className="rounded-none border-0" />} />
         {"costoRealTotal" in trazabilidad ? <div className="space-y-1 border-t border-slate-100 p-5"><p className="font-semibold">Costo real total: {formatearMoneda(trazabilidad.costoRealTotal)}</p>
           <p className="text-sm text-muted-foreground">Incluye consumos menos devoluciones.</p></div> : null}
       </TarjetaSeccion>

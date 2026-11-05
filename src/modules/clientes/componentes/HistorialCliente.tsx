@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, Hammer } from "lucide-react";
+import { Calculator, ClipboardCheck } from "lucide-react";
 
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -75,7 +75,7 @@ export function CotizacionesCliente({ seccion }: { seccion: SeccionLimitada<Coti
         columnas={COLUMNAS_COTIZACIONES}
         filas={seccion.items}
         idFila={(cotizacion) => cotizacion.id}
-        vacio={<EmptyState ilustracion="reconocimientos" icono={FileText} titulo="Sin cotizaciones" descripcion="Este cliente aún no tiene cotizaciones." />}
+        vacio={<EmptyState icono={Calculator} titulo="Sin cotizaciones" descripcion="Este cliente aún no tiene cotizaciones." />}
       />
     </SeccionFicha>
   );
@@ -89,7 +89,7 @@ export function TrabajosCliente({ seccion }: { seccion: SeccionLimitada<TrabajoD
         columnas={COLUMNAS_TRABAJOS}
         filas={seccion.items}
         idFila={(trabajo) => trabajo.id}
-        vacio={<EmptyState ilustracion="reconocimientos" icono={Hammer} titulo="Sin trabajos" descripcion="Este cliente aún no tiene órdenes de trabajo." />}
+        vacio={<EmptyState icono={ClipboardCheck} titulo="Sin trabajos" descripcion="Este cliente aún no tiene órdenes de trabajo." />}
       />
     </SeccionFicha>
   );

@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { ZonaResultados } from "@/components/comunes/ZonaResultados";
@@ -35,6 +36,6 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
           texto={String(totalVisible(campo, valor) ?? "")} formato={formatoTotal(campo)} />)}</BandejaMetricas></section>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
       idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
-      vacio={<EmptyState ilustracion="video-marketing" titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />
+      vacio={<EmptyState icono={BarChart3} titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />
   </section></ZonaResultados>;
 }
