@@ -159,6 +159,21 @@ Ese endpoint es un supuesto. El agente de autenticación debe crearlo.
 9. Oculta navegación con `permisos`. El servidor decide el acceso real.
 10. No agregues color de acento nuevo. Reutiliza los estados.
 
+## Imágenes del catálogo
+
+Cada categoría tiene una imagen en `public/seed/productos/` (mapeo en `src/modules/catalogo/imagenes.ts`).
+Las 8 se redibujaron el 2026-11-04 con el generador de imágenes de Codex. Norman validó cada una.
+
+- Formato: WebP de 640x640 px.
+- Estilo: ilustración de producto semirrealista y limpia. Contorno fino `#1e293b`, sombreado suave y acabados mate.
+- Fondo liso `#f8fafc`. Sin texto, letras legibles ni logotipos.
+- Color: azul marino `#1f2a6b` y sus tonos, blanco y grises fríos (`#eef1fb`, `#cbd5e1`, `#94a3b8`, `#475569`).
+- Prohibido: verde, verde azulado, dorado, café, rojo y naranja.
+- Encuadre: la tarjeta (`aspect-[5/2]`, `object-cover`) muestra solo la franja y=192 a y=448. El sujeto completo va entre y=180 y y=460.
+- La ficha muestra la imagen cuadrada a 80 px. Prefiera sujetos que se lean a ese tamaño.
+- `tests/unit/catalogo-imagenes.test.ts` falla si una imagen tiene píxeles verdes (tono 140° a 190°).
+- Las imágenes verdes anteriores quedan en `_archivo/catalogo-verde/`.
+
 ## Adaptabilidad (CF-08)
 
 | Ancho | Menú | Contenido |
