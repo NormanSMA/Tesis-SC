@@ -22,11 +22,12 @@ describe("consultas del feed", () => {
   });
   it("selecciona dinero solamente con el permiso monetario", async () => {
     await consultarOrdenesFeed({ ...entrada, verDinero: true }, "ORDEN_ATRASADA");
-    expect(fuenteSql()).toContain("c.total::text AS monto, c.moneda AS moneda");
+    expect(fuenteSql()).toContain("c.creado_por_id =");
+    expect(fuenteSql()).toContain("THEN c.total::text END AS monto");
     await consultarCotizacionesFeed(entrada, "SIN_RESPUESTA");
     expect(fuenteSql()).not.toContain("c.total");
     await consultarCotizacionesFeed({ ...entrada, verDinero: true }, "POR_VENCER");
-    expect(fuenteSql()).toContain("c.total::text AS monto");
+    expect(fuenteSql()).toContain("THEN c.total::text END AS monto");
   });
   it("aplica LIMIT 5 con conteo independiente en las ocho consultas", async () => {
     for (const urgencia of ["SIN_RESPUESTA", "POR_VENCER", "AJUSTE_SOLICITADO"] as const) await consultarCotizacionesFeed(entrada, urgencia);

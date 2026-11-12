@@ -6,6 +6,7 @@ type PropiedadesSeccion = {
   titulo: string;
   descripcion?: string;
   className?: string;
+  vertical?: boolean;
   children: ReactNode;
 };
 
@@ -13,12 +14,12 @@ type PropiedadesSeccion = {
  * Bloque de formulario en dos columnas desde lg: a la izquierda qué se pide y por qué,
  * a la derecha los campos en una tarjeta. En móvil y tableta, el texto va arriba de la tarjeta.
  */
-export function SeccionFormulario({ titulo, descripcion, className, children }: PropiedadesSeccion) {
+export function SeccionFormulario({ titulo, descripcion, className, children, vertical }: PropiedadesSeccion) {
   return (
-    <section className={cn("grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8", className)}>
+    <section className={cn("grid gap-3", !vertical && "lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8", className)}>
       <div className="lg:pt-1">
         <h2 className="text-base font-semibold text-foreground">{titulo}</h2>
-        {descripcion ? <p className="mt-1 text-sm text-slate-500">{descripcion}</p> : null}
+        {descripcion ? <p className="mt-1 text-sm text-muted-foreground">{descripcion}</p> : null}
       </div>
       <div className="min-w-0 space-y-4 rounded-xl border border-border/80 bg-card p-5 shadow-sm">{children}</div>
     </section>

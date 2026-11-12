@@ -271,19 +271,19 @@ test.describe("ADMIN gestiona permisos", () => {
     await entrarComo(page, ADMIN);
     const original = await page.request.get("/api/v1/permisos");
     const matrizOriginal = ((await original.json()).datos.matriz ?? []) as { perfil: string; permisos: string[] }[];
-    const permisosOriginales = matrizOriginal.find((fila) => fila.perfil === "GERENCIA")?.permisos;
-    if (!permisosOriginales) throw new Error("No se encontró GERENCIA en la matriz");
+    const permisosOriginales = matrizOriginal.find((fila) => fila.perfil === "OPERACIONES")?.permisos;
+    if (!permisosOriginales) throw new Error("No se encontró OPERACIONES en la matriz");
 
     try {
       await page.goto("/admin/permisos");
       const matriz = page.getByRole("region", { name: "Matriz de perfiles y permisos" });
       await expect(matriz).toBeVisible();
-      const candidata = matriz.locator('[role="checkbox"][aria-label^="Perfil GERENCIA: permiso "]:not([disabled])[aria-checked="false"]').first();
+      const candidata = matriz.locator('[role="checkbox"][aria-label^="Perfil OPERACIONES: permiso "]:not([disabled])[aria-checked="false"]').first();
       const etiqueta = await candidata.getAttribute("aria-label");
-      if (!etiqueta) throw new Error("GERENCIA ya tiene todos los permisos");
+      if (!etiqueta) throw new Error("OPERACIONES ya tiene todos los permisos");
       const casilla = matriz.getByRole("checkbox", { name: etiqueta, exact: true });
       const guardar = page.getByRole("button", { name: "Guardar cambios", exact: true });
-      const estado = page.getByRole("status").filter({ hasText: "Permisos de GERENCIA guardados." });
+      const estado = page.getByRole("status").filter({ hasText: "Permisos de OPERACIONES guardados." });
 
       await casilla.click();
       await expect(casilla).toBeChecked();
@@ -307,9 +307,9 @@ test.describe("ADMIN gestiona permisos", () => {
       // La API exige la versión vigente (SHA-256 de los permisos actuales): se lee justo antes de restaurar.
       const vigente = await page.request.get("/api/v1/permisos");
       const matrizVigente = ((await vigente.json()).datos.matriz ?? []) as { perfil: string; version: string }[];
-      const version = matrizVigente.find((fila) => fila.perfil === "GERENCIA")?.version;
-      if (!version) throw new Error("No se encontró la versión de GERENCIA");
-      const restaurar = await page.request.put("/api/v1/permisos/GERENCIA", {
+      const version = matrizVigente.find((fila) => fila.perfil === "OPERACIONES")?.version;
+      if (!version) throw new Error("No se encontró la versión de OPERACIONES");
+      const restaurar = await page.request.put("/api/v1/permisos/OPERACIONES", {
         headers: { Origin: BASE },
         data: { permisos: permisosOriginales, version },
       });
@@ -348,17 +348,20 @@ test.describe("ADMIN gestiona la configuración", () => {
     await expect(page.locator("#config-empresa_nombre")).toHaveValue(original);
   });
 
-  test("un IVA fuera de rango muestra error por campo y la zona horaria es de solo lectura", async ({ page }, info) => {
+  test("una tarifa fuera de rango muestra error por campo y la zona horaria es de solo lectura", async ({ page }, info) => {
     soloUnaVez(info.project.name);
+    await entrarComo(page, perfilDe("ADMINISTRACION"));
+    await page.goto("/admin/configuracion");
+    const formulario = page.getByRole("form", { name: "Parámetro Descuento de tarifa intermedia (%)" });
+    await page.locator("#config-tarifa_intermedia_pct").fill("150");
+    await formulario.getByRole("button", { name: "Guardar", exact: true }).click();
+    await expect(page.locator("#config-tarifa_intermedia_pct-error")).toContainText("Ingrese un porcentaje de 0 a 100 con hasta 2 decimales.");
+    await expect(page.locator("#config-tarifa_intermedia_pct")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#config-tarifa_intermedia_pct")).toBeFocused();
+
     await entrarComo(page, ADMIN);
     await page.goto("/admin/configuracion");
-    const formulario = page.getByRole("form", { name: "Parámetro IVA (%)" });
-    await page.locator("#config-iva_porcentaje").fill("150");
-    await formulario.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(page.locator("#config-iva_porcentaje-error")).toContainText(/Indique un IVA entre 0 y 100, con hasta 2 decimales\./);
-    await expect(page.locator("#config-iva_porcentaje")).toHaveAttribute("aria-invalid", "true");
-    await expect(page.locator("#config-iva_porcentaje")).toBeFocused();
-
+    await expect(formulario).toHaveCount(0);
     const zona = page.locator("#config-zona_horaria");
     await expect(zona).toHaveAttribute("readonly", "");
     const formularioZona = page.getByRole("form", { name: "Parámetro Zona horaria" });
@@ -369,11 +372,15 @@ test.describe("ADMIN gestiona la configuración", () => {
 
 test.describe("Los demás perfiles no acceden a Administración técnica", () => {
   for (const perfil of OTROS_PERFILES) {
-    test(`${perfil.codigo} termina en sin-acceso en las tres rutas`, async ({ page }, info) => {
+    test(`${perfil.codigo} solo accede a las secciones autorizadas`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       await entrarComo(page, perfil);
       for (const ruta of RUTAS_ADMIN) {
         await page.goto(ruta);
+        if (ruta === "/admin/configuracion" && ["GERENCIA", "ADMINISTRACION"].includes(perfil.codigo)) {
+          await expect(page.getByRole("form", { name: "Parámetro Descuento de tarifa intermedia (%)" })).toBeVisible();
+          continue;
+        }
         await expect(page).toHaveURL(/\/sin-acceso$/);
         await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
       }
@@ -385,7 +392,7 @@ test.describe("Accesibilidad (axe), adaptabilidad y capturas", () => {
   const PANTALLAS = [
     { nombre: "usuarios", ruta: "/admin/usuarios", listo: (page: Page) => page.getByRole("region", { name: "Lista de usuarios" }) },
     { nombre: "permisos", ruta: "/admin/permisos", listo: (page: Page) => page.getByRole("region", { name: "Matriz de perfiles y permisos" }) },
-    { nombre: "configuracion", ruta: "/admin/configuracion", listo: (page: Page) => page.locator("#config-iva_porcentaje") },
+    { nombre: "configuracion", ruta: "/admin/configuracion", listo: (page: Page) => page.locator("#config-empresa_nombre") },
   ];
 
   for (const vista of VIEWPORTS) {

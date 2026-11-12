@@ -35,13 +35,13 @@ export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrd
     <TarjetaSeccion titulo="Etapas" sinRelleno>
         <DataTable titulo="Etapas del trabajo" filas={trazabilidad.cadena.etapas} columnas={columnasEtapas} idFila={(fila) => fila.id}
           apilarEnMovil className={claseTabla} /></TarjetaSeccion>
-    <TarjetaSeccion titulo="Materiales" sinRelleno>
+    {trazabilidad.verConsumo ? <TarjetaSeccion titulo="Materiales" sinRelleno>
         <DataTable titulo="Materiales del trabajo" filas={trazabilidad.materiales} columnas={columnasMateriales("costoRealTotal" in trazabilidad)}
           idFila={(fila) => fila.material.id} apilarEnMovil className={claseTabla}
           vacio={<EmptyState icono={Boxes} titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." className="rounded-none border-0" />} />
         {"costoRealTotal" in trazabilidad ? <div className="space-y-1 border-t border-slate-100 p-5"><p className="font-semibold">Costo real total: {formatearMoneda(trazabilidad.costoRealTotal)}</p>
           <p className="text-sm text-muted-foreground">Incluye consumos menos devoluciones.</p></div> : null}
-      </TarjetaSeccion>
+      </TarjetaSeccion> : null}
     <TarjetaSeccion titulo="Responsables que intervinieron">
         <ul className="grid gap-3 sm:grid-cols-2">{trazabilidad.responsables.map((persona) => <li key={persona.id} className="min-w-0 rounded-lg border border-border/80 bg-slate-50 p-4">
           <p className="font-medium">{persona.nombre}</p><p className="break-words text-sm text-muted-foreground">{persona.roles.join(". ")}</p></li>)}</ul>

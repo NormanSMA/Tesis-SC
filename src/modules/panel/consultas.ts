@@ -43,15 +43,15 @@ export async function consultarMaterialesPanel(verDinero: boolean): Promise<Inve
   return resultado;
 }
 
-export async function consultarComercial(hoy: string): Promise<ComercialPanel> {
+export async function consultarComercial(hoy: string, autorId?: string): Promise<ComercialPanel> {
   const [resultado] = await prisma.$queryRaw<ComercialPanel[]>`
     WITH fechas AS (SELECT ${hoy}::date AS hoy, date_trunc('month', ${hoy}::date)::date AS mes),
     cotizaciones AS (SELECT c.*, coalesce((fecha_respuesta AT TIME ZONE 'America/Managua')::date,
       CASE WHEN estado = 'VENCIDA' THEN fecha_vencimiento END) AS respuesta FROM cotizacion c
-      WHERE c.estado IN ('BORRADOR','ENVIADA','AJUSTE_SOLICITADO')
+      WHERE (${autorId ?? null}::uuid IS NULL OR c.creado_por_id = ${autorId ?? null}::uuid) AND (c.estado IN ('BORRADOR','ENVIADA','AJUSTE_SOLICITADO')
         OR c.creado_en >= (((SELECT mes FROM fechas) - interval '12 months')::timestamp AT TIME ZONE 'America/Managua')
         OR c.fecha_respuesta >= (((SELECT mes FROM fechas) - interval '12 months')::timestamp AT TIME ZONE 'America/Managua')
-        OR c.fecha_vencimiento >= (SELECT mes FROM fechas) - interval '12 months'),
+        OR c.fecha_vencimiento >= (SELECT mes FROM fechas) - interval '12 months')),
     meses AS (SELECT generate_series((SELECT mes FROM fechas) - interval '5 months',
       (SELECT mes FROM fechas), interval '1 month')::date AS mes),
     resumen AS (SELECT m.mes::text, coalesce(sum(round(c.total * c.tipo_cambio, 2)) FILTER (WHERE estado = 'APROBADA'), 0)::text AS monto,
@@ -92,7 +92,7 @@ export async function consultarProduccion(entrada: { hoy: string; instante: Date
   const [resultado] = await prisma.$queryRaw<ProduccionPanel[]>`
     WITH propias AS (SELECT e.*, o.numero FROM etapa_orden e JOIN orden_trabajo o ON o.id = e.orden_id
       WHERE e.responsable_id = ${actorId}::uuid AND o.estado NOT IN ('CERRADA','CANCELADA')
-        AND e.estado IN ('PENDIENTE','EN_CURSO')),
+        AND e.estado IN ('PENDIENTE','EN_CURSO') AND NOT EXISTS (SELECT 1 FROM etapa_orden anterior WHERE anterior.orden_id=e.orden_id AND anterior.secuencia<e.secuencia AND anterior.estado NOT IN ('COMPLETADA','OMITIDA'))),
     atencion AS (SELECT *, greatest(${hoy}::date - fecha_fin_plan, 0)::int AS dias FROM propias
       WHERE fecha_fin_plan < ${hoy}::date OR (estado = 'EN_CURSO' AND fecha_inicio_real < ${instante}::timestamptz - interval '2 days')),
     completadas AS (SELECT (h.creado_en AT TIME ZONE 'America/Managua')::date AS dia FROM historial_etapa h

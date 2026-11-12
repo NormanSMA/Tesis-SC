@@ -100,7 +100,7 @@ describe("Interfaz del panel", () => {
         { codigo: "ATENCION_CLIENTE", nombre: "Comercial" }, { codigo: "PRODUCCION", nombre: "Producción" },
       ],
     } }));
-    expect(html).toContain('href="/cotizaciones?crear=1"');
+    expect(html).toContain('href="/cotizaciones/nueva"');
     expect(html).toContain("Nueva cotización");
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('aria-pressed="false"');

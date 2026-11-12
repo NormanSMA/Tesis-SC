@@ -10,10 +10,10 @@ import { crearAprobada, crearOrden, entradaConversion, invocar, leerOrden, poner
 type Operacion = "listar" | "crear" | "ver" | "editar" | "entregar" | "cerrar" | "cancelar" | "opciones";
 const OPERACIONES: Operacion[] = ["listar", "crear", "ver", "editar", "entregar", "cerrar", "cancelar", "opciones"];
 const ESPERADO: Record<PerfilCodigo, Record<Operacion, number>> = {
-  GERENCIA: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
-  ADMINISTRACION: { listar: 200, crear: 403, ver: 200, editar: 200, entregar: 403, cerrar: 403, cancelar: 403, opciones: 200 },
+  GERENCIA: { listar: 200, crear: 201, ver: 200, editar: 200, entregar: 200, cerrar: 200, cancelar: 200, opciones: 200 },
+  ADMINISTRACION: { listar: 200, crear: 201, ver: 200, editar: 200, entregar: 200, cerrar: 200, cancelar: 200, opciones: 200 },
   OPERACIONES: { listar: 200, crear: 201, ver: 200, editar: 200, entregar: 200, cerrar: 200, cancelar: 200, opciones: 200 },
-  ATENCION_CLIENTE: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 200, cerrar: 200, cancelar: 403, opciones: 403 },
+  ATENCION_CLIENTE: { listar: 200, crear: 201, ver: 200, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 200 },
   PRODUCCION: { listar: 200, crear: 403, ver: 200, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
   ADMIN: { listar: 403, crear: 403, ver: 403, editar: 403, entregar: 403, cerrar: 403, cancelar: 403, opciones: 403 },
 };
@@ -140,7 +140,7 @@ describeConBase("órdenes: API por perfil", () => {
       expect(respuesta.error?.campos?.version).toBeTruthy();
     }
     const entrega = await invocar(entorno.modulos.entregar.POST, peticion("POST", `/api/v1/ordenes/${orden.id}/entregar`, {
-      cookie: entorno.sesiones.ATENCION_CLIENTE.cookie, cuerpo: {},
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: {},
     }), orden.id);
     expect(entrega.status).toBe(422);
     expect(entrega.error?.campos?.version).toBeTruthy();
@@ -169,7 +169,7 @@ describeConBase("órdenes: API por perfil", () => {
     }), orden.id);
     expect(vieja.status).toBe(409);
     expect(vieja.error?.codigo).toBe("CONFLICTO_EDICION");
-    const transicion = await ejecutar("entregar", entorno.sesiones.ATENCION_CLIENTE.cookie, orden);
+    const transicion = await ejecutar("entregar", entorno.sesiones.OPERACIONES.cookie, orden);
     expect(transicion.status).toBe(409);
     expect(transicion.error?.codigo).toBe("TRANSICION_INVALIDA");
   });
@@ -177,7 +177,7 @@ describeConBase("órdenes: API por perfil", () => {
   it("doble conversión devuelve 409 y el número de orden existente", async () => {
     const orden = await destino("ver");
     const respuesta = await invocar(entorno.modulos.lista.POST, peticion("POST", "/api/v1/ordenes", {
-      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: entradaConversion(entorno, orden.cotizacion.id),
+      cookie: entorno.sesiones.OPERACIONES.cookie, cuerpo: entradaConversion(entorno, orden.cotizacion!.id),
     }));
     expect(respuesta.status).toBe(409);
     expect(respuesta.error?.codigo).toBe("ORDEN_EXISTENTE");

@@ -66,6 +66,8 @@ function registrosPorTexto(texto: string) {
 
 function filtroGlobal(consulta: ConsultaBitacora) {
   const filtros: Prisma.Sql[] = [];
+  if (consulta.autorId) filtros.push(Prisma.sql`(COALESCE(c.creado_por_id, co.creado_por_id) IS NULL
+    OR COALESCE(c.creado_por_id, co.creado_por_id) = ${consulta.autorId}::uuid)`);
   if (consulta.entidad) filtros.push(Prisma.sql`b.entidad = ${consulta.entidad}::entidad_bitacora`);
   if (consulta.accion) filtros.push(Prisma.sql`b.accion = ${consulta.accion}::accion_bitacora`);
   if (consulta.usuario) filtros.push(Prisma.sql`b.usuario_id = ${consulta.usuario}::uuid`);

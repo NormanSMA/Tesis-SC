@@ -9,11 +9,11 @@ Cubre el criterio CF-08 (adaptabilidad) y la accesibilidad WCAG 2.2 AA.
 - Personaliza las primitivas solo con tokens CSS. No hay un segundo sistema.
 - Empaqueta Inter con `@fontsource-variable/inter`. El build no depende de internet.
 - Usa lucide-react para íconos. No hay emojis.
-- Usa solo tema claro. Se eliminaron las variantes `dark:` de las primitivas.
-- Usa un color principal azul marino (#1f2a6b) y el dorado de la marca (#c9962f) solo como acento puntual. Los estados usan color más ícono más texto.
+- Usa temas claro y oscuro mediante tokens CSS. El navegador conserva la selección y la primera visita toma la preferencia del sistema.
+- La línea gráfica usa índigo (#2d264f), dorado (#f3a320), carbón (#2d2022) y gris (#a4a3a3). Los estados usan color, ícono y texto.
 - Reemplaza el paquete `cn` que instaló la CLI por `clsx` y `tailwind-merge` en `src/lib/utils.ts`.
 - Omite `ui/form.tsx`. `FormField` de `comunes` cubre ese papel con react-hook-form y zod.
-- Omite `next-themes`. El tema es fijo.
+- Omite `next-themes`. El control de tema está disponible en el acceso y en la barra superior.
 
 ## Tokens
 
@@ -23,17 +23,17 @@ Los tokens viven en `src/app/globals.css`. Tailwind los expone con `@theme inlin
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--primary` | #1f2a6b | Acción primaria, enlace activo |
-| `--primary-hover` | #161f52 | Hover de la acción primaria |
-| `--primary-soft` | #eef1fb | Fondo tenue del primario |
-| `--primary-soft-border` | #cbd5e1 | Borde tenue del primario |
-| `--brand-gold` | #c9962f | Indicador puntual de marca en el menú |
-| `--ring` | #1f2a6b | Anillo de foco |
-| `--background` | #F8FAFC | Fondo de página |
+| `--primary` | #2d264f en claro, #f3a320 en oscuro | Acción primaria, enlace activo |
+| `--primary-hover` | #403563 en claro, #ffb847 en oscuro | Hover de la acción primaria |
+| `--primary-soft` | #eeebf5 en claro, #382e4f en oscuro | Fondo tenue del primario |
+| `--primary-soft-border` | #d7d0e5 en claro, #675780 en oscuro | Borde tenue del primario |
+| `--brand-gold` | #f3a320 | Acento de marca |
+| `--ring` | #2d264f en claro, #ffb847 en oscuro | Anillo de foco |
+| `--background` | #f8f7fa en claro, #181625 en oscuro | Fondo de página |
 | `--card` | #FFFFFF | Superficie |
 | `--border` | #E2E8F0 | Contorno decorativo |
 | `--input` | #64748B | Contorno de controles |
-| `--foreground` | #0F172A | Texto |
+| `--foreground` | #2d2022 en claro, #f5f2fb en oscuro | Texto |
 | `--muted-foreground` | #475569 | Texto secundario |
 | `--success` | #15803D | Éxito |
 | `--warning` | #B45309 | Advertencia |

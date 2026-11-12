@@ -29,7 +29,7 @@ function columnasDe(referencia: string): ColumnaTabla<OrdenFila>[] {
   return [
     { id: "numero", encabezado: "Orden", ordenable: "numero", celda: (fila) => <div className="min-w-0">
       <Link href={`/ordenes/${fila.id}`} className={ENLACE_FILA}>{fila.numero}</Link>
-      {fila.cotizacion.asunto ? <p className="truncate text-xs text-muted-foreground" title={fila.cotizacion.asunto}>{fila.cotizacion.asunto}</p> : null}
+      {fila.cotizacion?.asunto ? <p className="truncate text-xs text-muted-foreground" title={fila.cotizacion.asunto}>{fila.cotizacion.asunto}</p> : null}
     </div> },
     { id: "cliente", encabezado: "Cliente", ordenable: "cliente", celda: (fila) => <div className="min-w-0">
       <span className="block truncate" title={fila.cliente.nombre}>{fila.cliente.nombre}</span>

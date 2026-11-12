@@ -50,7 +50,7 @@ function accesos(permisos: string[], consulta: string): Resultado[] {
   const secciones: Resultado[] = filtrarNavegacion(gruposNavegacion, permisos).flatMap(({ items }) => items)
     .map(({ href, etiqueta, icono }) => ({ id: `ir-${href}`, titulo: etiqueta, detalle: "Ir a la sección", destino: href, icono }));
   const acciones: Resultado[] = permisos.includes("cotizacion:gestionar")
-    ? [{ id: "accion-nueva-cotizacion", titulo: "Nueva cotización", detalle: "Acción", destino: "/cotizaciones?crear=1", icono: Plus }] : [];
+    ? [{ id: "accion-nueva-cotizacion", titulo: "Nueva cotización", detalle: "Acción", destino: "/cotizaciones/nueva", icono: Plus }] : [];
   const busqueda = normalizar(consulta.trim());
   return [...acciones, ...secciones].filter(({ titulo }) => !busqueda || normalizar(titulo).includes(busqueda));
 }
@@ -232,7 +232,7 @@ export function BuscadorGlobal({ permisos, modo, atajo = true }: Propiedades & {
         </button>
       </DialogTrigger>
       <DialogContent showCloseButton={false}
-        className="top-[12vh] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-2xl bg-white p-0 sm:max-w-xl motion-reduce:animate-none">
+        className="top-[12vh] max-w-xl translate-y-0 gap-0 overflow-hidden rounded-2xl bg-popover p-0 sm:max-w-xl motion-reduce:animate-none">
         <ContenidoBusqueda permisos={permisos} cerrar={() => establecerAbierto(false)} />
       </DialogContent>
     </Dialog>

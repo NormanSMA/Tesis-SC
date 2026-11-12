@@ -52,6 +52,7 @@ function registrarCargaArea() {
     const extra = await entorno.servicio.agregarEtapa(orden.id, { areaId: area.id, nombre: "Acabado adicional" }, entorno.planificador);
     await expect(entorno.servicio.archivarArea(area.id, { version: area.actualizadoEn }, entorno.operaciones))
       .rejects.toMatchObject({ codigo: "AREA_EN_USO" });
+    for (const anterior of orden.etapas) await entorno.servicio.omitirEtapa(anterior.id, { version: anterior.actualizadoEn, motivo: "No corresponde" }, entorno.planificador);
     const asignada = await asignarEtapa(entorno, extra);
     await entorno.servicio.iniciarEtapa(extra.id, { version: asignada.actualizadoEn }, entorno.actor);
     const actual = await leerOrden(entorno.ordenes, orden.id);

@@ -28,16 +28,17 @@ export type FilaListada = Cliente & {
 const VERSION_LOGO = { select: { actualizadoEn: true } } as const;
 
 // Prisma pasa el texto tal cual a ILIKE: sin escapar, % y _ de la búsqueda actuarían como comodines.
-function escaparComodines(texto: string): string {
+export function escaparComodines(texto: string): string {
   return texto.replace(/[\\%_]/g, "\\$&");
 }
 
-function filtroLista({ q, tipo, activo }: ConsultaClientes): Prisma.ClienteWhereInput {
+function filtroLista({ q, tipo, activo }: ConsultaClientes, soloNombre: boolean): Prisma.ClienteWhereInput {
   const where: Prisma.ClienteWhereInput = { activo };
   if (tipo) where.tipo = tipo;
   if (q) {
     const contiene = { contains: escaparComodines(q), mode: "insensitive" as const };
-    where.OR = [{ codigoCliente: contiene }, { nombre: contiene }, { ruc: contiene }, { contactoPrincipal: contiene }, { correo: contiene }];
+    if (soloNombre) where.nombre = contiene;
+    else where.OR = [{ codigoCliente: contiene }, { nombre: contiene }, { ruc: contiene }, { contactoPrincipal: contiene }, { correo: contiene }];
   }
   return where;
 }
@@ -52,23 +53,23 @@ function ordenLista(orden: ConsultaClientes["orden"]): Prisma.ClienteOrderByWith
   return [campos[campo], { id: direccion }];
 }
 
-export async function consultarClientes(consulta: ConsultaClientes): Promise<{ filas: FilaListada[]; total: number }> {
-  const where = filtroLista(consulta);
+export async function consultarClientes(consulta: ConsultaClientes, soloNombre = false, autorId?: string): Promise<{ filas: FilaListada[]; total: number }> {
+  const where = filtroLista(consulta, soloNombre);
   const [filas, total] = await Promise.all([
     prisma.cliente.findMany({
       where,
       orderBy: ordenLista(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina,
       take: consulta.porPagina,
-      include: { _count: { select: { cotizaciones: true } }, logo: VERSION_LOGO },
+      include: { _count: { select: { cotizaciones: { where: { creadoPorId: autorId } } } }, logo: VERSION_LOGO },
     }),
     prisma.cliente.count({ where }),
   ]);
   return { filas, total };
 }
 
-export async function consultarConteosClientes(consulta: ConsultaClientes): Promise<ConteosClientes> {
-  const where = filtroLista({ ...consulta, tipo: undefined });
+export async function consultarConteosClientes(consulta: ConsultaClientes, soloNombre = false): Promise<ConteosClientes> {
+  const where = filtroLista({ ...consulta, tipo: undefined }, soloNombre);
   const porTipo = await prisma.cliente.groupBy({ by: ["tipo"], where, _count: { _all: true } });
   const conteos: ConteosClientes = { todos: 0, EMPRESA: 0, PERSONA: 0 };
   for (const fila of porTipo) {
@@ -152,15 +153,15 @@ export async function actualizarCondicionado(
   return afectadas === 1;
 }
 
-export async function cotizacionesDeCliente(clienteId: string) {
+export async function cotizacionesDeCliente(clienteId: string, autorId?: string) {
   const [filas, total] = await Promise.all([
     prisma.cotizacion.findMany({
-      where: { clienteId },
+      where: { clienteId, creadoPorId: autorId },
       orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
       take: LIMITE_HISTORIAL,
       select: { id: true, numero: true, asunto: true, estado: true, total: true, moneda: true, fechaEmision: true, creadoEn: true },
     }),
-    prisma.cotizacion.count({ where: { clienteId } }),
+    prisma.cotizacion.count({ where: { clienteId, creadoPorId: autorId } }),
   ]);
   return { filas, total };
 }
@@ -180,11 +181,11 @@ export async function ordenesDeCliente(clienteId: string) {
 }
 
 /** Cotizaciones por estado; el importe se expresa en córdobas equivalentes (total por tipo de cambio de cada cotización). */
-export function agregadoCotizaciones(clienteId: string) {
+export function agregadoCotizaciones(clienteId: string, autorId?: string) {
   return prisma.$queryRaw<{ estado: string; cantidad: number; importe: string }[]>`
     SELECT estado::text AS estado, count(*)::int AS cantidad,
       coalesce(sum(round(total * tipo_cambio, 2)), 0)::text AS importe
-    FROM cotizacion WHERE cliente_id = ${clienteId}::uuid GROUP BY estado`;
+    FROM cotizacion WHERE cliente_id = ${clienteId}::uuid AND (${autorId ?? null}::uuid IS NULL OR creado_por_id = ${autorId ?? null}::uuid) GROUP BY estado`;
 }
 
 export function eventosDeCliente(clienteId: string) {

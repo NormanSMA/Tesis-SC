@@ -210,7 +210,7 @@ async function consumosPorSemana() {
 
 async function ochoUrgencias() {
   const actor = entorno.sesiones.PRODUCCION.actor;
-  const parametros = { hoy: "2034-05-10", instante, actorId: actor.id, verDinero: true };
+  const parametros = { hoy: "2034-05-10", instante, actorId: actor.id, verDinero: true, verTodas: true };
   const sinRespuesta = await crearCotizacionPanel(entorno, { estado: "ENVIADA", vencimiento: "2000-01-16", total: "123.45" });
   const porVencer = await crearCotizacionPanel(entorno, { estado: "ENVIADA", vencimiento: "2034-05-12" });
   const ajuste = await crearCotizacionPanel(entorno, { estado: "AJUSTE_SOLICITADO", respuesta: "2000-01-01T12:00:00Z" });
@@ -238,7 +238,7 @@ async function ochoUrgencias() {
   expect(resultados[3].filas.some((fila) => fila.id === orden.id)).toBe(true);
   expect(resultados[6].filas.some((fila) => fila.id === etapa.id)).toBe(true);
   expect(resultados[7].filas.some((fila) => fila.id === etapa.id)).toBe(true);
-  const oculto = await consultarOrdenesFeed({ ...parametros, verDinero: false }, "ORDEN_ATRASADA");
+  const oculto = await consultarOrdenesFeed({ ...parametros, verDinero: false, verTodas: true }, "ORDEN_ATRASADA");
   expect(oculto.filas.find((fila) => fila.id === orden.id)).toEqual({ id: orden.id, tipo: "orden", codigo: orden.numero,
     titulo: entorno.ordenes.cotizaciones.referencias.cliente.nombre, detalle: "Revise la fecha de entrega", urgencia: "ORDEN_ATRASADA",
     gravedad: "alta", monto: null, moneda: null, referencia: "2000-01-01T06:00:00.000Z",
@@ -247,7 +247,7 @@ async function ochoUrgencias() {
 
 async function limitesDelFeed() {
   const parametros = { hoy: "2070-05-10", instante: new Date("2070-05-10T06:00:00Z"),
-    actorId: entorno.sesiones.PRODUCCION.actor.id, verDinero: true };
+    actorId: entorno.sesiones.PRODUCCION.actor.id, verDinero: true, verTodas: true };
   const cotizacion = await crearCotizacionPanel(entorno, { estado: "ENVIADA", emision: "2070-05-07", vencimiento: "2070-05-20" });
   const exacto = await consultarCotizacionesFeed(parametros, "SIN_RESPUESTA");
   const despues = await consultarCotizacionesFeed({ ...parametros, instante: new Date("2070-05-10T06:00:00.001Z") }, "SIN_RESPUESTA");

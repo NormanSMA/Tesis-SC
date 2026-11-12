@@ -15,6 +15,9 @@ describeConBase("cotizaciones v9: aprobación y versiones corregidas", () => {
   beforeAll(async () => {
     entorno = await prepararCotizaciones(db);
     operaciones = await abrirSesion(db, entorno.modulos, "OPERACIONES");
+    const permiso = await db.permiso.findUniqueOrThrow({ where: { recurso_accion: { recurso: "cotizacion", accion: "ver_todas" } } });
+    await db.usuarioPermiso.create({ data: { usuarioId: operaciones.usuarioId, permisoId: permiso.id } });
+    operaciones.actor = { ...operaciones.actor, permisos: [...operaciones.actor.permisos, "cotizacion:ver_todas"] };
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 

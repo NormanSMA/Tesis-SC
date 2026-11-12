@@ -158,6 +158,9 @@ erDiagram
         varchar codigo UK
         varchar nombre
         UnidadMaterial unidad
+        TipoPresentacionMaterial tipoPresentacion
+        decimal anchoPresentacion
+        decimal largoPresentacion
         decimal existencia
         decimal costoPromedio
         decimal stockMinimo
@@ -197,6 +200,10 @@ erDiagram
         EstadoCotizacion estado
         varchar asunto
         text condiciones
+        boolean mostrarCondiciones
+        varchar tarifa
+        decimal tarifaPct
+        boolean descuentoManual
         uuid cotizacionOrigenId FK
         char moneda
         decimal tasaImpuesto
@@ -331,6 +338,7 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 | TipoCliente | PERSONA, EMPRESA | SD-12 |
 | UnidadCobro | UNIDAD, M2 | 2.6 (medidas); SD-15 |
 | UnidadMaterial | UNIDAD, METRO, M2, YARDA, PIE, LITRO, GALON, KILOGRAMO, LIBRA, PLIEGO, ROLLO | SD-15 |
+| TipoPresentacionMaterial | ROLLO, LAMINA | AT-03 |
 | EstadoCotizacion | BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA, AJUSTE_SOLICITADO | S-06; ADR-014 |
 | TipoItem | CATALOGO, PERSONALIZADO | 1.1, 2.6; R-03 |
 | TipoLineaCosto | MATERIAL, MANO_OBRA, TERCERO | R-03; SD-14 |
@@ -466,10 +474,15 @@ Justificación: CF-06 y P7 piden carga de trabajo **por área**. Sin esta entida
 | nombre | varchar(160) | no | Índice (activo, nombre) | 1.7 |
 | descripcion | text | sí | | |
 | unidad | UnidadMaterial | no | | SD-15 |
+| tipoPresentacion | TipoPresentacionMaterial | sí | ROLLO o LAMINA. Requiere unidad M2 y ambas dimensiones. | AT-03 |
+| anchoPresentacion | decimal(7,3) | sí | Ancho en metros, mayor que cero. | AT-03 |
+| largoPresentacion | decimal(7,3) | sí | Largo en metros, mayor que cero. | AT-03 |
 | existencia | decimal(14,3) | no | default 0. CHECK >= 0. Solo la escribe el trigger del libro. Alta con 0 | Tabla C2; S-09 |
 | costoPromedio | decimal(14,4) | no | default 0. CHECK >= 0. Editable a mano solo con existencia 0 | S-05; D-14 |
 | stockMinimo | decimal(14,3) | no | default 0. CHECK >= 0. Umbral de alerta | Tabla C2 (alertas); F01 |
 | activo | boolean | no | default true | convención |
+
+La presentación nominal es opcional. La base exige que el tipo y ambas medidas estén juntos o que los tres campos sean nulos. El área por presentación se calcula multiplicando ancho por largo. Los saldos se registran en el libro de movimientos.
 
 ### MovimientoInventario (`movimiento_inventario`)
 
@@ -524,10 +537,14 @@ Justificación: el estimado no tiene movimiento. Mezclarlo en `ConsumoOrden` har
 | clienteId | uuid | no | FK cliente. Índice (clienteId, creadoEn) | 2.6; CF-11 |
 | estado | EstadoCotizacion | no | default BORRADOR. Índice (estado, fechaVencimiento). Trigger de transición | S-06; CF-06 |
 | asunto | varchar(200) | sí | | |
-| condiciones | text | sí | Texto impreso en la proforma | F11 |
+| condiciones | text | sí | Texto de las condiciones comerciales | F11 |
+| mostrarCondiciones | boolean | no | Controla la visibilidad de las condiciones en la proforma | COT-04 |
+| tarifa | varchar(16) | no | OCASIONAL, INTERMEDIA o PREFERENCIAL | COT-03 |
+| tarifaPct | decimal(5,2) | sí | Porcentaje de la tarifa al seleccionarla. Nulo en cotizaciones anteriores al cambio | COT-03 |
+| descuentoManual | boolean | no | Indica si el descuento manual sustituye al de la tarifa | COT-03 |
 | cotizacionOrigenId | uuid | sí | FK cotizacion (duplicado). Índice | R-02; F13 |
 | moneda | char(3) | no | default 'NIO'. CHECK `^[A-Z]{3}$`; no valida pertenencia a ISO 4217 | S-04 |
-| tasaImpuesto | decimal(5,2) | no | CHECK 0..100. Copia del IVA vigente | S-04 |
+| tasaImpuesto | decimal(5,2) | no | Cero en borradores y cotizaciones nuevas. Conserva el valor registrado en documentos emitidos antes del cambio | COT-02 |
 | subtotal | decimal(14,2) | no | CHECK >= 0. Igual a Σ ítems al enviar | R-03; snapshot |
 | descuento | decimal(14,2) | no | CHECK 0..subtotal. Monto global | SD-14; F14 |
 | impuesto | decimal(14,2) | no | CHECK = round((subtotal − descuento) × tasa / 100, 2) | S-04 |
@@ -679,7 +696,7 @@ Solo se escribe con `siguiente_numero(tipo)`.
 
 | ID | Supuesto |
 |---|---|
-| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único. Teléfono o correo obligatorio |
+| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único cuando se informa. Teléfono, correo y dirección opcionales. |
 | SD-13 | Área de producción como catálogo editable. Cada etapa pertenece a un área |
 | SD-14 | Ítem personalizado = Σ líneas (material con merma, mano de obra, terceros). Margen sobre precio de venta por ítem. Descuento como monto global |
 | SD-15 | Unidades: UNIDAD o M2 para cobro. Lista cerrada para material. Texto libre en líneas de costo |
@@ -746,7 +763,7 @@ La línea de tiempo de una orden se ve con `orden:ver`. No requiere `bitacora:ve
 
 | Desde | Hacia | Permiso | Condición del servicio | Efecto en datos | Bitácora |
 |---|---|---|---|---|---|
-| (alta) | BORRADOR | cotizacion:gestionar | Cliente activo | `numero = siguiente_numero('COTIZACION')`. Copia IVA y vigencia | CREAR, estadoNuevo BORRADOR |
+| (alta) | BORRADOR | cotizacion:gestionar | Cliente activo | `numero = siguiente_numero('COTIZACION')`. Copia la vigencia y el porcentaje de la tarifa. Total sin IVA | CREAR, estadoNuevo BORRADOR |
 | BORRADOR | ENVIADA | cotizacion:enviar | Al menos un ítem. Totales recalculados | fechaEmision = hoy. fechaVencimiento = hoy + vigencia | CAMBIAR_ESTADO |
 | ENVIADA | APROBADA | cotizacion:responder | hoy ≤ fechaVencimiento | fechaRespuesta, usuarioAprobacionId, referenciaAprobacion no vacía | CAMBIAR_ESTADO, detalle.medio |
 | ENVIADA | RECHAZADA | cotizacion:responder | | fechaRespuesta, motivoRechazo | CAMBIAR_ESTADO |
@@ -844,7 +861,7 @@ Así las pruebas de base no dependen del reloj.
 | CF-06 | Cotizacion, Material, EtapaOrden, OrdenTrabajo, Area | Índices: cotizacion(estado, fecha_vencimiento); material(activo, nombre) con existencia y stock_minimo; etapa_orden(responsable_id, estado) y (area_id, estado); orden_trabajo(responsable_id, estado) y (estado, fecha_entrega) |
 | CF-07 | Perfil, Permiso, PerfilPermiso, Usuario, UsuarioPerfil, Sesion | Matriz recurso:acción en tabla. Varios perfiles por usuario mediante usuario_perfil. Sesión con token en hash. Decisión en el servidor |
 | CF-09 | Todas las anteriores | Cadena de FK: cliente → cotizacion → orden_trabajo → etapa_orden y consumo_orden → movimiento_inventario → material. Todas con RESTRICT. Sin borrado físico |
-| CF-10 | ItemCotizacion, LineaCosto, Producto, RecetaProducto | `tipo` CATALOGO o PERSONALIZADO con CHECK de coherencia. Líneas por tipo con merma. CHECK de fórmulas. Snapshot de precios, costos, IVA y totales |
+| CF-10 | ItemCotizacion, LineaCosto, Producto, RecetaProducto | `tipo` CATALOGO o PERSONALIZADO con CHECK de coherencia. Líneas por tipo con merma. CHECK de fórmulas. Instantánea de precios, costos, tarifa y totales. |
 | CF-11 | Cliente, Cotizacion, OrdenTrabajo | Índices cotizacion(cliente_id, creado_en) y orden_trabajo(cliente_id). Relación directa del cliente con sus órdenes |
 
 CF-08 (dispositivo) no depende del modelo de datos.
@@ -1126,3 +1143,9 @@ Consulte ADR-014 y `docs/auditoria/2-2-invariantes-en-datos.md` para el contexto
   Consulte índices `usuario_perfil(perfil_id)` y `usuario_perfil(asignado_por_id)`.
   Conserve índices de `bitacora`: `(orden_id, creado_en)`, `(cotizacion_id, creado_en)`, `(entidad, entidad_id, creado_en)`.
   Conserve también índices `bitacora(usuario_id, creado_en)` y `bitacora(creado_en)`.
+
+### Permisos individuales y privacidad comercial de noviembre de 2026
+
+UsuarioPermiso relaciona Usuario y Permiso mediante una clave compuesta, conserva otorgadoPorId y creadoEn y se une a los permisos heredados al resolver una sesión. El nuevo permiso cotizacion:ver_todas amplía la visibilidad comercial; cotizacion:ver sigue siendo necesario. La autoría se comprueba tanto al consultar como al modificar una cotización y se aplica a las consultas derivadas que podrían revelar sus importes.
+
+En Producción, el responsable solo ve sus etapas habilitadas. Para habilitar una etapa, todas las de menor secuencia de la misma orden deben estar COMPLETADAS u OMITIDAS. La validación del inicio y del completado ocurre bajo bloqueo de la orden. Los avisos de disponibilidad se derivan de las asignaciones pendientes; no agregan un estado de negocio a la orden.

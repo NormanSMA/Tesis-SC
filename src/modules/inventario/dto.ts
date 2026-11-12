@@ -1,9 +1,17 @@
 import { can, type Actor } from "@/core/autorizacion";
+import { formatear, leerDecimal, multiplicar } from "@/core/decimal";
 import type { Material, Prisma } from "@/generated/prisma/client";
 import { alertaMaterial } from "./reglas";
 
 export function aMaterialDto(material: Material) {
-  const valores = { ...material, existencia: material.existencia.toFixed(3),
+  const { tipoPresentacion, anchoPresentacion, largoPresentacion, ...campos } = material;
+  const presentacion = tipoPresentacion && anchoPresentacion && largoPresentacion
+    ? { tipo: tipoPresentacion, ancho: anchoPresentacion.toFixed(3), largo: largoPresentacion.toFixed(3),
+      areaM2: formatear(multiplicar(leerDecimal(anchoPresentacion.toString())!, leerDecimal(largoPresentacion.toString())!), 6) }
+    : null;
+  const valores = { ...campos, presentacion, existencia: material.existencia.toFixed(3),
+    areaUnidadInventario: material.areaUnidadInventario?.toFixed(6) ?? null,
+    precioCotizacion: material.precioCotizacion?.toFixed(4) ?? null,
     costoPromedio: material.costoPromedio.toFixed(4), stockMinimo: material.stockMinimo.toFixed(3),
     creadoEn: material.creadoEn.toISOString(), actualizadoEn: material.actualizadoEn.toISOString() };
   return { ...valores, alerta: alertaMaterial(valores) };

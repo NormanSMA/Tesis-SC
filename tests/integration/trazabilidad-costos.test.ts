@@ -12,7 +12,11 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
   const app = crearClienteApp();
   let entorno: EntornoTrazabilidad;
   beforeAll(async () => { entorno = await prepararTrazabilidad(db); });
-  const sesionDe = (perfil: "ADMINISTRACION" | "OPERACIONES") => abrirSesion(db, entorno.produccion.ordenes.cotizaciones.modulos, perfil);
+  const sesionDe = async (perfil: "ADMINISTRACION" | "OPERACIONES") => {
+    const sesion = await abrirSesion(db, entorno.produccion.ordenes.cotizaciones.modulos, perfil);
+    sesion.actor = { ...sesion.actor, permisos: [...sesion.actor.permisos, "cotizacion:ver_todas"] };
+    return sesion;
+  };
   afterAll(async () => { await liberarClienteGlobal(); await Promise.all([db.$disconnect(), app.$disconnect()]); });
 
   it("concilia varios materiales con devolución y costo promedio cambiante contra SQL numeric", async () => {
@@ -42,43 +46,48 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
     const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones.PRODUCCION.actor);
     comprobarSinDinero(traza); comprobarSinCliente(traza);
     expect(JSON.stringify(traza)).not.toMatch(/98765|34567|RUC_PRIVADO|DIRECCION_PRIVADA|NO_MOSTRAR/);
-    expect(traza.cadena.cotizacion.href).toBeNull(); expect(traza.cadena.cliente.href).toBeNull();
+    expect(traza.cadena.cotizacion).toBeNull(); expect(traza.cadena.cliente.href).toBeNull();
+    expect(traza.materiales).toEqual([]);
+    expect(traza.eventos.some((evento) => "cantidad" in evento.detalle || "existenciaResultante" in evento.detalle)).toBe(false);
     expect(traza.eventos.some((fila) => fila.resumen.includes("Detalle visible"))).toBe(true);
   });
-  it("ADMIN consulta la bitácora global sin dinero ni datos del cliente", async () => {
+  it("ADMIN sin acceso compartido no recibe eventos de cotizaciones ajenas", async () => {
     const { orden } = await libroConCostos(entorno);
     await inyectarDetalle(entorno, orden.id);
     const lista = await entorno.servicio.listarBitacora(esquemaConsultaBitacora.parse({ orden: orden.numero, porPagina: 100 }), entorno.sesiones.ADMIN.actor);
-    expect(lista.total).toBeGreaterThan(0);
+    expect(lista.total).toBe(0);
     comprobarSinDinero(lista.datos); comprobarSinCliente(lista.datos);
     expect(JSON.stringify(lista)).not.toMatch(/98765|34567|RUC_PRIVADO|DIRECCION_PRIVADA|NO_MOSTRAR/);
     expect(lista.datos.every((fila) => fila.registro.href === null)).toBe(true);
   });
-  it.each(["ATENCION_CLIENTE", "GERENCIA", "OPERACIONES"] as const)("%s recibe costos exactos y datos permitidos del cliente", async (perfil) => {
+  it.each(["GERENCIA", "OPERACIONES"] as const)("%s recibe costos exactos y datos permitidos del cliente", async (perfil) => {
     const { orden } = await libroConCostos(entorno);
     await db.cliente.update({ where: { id: orden.cliente.id }, data: { direccion: "Dirección permitida" } });
     const actor = perfil === "OPERACIONES" ? (await sesionDe(perfil)).actor : entorno.sesiones[perfil].actor;
     const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, actor);
     expect(traza.costoRealTotal).toMatch(/^\d+\.\d{7}$/);
-    expect(traza.cadena.cotizacion.total).toBe(orden.cotizacion.total);
+    expect(traza.cadena.cotizacion?.total).toBe(orden.cotizacion.total);
     expect(traza.cadena.cliente.direccion).toBe("Dirección permitida");
     expect(traza.eventos.some((evento) => "costoUnitario" in evento.detalle)).toBe(true);
   });
-  it("ADMINISTRACION recibe costos exactos pero no RUC ni dirección del cliente", async () => {
+  it("ADMINISTRACION con acceso compartido recibe costos y datos del cliente", async () => {
     const { orden } = await libroConCostos(entorno);
     await db.cliente.update({ where: { id: orden.cliente.id }, data: { ruc: `ADM${Date.now()}`, direccion: "DIRECCION_PRIVADA" } });
     const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, (await sesionDe("ADMINISTRACION")).actor);
     expect(traza.costoRealTotal).toMatch(/^\d+\.\d{7}$/);
-    expect(traza.cadena.cotizacion.total).toBe(orden.cotizacion.total);
-    comprobarSinCliente(traza); expect(JSON.stringify(traza)).not.toContain("DIRECCION_PRIVADA");
-    expect(traza.cadena.cliente.href).toBeNull();
+    expect(traza.cadena.cotizacion?.total).toBe(orden.cotizacion.total);
+    expect(traza.cadena.cliente.direccion).toBe("DIRECCION_PRIVADA");
+    expect(traza.cadena.cliente.href).toBe(`/clientes/${orden.cliente.id}`);
   });
-  it("cliente:ver se controla independientemente de cotizacion:ver", async () => {
+  it("los permisos del cliente y del consumo se controlan por separado del permiso de cotización", async () => {
     const orden = await crearTrabajo(entorno);
     await inyectarDetalle(entorno, orden.id);
-    const actor = { ...entorno.sesiones.GERENCIA.actor, permisos: ["orden:ver", "cotizacion:ver"] };
+    const actor = { ...entorno.sesiones.GERENCIA.actor, permisos: ["orden:ver", "cotizacion:ver", "cotizacion:ver_todas"] };
     const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, actor);
-    comprobarSinCliente(traza); expect(traza).toHaveProperty("costoRealTotal");
+    comprobarSinCliente(traza);
+    expect(traza.cadena.cotizacion?.total).toBe(orden.cotizacion.total);
+    expect(traza).not.toHaveProperty("costoRealTotal");
+    expect(traza.materiales).toEqual([]);
   });
   it("responde materiales estimados sin movimientos y costo cero", async () => {
     const orden = await crearTrabajo(entorno);

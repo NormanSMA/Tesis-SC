@@ -56,7 +56,10 @@ function useParametro(inicial: ParametroDto) {
 }
 
 const ETIQUETAS: Record<string, string> = {
-  iva_porcentaje: "IVA (%)", cotizacion_vigencia_dias: "Vigencia de cotización (días)",
+  tarifa_ocasional_pct: "Descuento de tarifa ocasional (%)",
+  tarifa_instalacion_km: "Tarifa de traslado para instalación (C$/km)",
+  tarifa_intermedia_pct: "Descuento de tarifa intermedia (%)",
+  tarifa_preferencial_pct: "Descuento de tarifa preferencial (%)", cotizacion_vigencia_dias: "Vigencia de cotización (días)",
   cotizacion_condiciones: "Condiciones de cotización", moneda: "Moneda",
   tipo_cambio_usd: "Tipo de cambio USD (córdobas por dólar)",
   empresa_nombre: "Nombre de empresa", zona_horaria: "Zona horaria",
@@ -66,9 +69,13 @@ const NOMBRES_MONEDA: Record<string, string> = { NIO: "Córdoba (C$)", USD: "Dó
 const NOMBRES_ZONA_HORARIA: Record<string, string> = { "America/Managua": "Managua (America/Managua)" };
 
 function sufijoParametro(clave: string, valor: string): string {
-  if (clave === "iva_porcentaje") return "%";
+  if (clave.startsWith("tarifa_") && clave.endsWith("_pct")) return "%";
   if (clave === "moneda") return NOMBRES_MONEDA[valor] ?? "";
   return "";
+}
+
+function nombreParametro(parametro: ParametroDto) {
+  return ETIQUETAS[parametro.clave] ?? (parametro.clave.startsWith("material:") ? "Precio para cotizar" : parametro.clave);
 }
 
 function descripcionVisible({ clave, descripcion }: ParametroDto): string | null {
@@ -82,7 +89,7 @@ function CampoParametro({ fila }: { fila: ReturnType<typeof useParametro> }) {
   const sufijo = sufijoParametro(parametro.clave, valor);
   return (
     <div className="min-w-0 space-y-1">
-      <Label htmlFor={id} className="sr-only">{ETIQUETAS[parametro.clave] ?? parametro.clave}</Label>
+      <Label htmlFor={id} className="sr-only">{nombreParametro(parametro)} {parametro.clave.startsWith("material:") ? parametro.descripcion : ""}</Label>
       <div className="relative">
         <Input id={id} name="valor" value={soloLectura ? NOMBRES_ZONA_HORARIA[valor] ?? valor : valor}
           onChange={(evento: ChangeEvent<HTMLInputElement>) => setValor(evento.target.value)}
@@ -90,7 +97,7 @@ function CampoParametro({ fila }: { fila: ReturnType<typeof useParametro> }) {
           aria-describedby={`${id}-descripcion${error ? ` ${id}-error` : ""}`}
           className={cn("min-h-10 w-full", sufijo && (sufijo.length > 1 ? "pr-32" : "pr-8"),
             soloLectura && "cursor-not-allowed bg-muted text-foreground disabled:opacity-100")}
-          inputMode={parametro.tipo === "DECIMAL" ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />
+          inputMode={parametro.tipo === "DECIMAL" || parametro.clave.startsWith("material:") ? "decimal" : parametro.tipo === "ENTERO" ? "numeric" : "text"} />
         {sufijo ? <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">{sufijo}</span> : null}
       </div>
       {error ? <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p> : null}
@@ -102,7 +109,7 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
   const fila = useParametro(inicial);
   const hidratado = useHidratado();
   const soloLectura = inicial.clave === "zona_horaria";
-  const nombre = ETIQUETAS[inicial.clave] ?? inicial.clave;
+  const nombre = nombreParametro(inicial);
   const id = `config-${inicial.clave}`;
   return (
     <div className="min-w-0 px-5 py-4">

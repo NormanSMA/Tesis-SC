@@ -35,7 +35,7 @@ export function useEditorReceta(producto: FichaProducto) {
         version: respuesta.datos.actualizadoEn,
         materiales: respuesta.datos.receta.map((fila) => ({ materialId: fila.materialId, cantidad: fila.cantidad })),
       });
-      toast.success("Receta guardada."); router.refresh();
+      toast.success("Materiales guardados."); router.refresh();
     } else {
       setError(respuesta.error.mensaje);
       setConflicto(respuesta.error.codigo === "CONFLICTO_EDICION");

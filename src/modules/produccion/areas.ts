@@ -2,15 +2,16 @@ import { exigir, type Actor } from "@/core/autorizacion";
 import type { Area } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import { registrarEvento } from "@/lib/bitacora";
-import { prisma, type Tx } from "@/lib/db";
+import type { Tx } from "@/lib/db";
 import { aAreaDto } from "./dto";
 import { conflictoEdicion, exigirVersion, noEncontrado, regla } from "./errores";
+import { consultarAreasProduccion } from "./repo";
 import { transaccionProduccion } from "./escritura";
 import type { EntradaCrearArea, EntradaEditarArea, EntradaVersion } from "./schema";
 
 export async function listarAreas(actor: Actor) {
   exigir(actor, "produccion:ver");
-  return (await prisma.area.findMany({ orderBy: [{ nombre: "asc" }, { id: "asc" }] })).map(aAreaDto);
+  return (await consultarAreasProduccion()).map(aAreaDto);
 }
 export async function crearArea(entrada: EntradaCrearArea, actor: Actor) {
   exigir(actor, "catalogo:gestionar");

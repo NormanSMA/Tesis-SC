@@ -23,7 +23,7 @@ import { ordenDeCotizacion } from "@/modules/ordenes/service";
 
 const cargarPagina = cache(async (id: string) => {
   const actor = await exigirPermisoPagina("cotizacion:ver");
-  return { actor, cotizacion: await cargarCotizacion(id) };
+  return { actor, cotizacion: await cargarCotizacion(id, actor) };
 });
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

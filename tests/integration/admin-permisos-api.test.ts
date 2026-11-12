@@ -109,7 +109,7 @@ describe("API de permisos", () => {
     expect(datos.matriz).toContainEqual(expect.objectContaining({ perfil: "ADMIN", permisos: [...PERMISOS_POR_PERFIL.ADMIN].sort() }));
   });
 
-  it.each(PERFILES.filter(({ codigo }) => codigo !== "ADMIN"))("rechaza GET y PUT de $codigo", async ({ codigo }) => {
+  it.each(PERFILES.filter(({ codigo }) => !["ADMIN", "GERENCIA"].includes(codigo)))("rechaza GET y PUT de $codigo", async ({ codigo }) => {
     const { cookie } = await crearSesionPerfil(codigo);
     expect((await GET(solicitud({ cookie }))).status).toBe(403);
     expect((await reemplazar("PRODUCCION", [], { cookie })).status).toBe(403);

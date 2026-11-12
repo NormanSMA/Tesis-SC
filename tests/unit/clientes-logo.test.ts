@@ -110,7 +110,7 @@ describe("logo de cliente: DTO sin contenido", () => {
     await buscarCliente(prisma, "cliente");
     const logo = { select: { actualizadoEn: true } };
     expect(consultas.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      include: { _count: { select: { cotizaciones: true } }, logo },
+      include: { _count: { select: { cotizaciones: { where: { creadoPorId: undefined } } } }, logo },
     }));
     expect(consultas.findUnique).toHaveBeenCalledWith({ where: { id: "cliente" }, include: { logo } });
   });

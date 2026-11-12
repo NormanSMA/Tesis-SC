@@ -11,19 +11,32 @@ describeConBase("órdenes: conversión y concurrencia", () => {
   beforeAll(async () => { entorno = await prepararOrdenes(db); });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 
+  it("convierte con las áreas elegidas aunque la categoría no tenga plantilla", async () => {
+    const cotizacion = await crearAprobada(entorno);
+    const area = await db.area.findUniqueOrThrow({ where: { nombre: "Bordado y Serigrafía" } });
+    const categoria = await db.categoria.create({ data: { nombre: `Selección manual ${randomUUID()}` } });
+    const responsable = entorno.sesiones.PRODUCCION.usuarioId;
+    const entrada = { ...entradaConversion(entorno, cotizacion.id), categoriaId: categoria.id,
+      etapas: [{ areaId: area.id, responsableId: responsable, instrucciones: "Bordar logo frontal según muestra." }] };
+    await expect(entorno.modulos.servicio.crearOrden(entrada, entorno.sesiones.OPERACIONES.actor))
+      .rejects.toMatchObject({ status: 422, campos: { "etapas.0.responsableId": expect.any(String) } });
+    await db.usuarioArea.create({ data: { usuarioId: responsable, areaId: area.id } });
+    const orden = await entorno.modulos.servicio.crearOrden(entrada, entorno.sesiones.OPERACIONES.actor);
+    expect(orden.responsable?.id).toBe(responsable);
+    expect(orden.etapas).toMatchObject([{ secuencia: 1, nombre: area.nombre, responsable: { id: responsable },
+      instrucciones: "Bordar logo frontal según muestra." }]);
+    expect(await db.historialEtapa.count({ where: { ordenId: orden.id, responsableId: responsable } })).toBe(1);
+  });
+
   for (const responsableId of [undefined, null]) {
-    it(`crea una orden con responsable ${responsableId} y cliente de la cotización`, async () => {
+    it(`rechaza una orden con responsable ${responsableId}`, async () => {
       const cotizacion = await crearAprobada(entorno);
       const entrada = entradaConversion(entorno, cotizacion.id);
       if (responsableId === undefined) delete entrada.responsableId;
       else entrada.responsableId = responsableId;
-      const orden = await entorno.modulos.servicio.crearOrden(entrada, entorno.sesiones.OPERACIONES.actor);
-      const guardada = await db.ordenTrabajo.findUniqueOrThrow({ where: { id: orden.id } });
-      const aprobada = await db.cotizacion.findUniqueOrThrow({ where: { id: cotizacion.id } });
-      expect(orden).toMatchObject({ estado: "PENDIENTE", responsable: null, cliente: { id: aprobada.clienteId } });
-      expect(guardada).toMatchObject({ responsableId: null, clienteId: aprobada.clienteId });
-      expect(orden.etapas).toHaveLength(2);
-      expect(orden.eventos.filter((evento) => evento.accion === "CONVERTIR_EN_ORDEN")).toHaveLength(1);
+      await expect(entorno.modulos.servicio.crearOrden(entrada, entorno.sesiones.OPERACIONES.actor))
+        .rejects.toMatchObject({ status: 422, campos: { responsableId: expect.any(String) } });
+      expect(await db.ordenTrabajo.count({ where: { cotizacionId: cotizacion.id } })).toBe(0);
     });
   }
 
@@ -38,13 +51,31 @@ describeConBase("órdenes: conversión y concurrencia", () => {
     ]);
     expect(orden.consumosEstimados.map((consumo) => [consumo.cantidad, consumo.origen])).toEqual([["9.409", "RECETA"]]);
     expect(orden.items.map((item) => item.id)).toEqual(cotizacion.items.map((item) => item.id));
-    expect(orden.cotizacion.total).toBe(cotizacion.total);
+    expect(orden.cotizacion?.total).toBe(cotizacion.total);
     const eventos = await db.bitacora.findMany({ where: { ordenId: orden.id } });
     expect(eventos).toHaveLength(3);
     expect(eventos.filter((evento) => evento.accion === "CONVERTIR_EN_ORDEN")[0])
       .toMatchObject({ entidad: "ORDEN_TRABAJO", entidadId: orden.id, cotizacionId: cotizacion.id, usuarioId: entorno.sesiones.OPERACIONES.usuarioId });
     expect(eventos.filter((evento) => evento.accion === "CREAR")).toHaveLength(2);
     expect((await db.material.findUniqueOrThrow({ where: { id: entorno.cotizaciones.referencias.material.id } })).existencia.toFixed(3)).toBe("0.000");
+  });
+
+  it("conserva el área del material al convertir y audita una reclasificación posterior", async () => {
+    const id = entorno.cotizaciones.referencias.material.id;
+    const { editarMaterial } = await import("@/modules/inventario/service");
+    const actor = entorno.sesiones.ADMINISTRACION.actor;
+    const material = await db.material.findUniqueOrThrow({ where: { id } });
+    const inicial = await editarMaterial(id, { areaProduccion: "CORTE_LASER", version: material.actualizadoEn.toISOString() }, actor);
+    const orden = await crearOrden(entorno);
+    expect(orden.consumosEstimados).toMatchObject([{ cantidad: "9.409", areaProduccion: "CORTE_LASER" }]);
+    const cambiado = await editarMaterial(id, { areaProduccion: "ACABADO", version: inicial.actualizadoEn }, actor);
+    expect(cambiado.areaProduccion).toBe("ACABADO");
+    const ficha = await entorno.modulos.servicio.obtenerOrden(orden.id, entorno.sesiones.OPERACIONES.actor);
+    expect(ficha.consumosEstimados).toMatchObject([{ cantidad: "9.409", areaProduccion: "CORTE_LASER" }]);
+    const evento = await db.bitacora.findFirstOrThrow({ where: { entidadId: id, accion: "EDITAR" }, orderBy: { creadoEn: "desc" } });
+    expect(evento).toMatchObject({ usuarioId: actor.id, detalle: {
+      antes: { areaProduccion: "CORTE_LASER" }, despues: { areaProduccion: "ACABADO" },
+    } });
   });
 
   it("propone categoría del mayor importe y especificaciones desde el asunto", async () => {
@@ -69,7 +100,7 @@ describeConBase("órdenes: conversión y concurrencia", () => {
 
   it("la doble conversión responde ORDEN_EXISTENTE con el número", async () => {
     const orden = await crearOrden(entorno);
-    await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, orden.cotizacion.id), entorno.sesiones.OPERACIONES.actor))
+    await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, orden.cotizacion!.id), entorno.sesiones.OPERACIONES.actor))
       .rejects.toMatchObject({ status: 409, codigo: "ORDEN_EXISTENTE", campos: { numero: orden.numero, ordenId: orden.id } });
   });
 
@@ -80,7 +111,7 @@ describeConBase("órdenes: conversión y concurrencia", () => {
     const repo = await import("@/modules/ordenes/repo");
     const espia = vi.spyOn(repo, "buscarOrdenDeCotizacion").mockResolvedValueOnce(null);
     try {
-      await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, orden.cotizacion.id), entorno.sesiones.OPERACIONES.actor))
+      await expect(entorno.modulos.servicio.crearOrden(entradaConversion(entorno, orden.cotizacion!.id), entorno.sesiones.OPERACIONES.actor))
         .rejects.toMatchObject({ status: 409, codigo: "ORDEN_EXISTENTE", campos: { numero: orden.numero } });
     } finally { espia.mockRestore(); }
     expect(await db.contador.findMany({ where: { tipo: "ORDEN_TRABAJO" } })).toEqual(antes);
@@ -186,8 +217,9 @@ describeConBase("órdenes: conversión y concurrencia", () => {
     expect(orden.consumosEstimados).toEqual([]);
     expect(orden.advertencias).toHaveLength(1);
     expect(orden.advertencias[0].mensaje).toContain("no se estimó");
-    const ficha = await entorno.modulos.servicio.obtenerOrden(orden.id, entorno.sesiones.PRODUCCION.actor);
+    const ficha = await entorno.modulos.servicio.obtenerOrden(orden.id, entorno.sesiones.OPERACIONES.actor);
     expect(ficha.advertencias).toEqual(orden.advertencias);
+    expect(ficha.materialesSinEstimacion).toMatchObject([{ unidad: "litro", cantidad: "5.000" }]);
   });
 
   it("rechaza fecha pasada y responsable fuera de Producción con 422", async () => {

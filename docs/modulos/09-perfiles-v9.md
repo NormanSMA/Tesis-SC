@@ -1,5 +1,7 @@
 # Módulo 9: perfiles y permisos según la tesis v9
 
+Registro histórico. Consulte ACC-02 en [Alineación con la tesis](../alineacion-tesis.md#acceso-para-la-validación-local) para ver la matriz vigente de la versión definitiva.
+
 Fuente: tesis v9, Tabla 14 (4.5) y ADR-014. Esta matriz reemplaza ADR-006 y la sección (c) del modelo de datos (SD-24).
 
 ## Perfiles

@@ -1,44 +1,64 @@
-import { EstadoBadge } from "@/components/comunes/EstadoBadge";
-import { Fecha } from "@/components/comunes/ValorFormateado";
-import { nombreMoneda } from "../moneda";
+import Image from "next/image";
+import { CERO, dividir, formatear, leerDecimal, multiplicar, redondear, restar, sumar } from "@/core/decimal";
+import { Money } from "@/components/comunes/ValorFormateado";
+import { monedaDe } from "../moneda";
+import { hoyManagua } from "../fechas";
 import type { CotizacionDto } from "../tipos";
-import { ItemsCotizacion } from "./ItemsCotizacion";
-import { TotalesCotizacion } from "./TotalesCotizacion";
 
-export function Proforma({ cotizacion, empresaNombre }: { cotizacion: CotizacionDto; empresaNombre: string }) {
-  const cliente = cotizacion.cliente;
-  return <article id="proforma" className="mx-auto max-w-5xl space-y-6 rounded-lg border bg-card p-6">
-    <div className="flex flex-wrap justify-between gap-4 border-b pb-5">
-      <div><p className="text-xl font-semibold">{empresaNombre}</p><p className="mt-1 text-sm">Proforma {cotizacion.numero}</p></div>
-      <div className="space-y-2"><EstadoBadge tipo="cotizacion" estado={cotizacion.estado} />
-        {cotizacion.archivada ? <p className="text-sm">Cotización archivada</p> : null}</div>
+const fechaLarga = new Intl.DateTimeFormat("es-NI", { dateStyle: "long", timeZone: "UTC" });
+
+function partidasPublicas({ items, subtotal, total }: CotizacionDto) {
+  const base = leerDecimal(subtotal)!;
+  const neto = leerDecimal(total)!;
+  let acumulado = CERO;
+  let anterior = CERO;
+  return items.map((item, indice) => {
+    acumulado = sumar(acumulado, leerDecimal(item.importe)!);
+    const ajustado = indice === items.length - 1 ? neto :
+      base.num === BigInt(0) ? CERO : redondear(dividir(multiplicar(acumulado, neto), base), 2);
+    const importe = restar(ajustado, anterior);
+    anterior = ajustado;
+    return { id: item.id, descripcion: item.descripcion,
+      cantidad: item.cantidad.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""), total: formatear(importe, 2),
+      unitario: formatear(dividir(importe, leerDecimal(item.cantidad)!), 2) };
+  });
+}
+
+function DescripcionPartida({ descripcion }: { descripcion: string }) {
+  const [titulo, ...detalle] = descripcion.split("\n");
+  return <><strong>{titulo}</strong>{detalle.length ? <><br />{detalle.join("\n")}</> : null}</>;
+}
+
+export function Proforma({ cotizacion }: { cotizacion: CotizacionDto }) {
+  const moneda = monedaDe(cotizacion.moneda);
+  const fecha = cotizacion.fechaEmision ?? cotizacion.creadoEn?.slice(0, 10) ?? hoyManagua();
+  return <article id="proforma" aria-label={`Proforma ${cotizacion.numero}`}>
+    <Image className="proforma-membrete" src="/brand/proforma-membrete.png" alt="Soluciones Creativas · Publicidad efectiva"
+      width={1698} height={378} priority unoptimized />
+    <div className="proforma-datos">
+      <p className="proforma-fecha"><time dateTime={fecha}>{fechaLarga.format(new Date(`${fecha}T12:00:00Z`))}</time></p>
+      <h2>Proforma</h2>
+      <p><strong>Cliente:</strong> {cotizacion.cliente.nombre}</p>
+      <p><strong>Referencia:</strong> {cotizacion.asunto}</p>
     </div>
-    <div className="grid gap-5 sm:grid-cols-2">
-      <section aria-label="Datos vigentes del cliente" className="space-y-1 text-sm">
-        <h2 className="text-base font-semibold">Cliente</h2><p className="font-medium">{cliente.nombre}</p>
-        {cliente.ruc ? <p>RUC: {cliente.ruc}</p> : null}
-        {cliente.contactoPrincipal ? <p>Contacto: {cliente.contactoPrincipal}</p> : null}
-        {cliente.telefono ? <p>Teléfono: {cliente.telefono}</p> : null}
-        {cliente.correo ? <p>Correo: {cliente.correo}</p> : null}
-        {cliente.direccion ? <p>{cliente.direccion}</p> : null}
-      </section>
-      <dl className="space-y-2 text-sm">
-        <div><dt>Emisión</dt><dd><Fecha valor={cotizacion.fechaEmision} /></dd></div>
-        <div className="flex gap-1"><dt>Moneda:</dt>
-          <dd>{nombreMoneda(cotizacion.moneda)}</dd></div>
-        {cotizacion.moneda !== "NIO" ? <div className="flex gap-1"><dt>Tipo de cambio:</dt>
-          <dd>C$ {cotizacion.tipoCambio} por US$ 1</dd></div> : null}
-        <div><dt>Vencimiento</dt><dd><Fecha valor={cotizacion.fechaVencimiento} /></dd></div>
-        <div><dt>Vigencia</dt><dd>{cotizacion.vigenciaDias} días</dd></div>
-      </dl>
+    <div className="proforma-cuerpo">
+      <table aria-label="Partidas de la proforma">
+        <colgroup><col style={{ width: "58%" }} /><col style={{ width: "10%" }} /><col style={{ width: "16%" }} /><col /></colgroup>
+        <thead><tr><th scope="col">Descripción</th><th scope="col">Cantidad</th><th scope="col">Costo Unitario</th><th scope="col">Total</th></tr></thead>
+        <tbody>
+          {partidasPublicas(cotizacion).map((fila) => <tr key={fila.id}>
+            <td><DescripcionPartida descripcion={fila.descripcion} /></td><td className="proforma-cantidad">{fila.cantidad}</td>
+            <td><Money valor={fila.unitario} moneda={moneda} /></td><td><Money valor={fila.total} moneda={moneda} /></td>
+          </tr>)}
+          <tr><td colSpan={2} /><th scope="row">Total</th><td><strong><Money valor={cotizacion.total} moneda={moneda} /></strong></td></tr>
+        </tbody>
+      </table>
+      {cotizacion.mostrarCondiciones && cotizacion.condiciones ? <section className="proforma-condiciones" aria-label="Condiciones comerciales">
+        <h3>Condiciones comerciales</h3><p>{cotizacion.condiciones}</p>
+      </section> : null}
     </div>
-    <h2 className="text-xl font-semibold">{cotizacion.asunto}</h2>
-    <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} moneda={cotizacion.moneda} />
-    <div className="ml-auto max-w-sm"><TotalesCotizacion totales={cotizacion} moneda={cotizacion.moneda} mostrarMargen={false} /></div>
-    <section className="space-y-2" aria-label="Condiciones comerciales">
-      <h2 className="text-base font-semibold">Condiciones comerciales</h2>
-      <p className="whitespace-pre-wrap text-sm">{cotizacion.condiciones || "Sin condiciones adicionales."}</p>
-    </section>
-    <p className="border-t pt-4 text-xs text-muted-foreground">Proforma. Documento de cotización.</p>
+    <Image className="proforma-pie" src="/brand/proforma-pie.png"
+      alt="Soluciones Creativas, Estelí. Teléfonos 2714 1105 y 8851 0449. Correo info@s-creativas.net. Redes @scmarketing360."
+      width={1694} height={490} priority unoptimized />
   </article>;
 }

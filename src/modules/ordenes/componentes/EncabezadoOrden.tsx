@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { CalendarClock, ClipboardList, ListChecks, TriangleAlert, UserRound, Wrench } from "lucide-react";
+import { CalendarClock, ClipboardList, ListChecks, Printer, TriangleAlert, UserRound, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
 import { AnilloProgreso } from "@/components/comunes/AnilloProgreso";
 import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
@@ -44,7 +44,11 @@ export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
         <EstadoBadge tipo="orden" estado={orden.estado} />
         <span>Entrega: <Fecha valor={orden.fechaEntrega} className="font-medium text-foreground" /></span>
       </>}
-      acciones={<AccionesOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />} />
+      acciones={<>
+        <Button asChild variant="outline"><Link href={`/ordenes/${orden.id}/imprimir`}>
+          <Printer aria-hidden="true" />Imprimir orden</Link></Button>
+        <AccionesOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+      </>} />
     <BandejaMetricas className="mb-6 grid-cols-2">
       <TarjetaMetrica etiqueta="Avance de etapas" numero={porcentaje} texto={`${porcentaje} %`} formato="porcentaje" icono={ListChecks}
         pie={`${cerradas} de ${total} cerradas`}

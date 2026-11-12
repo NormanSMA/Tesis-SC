@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { ListaDatos, type DatoFicha } from "@/components/comunes/TarjetaSeccion";
-import { Fecha } from "@/components/comunes/ValorFormateado";
+import { Fecha, Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
 import type { CotizacionDto } from "../tipos";
+import { NOMBRES_TARIFA } from "../tarifas";
+import { monedaDe } from "../moneda";
 
 /** Datos secundarios de la ficha: fechas, origen y condiciones. Sección plegable. */
 export function DatosCotizacion({ cotizacion }: { cotizacion: CotizacionDto }) {
+  const instalacion = cotizacion.instalacion;
+  const moneda = monedaDe(cotizacion.moneda);
   const datos: DatoFicha[] = [
+    { etiqueta: "Tarifa", valor: NOMBRES_TARIFA[cotizacion.tarifa] },
+    ...(instalacion && (instalacion.km || Number(instalacion.manoObra) > 0) ? [
+      { etiqueta: "Costo de instalación", valor: <Money valor={instalacion.manoObra} moneda={moneda} /> },
+      ...(instalacion.km ? [{ etiqueta: "Traslado de instalación", valor: <span>{instalacion.destino} · {Number(instalacion.km)} km × <Money valor={instalacion.tarifa} moneda={moneda} /></span> }] : []),
+    ] : []),
     { etiqueta: "Emisión", valor: <Fecha valor={cotizacion.fechaEmision} /> },
     { etiqueta: "Vencimiento", valor: <Fecha valor={cotizacion.fechaVencimiento} /> },
     { etiqueta: "Vigencia", valor: `${cotizacion.vigenciaDias} días` },

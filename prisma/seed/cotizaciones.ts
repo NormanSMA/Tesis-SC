@@ -96,7 +96,8 @@ function filaItem(item: ItemCalculado, cotizacionId: string) {
 async function insertarBorrador(ctx: Contexto, cotizacion: CotizacionSembrada): Promise<string> {
   const { db, catalogos } = ctx;
   const { id, numero, escenario, items, plan } = cotizacion;
-  const totales = totalesCotizacion({ importes: items.map((i) => i.importe), descuento: 0, tasaPct: TASA_IVA_PCT });
+  const tasaImpuesto = escenario.estadoFinal === "BORRADOR" ? "0" : TASA_IVA_PCT;
+  const totales = totalesCotizacion({ importes: items.map((i) => i.importe), descuento: 0, tasaPct: tasaImpuesto });
   const personalizados = items.flatMap((i) =>
     i.costoTotal === null ? [] : [{ costoTotal: i.costoTotal, importe: i.importe }],
   );
@@ -111,7 +112,7 @@ async function insertarBorrador(ctx: Contexto, cotizacion: CotizacionSembrada): 
       condiciones: CONDICIONES,
       moneda: MONEDA,
       tipoCambio: "1",
-      tasaImpuesto: TASA_IVA_PCT,
+      tasaImpuesto,
       ...totales,
       margenPct: margenResultante(personalizados),
       vigenciaDias: escenario.vigenciaDias,

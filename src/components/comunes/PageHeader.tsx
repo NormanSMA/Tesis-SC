@@ -19,7 +19,7 @@ export function PageHeader({ titulo, descripcion, acciones, tituloVisible = true
     <div className={cn("mb-6 flex flex-wrap items-start justify-between gap-4", !tituloVisible && "items-center", className)}>
       <div className="min-w-0 space-y-1">
         <h1 className={tituloVisible ? "text-2xl font-semibold tracking-tight text-foreground" : "sr-only"}>{titulo}</h1>
-        {descripcion ? <p className="max-w-prose text-sm text-slate-500">{descripcion}</p> : null}
+        {descripcion ? <p className="max-w-prose text-sm text-muted-foreground">{descripcion}</p> : null}
       </div>
       {acciones ? <div className="flex flex-wrap items-center gap-2">{acciones}</div> : null}
     </div>

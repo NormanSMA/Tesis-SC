@@ -74,7 +74,8 @@ function pruebasPorPerfil() {
     ADMINISTRACION: ["/cotizaciones", "/ordenes", "/inventario"],
     OPERACIONES: ["/cotizaciones", "/ordenes", "/inventario"],
     ATENCION_CLIENTE: ["/cotizaciones", "/ordenes"],
-    PRODUCCION: ["/ordenes", "/produccion"],
+    // Producción no recibe el total de órdenes ajenas: su contador es el de sus etapas.
+    PRODUCCION: ["/produccion"],
   };
   for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION"] as const) {
     it(`${perfil}: limita las claves mediante permisos`, async () => {

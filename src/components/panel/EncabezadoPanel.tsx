@@ -66,7 +66,7 @@ export function EncabezadoPanel(propiedades: EncabezadoPanelProps) {
           <RefreshCw aria-hidden="true" className={`size-4 text-slate-500 ${actualizando ? "animate-spin" : ""}`} />Actualizar
         </button>
         {puedeCrearCotizacion && (
-          <Link href="/cotizaciones?crear=1" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors duration-100 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <Link href="/cotizaciones/nueva" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors duration-100 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             <Plus aria-hidden="true" className="size-4" />Nueva cotización
           </Link>
         )}

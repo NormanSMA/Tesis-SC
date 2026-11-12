@@ -1,20 +1,51 @@
+#proforma {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 8.5in);
+  min-height: 10.7in;
+  margin: 0 auto;
+  background: white;
+  color: black;
+  font: 10pt/1.2 Arial, sans-serif;
+  color-scheme: light;
+  overflow-wrap: anywhere;
+}
+#proforma img { display: block; width: 100%; height: auto; }
+#proforma .proforma-datos { margin: .04in 13.8% 0; }
+#proforma .proforma-fecha { text-align: right; }
+#proforma h2 { text-align: center; font-size: 12pt; font-weight: 700; margin: .04in 0 .38in; }
+#proforma .proforma-datos > p:not(.proforma-fecha) { margin-bottom: .08in; }
+#proforma .proforma-datos strong { display: inline-block; min-width: .74in; }
+#proforma .proforma-cuerpo { margin: .48in 6.25% .1in; }
+#proforma table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+#proforma th, #proforma td { padding: .025in .04in; vertical-align: top; border: 1px solid black; }
+#proforma thead { background: #032053; color: white; font-weight: 700; }
+#proforma td:first-child { white-space: pre-line; }
+#proforma td:not(:first-child) { white-space: nowrap; }
+#proforma .proforma-cantidad { text-align: center; }
+#proforma .proforma-condiciones { margin-top: .18in; white-space: pre-wrap; }
+#proforma .proforma-condiciones h3 { font-weight: bold; }
+#proforma .proforma-pie { margin-top: auto; }
+
+@media screen and (max-width: 620px) {
+  #proforma { min-height: min(10.7in, 130vw); font-size: clamp(8px, 2vw, 10pt); }
+  #proforma .proforma-cuerpo { margin: .25in 4%; }
+  #proforma td:not(:first-child) { white-space: normal; }
+}
+
 @media print {
-  @page { size: A4; margin: 16mm; }
+  @page proforma { size: letter; margin: .11in 0 .31in; }
+  html:has(#proforma) { page: proforma; }
   body:has(#proforma) { background: white; color: black; }
   body:has(#proforma) aside,
-  body:has(#proforma) main > .controles-impresion,
   body:has(#proforma) .controles-impresion,
   body:has(#proforma) header,
   body:has(#proforma) [data-sonner-toaster],
   body:has(#proforma) a[href="#contenido"] { display: none !important; }
   body:has(#proforma) div:has(> #contenido) { padding-left: 0 !important; }
   body:has(#proforma) #contenido { padding: 0; }
-  #proforma { width: 100%; max-width: none; border: 0; padding: 0; box-shadow: none; }
-  #proforma [data-slot="card"] { box-shadow: none; break-inside: avoid; }
-  #proforma [data-slot="table-container"] { overflow: visible; max-height: none; }
-  #proforma th { position: static; }
-  #proforma td { position: static; white-space: normal; }
-  #proforma tr { break-inside: avoid; }
+  #proforma { width: 100%; min-height: 10.56in; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  #proforma tr, #proforma section, #proforma img { break-inside: avoid; }
   #proforma thead { display: table-header-group; }
-  #proforma section { break-inside: avoid; }
 }

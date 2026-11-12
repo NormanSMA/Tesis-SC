@@ -10,7 +10,7 @@ import { invocar, ponerEstado } from "./ordenes-ayudas";
 type Operacion = "consumir" | "devolver" | "resumen";
 // Matriz v9: consumir y devolver exigen inventario:consumir; el resumen exige orden:ver e inventario:ver.
 const ESPERADO: Record<PerfilCodigo, Record<Operacion, number>> = {
-  GERENCIA: { consumir: 403, devolver: 403, resumen: 200 },
+  GERENCIA: { consumir: 201, devolver: 201, resumen: 200 },
   ADMINISTRACION: { consumir: 201, devolver: 201, resumen: 200 },
   OPERACIONES: { consumir: 403, devolver: 403, resumen: 200 },
   ATENCION_CLIENTE: { consumir: 403, devolver: 403, resumen: 403 },

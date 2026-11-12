@@ -34,9 +34,11 @@ type UsuarioConPerfiles = {
   nombre: string;
   correo: string;
   perfiles: { perfil: PerfilConPermisos }[];
+  permisosAdicionales?: { permiso: { recurso: string; accion: string } }[];
 };
 
 const INCLUIR_PERFILES = {
+  permisosAdicionales: { include: { permiso: true } },
   perfiles: { include: { perfil: { include: { permisos: { include: { permiso: true } } } } } },
 } as const;
 
@@ -63,7 +65,8 @@ function resumenAcceso(usuario: UsuarioConPerfiles): { perfil: PerfilCodigo; per
   const posicion = (codigo: PerfilCodigo) => PERFILES.findIndex((perfil) => perfil.codigo === codigo);
   const perfiles = usuario.perfiles.map(({ perfil }) => perfil.codigo).sort((a, b) => posicion(a) - posicion(b));
   const permisos = new Set(
-    usuario.perfiles.flatMap(({ perfil }) => perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`)),
+    [...usuario.perfiles.flatMap(({ perfil }) => perfil.permisos), ...(usuario.permisosAdicionales ?? [])]
+      .map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`),
   );
   return { perfil: perfilPrincipal(perfiles), perfiles, permisos: [...permisos].sort() };
 }

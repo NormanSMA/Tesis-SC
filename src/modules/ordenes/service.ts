@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
 import { aOrdenDto, aOrdenFila } from "./dto";
 import { exigirOrden, guardarCambios, leerVersion, registrarCambio, transaccionOrden, validarResponsable } from "./escritura";
-import { cambiosEdicion, exigirEditable, validarFechaEntrega } from "./reglas";
+import { cambiosEdicion, exigirEditable, permiteCambiarFechaEntrega, validarFechaEntrega } from "./reglas";
+import { regla } from "./errores";
+import { filtroParticipacion } from "@/modules/produccion/acceso";
 import { consultarConteosOrdenes, consultarOpciones, consultarOrdenes } from "./repo";
 import type { ConsultaOrdenes, EntradaEditarOrden } from "./schema";
 import type { ListaOrdenes, OpcionesOrden } from "./tipos";
@@ -21,8 +23,10 @@ export async function obtenerOrden(id: string, actor: Actor) {
 export async function listarOrdenes(consulta: ConsultaOrdenes, actor: Actor): Promise<ListaOrdenes> {
   exigir(actor, "orden:ver");
   const hoy = hoyManagua();
+  const verCotizacion = can(actor, "cotizacion:ver") && (can(actor, "cotizacion:ver_todas") || actor.id);
   const [{ filas, total, avances }, conteos] = await Promise.all([
-    consultarOrdenes(consulta, hoy), consultarConteosOrdenes(consulta, hoy),
+    consultarOrdenes(consulta, { hoy, verCotizacion, alcance: filtroParticipacion(actor) }),
+    consultarConteosOrdenes(consulta, { hoy, verCotizacion, alcance: filtroParticipacion(actor) }),
   ]);
   return { datos: filas.map((fila) => ({ ...aOrdenFila(fila, actor), avance: avances.get(fila.id) ?? { completadas: 0, total: 0 } })),
     total, pagina: consulta.pagina, porPagina: consulta.porPagina, conteos };
@@ -46,7 +50,10 @@ export async function editarOrden(id: string, entrada: EntradaEditarOrden, actor
     const cambios = cambiosEdicion({ responsableId: actual.responsableId, especificaciones: actual.especificaciones,
       fechaEntrega: actual.fechaEntrega.toISOString().slice(0, 10) }, entrada);
     if (!Object.keys(cambios).length) return aOrdenDto(actual, actor);
-    if (cambios.fechaEntrega) validarFechaEntrega(cambios.fechaEntrega);
+    if (cambios.fechaEntrega) {
+      if (!permiteCambiarFechaEntrega(actual.estado)) throw regla("FECHA_ENTREGA_FIJA", "La fecha de entrega queda fija al finalizar la producción.");
+      validarFechaEntrega(cambios.fechaEntrega);
+    }
     if (cambios.responsableId) await validarResponsable(tx, cambios.responsableId);
     await guardarCambios(tx, actual, { ...cambios, fechaEntrega: cambios.fechaEntrega ? new Date(cambios.fechaEntrega) : undefined });
     if (cambios.responsableId !== undefined) await registrarCambio(tx, { ordenId: id, actor, accion: "ASIGNAR_RESPONSABLE",

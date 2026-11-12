@@ -66,7 +66,7 @@ const rutas: { handler: RutaHandler; metodo: string; ruta?: string; cuerpo?: unk
 ];
 
 describe("API de usuarios por perfil", () => {
-  it.each(PERFILES.filter(({ codigo }) => codigo !== "ADMIN").map(({ codigo }) => codigo))(
+  it.each(PERFILES.filter(({ codigo }) => !["ADMIN", "GERENCIA"].includes(codigo)).map(({ codigo }) => codigo))(
     "%s recibe 403 en todas las rutas", async (perfil: PerfilCodigo) => {
       sesion.actor = { ...actor, perfil, perfiles: [perfil], permisos: PERMISOS_POR_PERFIL[perfil] };
       for (const { handler, ...datos } of rutas) {

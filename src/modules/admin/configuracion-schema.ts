@@ -4,6 +4,7 @@ import { CIEN, CERO, UNO, comparar, deEntero, leerDecimal } from "@/core/decimal
 import { MONEDAS } from "@/core/moneda";
 import type { TipoValorConfig } from "@/generated/prisma/client";
 import { AppError } from "@/lib/errores";
+import { esquemaPorcentajeTarifa } from "@/modules/cotizaciones/tarifas";
 
 export const esquemaEditarConfiguracion = z.strictObject({
   clave: z.string().trim().min(1).max(60),
@@ -22,6 +23,10 @@ const valoresPorTipo = {
 const TIPO_CAMBIO_MAXIMO = deEntero(1000);
 
 const valoresPorClave = new Map<string, z.ZodType<string, string>>([
+  ["tarifa_ocasional_pct", esquemaPorcentajeTarifa],
+  ["tarifa_intermedia_pct", esquemaPorcentajeTarifa],
+  ["tarifa_preferencial_pct", esquemaPorcentajeTarifa],
+  ["tarifa_instalacion_km", z.string().regex(/^\d{1,6}(\.\d{1,2})?$/, "Ingrese la tarifa en córdobas con hasta 2 decimales.")],
   ["iva_porcentaje", valoresPorTipo.DECIMAL.pipe(z.string().refine((valor) => {
     const decimal = leerDecimal(valor);
     return /^-?\d+(\.\d{1,2})?$/.test(valor) && decimal !== null &&
@@ -41,6 +46,9 @@ const valoresPorClave = new Map<string, z.ZodType<string, string>>([
 ]);
 
 export function esquemaValorPorClaveConfiguracion(clave: string): z.ZodType<string, string> | undefined {
+  if (clave.startsWith("material:")) {
+    return z.string().regex(/^(?:\d{1,10}(\.\d{1,4})?)?$/, "Ingrese un precio en córdobas con hasta 4 decimales.");
+  }
   return valoresPorClave.get(clave);
 }
 

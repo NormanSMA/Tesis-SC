@@ -12,6 +12,7 @@ import type { TipoLineaCosto } from "@/core/costeo";
 import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
 import { calcularVista, type ItemCalculado } from "../calculo";
+import { superficieTotal } from "../materiales";
 import type { EntradaItem, EntradaLineaEditor, EntradaReemplazarItems } from "../schema";
 import type { ItemDto, SelectoresEditor } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
@@ -64,6 +65,9 @@ function MedidasItem({ item, indice, errores, alCambiar }: Pick<CamposItem, "ite
 
 function CamposPersonalizado({ item, indice, original, selectores, errores, alCambiar }: CamposItem) {
   if (item.tipo !== "PERSONALIZADO") return null;
+  const requiereMedidas = item.lineas.some((linea) => linea.tipo === "MATERIAL" && Boolean(linea.materialId) &&
+    (original?.lineas.some((guardada) => guardada.id === linea.lineaId && guardada.materialId === linea.materialId && guardada.cantidadPorArea)
+      || (!original || item.actualizarPrecio) && selectores.materiales.find((material) => material.id === linea.materialId)?.unidadCotizacion === "M2"));
   const categorias = [...selectores.categorias];
   if (original && !categorias.some((registro) => registro.id === original.categoriaId)) {
     categorias.push({ id: original.categoriaId, nombre: "Categoría guardada (archivada)" });
@@ -78,11 +82,11 @@ function CamposPersonalizado({ item, indice, original, selectores, errores, alCa
     </div>
     <CampoTexto id={`items.${indice}.descripcion`} etiqueta="Descripción del trabajo" requerido valor={item.descripcion}
       error={errores[`items.${indice}.descripcion`]} alCambiar={(descripcion) => alCambiar({ ...item, descripcion })} />
-    {item.unidadCobro === "M2" ? <MedidasItem item={item} indice={indice} errores={errores} alCambiar={alCambiar} /> : null}
+    {item.unidadCobro === "M2" || requiereMedidas ? <MedidasItem item={item} indice={indice} errores={errores} alCambiar={alCambiar} /> : null}
     <CampoTexto id={`items.${indice}.margenPct`} etiqueta="Margen sobre precio (%)" decimal requerido valor={item.margenPct}
       deshabilitado={Boolean(original && !item.actualizarPrecio)} error={errores[`items.${indice}.margenPct`]}
       alCambiar={(margenPct) => alCambiar({ ...item, margenPct })} />
-    <p className="text-sm text-muted-foreground">Las líneas representan consumos totales del ítem. La cantidad solo divide el precio unitario.</p>
+    <p className="text-sm text-muted-foreground">Los materiales en m² usan el ancho, el alto y la cantidad de esta partida.</p>
   </>;
 }
 
@@ -96,6 +100,8 @@ function LineasItem({ moneda, item, indice, original, selectores, calculado, err
       error={errores[`items.${indice}.lineas`]}>
       {fields.map((linea, posicion) => <EditorLinea key={linea.id}
         moneda={moneda} formulario={formulario} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
+        areaPartida={superficieTotal(item)} medirMaterial={item.tipo === "PERSONALIZADO" && (item.unidadCobro === "M2" || Boolean(item.ancho && item.alto))}
+        guardada={original?.lineas.find(({ id }) => id === linea.lineaId)}
         errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
         quitar={remove} />)}
     </GrupoCampo>

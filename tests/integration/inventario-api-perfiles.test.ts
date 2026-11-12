@@ -9,7 +9,7 @@ const OPERACIONES = ["listar", "crear", "ver", "editar", "archivar", "reactivar"
 type Operacion = typeof OPERACIONES[number];
 const LECTURA: readonly Operacion[] = ["listar", "ver", "libro", "movimientos"];
 const PERMITIDAS: Record<PerfilCodigo, readonly Operacion[]> = {
-  GERENCIA: LECTURA,
+  GERENCIA: OPERACIONES,
   ADMINISTRACION: [...LECTURA, "crear", "editar", "archivar", "reactivar", "entrada", "ajuste"],
   OPERACIONES: LECTURA,
   ATENCION_CLIENTE: [],
@@ -159,5 +159,51 @@ describe("inventario: API por perfil", () => {
       cookie: entorno.sesiones.ADMINISTRACION.cookie, cuerpo: entradaMaterial() }));
     expect(respuesta.status).toBe(201); expect(typeof respuesta.datos.existencia).toBe("string");
     expect(typeof respuesta.datos.costoPromedio).toBe("string");
+  });
+
+  it("guarda y edita una presentación en m² sin generar movimientos", async () => {
+    const cookie = entorno.sesiones.ADMINISTRACION.cookie;
+    const { lista, ficha } = entorno.modulos;
+    const alta = await invocar<MaterialDto>(lista.POST, peticion("POST", "/api/v1/materiales", {
+      cookie, cuerpo: { ...entradaMaterial(), unidad: "M2", presentacion: { tipo: "ROLLO", ancho: "1.527", largo: "50.125" } },
+    }));
+    expect(alta.status).toBe(201);
+    const { id, actualizadoEn } = alta.datos;
+    expect(alta.datos.presentacion).toEqual({ tipo: "ROLLO", ancho: "1.527", largo: "50.125", areaM2: "76.540875" });
+    const ruta = `/api/v1/materiales/${id}`;
+    const antes = await estadoInventario(id);
+    const edicion = await invocar<MaterialDto>(ficha.PATCH, peticion("PATCH", ruta, {
+      cookie, cuerpo: { version: actualizadoEn, presentacion: { tipo: "LAMINA", ancho: "1.22", largo: "2.44" } },
+    }), id);
+    expect(edicion.status).toBe(200);
+    const consulta = await invocar<MaterialDto>(ficha.GET, peticion("GET", ruta, { cookie }), id);
+    expect(consulta.datos.presentacion).toEqual({ tipo: "LAMINA", ancho: "1.220", largo: "2.440", areaM2: "2.976800" });
+    const limpiar = await invocar<MaterialDto>(ficha.PATCH, peticion("PATCH", ruta, {
+      cookie, cuerpo: { version: edicion.datos.actualizadoEn, presentacion: null },
+    }), id);
+    expect(limpiar.status).toBe(200);
+    expect(limpiar.datos.presentacion).toBeNull();
+    expect(await estadoInventario(id)).toEqual([{ ...antes[0], bitacora: antes[0].bitacora + 2 }]);
+  });
+
+  it("rechaza una presentación incompleta o en un material que se cuenta por unidad", async () => {
+    const cookie = entorno.sesiones.ADMINISTRACION.cookie;
+    const { lista, ficha } = entorno.modulos;
+    const invalida = await invocar(lista.POST, peticion("POST", "/api/v1/materiales", {
+      cookie, cuerpo: { ...entradaMaterial(), unidad: "M2", presentacion: { tipo: "LAMINA", ancho: "0" } },
+    }));
+    expect(invalida.status).toBe(422);
+    const alta = await invocar<MaterialDto>(lista.POST, peticion("POST", "/api/v1/materiales", {
+      cookie, cuerpo: { ...entradaMaterial(), unidad: "UNIDAD" },
+    }));
+    expect(alta.status).toBe(201);
+    const { id, actualizadoEn } = alta.datos;
+    const antes = await estadoInventario(id);
+    const respuesta = await invocar(ficha.PATCH, peticion("PATCH", `/api/v1/materiales/${id}`, {
+      cookie, cuerpo: { version: actualizadoEn, presentacion: { tipo: "LAMINA", ancho: "1", largo: "2" } },
+    }), id);
+    expect(respuesta.status).toBe(422);
+    expect(respuesta.error?.campos?.["presentacion.tipo"]).toBeTruthy();
+    expect(await estadoInventario(id)).toEqual(antes);
   });
 });

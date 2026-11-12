@@ -8,6 +8,7 @@ import { CERO, CIEN, comparar, dividir, formatear, leerDecimal, multiplicar } fr
 import type { CamposError } from "@/lib/errores";
 
 import { aEntradaLinea, aLineaMotor } from "./mapeo";
+import { MENSAJE_AREA_MATERIAL, modalidadMaterial, superficieTotal } from "./materiales";
 import type { EntradaItem, EntradaLineaEditor } from "./schema";
 import type { ItemDto, SelectoresEditor } from "./tipos";
 
@@ -18,10 +19,12 @@ export function aEntradaItem(item: ItemDto): EntradaItem {
     unidadCobro: item.unidadCobro, margenPct: item.margenPct ?? "0", lineas: item.lineas.map(aEntradaLinea) };
 }
 
-function lineaParaMotor(linea: EntradaLineaEditor, selectores: SelectoresEditor): EntradaLinea {
+function lineaParaMotor(linea: EntradaLineaEditor, selectores: SelectoresEditor,
+  { area, actualizar }: { area: string | null; actualizar: boolean }): EntradaLinea {
   if (linea.tipo !== "MATERIAL") return aLineaMotor(linea);
   const material = selectores.materiales.find((registro) => registro.id === linea.materialId);
-  return aLineaMotor({ ...linea, costoUnitario: linea.costoUnitario ?? material?.costoPromedio ?? "" });
+  return aLineaMotor({ ...linea, cantidad: area ?? linea.cantidad,
+    costoUnitario: (actualizar ? undefined : linea.costoUnitario) ?? material?.precioCotizacion ?? material?.costoPromedio ?? "" });
 }
 
 type ContextoItem = { item: EntradaItem; original?: ItemDto; selectores: SelectoresEditor };
@@ -43,11 +46,29 @@ function calcularPersonalizado({ item, original, selectores }: ContextoItem) {
   if (item.tipo !== "PERSONALIZADO") throw new Error("El ítem debe ser personalizado.");
   const instantanea = original && !item.actualizarPrecio ? aEntradaItem(original) : item;
   if (instantanea.tipo !== "PERSONALIZADO") throw new Error("La instantánea debe ser personalizada.");
+  const modalidades = instantanea.lineas.map((linea) => {
+    if (linea.tipo !== "MATERIAL" || !linea.materialId) return "CANTIDAD";
+    const guardada = original?.lineas.find(({ id, materialId }) => id === linea.lineaId && materialId === linea.materialId);
+    const material = selectores.materiales.find(({ id }) => id === linea.materialId);
+    if (guardada && (!item.actualizarPrecio || !material)) return guardada.cantidadPorArea ? "AREA" : "CANTIDAD";
+    return modalidadMaterial(material,
+      item.unidadCobro === "M2" || Boolean(item.ancho && item.alto));
+  });
+  const porArea = modalidades.map((modo) => modo !== "CANTIDAD");
+  const area = superficieTotal(item);
   const entrada = { cantidad: item.cantidad, margenPct: instantanea.margenPct,
-    lineas: instantanea.lineas.map((linea) => lineaParaMotor(linea, selectores)) };
+    lineas: instantanea.lineas.map((linea, indice) => lineaParaMotor(linea, selectores, {
+      area: porArea[indice] ? area : null,
+      actualizar: Boolean(item.actualizarPrecio && linea.tipo === "MATERIAL" &&
+        selectores.materiales.some(({ id }) => id === linea.materialId)),
+    })) };
   const errores = validarItemPersonalizado(entrada);
+  modalidades.forEach((modo, indice) => {
+    if (modo === "FALTA_AREA") errores[`lineas.${indice}.materialId`] = MENSAJE_AREA_MATERIAL;
+  });
   const medidas = validarItemCatalogo({ cantidad: item.cantidad, precioBase: "0",
-    unidadCobro: item.unidadCobro, ancho: item.ancho, alto: item.alto });
+    unidadCobro: porArea.some(Boolean) ? "M2" : item.unidadCobro, ancho: item.ancho, alto: item.alto });
+  if (porArea.some(Boolean) && !area) medidas.ancho ??= "Indique medidas que produzcan un área mayor que cero.";
   Object.assign(errores, medidas);
   return { errores, calculado: Object.keys(errores).length ? null : costearItemPersonalizado(entrada) };
 }

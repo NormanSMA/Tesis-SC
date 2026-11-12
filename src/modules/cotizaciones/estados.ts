@@ -1,3 +1,4 @@
+import { exigirAccesoCotizacion } from "./acceso";
 import { exigir, type Actor } from "@/core/autorizacion";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errores";
@@ -7,6 +8,8 @@ import { aCotizacionDto, aItemDto } from "./dto";
 import { regla } from "./errores";
 import { exigirBorrador, exigirCotizacion, guardarCabecera, registrarCambio, tomarVersion } from "./escritura";
 import { hoyManagua, sumarDias } from "./fechas";
+import { conInstalacion } from "./instalacion";
+import { faltaTarifaMaterial } from "./materiales";
 import type { FichaGuardada } from "./repo";
 import { esquemaResponder, type EntradaResponder } from "./schema";
 import type { CotizacionDto } from "./tipos";
@@ -21,11 +24,16 @@ export async function enviarCotizacion(id: string, version: string, actor: Actor
   exigir(actor, "cotizacion:enviar");
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, version);
+    exigirAccesoCotizacion(actor, actual);
     if (!transicionValidaCotizacion(actual.estado, "ENVIADA")) throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
     exigirBorrador(actual);
     if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un ítem antes de enviar la cotización.");
-    const totales = totalizarConDescuento({ items: actual.items.map(aItemDto), descuento: actual.descuento.toFixed(2),
-      descuentoPct: actual.descuentoPct?.toFixed(2) ?? null, tasaImpuesto: actual.tasaImpuesto.toFixed(2) });
+    const sinTarifa = actual.items.flatMap(({ lineasCosto }) => lineasCosto.filter((linea) =>
+      linea.tipo === "MATERIAL" && linea.materialId && faltaTarifaMaterial(linea.costoUnitario.toString())).map(({ descripcion }) => descripcion));
+    if (sinTarifa.length) throw regla("TARIFA_MATERIAL_PENDIENTE",
+      `Actualice el precio de estos materiales antes de enviar: ${[...new Set(sinTarifa)].join(", ")}.`);
+    const totales = conInstalacion(totalizarConDescuento({ items: actual.items.map(aItemDto), descuento: actual.descuento.toFixed(2),
+      descuentoPct: actual.descuentoPct?.toFixed(2) ?? null, tasaImpuesto: "0" }), actual.instalacionTotal.toFixed(2));
     const hoy = hoyManagua();
     await guardarCabecera(tx, actual, { ...totales, estado: "ENVIADA", fechaEmision: sumarDias(hoy, 0),
       fechaVencimiento: sumarDias(hoy, actual.vigenciaDias) });
@@ -50,6 +58,7 @@ export async function responderCotizacion(id: string, entrada: EntradaResponder,
   exigir(actor, "cotizacion:responder");
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, entrada.version);
+    exigirAccesoCotizacion(actor, actual);
     validarRespuesta(actual, entrada);
     const validacion = esquemaResponder.safeParse(entrada);
     if (!validacion.success) throw new AppError({ codigo: "VALIDACION", status: 422,
@@ -72,6 +81,7 @@ export async function archivarCotizacion(id: string, version: string, actor: Act
   exigir(actor, "cotizacion:gestionar");
   return prisma.$transaction(async (tx) => {
     const actual = await tomarVersion(tx, id, version);
+    exigirAccesoCotizacion(actor, actual);
     if (actual.archivada) throw regla("COTIZACION_ARCHIVADA", "La cotización ya está archivada.");
     await guardarCabecera(tx, actual, { archivada: true });
     const nueva = await exigirCotizacion(tx, id);

@@ -26,7 +26,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
   const [lista, categorias] = await Promise.all([listarProductos(consulta, actor), listarCategorias()]);
   const puedeGestionar = can(actor, "catalogo:gestionar");
   return <>
-    <PageHeader titulo="Catálogo" tituloVisible={false} descripcion="Productos, precios y recetas de materiales."
+    <PageHeader titulo="Catálogo" tituloVisible={false} descripcion="Productos, precios y materiales de cada producto."
       acciones={puedeGestionar ? <Button asChild><Link href="/catalogo/nuevo">Nuevo producto</Link></Button> : null} />
     <ProveedorLista>
       <FiltrosCatalogo categorias={categorias} />

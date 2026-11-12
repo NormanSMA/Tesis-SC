@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { aCotizacionDto, aTotalesDto } from "./dto";
+import { aCotizacionDto, aInstalacionDto, aTotalesDto } from "./dto";
 import type { FichaGuardada } from "./repo";
 import type { ItemDto } from "./tipos";
 
@@ -30,14 +30,19 @@ export function detalleItems(antes: FichaGuardada, despues: FichaGuardada): Pris
 }
 
 export function detalleCabecera(antes: FichaGuardada, despues: FichaGuardada): Prisma.InputJsonObject {
-  const campos = ["asunto", "condiciones", "descuento", "descuentoPct", "vigenciaDias"] as const;
+  const campos = ["asunto", "condiciones", "mostrarCondiciones", "tarifa", "tarifaPct", "descuentoManual", "descuento", "descuentoPct", "vigenciaDias"] as const;
   const cambios: Record<string, Prisma.InputJsonValue> = {};
   for (const campo of campos) {
     const valor = (ficha: FichaGuardada) => campo === "descuento" ? ficha.descuento.toFixed(2)
-      : campo === "descuentoPct" ? ficha.descuentoPct?.toFixed(2) ?? null : ficha[campo];
+      : campo === "descuentoPct" || campo === "tarifaPct" ? ficha[campo]?.toFixed(2) ?? null : ficha[campo];
     const anterior = valor(antes);
     const nuevo = valor(despues);
     if (anterior !== nuevo) cambios[campo] = { anterior, nuevo };
+  }
+  const instalacionAnterior = aInstalacionDto(antes);
+  const instalacionNueva = aInstalacionDto(despues);
+  if (JSON.stringify(instalacionAnterior) !== JSON.stringify(instalacionNueva)) {
+    cambios.instalacion = { anterior: instalacionAnterior, nuevo: instalacionNueva };
   }
   return { cambios, totales: { anterior: aTotalesDto(antes), nuevo: aTotalesDto(despues) } };
 }

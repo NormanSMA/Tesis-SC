@@ -16,10 +16,10 @@ describeConBase("cotizaciones: creación y costeo persistido", () => {
   beforeAll(async () => { entorno = await prepararCotizaciones(db); });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 
-  it("crea un borrador numerado con cliente activo, IVA y vigencia vigentes", async () => {
+  it("crea un borrador numerado con cliente activo, sin IVA y con la vigencia vigente", async () => {
     const cotizacion = await crearBorrador(entorno);
     expect(cotizacion).toMatchObject({
-      clienteId: entorno.referencias.cliente.id, estado: "BORRADOR", moneda: "NIO", tasaImpuesto: "15.00",
+      clienteId: entorno.referencias.cliente.id, estado: "BORRADOR", moneda: "NIO", tasaImpuesto: "0.00",
       vigenciaDias: 15, fechaEmision: null, fechaVencimiento: null, fechaRespuesta: null,
       archivada: false, subtotal: "0.00", total: "0.00", items: [],
     });
@@ -59,10 +59,10 @@ describeConBase("cotizaciones: creación y costeo persistido", () => {
     });
   });
 
-  it("persiste el caso exacto de costo 17980.80, margen 35 e IVA 15", async () => {
+  it("persiste el caso exacto de costo 17980.80 y margen 35 sin IVA", async () => {
     const cotizacion = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
     expect(cotizacion.items[0]).toMatchObject({ costoTotal: "17980.80", margenPct: "35.00", importe: "27662.77" });
-    expect(cotizacion).toMatchObject({ subtotal: "27662.77", impuesto: "4149.42", total: "31812.19" });
+    expect(cotizacion).toMatchObject({ subtotal: "27662.77", impuesto: "0.00", total: "27662.77" });
     expect(cotizacion.items[0].lineas.map((linea) => linea.importe)).toEqual(["15390.00", "600.00", "1990.80"]);
     const enviada = await entorno.modulos.servicio.enviarCotizacion(cotizacion.id, cotizacion.actualizadoEn, entorno.ventas.actor);
     expect(enviada.estado).toBe("ENVIADA");
@@ -80,7 +80,7 @@ describeConBase("cotizaciones: creación y costeo persistido", () => {
       ] }),
     ];
     cotizacion.items.forEach((item, indice) => expect(item).toMatchObject(esperados[indice]));
-    expect(totales(cotizacion)).toEqual(totalizarCotizacion({ items: esperados, descuento: "0", tasaImpuesto: "15" }));
+    expect(totales(cotizacion)).toEqual(totalizarCotizacion({ items: esperados, descuento: "0", tasaImpuesto: "0" }));
     const guardados = await db.itemCotizacion.findMany({ where: { cotizacionId: cotizacion.id }, orderBy: { secuencia: "asc" } });
     expect(guardados.map((item) => item.importe.toFixed(2))).toEqual(esperados.map((item) => item.importe));
     expect((await entorno.modulos.servicio.enviarCotizacion(cotizacion.id, cotizacion.actualizadoEn, entorno.ventas.actor)).estado).toBe("ENVIADA");
@@ -104,7 +104,7 @@ describeConBase("cotizaciones: creación y costeo persistido", () => {
     const parcial = await entorno.modulos.servicio.editarCotizacion(inicial.id, {
       version: inicial.actualizadoEn, descuento: "100",
     }, entorno.ventas.actor);
-    expect(totales(parcial)).toEqual(totalizarCotizacion({ items: parcial.items, descuento: "100", tasaImpuesto: "15" }));
+    expect(totales(parcial)).toEqual(totalizarCotizacion({ items: parcial.items, descuento: "100", tasaImpuesto: "0" }));
     const completo = await entorno.modulos.servicio.editarCotizacion(parcial.id, {
       version: parcial.actualizadoEn, descuento: parcial.subtotal,
     }, entorno.ventas.actor);

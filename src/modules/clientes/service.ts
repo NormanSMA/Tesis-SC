@@ -1,3 +1,4 @@
+import { filtroAutor } from "@/modules/cotizaciones/acceso";
 import { can, type Actor } from "@/core/autorizacion";
 import type { Cliente } from "@/generated/prisma/client";
 import { EstadoCotizacion } from "@/generated/prisma/enums";
@@ -5,6 +6,7 @@ import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
 import { aErrorHttp, AppError } from "@/lib/errores";
 
+import { puedeListarClientes } from "./acceso";
 import {
   aClienteDto,
   aClienteFila,
@@ -26,8 +28,6 @@ import {
 import {
   CAMPOS_EDITABLES,
   esquemaIdCliente,
-  MENSAJE_SIN_CONTACTO,
-  tieneMedioContacto,
   type CampoEditable,
   type ConsultaClientes,
   type EntradaCrearCliente,
@@ -73,15 +73,6 @@ function clienteArchivado(): AppError {
     codigo: "CLIENTE_ARCHIVADO",
     mensaje: "Un cliente archivado no se puede editar. Reactívelo primero.",
     status: 409,
-  });
-}
-
-function sinMedioContacto(): AppError {
-  return new AppError({
-    codigo: "VALIDACION",
-    mensaje: "Hay campos con errores.",
-    status: 422,
-    campos: { telefono: MENSAJE_SIN_CONTACTO, correo: MENSAJE_SIN_CONTACTO },
   });
 }
 
@@ -150,7 +141,6 @@ export async function editarCliente(id: string, entrada: EntradaEditarCliente, a
       if (!actual.activo) throw clienteArchivado();
       const cambios = calcularCambios(actual, entrada);
       if (Object.keys(cambios).length === 0) return aClienteDto(actual);
-      if (!tieneMedioContacto({ ...actual, ...cambios })) throw sinMedioContacto();
       await aplicarEdicion(tx, actual, cambios);
       await registrarEvento(tx, {
         entidad: "CLIENTE",
@@ -204,9 +194,15 @@ export function reactivarCliente(id: string, version: string, actor: Actor): Pro
 }
 
 export async function listarClientes(consulta: ConsultaClientes, actor: Actor): Promise<ListaClientes> {
+  const soloNombre = !puedeListarClientes(actor);
+  const q = consulta.q?.trim();
+  if (soloNombre && !q) {
+    return { datos: [], total: 0, pagina: consulta.pagina, porPagina: consulta.porPagina,
+      conteos: { todos: 0, EMPRESA: 0, PERSONA: 0 } };
+  }
   const [{ filas, total }, conteos] = await Promise.all([
-    consultarClientes(consulta),
-    consultarConteosClientes(consulta),
+    consultarClientes({ ...consulta, q }, soloNombre, filtroAutor(actor).creadoPorId),
+    consultarConteosClientes({ ...consulta, q }, soloNombre),
   ]);
   const conConteo = can(actor, "cotizacion:ver");
   return {
@@ -222,8 +218,8 @@ export async function obtenerCliente(id: string): Promise<ClienteDto> {
   return aClienteDto(await exigirCliente(prisma, id));
 }
 
-async function seccionResumen(clienteId: string): Promise<ResumenCotizaciones> {
-  const grupos = await agregadoCotizaciones(clienteId);
+async function seccionResumen(clienteId: string, autorId?: string): Promise<ResumenCotizaciones> {
+  const grupos = await agregadoCotizaciones(clienteId, autorId);
   const porEstado: Record<string, number> = Object.fromEntries(Object.values(EstadoCotizacion).map((e) => [e, 0]));
   for (const grupo of grupos) porEstado[grupo.estado] = grupo.cantidad;
   const aprobadas = grupos.find((grupo) => grupo.estado === "APROBADA");
@@ -234,8 +230,8 @@ async function seccionResumen(clienteId: string): Promise<ResumenCotizaciones> {
   };
 }
 
-async function seccionCotizaciones(clienteId: string): Promise<SeccionLimitada<CotizacionDeCliente>> {
-  const { filas, total } = await cotizacionesDeCliente(clienteId);
+async function seccionCotizaciones(clienteId: string, autorId?: string): Promise<SeccionLimitada<CotizacionDeCliente>> {
+  const { filas, total } = await cotizacionesDeCliente(clienteId, autorId);
   return { total, items: filas.map(aCotizacionDeCliente) };
 }
 
@@ -252,8 +248,8 @@ export async function obtenerFicha(id: string, actor: Actor): Promise<FichaClien
   const cliente = await buscarCliente(prisma, id);
   if (!cliente) throw noEncontrado();
   const [resumen, cotizaciones, trabajos, eventos] = await Promise.all([
-    can(actor, "cotizacion:ver") ? seccionResumen(id) : undefined,
-    can(actor, "cotizacion:ver") ? seccionCotizaciones(id) : undefined,
+    can(actor, "cotizacion:ver") ? seccionResumen(id, filtroAutor(actor).creadoPorId) : undefined,
+    can(actor, "cotizacion:ver") ? seccionCotizaciones(id, filtroAutor(actor).creadoPorId) : undefined,
     can(actor, "orden:ver") ? seccionTrabajos(id) : undefined,
     eventosDeCliente(id),
   ]);

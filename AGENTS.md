@@ -80,6 +80,11 @@ Un agente es dueño de sus rutas. Nunca edites archivos de otro agente.
 Si necesitas un cambio en un archivo ajeno, descríbelo en tu informe final.
 No ejecutes git. El orquestador revisa y hace los commits.
 
+## Coordinación entre agentes
+Claude Code y Codex comparten estas reglas. CLAUDE.md solo remite a este archivo.
+Al empezar y al terminar sigue docs/coordinacion/README.md y actualiza docs/coordinacion/estado.md (reserva, estado verificado, traspaso).
+Base real, app en 3000, db_test y el Word del registro de cambios son recursos exclusivos: un agente a la vez.
+
 ## Entorno
 - Puertos solo en 127.0.0.1. App 3000. Base de datos 5442. Base de pruebas 5443.
 - Credenciales solo en .env.example. Nunca en el código ni en el repositorio.

@@ -30,7 +30,11 @@ describeConBase("trazabilidad: API por perfil", () => {
     const respuesta = await invocar(entorno.rutas.orden.GET, peticion("GET", `/api/v1/ordenes/${orden.id}/trazabilidad`, { cookie: cookies[perfil] }), orden.id);
     expect(respuesta.status).toBe(perfil === "ADMIN" ? 403 : 200);
     if (perfil === "PRODUCCION") { comprobarSinDinero(respuesta.cuerpo); comprobarSinCliente(respuesta.cuerpo); }
-    if (["ATENCION_CLIENTE", "GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil)) expect(respuesta.datos).toHaveProperty("costoRealTotal");
+    if (["GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil)) expect(respuesta.datos).toHaveProperty("costoRealTotal");
+    if (["PRODUCCION", "ATENCION_CLIENTE"].includes(perfil)) {
+      expect(respuesta.datos).toMatchObject({ materiales: [], verConsumo: false });
+      expect(respuesta.datos).not.toHaveProperty("costoRealTotal");
+    }
   });
   it.each(["global", "orden"] as const)("%s responde 401 sin sesión", async (ruta) => {
     const respuesta = await invocar(entorno.rutas[ruta].GET, peticion("GET", "/api/v1/bitacora"), ruta === "orden" ? orden.id : undefined);

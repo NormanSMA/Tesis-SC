@@ -123,7 +123,7 @@ describeConBase("clientes: logo binario", () => {
 
   it.each([
     ["ATENCION_CLIENTE", "GET", 200], ["ATENCION_CLIENTE", "PUT", 200], ["ATENCION_CLIENTE", "DELETE", 204],
-    ["GERENCIA", "GET", 200], ["GERENCIA", "PUT", 403], ["GERENCIA", "DELETE", 403],
+    ["GERENCIA", "GET", 200], ["GERENCIA", "PUT", 200], ["GERENCIA", "DELETE", 204],
     ["PRODUCCION", "GET", 403], ["PRODUCCION", "PUT", 403], ["PRODUCCION", "DELETE", 403],
   ] as const)("%s: %s responde %i", async (perfil, metodo, status) => {
     const cliente = await crearClienteDirecto(db);
@@ -159,11 +159,11 @@ describeConBase("clientes: logo binario", () => {
   it("devuelve logoVersion en lista y ficha sin exponer bytes", async () => {
     const cliente = await crearClienteDirecto(db);
     const listaSinLogo = await invocar<ClienteFila[]>(modulos.lista.GET,
-      peticion("GET", `/api/v1/clientes?q=${cliente.codigoCliente}`, { cookie: sesiones.ATENCION_CLIENTE.cookie }));
+      peticion("GET", `/api/v1/clientes?q=${encodeURIComponent(cliente.nombre)}`, { cookie: sesiones.ATENCION_CLIENTE.cookie }));
     expect(listaSinLogo.datos[0].logoVersion).toBeNull();
     const version = await subir(cliente.id);
     const lista = await invocar<ClienteFila[]>(modulos.lista.GET,
-      peticion("GET", `/api/v1/clientes?q=${cliente.codigoCliente}`, { cookie: sesiones.ATENCION_CLIENTE.cookie }));
+      peticion("GET", `/api/v1/clientes?q=${encodeURIComponent(cliente.nombre)}`, { cookie: sesiones.ATENCION_CLIENTE.cookie }));
     const ficha = await invocar<ClienteDto>(modulos.ficha.GET,
       peticion("GET", `/api/v1/clientes/${cliente.id}`, { cookie: sesiones.ATENCION_CLIENTE.cookie }), cliente.id);
     expect(lista.status).toBe(200);

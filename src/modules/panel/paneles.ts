@@ -1,4 +1,5 @@
-﻿import { can, type Actor } from "@/core/autorizacion";
+﻿import { filtroAutor } from "@/modules/cotizaciones/acceso";
+import { can, type Actor } from "@/core/autorizacion";
 import { dividir, formatear, leerDecimal, deEntero } from "@/core/decimal";
 import { textoEstado } from "@/modules/trazabilidad/etiquetas";
 import { comparacionPanel, mesAnterior, cantidadPanel, dineroPanel, etiquetaDia, etiquetaSemana, mesesConActividad, META_APROBACION_PCT, nombreMes, nombreMesCorto, tasaAprobacion, tendenciaMonto, tendenciaTasa, tituloGerencia } from "./dto";
@@ -15,7 +16,7 @@ function grafico(titulo: string, subtitulo: string, datos: SerieConteo[]): Grafi
 }
 async function gerencia(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const [comercial, ordenes] = await Promise.all([
-    can(actor, "cotizacion:ver") ? consultarComercial(hoy) : undefined,
+    can(actor, "cotizacion:ver") ? consultarComercial(hoy, filtroAutor(actor).creadoPorId) : undefined,
     can(actor, "orden:ver") ? consultarOperacion(hoy) : undefined,
   ]);
   const panel = { ...vacio(), pregunta: "¿Cómo va el negocio este mes?" };
@@ -64,7 +65,7 @@ async function operaciones(actor: Actor, hoy: string): Promise<ContenidoPanel> {
 
 async function atencionCliente(actor: Actor, hoy: string): Promise<ContenidoPanel> {
   const panel = { ...vacio(), pregunta: "¿Qué clientes esperan respuesta?" };
-  const [datos, clientes, clientesAnteriores] = await Promise.all([can(actor, "cotizacion:ver") ? consultarComercial(hoy) : undefined,
+  const [datos, clientes, clientesAnteriores] = await Promise.all([can(actor, "cotizacion:ver") ? consultarComercial(hoy, filtroAutor(actor).creadoPorId) : undefined,
     can(actor, "cliente:ver") ? consultarClientesNuevos(hoy) : undefined,
     can(actor, "cliente:ver") ? consultarClientesNuevos(mesAnterior(hoy)) : undefined]);
   if (datos) {

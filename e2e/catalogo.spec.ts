@@ -99,13 +99,13 @@ async function editarDatosPorPantalla(page: Page, nombre: string): Promise<void>
 
 async function agregarRecetaPorPantalla(page: Page): Promise<void> {
   await page.getByRole("link", { name: "Editar" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Receta de materiales" })).toBeVisible();
-  await expect(page.getByText("Sin materiales. La receta es opcional.")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Materiales del producto" })).toBeVisible();
+  await expect(page.getByText("Sin materiales. Son opcionales.")).toBeVisible();
   await page.getByRole("button", { name: "Agregar material" }).click();
   await elegirOpcion(page, /Material 1/, new RegExp(MATERIAL_RECETA));
   await page.locator("#cantidad-0").fill("0.500");
-  await page.getByRole("button", { name: "Guardar receta" }).click();
-  await expect(page.getByText("Receta guardada.")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar materiales" }).click();
+  await expect(page.getByText("Materiales guardados.")).toBeVisible();
 }
 
 test.describe("Operaciones gestiona el catálogo", () => {
@@ -123,8 +123,8 @@ test.describe("Operaciones gestiona el catálogo", () => {
     await expect(page.getByText(CATEGORIA).first()).toBeVisible();
     await expect(page.getByText("m²", { exact: true })).toBeVisible();
     await expect(page.getByText("C$ 125.50")).toBeVisible();
-    await abrirPestana(page, "Receta");
-    await expect(page.getByText("Sin receta")).toBeVisible();
+    await abrirPestana(page, "Materiales");
+    await expect(page.getByText("Sin materiales")).toBeVisible();
 
     await editarDatosPorPantalla(page, nombreFinal);
     await expect(page.getByRole("heading", { level: 1, name: nombreFinal })).toBeVisible();
@@ -132,7 +132,7 @@ test.describe("Operaciones gestiona el catálogo", () => {
 
     await agregarRecetaPorPantalla(page);
     await page.goto(page.url().replace(/\/editar$/, ""));
-    await abrirPestana(page, "Receta");
+    await abrirPestana(page, "Materiales");
     const filaMaterial = page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) });
     await expect(filaMaterial).toBeVisible();
     // VIN-BLA-01 es ROLLO: 0.500 se muestra sin ceros sobrantes, sin redondear.
@@ -157,7 +157,7 @@ async function abrirFichaSembrada(page: Page): Promise<void> {
   await page.getByRole("heading", { level: 2 }).getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab", { name: "Receta" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Materiales" })).toBeVisible();
 }
 
 // veCosto: el costo de referencia vive en la ficha y exige cotizacion:ver.
@@ -177,17 +177,18 @@ async function verificarSoloLectura(page: Page, veCosto: boolean): Promise<void>
   if (veCosto) await expect(page.getByText("Costo de referencia").first()).toBeVisible();
   else await expect(page.getByText("Costo de referencia")).toHaveCount(0);
 
-  await abrirPestana(page, "Receta");
+  await abrirPestana(page, "Materiales");
   await expect(page.getByRole("tabpanel")).toBeVisible();
   await expect(page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Agregar material|Guardar receta/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Agregar material|Guardar materiales/ })).toHaveCount(0);
 }
 
 test.describe("Perfiles de consulta ven el catálogo sin gestión", () => {
-  test("Gerencia ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
+  test("Gerencia puede abrir el formulario de productos", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, GERENCIA);
-    await verificarSoloLectura(page, true);
+    await page.goto("/catalogo/nuevo");
+    await expect(page).toHaveURL(/\/catalogo\/nuevo$/);
   });
 
   test("Atención al cliente ve tarjetas con imagen y una ficha sin botones de gestión", async ({ page }, info) => {
@@ -216,14 +217,14 @@ test.describe("Perfiles de consulta ven el catálogo sin gestión", () => {
     await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
   });
 
-  test("Gerencia no entra a las rutas de gestión", async ({ page }, info) => {
+  test("Administración no entra a las rutas de gestión del catálogo", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, ADMINISTRACION);
     await page.goto("/catalogo/nuevo");
     await expect(page).toHaveURL(/\/sin-acceso$/);
   });
 
-  for (const perfil of [GERENCIA, PRODUCCION]) {
+  for (const perfil of [ADMINISTRACION, PRODUCCION]) {
     test(`${perfil.codigo} recibe 403 al crear un producto por la API`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       await entrarComo(page, perfil);
@@ -254,7 +255,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
       expect(await violacionesGraves(page), "formulario nuevo producto").toEqual([]);
 
       await abrirFichaSembrada(page);
-      for (const pestana of ["Resumen", "Receta"]) {
+      for (const pestana of ["Resumen", "Materiales"]) {
         await abrirPestana(page, pestana);
         expect(await violacionesGraves(page), `ficha, pestaña ${pestana}`).toEqual([]);
       }
@@ -267,7 +268,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
     await expect(page.getByRole("img", { name: /^Producto: / }).first()).toBeVisible();
     await sinDesbordeHorizontal(page);
     await abrirFichaSembrada(page);
-    for (const pestana of ["Resumen", "Receta"]) {
+    for (const pestana of ["Resumen", "Materiales"]) {
       await abrirPestana(page, pestana);
       await sinDesbordeHorizontal(page);
     }
@@ -295,7 +296,7 @@ test.describe("Capturas del catálogo con Gerencia", () => {
         fullPage: true,
       });
 
-      await abrirPestana(page, "Receta");
+      await abrirPestana(page, "Materiales");
       await expect(page.getByRole("row", { name: new RegExp(MATERIAL_RECETA) })).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       await page.screenshot({ path: path.join(CARPETA_CAPTURAS, `catalogo-ficha-${vista.nombre}.png`), fullPage: true });

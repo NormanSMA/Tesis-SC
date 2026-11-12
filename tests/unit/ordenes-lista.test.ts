@@ -31,14 +31,14 @@ describe("órdenes: orden seguro", () => {
     it.each(["asc", "desc"] as const)(`${campo}:%s usa lista blanca y desempata por id`, async (direccion) => {
       const consulta = esquemaConsultaOrdenes.parse({ orden: `${campo}:${direccion}` });
       expect(consulta.orden).toEqual({ campo, direccion });
-      await consultarOrdenes(consulta, hoy);
+      await consultarOrdenes(consulta, { hoy });
       const principal = campo === "cliente" ? { cliente: { nombre: direccion } } : { [campo]: direccion };
       expect(consultas.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [principal, { id: direccion }] }));
     });
   }
 
   it("conserva creadoEn desc e id desc sin orden explícito", async () => {
-    await consultarOrdenes(esquemaConsultaOrdenes.parse({}), hoy);
+    await consultarOrdenes(esquemaConsultaOrdenes.parse({}), { hoy });
     expect(consultas.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ creadoEn: "desc" }, { id: "desc" }] }));
   });
 
@@ -84,7 +84,7 @@ describe("órdenes: conteos", () => {
     consultas.count.mockResolvedValueOnce(4).mockResolvedValueOnce(3);
     const consulta = esquemaConsultaOrdenes.parse({ q: "100%_\\", cliente, estado: "CANCELADA",
       vencidas: "true", responsable: "sin-responsable", terminales: "true" });
-    expect(await consultarConteosOrdenes(consulta, hoy)).toEqual({ PENDIENTE: 2, EN_PRODUCCION: 0, LISTA: 0,
+    expect(await consultarConteosOrdenes(consulta, { hoy })).toEqual({ PENDIENTE: 2, EN_PRODUCCION: 0, LISTA: 0,
       ENTREGADA: 3, CERRADA: 5, CANCELADA: 7, activas: 5, atrasadas: 4, sinResponsable: 3 });
     const texto = { contains: "100\\%\\_\\\\", mode: "insensitive" };
     const where = { AND: [{ clienteId: cliente }, { OR: [{ numero: texto },

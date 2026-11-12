@@ -294,21 +294,19 @@ test.describe("Inventario con un material propio", () => {
 // El código va bajo el nombre y el mínimo en la barra de existencia: tres columnas.
 const COLUMNAS_LISTA = ["Material", "Existencia frente al mínimo", "Estado"];
 
-test("Gerencia y Operaciones consultan inventario sin acciones de gestión", async ({ page }) => {
-  for (const perfil of [GERENCIA, OPERACIONES]) {
-    await entrarComo(page, perfil);
-    await page.goto("/inventario");
-    await expect(listaMateriales(page)).toBeVisible();
-    await expect(page.getByRole("link", { name: /^(Nuevo material|Registrar entrada|Ajustar)$/ })).toHaveCount(0);
-    await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
-    await expect(libro(page)).toBeVisible();
-    await expect(page.getByRole("link", { name: /^(Registrar entrada|Ajustar|Editar)$/ })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^(Archivar|Reactivar)$/ })).toHaveCount(0);
-    await expect(page.getByRole("main")).toContainText("Conciliado");
-    for (const ruta of ["/inventario/nuevo", "/inventario/ajuste"]) {
-      await page.goto(ruta);
-      await expect(page).toHaveURL(/\/sin-acceso$/);
-    }
+test("Operaciones consulta inventario sin acciones de gestión", async ({ page }) => {
+  await entrarComo(page, OPERACIONES);
+  await page.goto("/inventario");
+  await expect(listaMateriales(page)).toBeVisible();
+  await expect(page.getByRole("link", { name: /^(Nuevo material|Registrar entrada|Ajustar)$/ })).toHaveCount(0);
+  await page.goto(`/inventario/${await sembradoConMovimientos(page)}`);
+  await expect(libro(page)).toBeVisible();
+  await expect(page.getByRole("link", { name: /^(Registrar entrada|Ajustar|Editar)$/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Archivar|Reactivar)$/ })).toHaveCount(0);
+  await expect(page.getByRole("main")).toContainText("Conciliado");
+  for (const ruta of ["/inventario/nuevo", "/inventario/ajuste"]) {
+    await page.goto(ruta);
+    await expect(page).toHaveURL(/\/sin-acceso$/);
   }
 });
 

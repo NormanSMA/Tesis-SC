@@ -46,12 +46,12 @@ export async function comprobarParidadEstimado(db: PrismaClient): Promise<void> 
     if (!cotizacion) throw new Error("Falta la cotización sembrada.");
     const sembrada: CotizacionSembrada = { id: fila.id, numero: fila.numero, escenario, items: itemsSembrados(cotizacion),
       plan: planificarCotizacion(crearReloj(), escenario) };
-    const esperado = estimadoSiembra(sembrada, catalogos).sort(porMaterial);
+    const esperado = estimadoSiembra(sembrada, catalogos).map(fila => ({ ...fila, areaProduccion: null })).sort(porMaterial);
     const actual = estimarCotizacion(cotizacion);
     expect(actual.advertencias, escenario.clave).toEqual([]);
     expect(actual.consumos, escenario.clave).toEqual(esperado);
     const guardado = await db.consumoEstimado.findMany({ where: { orden: { cotizacionId: fila.id } } });
-    expect(guardado.map((consumo) => ({ materialId: consumo.materialId, cantidad: consumo.cantidad.toFixed(3), origen: consumo.origen }))
+    expect(guardado.map((consumo) => ({ materialId: consumo.materialId, cantidad: consumo.cantidad.toFixed(3), origen: consumo.origen, areaProduccion: consumo.areaProduccion }))
       .sort(porMaterial), escenario.clave).toEqual(esperado);
   }
 }

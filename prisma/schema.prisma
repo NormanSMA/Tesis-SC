@@ -57,6 +57,13 @@ enum UnidadMaterial {
   @@map("unidad_material")
 }
 
+enum TipoPresentacionMaterial {
+  ROLLO
+  LAMINA
+
+  @@map("tipo_presentacion_material")
+}
+
 enum EstadoCotizacion {
   BORRADOR
   ENVIADA
@@ -216,6 +223,7 @@ model Permiso {
   descripcion String?
 
   perfiles PerfilPermiso[]
+  usuarios UsuarioPermiso[]
 
   @@unique([recurso, accion])
   @@map("permiso")
@@ -255,6 +263,9 @@ model Usuario {
   actualizadoEn    DateTime  @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
   perfiles             UsuarioPerfil[]        @relation("UsuarioPerfiles")
+  permisosAdicionales UsuarioPermiso[] @relation("PermisosUsuario")
+  permisosIndividualesOtorgados UsuarioPermiso[] @relation("PermisosIndividualesOtorgados")
+  lecturaNotificaciones NotificacionLectura?
   perfilesAsignados    UsuarioPerfil[]        @relation("PerfilAsignadoPor")
   sesiones             Sesion[]
   permisosOtorgados    PerfilPermiso[]        @relation("PermisoOtorgadoPor")
@@ -263,6 +274,7 @@ model Usuario {
   ordenesResponsable   OrdenTrabajo[]         @relation("OrdenResponsable")
   ordenesCreadas       OrdenTrabajo[]         @relation("OrdenCreadaPor")
   etapasResponsable    EtapaOrden[]           @relation("EtapaResponsable")
+  areasProduccion      UsuarioArea[]
   historialEtapas      HistorialEtapa[]       @relation("HistorialActor")
   historialResponsable HistorialEtapa[]       @relation("HistorialResponsable")
   movimientos          MovimientoInventario[]
@@ -272,6 +284,29 @@ model Usuario {
 
   @@index([activo])
   @@map("usuario")
+}
+
+model UsuarioPermiso {
+  usuarioId String @map("usuario_id") @db.Uuid
+  permisoId String @map("permiso_id") @db.Uuid
+  otorgadoPorId String? @map("otorgado_por_id") @db.Uuid
+  creadoEn DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuario Usuario @relation("PermisosUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Restrict)
+  otorgadoPor Usuario? @relation("PermisosIndividualesOtorgados", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
+  @@id([usuarioId, permisoId])
+  @@index([permisoId])
+  @@index([otorgadoPorId])
+  @@map("usuario_permiso")
+}
+
+// Centro de notificaciones: instante hasta el que el usuario leyó sus avisos.
+model NotificacionLectura {
+  usuarioId   String   @id @map("usuario_id") @db.Uuid
+  leidasHasta DateTime @map("leidas_hasta") @db.Timestamptz(6)
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("notificacion_lectura")
 }
 
 model Sesion {
@@ -358,8 +393,20 @@ model Area {
 
   etapasPlantilla EtapaPlantilla[]
   etapasOrden     EtapaOrden[]
+  personal        UsuarioArea[]
 
   @@map("area")
+}
+
+model UsuarioArea {
+  usuarioId String @map("usuario_id") @db.Uuid
+  areaId    String @map("area_id") @db.Uuid
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  area      Area @relation(fields: [areaId], references: [id], onDelete: Restrict)
+
+  @@id([usuarioId, areaId])
+  @@index([areaId])
+  @@map("usuario_area")
 }
 
 model Producto {
@@ -409,6 +456,13 @@ model Material {
   nombre        String         @db.VarChar(160)
   descripcion   String?
   unidad        UnidadMaterial
+  areaProduccion AreaMaterial? @map("area_produccion")
+  unidadCotizacion UnidadMaterial? @map("unidad_cotizacion")
+  areaUnidadInventario Decimal? @map("area_unidad_inventario") @db.Decimal(14, 6)
+  precioCotizacion Decimal? @map("precio_cotizacion") @db.Decimal(14, 4)
+  tipoPresentacion  TipoPresentacionMaterial? @map("tipo_presentacion")
+  anchoPresentacion Decimal? @map("ancho_presentacion") @db.Decimal(7, 3)
+  largoPresentacion Decimal? @map("largo_presentacion") @db.Decimal(7, 3)
   // existencia y costoPromedio solo cambian por el trigger de movimiento_inventario.
   existencia    Decimal        @default(0) @db.Decimal(14, 3)
   // Costo unitario con 4 decimales: el promedio ponderado con 2 acumula error de redondeo.
@@ -425,7 +479,17 @@ model Material {
   consumosEstimados ConsumoEstimado[]
 
   @@index([activo, nombre])
+  @@index([areaProduccion])
   @@map("material")
+}
+
+enum AreaMaterial {
+  CORTE_LASER
+  IMPRESION_DIGITAL
+  ACABADO
+  TALLER
+
+  @@map("area_material")
 }
 
 // Libro de solo insercion. cantidad lleva signo: existencia = SUM(cantidad) por material.
@@ -486,6 +550,7 @@ model ConsumoEstimado {
   materialId String         @map("material_id") @db.Uuid
   cantidad   Decimal        @db.Decimal(14, 3)
   origen     OrigenEstimado
+  areaProduccion AreaMaterial? @map("area_produccion")
   creadoEn   DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
 
   orden    OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Restrict)
@@ -507,6 +572,15 @@ model Cotizacion {
   estado             EstadoCotizacion @default(BORRADOR)
   asunto             String?          @db.VarChar(200)
   condiciones        String?
+  mostrarCondiciones Boolean          @default(true) @map("mostrar_condiciones")
+  tarifa             String           @default("OCASIONAL") @db.VarChar(16)
+  tarifaPct          Decimal?         @map("tarifa_pct") @db.Decimal(5, 2)
+  descuentoManual    Boolean          @default(false) @map("descuento_manual")
+  instalacionKm      Decimal?         @map("instalacion_km") @db.Decimal(9, 3)
+  instalacionTarifa  Decimal?         @map("instalacion_tarifa") @db.Decimal(12, 2)
+  instalacionManoObra Decimal         @default(0) @map("instalacion_mano_obra") @db.Decimal(14, 2)
+  instalacionTotal   Decimal          @default(0) @map("instalacion_total") @db.Decimal(14, 2)
+  instalacionDestino String?          @map("instalacion_destino") @db.VarChar(120)
   // Duplicado de otra cotizacion (reutilizacion, R-02).
   cotizacionOrigenId String?          @map("cotizacion_origen_id") @db.Uuid
   moneda             String           @default("NIO") @db.Char(3)
@@ -597,6 +671,8 @@ model LineaCosto {
   materialId    String?        @map("material_id") @db.Uuid
   unidad        String         @db.VarChar(20)
   cantidad      Decimal        @db.Decimal(14, 3)
+  cantidadPorArea Boolean      @default(false) @map("cantidad_por_area")
+  areaUnidadInventario Decimal? @map("area_unidad_inventario") @db.Decimal(14, 6)
   costoUnitario Decimal        @map("costo_unitario") @db.Decimal(14, 4)
   mermaPct      Decimal        @default(0) @map("merma_pct") @db.Decimal(5, 2)
   importe       Decimal        @db.Decimal(14, 2)
@@ -713,6 +789,7 @@ model EtapaOrden {
   fechaInicioReal DateTime?   @map("fecha_inicio_real") @db.Timestamptz(6)
   fechaFinReal    DateTime?   @map("fecha_fin_real") @db.Timestamptz(6)
   observaciones   String?
+  instrucciones   String?
   creadoEn        DateTime    @default(now()) @map("creado_en") @db.Timestamptz(6)
   actualizadoEn   DateTime    @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 

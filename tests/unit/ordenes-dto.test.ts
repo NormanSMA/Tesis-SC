@@ -4,7 +4,7 @@ import { aOrdenDto, aOrdenFila } from "@/modules/ordenes/dto";
 
 vi.mock("@/core/autorizacion", () => ({ can: vi.fn() }));
 
-const actor = {} as Parameters<typeof aOrdenFila>[1];
+const actor: Parameters<typeof aOrdenFila>[1] = { id: "actor", nombre: "Prueba", correo: "prueba@test.local", perfil: "ADMINISTRACION", perfiles: ["ADMINISTRACION"], permisos: [] };
 const cliente = { id: "cliente", nombre: "Cliente de prueba", codigoCliente: "CLI-0001", tipo: "EMPRESA",
   telefono: null, correo: null, ruc: "RUC reservado", direccion: "Dirección reservada",
 } as Parameters<typeof aOrdenDto>[0]["cliente"];

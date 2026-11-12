@@ -119,7 +119,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     expect(await db.bitacora.count({ where: { cotizacionId: inicial.id } })).toBe(eventos);
   });
 
-  it("duplica asunto, condiciones, descuento e ítems con IVA y vigencia vigentes", async () => {
+  it("duplica asunto, condiciones, descuento e ítems sin IVA y con la vigencia vigente", async () => {
     const inicial = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias), itemPersonalizado(entorno.referencias)] });
     const editada = await entorno.modulos.servicio.editarCotizacion(inicial.id, {
       version: inicial.actualizadoEn, condiciones: "Anticipo acordado", descuento: "500",
@@ -128,7 +128,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     await conConfiguracion(db, { iva_porcentaje: "10", cotizacion_vigencia_dias: "30" }, async () => {
       const duplicada = await entorno.modulos.servicio.duplicarCotizacion(enviada.id, entorno.ventas.actor);
       expect(duplicada).toMatchObject({ cotizacionOrigenId: enviada.id, estado: "BORRADOR", asunto: enviada.asunto,
-        condiciones: enviada.condiciones, descuento: "500.00", tasaImpuesto: "10.00", vigenciaDias: 30,
+        condiciones: enviada.condiciones, descuento: "500.00", tasaImpuesto: "0.00", vigenciaDias: 30,
         fechaEmision: null, fechaVencimiento: null, fechaRespuesta: null, motivoRechazo: null, archivada: false });
       expect(duplicada.id).not.toBe(enviada.id);
       expect(duplicada.numero).not.toBe(enviada.numero);
@@ -136,7 +136,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
         expect(item.id).not.toBe(enviada.items[indice].id);
         expect(item).toMatchObject({ importe: enviada.items[indice].importe, precioUnitario: enviada.items[indice].precioUnitario });
       });
-      expect(totales(duplicada)).toEqual(totalizarCotizacion({ items: duplicada.items, descuento: "500", tasaImpuesto: "10" }));
+      expect(totales(duplicada)).toEqual(totalizarCotizacion({ items: duplicada.items, descuento: "500", tasaImpuesto: "0" }));
       expect((await db.bitacora.findFirstOrThrow({ where: { cotizacionId: duplicada.id } })).accion).toBe("CREAR");
     });
   });

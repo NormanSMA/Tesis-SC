@@ -1,6 +1,7 @@
 import type { Cliente, Cotizacion, Prisma } from "@/generated/prisma/client";
 import type { FichaGuardada, ItemGuardado } from "./repo";
 import type { CotizacionDto, CotizacionFila, ItemDto, LineaDto } from "./tipos";
+import type { Tarifa } from "./tarifas";
 
 export function aClienteDto(cliente: Cliente) {
   return { id: cliente.id, nombre: cliente.nombre, ruc: cliente.ruc,
@@ -14,11 +15,19 @@ export function aTotalesDto(cotizacion: Cotizacion) {
     total: cotizacion.total.toFixed(2), margenPct: cotizacion.margenPct?.toFixed(2) ?? null };
 }
 
+export function aInstalacionDto(fila: Cotizacion) {
+  return { destino: fila.instalacionDestino, km: fila.instalacionKm?.toFixed(3) ?? null,
+    tarifa: fila.instalacionTarifa?.toFixed(2) ?? null, manoObra: fila.instalacionManoObra.toFixed(2), total: fila.instalacionTotal.toFixed(2) };
+}
+
 export function aCotizacionFila(fila: Cotizacion & {
   cliente: Cliente; usuarioAprobacion: { id: string; nombre: string } | null;
 }): CotizacionFila {
   return { ...aTotalesDto(fila), descuentoPct: fila.descuentoPct?.toFixed(2) ?? null, id: fila.id, numero: fila.numero, clienteId: fila.clienteId,
     cliente: aClienteDto(fila.cliente), estado: fila.estado, asunto: fila.asunto, condiciones: fila.condiciones,
+    mostrarCondiciones: fila.mostrarCondiciones, tarifa: fila.tarifa as Tarifa, tarifaPct: fila.tarifaPct?.toFixed(2) ?? null,
+    instalacion: aInstalacionDto(fila),
+    descuentoManual: fila.descuentoManual || (fila.tarifaPct === null && (fila.descuentoPct !== null || !fila.descuento.isZero())),
     cotizacionOrigenId: fila.cotizacionOrigenId, moneda: fila.moneda, tipoCambio: fila.tipoCambio.toFixed(4), vigenciaDias: fila.vigenciaDias,
     fechaEmision: fila.fechaEmision?.toISOString().slice(0, 10) ?? null,
     fechaVencimiento: fila.fechaVencimiento?.toISOString().slice(0, 10) ?? null,
@@ -32,6 +41,7 @@ type LineaGuardada = Prisma.LineaCostoGetPayload<object>;
 export function aLineaDto(linea: LineaGuardada): LineaDto {
   return { id: linea.id, secuencia: linea.secuencia, tipo: linea.tipo, descripcion: linea.descripcion,
     materialId: linea.materialId, unidad: linea.unidad, cantidad: linea.cantidad.toFixed(3),
+    cantidadPorArea: linea.cantidadPorArea, areaUnidadInventario: linea.areaUnidadInventario?.toFixed(6) ?? null,
     costoUnitario: linea.costoUnitario.toFixed(4), mermaPct: linea.mermaPct.toFixed(2), importe: linea.importe.toFixed(2) };
 }
 

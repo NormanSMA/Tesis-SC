@@ -2,7 +2,8 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { esquemaConsultaOrdenes } from "@/modules/ordenes/schema";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
-import { crearOrden, invocar, leerOrden, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
+import { itemPersonalizado } from "./cotizaciones-ayudas";
+import { crearAprobada, crearOrden, entradaConversion, invocar, leerOrden, ponerEstado, prepararOrdenes, type EntornoOrdenes } from "./ordenes-ayudas";
 
 const CAMPOS_DINERO = /^(precioUnitario|importe|subtotal|descuento|impuesto|total|costo\w*|margen\w*|tasaImpuesto)$/i;
 function comprobarSinDinero(valor: unknown): void {
@@ -26,7 +27,8 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
   it("incluye órdenes sin responsable y filtra solamente las no asignadas", async () => {
     const sinResponsable = await crearOrden(entorno, { responsableId: null });
     const asignada = await crearOrden(entorno);
-    const actor = entorno.sesiones.PRODUCCION.actor;
+    // Las órdenes sin responsable no tienen participantes de Producción: las revisa Operaciones.
+    const actor = entorno.sesiones.OPERACIONES.actor;
     const consulta = esquemaConsultaOrdenes.parse({ cliente: sinResponsable.cliente.id, porPagina: 100 });
     const lista = await entorno.modulos.servicio.listarOrdenes(consulta, actor);
     expect(lista.datos.find((fila) => fila.id === sinResponsable.id)?.responsable).toBeNull();
@@ -47,16 +49,22 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
         cambios: { importe: { anterior: "100", nuevo: "500" } }, motivo: "Motivo visible" } } });
     const ficha = await entorno.modulos.servicio.obtenerOrden(orden.id, entorno.sesiones.PRODUCCION.actor);
     comprobarSinDinero(ficha);
+    expect(ficha).not.toHaveProperty("cotizacion");
     expect(ficha.cliente).not.toHaveProperty("ruc");
     expect(ficha.cliente).not.toHaveProperty("direccion");
     expect(ficha.cliente).toMatchObject({ nombre: orden.cliente.nombre, tipo: "EMPRESA", telefono: "8888 0101" });
-    expect(ficha.items[2].lineas[0].cantidad).toBe("5.000");
-    expect(ficha.consumosEstimados[0].cantidad).toBe("9.409");
+    expect(ficha.items[2].lineas).toEqual([]);
+    expect(ficha.consumosEstimados).toEqual([]);
+    expect(ficha.materialesSinEstimacion).toEqual([]);
+    expect(ficha.materialesTrabajo).toEqual(orden.materialesTrabajo);
+    expect(ficha.materialesTrabajo.length).toBeGreaterThan(0);
+    expect(orden.consumosEstimados[0].cantidad).toBe("9.409");
     expect(ficha.eventos.find((evento) => evento.accion === "EDITAR")?.detalle).toEqual({ motivo: "Motivo visible" });
     expect(ficha.eventos[0]).toMatchObject({ accion: expect.any(String), actor: expect.any(String), creadoEn: expect.any(String) });
     const atencionCliente = await leerOrden(entorno, orden.id);
-    expect(atencionCliente.cotizacion.total).toBeTruthy();
-    expect(atencionCliente.items[2].lineas[0].costoUnitario).toBe("2850.0000");
+    expect(atencionCliente.cotizacion?.total).toBeTruthy();
+    expect(atencionCliente.items[2].lineas).toEqual([]);
+    expect(atencionCliente.consumosEstimados).toEqual([]);
     expect(atencionCliente.cliente.direccion).toBe("Dirección reservada");
     expect(atencionCliente.eventos.find((evento) => evento.accion === "EDITAR")?.detalle).toHaveProperty("total", "999.99");
   });
@@ -74,6 +82,27 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
     const consulta = await invocar(entorno.modulos.ficha.GET, peticion("GET", `/api/v1/ordenes/${orden.id}`, { cookie: entorno.sesiones.PRODUCCION.cookie }), orden.id);
     expect(consulta.status).toBe(200);
     comprobarSinDinero(consulta.datos);
+  });
+
+  it("incluye los materiales de captura manual y limita sus cantidades a los perfiles de Inventario", async () => {
+    const item = itemPersonalizado(entorno.cotizaciones.referencias);
+    const nombre = "Tubo metálico para mantas";
+    item.lineas.push({ tipo: "MATERIAL", descripcion: nombre, unidad: "unidad", cantidad: "4", costoUnitario: "250", mermaPct: "0" });
+    const aprobada = await crearAprobada(entorno, [item]);
+    const servicio = entorno.modulos.servicio;
+    const orden = await servicio.crearOrden(entradaConversion(entorno, aprobada.id), entorno.sesiones.OPERACIONES.actor);
+    expect(orden.consumosEstimados).toHaveLength(1);
+    expect(orden.materialesSinEstimacion).toMatchObject([{ nombre, cantidad: "4.000", unidad: "unidad" }]);
+    for (const perfil of ["OPERACIONES", "GERENCIA", "ADMINISTRACION"] as const) {
+      const ficha = await servicio.obtenerOrden(orden.id, entorno.sesiones[perfil].actor);
+      expect(ficha.materialesSinEstimacion).toEqual(orden.materialesSinEstimacion);
+    }
+    const ficha = await servicio.obtenerOrden(orden.id, entorno.sesiones.PRODUCCION.actor);
+    expect(ficha.materialesTrabajo).toEqual(orden.materialesTrabajo);
+    expect(ficha.materialesTrabajo).toContainEqual({ nombre, areaProduccion: null });
+    expect(ficha.materialesSinEstimacion).toEqual([]);
+    expect(ficha.consumosEstimados).toEqual([]);
+    expect(ficha.items[0].lineas).toEqual([]);
   });
 
   it("la lista pagina, filtra por estado, cliente, responsable y texto", async () => {
@@ -127,7 +156,10 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
       const consulta = esquemaConsultaOrdenes.parse({ cliente: orden.cliente.id, q: "Cliente_100%" });
       expect((await entorno.modulos.servicio.listarOrdenes(consulta, entorno.sesiones.ATENCION_CLIENTE.actor)).total).toBeGreaterThan(0);
       expect((await entorno.modulos.servicio.listarOrdenes({ ...consulta, q: "ClienteX100Y" }, entorno.sesiones.ATENCION_CLIENTE.actor)).total).toBe(0);
-      const asunto = await entorno.modulos.servicio.listarOrdenes(esquemaConsultaOrdenes.parse({ q: orden.cotizacion.asunto! }), entorno.sesiones.ATENCION_CLIENTE.actor);
+      const consultaAsunto = esquemaConsultaOrdenes.parse({ q: orden.cotizacion!.asunto! });
+      const asunto = await entorno.modulos.servicio.listarOrdenes(consultaAsunto, entorno.sesiones.ATENCION_CLIENTE.actor);
+      const restringida = await entorno.modulos.servicio.listarOrdenes(consultaAsunto, entorno.sesiones.PRODUCCION.actor);
+      expect(restringida.datos.some((fila) => fila.id === orden.id)).toBe(false);
       expect(asunto.datos.map((fila) => fila.id)).toContain(orden.id);
     } finally { await db.cliente.update({ where: { id: orden.cliente.id }, data: { nombre: original } }); }
   });
@@ -146,6 +178,6 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
     await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn }, entorno.sesiones.PRODUCCION.actor)).rejects.toMatchObject({ status: 403 });
     await expect(entorno.modulos.servicio.cancelarOrden(orden.id, { version: orden.actualizadoEn, motivo: "Cancelación prohibida" }, entorno.sesiones.ATENCION_CLIENTE.actor))
       .rejects.toMatchObject({ status: 403 });
-    expect(await leerOrden(entorno, orden.id)).toEqual(orden);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
   });
 });

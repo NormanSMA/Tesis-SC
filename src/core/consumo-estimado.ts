@@ -7,6 +7,7 @@ export type OrigenEstimado = "RECETA" | "COTIZACION";
 export type LineaReceta = { materialId: string; cantidad: string };
 export type LineaMaterial = {
   secuencia: number; materialId: string | null; unidad: string; cantidad: string; mermaPct: string;
+  areaUnidadInventario?: string | null;
 };
 
 export type ItemEstimable =
@@ -57,12 +58,17 @@ function aportesPersonalizado(
   for (const linea of item.lineas) {
     if (!linea.materialId) continue;
     const unidadMaterial = unidadesMaterial[linea.materialId];
-    if (!unidadMaterial || normalizarUnidad(unidadMaterial) !== normalizarUnidad(linea.unidad)) {
+    const mismaUnidad = unidadMaterial && normalizarUnidad(unidadMaterial) === normalizarUnidad(linea.unidad);
+    const conversion = linea.areaUnidadInventario && normalizarUnidad(linea.unidad) === "m2"
+      && ["pliego", "rollo"].includes(normalizarUnidad(unidadMaterial ?? ""));
+    if (!mismaUnidad && !conversion) {
       advertencias.push({ itemSecuencia: item.secuencia, lineaSecuencia: linea.secuencia,
         mensaje: `Línea ${linea.secuencia} del ítem ${item.secuencia}: la unidad "${linea.unidad}" no coincide con la del material; no se estimó.` });
       continue;
     }
-    aportes.push({ materialId: linea.materialId, cantidad: cantidadConMerma(linea), origen: "COTIZACION" });
+    const cantidad = cantidadConMerma(linea);
+    aportes.push({ materialId: linea.materialId,
+      cantidad: conversion ? dividir(cantidad, leer(linea.areaUnidadInventario!)) : cantidad, origen: "COTIZACION" });
   }
   return { aportes, advertencias };
 }

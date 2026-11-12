@@ -65,6 +65,7 @@ export function AppShell({ usuario, children, compactoInicial = false, fechaHoy 
       <div className={cn("transition-[padding] duration-200 md:pl-16", !compacto && "xl:pl-64")}>
         <BarraSuperior
           ruta={ruta}
+          usuarioId={usuario.id}
           fechaHoy={fechaHoy}
           rielExpandido={rielExpandido}
           compacto={compacto}

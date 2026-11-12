@@ -147,3 +147,9 @@ Estado: diferido. Evaluación del agente arquitecto con documentación oficial d
 - Cantidades de material: sin ceros sobrantes (8, 3.7, 0.125). Una unidad discreta con fracción conserva su valor real (3.7 rollos no se redondea a 4). Los campos de entrada conservan el decimal exacto para editar.
 - Costos y precios: 2 decimales con `formatearMoneda`. Se retiró el valor exacto de 7 decimales de la ficha de trazabilidad; el DTO conserva la precisión.
 - Migración `20261014100000_cotizacion_descuento_pct`, con reversión en `prisma/migrations-down`.
+
+## Acceso individual y secuencia de producción — 2026-11-11
+
+Por solicitud del responsable del proyecto, los permisos efectivos son la unión de perfiles y concesiones individuales. Las concesiones no incluyen denegaciones por usuario. Gerencia conserva el catálogo completo y Arely Rodríguez recibe cotizacion:ver_todas; otros autores solo acceden a sus cotizaciones. Cada concesión y retirada se audita y se evalúa con la sesión actual.
+
+Producción sin permiso de planificación solo consulta y ejecuta sus etapas una vez completadas u omitidas las anteriores. La ejecución toma el bloqueo de la orden y valida la secuencia bajo ese bloqueo. Planificar permite supervisar las etapas de otros responsables; la ejecución también respeta la secuencia. Los avisos son internos a la aplicación, se consultan cada diez segundos y usan Web Audio API tras una activación explícita del usuario. No requieren servicios de mensajería ni permisos de notificación del sistema operativo.

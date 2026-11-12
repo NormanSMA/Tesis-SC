@@ -56,7 +56,7 @@ describeConBase("catálogo: API por perfil y permisos revocados", () => {
     for (const operacion of OPERACIONES) {
       const permitido = LECTURAS.includes(operacion)
         ? operacion === "materiales" ? ["GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil) : perfil !== "ADMIN"
-        : perfil === "OPERACIONES";
+        : perfil === "OPERACIONES" || perfil === "GERENCIA";
       const esperado = permitido ? ["crear", "crearCategoria"].includes(operacion) ? 201 : 200 : 403;
       it(`${perfil}: ${operacion} responde ${esperado}`, async () => {
         const respuesta = await ejecutar(operacion, sesiones[perfil].cookie);

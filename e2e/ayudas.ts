@@ -11,7 +11,7 @@ export const VIEWPORTS = [
   { nombre: "tableta", width: 768, height: 1024 },
 ];
 
-// Menú exacto por perfil según la matriz de docs/modulos/09-perfiles-v9.md.
+// Menú exacto por perfil según la matriz vigente.
 export const PERFILES = [
   {
     codigo: "GERENCIA",
@@ -28,16 +28,20 @@ export const PERFILES = [
       "Catálogo",
       "Trazabilidad",
       "Reportes",
+      "Usuarios",
+      "Perfiles y permisos",
+      "Configuración",
+      "Estado del sistema",
     ],
-    rutasProhibidas: ["/admin/usuarios"],
+    rutasProhibidas: [],
   },
   {
     codigo: "ADMINISTRACION",
     correo: "luis.mendoza@solucionescreativas.test",
     claveEnv: "SEED_PASSWORD_ADMINISTRACION",
     destino: "/panel",
-    items: ["Panel", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo"],
-    rutasProhibidas: ["/clientes", "/reportes", "/trazabilidad", "/admin/usuarios"],
+    items: ["Panel", "Clientes", "Cotizaciones", "Órdenes de trabajo", "Producción", "Inventario", "Catálogo", "Configuración"],
+    rutasProhibidas: ["/reportes", "/trazabilidad", "/admin/usuarios"],
   },
   {
     codigo: "OPERACIONES",

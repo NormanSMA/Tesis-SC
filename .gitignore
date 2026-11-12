@@ -39,6 +39,8 @@ docs/modulos/03-pruebas-e2e-pendientes.md
 docs/modulos/11-cambios-ui-v9.md
 # Instrucciones locales del asistente (AGENTS.md sí se publica: convenciones del código).
 CLAUDE.md
+# Registro vivo de coordinación entre agentes: uno solo, en la carpeta principal, compartido por los worktrees.
+docs/coordinacion/estado.md
 
 # Copias comprimidas locales.
 *.zip

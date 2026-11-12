@@ -56,7 +56,7 @@ export const esquemaReceta = z.strictObject({
     const vistos = new Set<string>();
     materiales.forEach((material, indice) => {
       if (vistos.has(material.materialId)) contexto.addIssue({
-        code: "custom", path: [indice, "materialId"], message: "Un material no se puede repetir en la receta.",
+        code: "custom", path: [indice, "materialId"], message: "Un material no se puede repetir en el producto.",
       });
       vistos.add(material.materialId);
     });

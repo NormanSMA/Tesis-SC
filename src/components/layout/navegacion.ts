@@ -21,6 +21,7 @@ export type ItemNavegacion = {
   etiqueta: string;
   icono: LucideIcon;
   permiso: string;
+  permisoAlterno?: string;
 };
 
 export type GrupoNavegacion = {
@@ -68,7 +69,7 @@ export const gruposNavegacion: GrupoNavegacion[] = [
     items: [
       { href: "/admin/usuarios", etiqueta: "Usuarios", icono: UserCog, permiso: "usuario:gestionar" },
       { href: "/admin/permisos", etiqueta: "Perfiles y permisos", icono: ShieldCheck, permiso: "permiso:gestionar" },
-      { href: "/admin/configuracion", etiqueta: "Configuración", icono: Settings, permiso: "configuracion:gestionar" },
+      { href: "/admin/configuracion", etiqueta: "Configuración", icono: Settings, permiso: "configuracion:gestionar", permisoAlterno: "tarifa:gestionar" },
       { href: "/admin/sistema", etiqueta: "Estado del sistema", icono: Activity, permiso: "configuracion:gestionar" },
     ],
   },
@@ -83,7 +84,7 @@ export function filtrarNavegacion(
   return grupos
     .map((grupo) => ({
       ...grupo,
-      items: grupo.items.filter((item) => concedidos.has(item.permiso)),
+      items: grupo.items.filter((item) => concedidos.has(item.permiso) || (item.permisoAlterno && concedidos.has(item.permisoAlterno))),
     }))
     .filter((grupo) => grupo.items.length > 0);
 }

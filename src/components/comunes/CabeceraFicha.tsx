@@ -23,7 +23,7 @@ export function CabeceraFicha({ titulo, marca, meta, acciones, volver, className
     <div className={cn("mb-6 space-y-3", className)}>
       {volver ? (
         <Link href={volver.href}
-          className="-ml-1 inline-flex items-center gap-1 rounded-md px-1 text-sm text-slate-500 transition-colors duration-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+          className="-ml-1 inline-flex items-center gap-1 rounded-md px-1 text-sm text-muted-foreground transition-colors duration-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
           <ChevronLeft aria-hidden="true" className="size-4" />
           {volver.etiqueta}
         </Link>
@@ -33,7 +33,7 @@ export function CabeceraFicha({ titulo, marca, meta, acciones, volver, className
           {marca ? <div className="shrink-0">{marca}</div> : null}
           <div className="min-w-0 space-y-1.5">
             <h1 className="text-2xl font-semibold tracking-tight break-words text-foreground">{titulo}</h1>
-            {meta ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-slate-500">{meta}</div> : null}
+            {meta ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">{meta}</div> : null}
           </div>
         </div>
         {acciones ? <div className="flex flex-wrap items-center gap-2">{acciones}</div> : null}

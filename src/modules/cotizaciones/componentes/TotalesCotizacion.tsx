@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { formatearPorcentaje } from "@/lib/formato";
 import { monedaDe } from "../moneda";
 
-type PropiedadesTotales = { totales: Totales & { descuentoPct?: string | null }; moneda?: string; mostrarMargen?: boolean };
+type PropiedadesTotales = { totales: Totales & { descuentoPct?: string | null; instalacion?: { total: string } };
+  moneda?: string; mostrarMargen?: boolean };
 
 /** El descuento siempre se muestra como monto; con porcentaje guardado se agrega junto a la etiqueta. */
 export function TotalesCotizacion({ totales, moneda, mostrarMargen = true }: PropiedadesTotales) {
@@ -14,7 +15,9 @@ export function TotalesCotizacion({ totales, moneda, mostrarMargen = true }: Pro
     <dl className="space-y-3 text-sm">
       <div className="flex justify-between gap-4"><dt>Subtotal</dt><dd><Money valor={totales.subtotal} moneda={monedaTotales} /></dd></div>
       <div className="flex justify-between gap-4"><dt>{etiquetaDescuento}</dt><dd><Money valor={totales.descuento} moneda={monedaTotales} /></dd></div>
-      <div className="flex justify-between gap-4"><dt>IVA ({totales.tasaImpuesto} %)</dt><dd><Money valor={totales.impuesto} moneda={monedaTotales} /></dd></div>
+      {Number(totales.impuesto) !== 0 ? <div className="flex justify-between gap-4"><dt>Cargo histórico</dt><dd><Money valor={totales.impuesto} moneda={monedaTotales} /></dd></div> : null}
+      {totales.instalacion && Number(totales.instalacion.total) > 0 ? <div className="flex justify-between gap-4"><dt>Instalación interna</dt>
+        <dd><Money valor={totales.instalacion.total} moneda={monedaTotales} /></dd></div> : null}
       <div className="flex justify-between gap-4 border-t pt-3 text-xl font-semibold"><dt>Total</dt><dd><Money valor={totales.total} moneda={monedaTotales} /></dd></div>
       {mostrarMargen ? <div className="flex justify-between gap-4"><dt>Margen de ítems personalizados</dt>
         <dd>{totales.margenPct === null ? "—" : `${totales.margenPct} %`}</dd></div> : null}

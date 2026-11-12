@@ -14,6 +14,7 @@ import type { EtapaOrdenDto, OrdenDto, ReferenciaOrden } from "../tipos";
 const columnas: ColumnaTabla<EtapaOrdenDto>[] = [
   { id: "nombre", encabezado: "Etapa y área", principal: true, celda: (etapa) => <div className="space-y-1">
     <p className="font-medium">{etapa.secuencia}. {etapa.nombre}</p><p className="text-xs text-muted-foreground">{etapa.area.nombre}</p>
+    {etapa.instrucciones ? <p className="whitespace-pre-wrap text-sm">{etapa.instrucciones}</p> : null}
     {etapa.observaciones ? <p className="text-xs">{etapa.observaciones}</p> : null}</div> },
   { id: "estado", encabezado: "Estado y responsable", celda: (etapa) => <div className="space-y-2">
     <EstadoBadge tipo="etapa" estado={etapa.estado} /><p className="text-xs">{etapa.responsable?.nombre ?? "Sin responsable"}</p></div> },
@@ -77,9 +78,11 @@ function useFocoEtapas() {
   return { seccion, estado, registrarAccion };
 }
 
-export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables = [] }: {
+export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables = [], ejecutables }: {
   etapas: EtapaOrdenDto[]; orden?: Pick<OrdenDto, "id" | "estado" | "actualizadoEn" | "etapas">;
   permisos?: PermisosEtapas; areas?: ReferenciaOrden[]; responsables?: ReferenciaOrden[];
+  /** Etapas que este usuario puede marcar como hechas; sin valor, decide solo el permiso. */
+  ejecutables?: string[];
 }) {
   const { seccion, estado, registrarAccion } = useFocoEtapas();
   // "Marcar lista" vive en el encabezado de la ficha (siguiente paso) mientras la orden está en producción.
@@ -93,7 +96,8 @@ export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables 
           permisos={{ ...permisos, avanzar: permisos.avanzar && orden.estado !== "EN_PRODUCCION" }} /></div> : null}
       <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
         acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
-          permisos={permisos} responsables={responsables} /> : undefined}
+          permisos={{ ...permisos, ejecutar: permisos.ejecutar && (!ejecutables || ejecutables.includes(etapa.id)) }}
+          responsables={responsables} /> : undefined}
         apilarEnMovil
         className="min-w-0 rounded-none border-0 shadow-none md:[&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] md:[&_th]:px-2 md:[&_td]:px-2" />
     </TarjetaSeccion>

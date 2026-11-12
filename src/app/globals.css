@@ -3,20 +3,23 @@
 
 /* Tokens del sistema de diseño. Fuente única: ver docs/diseno.md */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+  --background: #f8f7fa;
+  --foreground: #2d2022;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: var(--foreground);
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: var(--foreground);
 
-  --primary: #1f2a6b;
-  --primary-hover: #161f52;
+  --primary: #2d264f;
+  --primary-hover: #403563;
   --primary-foreground: #ffffff;
-  --primary-soft: #f1f5f9;
-  --primary-soft-border: #cbd5e1;
-  /* Dorado de la marca: acento puntual (indicador del menú). No sustituye al color principal. */
-  --brand-gold: #c9962f;
+  --primary-soft: #eeebf5;
+  --primary-soft-border: #d7d0e5;
+  --brand-gold: #f3a320;
+  --brand-indigo: #2d264f;
+  --brand-charcoal: #2d2022;
+  --brand-gray: #a4a3a3;
 
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -30,7 +33,7 @@
   --border-subtle: #f1f5f9;
   /* Borde de controles: 4.76:1 sobre blanco (WCAG 1.4.11 exige 3:1) */
   --input: #64748b;
-  --ring: #1f2a6b;
+  --ring: #2d264f;
 
   /* Estados: fondo desaturado y texto de alto contraste (emerald, amber, rose y blue 700). */
   --success: #047857;
@@ -55,7 +58,7 @@
   --destructive-foreground: #ffffff;
 
   /* Menú lateral gris claro: el ítem activo resalta como pastilla blanca elevada (estilo Mise). */
-  --sidebar: #f1f5f9;
+  --sidebar: #f0edf5;
   --sidebar-foreground: #0f172a;
   --sidebar-border: #e2e8f0;
 
@@ -63,6 +66,81 @@
   --altura-barra-superior: 3.5rem;
   --ancho-menu: 16rem;
   --ancho-riel: 4rem;
+}
+
+@media screen {
+  :root[data-tema="oscuro"] {
+    color-scheme: dark;
+    --background: #181625;
+    --foreground: #f5f2fb;
+    --card: #242036;
+    --card-foreground: var(--foreground);
+    --popover: #29243e;
+    --popover-foreground: var(--foreground);
+    --primary: #f3a320;
+    --primary-hover: #ffb847;
+    --primary-foreground: #2d2022;
+    --primary-soft: #382e4f;
+    --primary-soft-border: #675780;
+    --secondary: #342d47;
+    --secondary-foreground: var(--foreground);
+    --muted: #2e2940;
+    --muted-foreground: #c4bbd3;
+    --accent: #3c3354;
+    --accent-foreground: var(--foreground);
+    --border: #504761;
+    --border-subtle: #393149;
+    --input: #887a9a;
+    --ring: #ffb847;
+    --success: #80e3b8;
+    --success-soft: #18372d;
+    --success-soft-border: #356c56;
+    --warning: #ffce79;
+    --warning-soft: #402e20;
+    --warning-soft-border: #78572d;
+    --danger: #ff9fae;
+    --danger-soft: #492539;
+    --danger-soft-border: #825063;
+    --info: #aec6ff;
+    --info-soft: #262f51;
+    --info-soft-border: #505f8d;
+    --neutral-strong: #e6ddf2;
+    --neutral-strong-foreground: #251f31;
+    --chart-series: #b6a8c9;
+    --chart-series-border: #9d8cab;
+    --destructive: #ac2749;
+    --sidebar: #201b31;
+    --sidebar-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+
+    --color-slate-50: #242036;
+    --color-slate-100: #312941;
+    --color-slate-200: #504761;
+    --color-slate-300: #a59ab4;
+    --color-slate-400: #aea1bd;
+    --color-slate-500: #c4bbd3;
+    --color-slate-600: #d1c8df;
+    --color-slate-700: #ddd4eb;
+    --color-slate-800: #eee7f6;
+    --color-slate-900: #f5f2fb;
+    --color-indigo-50: var(--primary-soft);
+    --color-indigo-100: var(--primary-soft-border);
+    --color-indigo-700: #d8c9ff;
+    --color-blue-50: var(--info-soft);
+    --color-blue-100: var(--info-soft-border);
+    --color-blue-700: var(--info);
+    --color-emerald-50: var(--success-soft);
+    --color-emerald-100: var(--success-soft-border);
+    --color-emerald-700: var(--success);
+    --color-amber-50: var(--warning-soft);
+    --color-amber-100: var(--warning-soft-border);
+    --color-amber-700: var(--warning);
+    --color-amber-800: var(--warning);
+    --color-rose-50: var(--danger-soft);
+    --color-rose-100: var(--danger-soft-border);
+    --color-rose-700: var(--danger);
+    --color-rose-800: var(--danger);
+  }
 }
 
 
@@ -81,6 +159,9 @@
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-border: var(--primary-soft-border);
   --color-brand-gold: var(--brand-gold);
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-gray: var(--brand-gray);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -213,35 +294,6 @@ details[open] > summary::after {
   transform: translateY(20%) rotate(-135deg);
 }
 
-/* Cascada del panel del login: los puntos blancos bajan hacia la esquina inferior izquierda. */
-@keyframes cascada-puntos {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -20px 20px;
-  }
-}
-@keyframes cascada-puntos-grandes {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -48px 48px;
-  }
-}
-.cascada-puntos {
-  background-image: radial-gradient(circle, rgb(255 255 255 / 0.5) 1px, transparent 1.5px);
-  background-size: 20px 20px;
-  animation: cascada-puntos 2.4s linear infinite;
-}
-.cascada-puntos-grandes {
-  background-image: radial-gradient(circle, rgb(255 255 255 / 0.35) 1.5px, transparent 2.5px);
-  background-size: 48px 48px;
-  background-position: 10px 14px;
-  animation: cascada-puntos-grandes 5s linear infinite;
-}
-
 /*
  * Movimiento de la interfaz. Solo opacity y transform (sin reflujo).
  * Interfaz: 100 a 200 ms. Datos (conteo, barras, anillos): hasta 500 ms.
@@ -255,7 +307,6 @@ details[open] > summary::after {
 }
 @keyframes entrada-fila {
   from {
-    opacity: 0;
     transform: translateY(3px);
   }
 }

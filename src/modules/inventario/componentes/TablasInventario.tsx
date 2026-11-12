@@ -1,5 +1,6 @@
 import { Boxes } from "lucide-react";
 import Link from "next/link";
+import { nombreAreaMaterial } from "@/core/areas-material";
 import { ETIQUETA_MOVIMIENTO, etiquetar } from "../etiquetas";
 import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
@@ -58,7 +59,7 @@ export function ExistenciaMaterial({ material }: { material: Pick<MaterialDto, "
 const columnasMaterial: ColumnaTabla<MaterialDto>[] = [
   { id: "material", encabezado: "Material", celda: (fila) => <div className="min-w-0">
     <Link className={ENLACE_FILA} href={`/inventario/${fila.id}`}>{fila.nombre}</Link>
-    <p className="truncate text-xs text-muted-foreground" title={`${fila.codigo} · ${nombreUnidad(fila.unidad)}`}>{fila.codigo} · {nombreUnidad(fila.unidad)}</p></div> },
+    <p className="text-xs text-muted-foreground">{fila.codigo} · {nombreUnidad(fila.unidad)} · {nombreAreaMaterial(fila.areaProduccion)}</p></div> },
   { id: "existencia", encabezado: "Existencia frente al mínimo", celda: (fila) => <ExistenciaMaterial material={fila} /> },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoListaMaterial material={fila} /> },
 ];

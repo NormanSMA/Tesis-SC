@@ -63,10 +63,11 @@ describeConBase("órdenes: orden, conteos y avance de lista", () => {
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 
-  function consultar(filtros: Partial<ConsultaOrdenes> = {}) {
+  function consultar(filtros: Partial<ConsultaOrdenes> = {}, actor = entorno.sesiones.OPERACIONES.actor) {
     return entorno.ordenes.modulos.servicio.listarOrdenes(esquemaConsultaOrdenes.parse({ cliente: clienteId, ...filtros,
       orden: filtros.orden ? `${filtros.orden.campo}:${filtros.orden.direccion}` : undefined }),
-      entorno.sesiones.PRODUCCION.actor);
+      // Operaciones ve todas las órdenes: estas pruebas cubren orden y conteos, no el alcance de Producción.
+      actor);
   }
 
   function valorOrden(orden: OrdenTrabajo, campo: CampoOrdenOrdenes): string {
@@ -143,8 +144,10 @@ describeConBase("órdenes: orden, conteos y avance de lista", () => {
     }
   });
 
-  it("busca el asunto con los mismos conteos que el cliente", async () => {
-    expect((await consultar({ q: "Prueba panel" })).conteos).toEqual(esperados);
+  it("omite el asunto de la cotización en la búsqueda y los conteos de Producción", async () => {
+    const lista = await consultar({ q: "Prueba panel" }, entorno.sesiones.PRODUCCION.actor);
+    expect(lista.total).toBe(0);
+    expect(Object.values(lista.conteos).every((cantidad) => cantidad === 0)).toBe(true);
   });
 
   it.each(["estado:asc", "cliente:arriba", "numero:desc:extra", "numero;DROP TABLE:asc"])(

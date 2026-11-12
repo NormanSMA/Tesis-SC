@@ -35,7 +35,7 @@ Reserve gestión de catálogo para Operaciones y gestión de cotizaciones para A
 
 ## Catálogo
 Productos (`producto`): código único, nombre, descripción, categoría, unidad de cobro (UNIDAD o M2), precio base, activo.
-Recetas (`receta_producto`): materiales por unidad de cobro. Opcionales.
+Materiales del producto (`receta_producto`; en la interfaz, "Materiales del producto" desde el 2026-11-11): materiales por unidad de cobro. Opcionales.
 Categorías (`categoria`): nombre único, descripción, activo.
 Reglas:
 1. Un producto archivado no se puede agregar a una cotización nueva ni editada. Las cotizaciones existentes lo conservan.

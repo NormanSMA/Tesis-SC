@@ -57,7 +57,7 @@ const cotizacion = { id, numero: "C-01", moneda: "NIO", tipoCambio: "1", actuali
   items: [], descuento: "0", descuentoPct: null, tasaImpuesto: "15" } as unknown as CotizacionDto;
 const selectores: SelectoresEditor = { productos: [{ id, codigo: "P-01", nombre: "Producto", categoriaId: id,
   categoria: "Categoría", unidadCobro: "UNIDAD", precioBase: "10" }], materiales: [], categorias: [{ id, nombre: "Categoría" }] };
-const locales = new Set(["EditorItems", "CamposItems", "EditorItem", "ItemConFormulario", "ContenidoItem",
+const locales = new Set(["EditorItems", "CamposItems", "CamposPartidas", "EditorItem", "ItemConFormulario", "ContenidoItem",
   "LineasItem", "PieEditor", "PieTotales", "EditorLinea"]);
 let raiz: ReactNode;
 const hojas: ReactElement<Record<string, unknown>>[] = [];

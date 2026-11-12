@@ -39,6 +39,7 @@ describeConBase("cotizaciones: bitácora reconstruible y transacciones", () => {
         asunto: { anterior: inicial.asunto, nuevo: editada.asunto },
         condiciones: { anterior: inicial.condiciones, nuevo: editada.condiciones },
         descuento: { anterior: inicial.descuento, nuevo: editada.descuento },
+        descuentoManual: { anterior: false, nuevo: true },
         vigenciaDias: { anterior: inicial.vigenciaDias, nuevo: editada.vigenciaDias },
       },
       totales: { anterior: totales(inicial), nuevo: totales(editada) },

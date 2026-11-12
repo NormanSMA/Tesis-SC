@@ -24,8 +24,6 @@ export const CAMPOS_EDITABLES = [
 ] as const;
 export type CampoEditable = (typeof CAMPOS_EDITABLES)[number];
 
-export const MENSAJE_SIN_CONTACTO = "Indique un teléfono o un correo electrónico.";
-
 function recortar(valor: string | null | undefined): string | null | undefined {
   if (valor === undefined || valor === null) return valor;
   const limpio = valor.trim();
@@ -97,12 +95,6 @@ function textoAlEditar(campo: keyof typeof reglasTexto) {
     .pipe(reglasTexto[campo].optional());
 }
 
-type DatosContacto = { telefono?: string | null; correo?: string | null };
-
-export function tieneMedioContacto({ telefono, correo }: DatosContacto): boolean {
-  return Boolean(telefono) || Boolean(correo);
-}
-
 export const esquemaCrearCliente = z
   .object({
     nombre,
@@ -113,12 +105,6 @@ export const esquemaCrearCliente = z
     correo: textoAlCrear("correo"),
     direccion: textoAlCrear("direccion"),
     notas: textoAlCrear("notas"),
-  })
-  .superRefine((valor, contexto) => {
-    if (tieneMedioContacto(valor)) return;
-    for (const campo of ["telefono", "correo"] as const) {
-      contexto.addIssue({ code: "custom", path: [campo], message: MENSAJE_SIN_CONTACTO });
-    }
   });
 
 export type EntradaCrearCliente = z.output<typeof esquemaCrearCliente>;

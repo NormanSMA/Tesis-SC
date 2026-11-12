@@ -27,8 +27,12 @@ function registroEvento(evento: EventoGuardado, referencias: Referencias, actor:
 
 export function aEventoDto(datos: { evento: EventoGuardado; actor: Actor; referencias: Referencias }) {
   const { evento, actor, referencias } = datos;
+  const verCotizacion = can(actor, "cotizacion:ver");
+  const verConsumo = can(actor, "inventario:ver");
   const detalle = filtrarDetalle(evento.accion, evento.detalle,
-    { dinero: can(actor, "cotizacion:ver"), cliente: can(actor, "cliente:ver"), nombres: referencias.nombres });
+    { dinero: verCotizacion, cliente: can(actor, "cliente:ver"), consumo: verConsumo, nombres: referencias.nombres });
+  if (!verCotizacion) delete detalle.cotizacionNumero;
+  if (!verConsumo) delete detalle.advertencias;
   return { id: evento.id, entidadId: evento.entidadId, entidad: ENTIDAD_TEXTO[evento.entidad], accion: ACCION_TEXTO[evento.accion],
     usuario: { id: evento.usuario.id, nombre: evento.usuario.nombre }, creadoEn: evento.creadoEn.toISOString(),
     estadoAnterior: textoEstado(evento.estadoAnterior), estadoNuevo: textoEstado(evento.estadoNuevo),
@@ -42,13 +46,12 @@ export function aCadenaDto(orden: CadenaGuardada, actor: Actor, historial?: Hist
     cliente: { id: cliente.id, nombre: cliente.nombre, tipo: textoValor(cliente.tipo), contactoPrincipal: cliente.contactoPrincipal,
       telefono: cliente.telefono, correo: cliente.correo, href: can(actor, "cliente:ver") ? `/clientes/${cliente.id}` : null,
       ...(can(actor, "cliente:ver") ? { ruc: cliente.ruc, direccion: cliente.direccion } : {}) },
-    cotizacion: { id: cotizacion.id, numero: cotizacion.numero, asunto: cotizacion.asunto, estado: textoEstado(cotizacion.estado),
+    cotizacion: can(actor, "cotizacion:ver") ? { id: cotizacion.id, numero: cotizacion.numero, asunto: cotizacion.asunto, estado: textoEstado(cotizacion.estado),
       creadoEn: cotizacion.creadoEn.toISOString(), fechaEmision: cotizacion.fechaEmision?.toISOString().slice(0, 10) ?? null,
       fechaVencimiento: cotizacion.fechaVencimiento?.toISOString().slice(0, 10) ?? null,
       fechaRespuesta: cotizacion.fechaRespuesta?.toISOString() ?? null,
-      href: can(actor, "cotizacion:ver") ? `/cotizaciones/${cotizacion.id}` : null,
-      ...(can(actor, "cotizacion:ver") ? { moneda: cotizacion.moneda, subtotal: cotizacion.subtotal.toFixed(2), descuento: cotizacion.descuento.toFixed(2),
-        impuesto: cotizacion.impuesto.toFixed(2), total: cotizacion.total.toFixed(2) } : {}) },
+      href: `/cotizaciones/${cotizacion.id}`, moneda: cotizacion.moneda, subtotal: cotizacion.subtotal.toFixed(2),
+      descuento: cotizacion.descuento.toFixed(2), impuesto: cotizacion.impuesto.toFixed(2), total: cotizacion.total.toFixed(2) } : null,
     orden: { id: orden.id, numero: orden.numero, estado: textoEstado(orden.estado), responsable: orden.responsable,
       especificaciones: orden.especificaciones, fechaEntrega: orden.fechaEntrega.toISOString().slice(0, 10),
       creadoEn: orden.creadoEn.toISOString(), fechaInicioReal: orden.fechaInicioReal?.toISOString() ?? null,

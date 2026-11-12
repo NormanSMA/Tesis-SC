@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST as iniciarSesion } from "@/app/api/v1/auth/login/route";
 import { GET, PATCH } from "@/app/api/v1/configuracion/route";
-import { PERFILES, PERMISOS_POR_PERFIL, type PerfilCodigo } from "@/core/permisos";
+import { PERFILES, type PerfilCodigo } from "@/core/permisos";
 import type { TipoValorConfig } from "@/generated/prisma/client";
 import { hashearContrasena } from "@/lib/auth/password";
 import { obtenerSesionDeRequest } from "@/lib/auth/sesion";
@@ -35,17 +35,6 @@ async function crearSesionPerfil(codigo: PerfilCodigo) {
   const contrasena = "ClavePruebasAdministracion2026";
   const definicion = PERFILES.find((perfil) => perfil.codigo === codigo)!;
   const perfil = await prisma.perfil.upsert({ where: { codigo }, create: definicion, update: {} });
-  const permisos = codigo === "ADMIN" ? PERMISOS_POR_PERFIL.ADMIN : [];
-  for (const permisoCodigo of permisos) {
-    const [recurso, accion] = permisoCodigo.split(":");
-    const permiso = await prisma.permiso.upsert({
-      where: { recurso_accion: { recurso, accion } }, create: { recurso, accion }, update: {},
-    });
-    await prisma.perfilPermiso.upsert({
-      where: { perfilId_permisoId: { perfilId: perfil.id, permisoId: permiso.id } },
-      create: { perfilId: perfil.id, permisoId: permiso.id }, update: {},
-    });
-  }
   const usuario = await prisma.usuario.create({
     data: {
       nombre: `Prueba ${codigo}`, correo: `${randomUUID()}@configuracion.test`,
@@ -99,11 +88,24 @@ describe("API de configuración", () => {
     }))));
   });
 
-  it.each(PERFILES.filter(({ codigo }) => codigo !== "ADMIN"))("rechaza GET y PATCH de $codigo", async ({ codigo }) => {
+  it.each(PERFILES.filter(({ codigo }) => !["ADMIN", "GERENCIA", "ADMINISTRACION"].includes(codigo)))("rechaza GET y PATCH de $codigo", async ({ codigo }) => {
     const { cookie } = await crearSesionPerfil(codigo);
     expect((await GET(solicitud({ cookie }))).status).toBe(403);
     expect((await editar({ clave: "iva_porcentaje", valor: "10", version: await versionDe("iva_porcentaje"), cookie })).status)
       .toBe(403);
+  });
+
+  it("Gerencia gestiona la configuración general y Administración tiene acceso a las tarifas", async () => {
+    const gerencia = await crearSesionPerfil("GERENCIA");
+    const administracion = await crearSesionPerfil("ADMINISTRACION");
+    expect((await GET(solicitud({ cookie: gerencia.cookie }))).status).toBe(200);
+    const respuesta = await GET(solicitud({ cookie: administracion.cookie }));
+    expect(respuesta.status).toBe(200);
+    const { datos } = await respuesta.json();
+    expect(datos.map(({ clave }: { clave: string }) => clave)).not.toContain("empresa_nombre");
+    const version = await versionDe("empresa_nombre");
+    expect((await editar({ clave: "empresa_nombre", valor: "Soluciones Creativas SC", version, cookie: administracion.cookie })).status).toBe(403);
+    expect((await editar({ clave: "empresa_nombre", valor: "Soluciones Creativas SC", version, cookie: gerencia.cookie })).status).toBe(200);
   });
 
   it.each([

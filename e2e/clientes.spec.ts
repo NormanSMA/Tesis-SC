@@ -184,14 +184,22 @@ test.describe("Atención al cliente gestiona clientes", () => {
     await expect(page.locator("#nombre")).toBeFocused();
     await expect(page.locator("#nombre")).toHaveAttribute("aria-invalid", "true");
     await expect(page.locator("#nombre-error")).toContainText("Ingrese el nombre del cliente.");
-    await expect(page.locator("#telefono-error")).toContainText("Indique un teléfono o un correo electrónico.");
-    await expect(page.locator("#correo")).toHaveAttribute("aria-describedby", /correo-error/);
+    await expect(page.locator("#telefono-error")).toHaveCount(0);
 
     await page.locator("#nombre").fill(nombreE2E());
     await page.locator("#correo").fill("no-es-correo");
     await page.getByRole("button", { name: "Guardar cliente" }).click();
     await expect(page.locator("#correo")).toBeFocused();
+    await expect(page.locator("#correo")).toHaveAttribute("aria-describedby", /correo-error/);
     await expect(page.locator("#correo-error")).toContainText("correo electrónico válido");
+
+    await page.locator("#tipo").selectOption("PERSONA");
+    await expect(page.locator("#ruc")).toHaveCount(0);
+    await page.locator("#correo").clear();
+    await page.getByRole("button", { name: "Guardar cliente" }).click();
+    await expect(page).toHaveURL(/\/clientes\/[a-f0-9-]{36}$/);
+    await page.getByRole("link", { name: "Editar", exact: true }).click();
+    await expect(page.locator("#ruc")).toHaveCount(0);
   });
 
   test("un RUC repetido se señala en el campo RUC", async ({ page }, info) => {
@@ -250,21 +258,20 @@ test.describe("Atención al cliente gestiona clientes", () => {
   });
 });
 
-test.describe("Gerencia y Operaciones consultan sin modificar", () => {
-  for (const perfil of [GERENCIA, OPERACIONES]) {
-    test(`${perfil.codigo} ve la lista y la ficha sin botones de gestión`, async ({ page }, info) => {
+test.describe("Permisos de consulta y gestión de clientes", () => {
+  for (const perfil of [GERENCIA, ADMINISTRACION, OPERACIONES]) {
+    test(`${perfil.codigo} ve las acciones permitidas en la lista y la ficha`, async ({ page }, info) => {
       soloUnaVez(info.project.name);
       await entrarComo(page, perfil);
       await page.goto("/clientes");
       await expect(page.getByRole("heading", { level: 1, name: "Clientes" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Nuevo cliente" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Nuevo cliente" })).toBeVisible();
 
       await abrirFichaSembrada(page);
       await expect(page.getByText(/CLI-\d{4}/).first()).toBeVisible();
-      await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: /Archivar|Reactivar/ })).toHaveCount(0);
-      await expect(page.getByRole("link", { name: "Nueva cotización" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Nueva cotización" })).toHaveCount(0);
+      const puedeGestionar = perfil.codigo !== "OPERACIONES";
+      await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(puedeGestionar ? 1 : 0);
+      await expect(page.getByRole("button", { name: /Archivar|Reactivar/ })).toHaveCount(puedeGestionar ? 1 : 0);
       await abrirPestana(page, "Cotizaciones");
       await expect(page.getByRole("tabpanel")).toContainText(/COT-/);
       await abrirPestana(page, "Trabajos");
@@ -272,11 +279,11 @@ test.describe("Gerencia y Operaciones consultan sin modificar", () => {
     });
   }
 
-  test("las rutas de gestión redirigen a sin-acceso y la API responde 403", async ({ page }, info) => {
+  test("Operaciones abre el alta, pero la edición redirige y la API responde 403", async ({ page }, info) => {
     soloUnaVez(info.project.name);
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, OPERACIONES);
     await page.goto("/clientes/nuevo");
-    await expect(page).toHaveURL(/\/sin-acceso$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Nuevo cliente" })).toBeVisible();
 
     await abrirFichaSembrada(page);
     const id = new URL(page.url()).pathname.split("/").pop();
@@ -291,19 +298,15 @@ test.describe("Gerencia y Operaciones consultan sin modificar", () => {
   });
 });
 
-test.describe("Producción y Administración no ven el módulo", () => {
-  for (const perfil of [PRODUCCION, ADMINISTRACION]) {
-    test(`${perfil.codigo} termina en sin-acceso al abrir clientes`, async ({ page }, info) => {
-      soloUnaVez(info.project.name);
-      await entrarComo(page, perfil);
-      for (const ruta of ["/clientes", "/clientes/nuevo"]) {
-        await page.goto(ruta);
-        await expect(page).toHaveURL(/\/sin-acceso$/);
-        await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
-      }
-      expect((await page.request.get("/api/v1/clientes")).status()).toBe(403);
-    });
+test("Producción termina en sin-acceso al abrir clientes", async ({ page }, info) => {
+  soloUnaVez(info.project.name);
+  await entrarComo(page, PRODUCCION);
+  for (const ruta of ["/clientes", "/clientes/nuevo"]) {
+    await page.goto(ruta);
+    await expect(page).toHaveURL(/\/sin-acceso$/);
+    await expect(page.getByText("No tiene permiso para ver esta sección")).toBeVisible();
   }
+  expect((await page.request.get("/api/v1/clientes")).status()).toBe(403);
 });
 
 test.describe("Accesibilidad (axe) y adaptabilidad", () => {
@@ -315,6 +318,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
       await entrarComo(page, ATENCION_CLIENTE);
 
       await page.goto("/clientes");
+      await page.getByRole("searchbox", { name: "Buscar clientes" }).fill("a");
       await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
       expect(await violacionesGraves(page), "lista").toEqual([]);
 
@@ -336,6 +340,7 @@ test.describe("Accesibilidad (axe) y adaptabilidad", () => {
   test("lista y ficha no desbordan en horizontal", async ({ page }) => {
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/clientes");
+    await page.getByLabel("Buscar clientes", { exact: true }).fill("a");
     await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
     await sinDesbordeHorizontal(page);
     await abrirFichaSembrada(page);

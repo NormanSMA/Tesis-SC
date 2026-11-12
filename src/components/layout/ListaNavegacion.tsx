@@ -38,7 +38,7 @@ function Contador({ contador, expandido, compacto }: { contador: ContadorMenu; e
   return (
     <>
       <span aria-hidden="true" className={cn("ml-auto min-w-6 justify-center rounded-md px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
-        peligro ? "bg-danger text-white" : "border border-slate-200 bg-white text-slate-600",
+        peligro ? "bg-danger-soft text-danger" : "border border-slate-200 bg-card text-slate-600",
         soloConEtiquetas(expandido, compacto) ?? "inline-flex")}>
         {contador.total > 99 ? "99+" : contador.total}
       </span>

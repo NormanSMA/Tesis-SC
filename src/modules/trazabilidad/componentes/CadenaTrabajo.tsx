@@ -10,22 +10,23 @@ function Registro({ nombre, href }: { nombre: string; href: string | null }) {
   return href ? <Link href={href} className="text-primary underline">{nombre}</Link> : <span>{nombre}</span>;
 }
 export function CadenaTrabajo({ cadena }: { cadena: TrazabilidadOrden["cadena"] }) {
-  return <section aria-label="Cadena vinculada" className="grid min-w-0 gap-4 xl:grid-cols-3">
+  const { cotizacion } = cadena;
+  return <section aria-label="Cadena vinculada" className={`grid min-w-0 gap-4 ${cotizacion ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
     <TarjetaSeccion titulo="Cliente"><ListaDatos className="xl:grid-cols-1" datos={[
       dato("Nombre", <Registro nombre={cadena.cliente.nombre} href={cadena.cliente.href} />),
       dato("Tipo", cadena.cliente.tipo), dato("Contacto", cadena.cliente.contactoPrincipal),
       dato("Teléfono", cadena.cliente.telefono), dato("Correo", cadena.cliente.correo),
       ...("ruc" in cadena.cliente ? [dato("RUC", cadena.cliente.ruc), dato("Dirección", cadena.cliente.direccion)] : []),
     ]} /></TarjetaSeccion>
-    <TarjetaSeccion titulo="Cotización"><ListaDatos className="xl:grid-cols-1" datos={[
-      dato("Número", <Registro nombre={cadena.cotizacion.numero} href={cadena.cotizacion.href} />),
-      dato("Asunto", cadena.cotizacion.asunto), dato("Estado", cadena.cotizacion.estado),
-      dato("Creación", formatearFechaHora(cadena.cotizacion.creadoEn)),
-      dato("Emisión", formatearFecha(cadena.cotizacion.fechaEmision)),
-      dato("Vencimiento", formatearFecha(cadena.cotizacion.fechaVencimiento)),
-      dato("Respuesta", formatearFechaHora(cadena.cotizacion.fechaRespuesta)),
-      ...("total" in cadena.cotizacion ? [dato("Total", formatearMoneda(cadena.cotizacion.total, monedaDe(cadena.cotizacion.moneda)))] : []),
-    ]} /></TarjetaSeccion>
+    {cotizacion ? <TarjetaSeccion titulo="Cotización"><ListaDatos className="xl:grid-cols-1" datos={[
+      dato("Número", <Registro nombre={cotizacion.numero} href={cotizacion.href} />),
+      dato("Asunto", cotizacion.asunto), dato("Estado", cotizacion.estado),
+      dato("Creación", formatearFechaHora(cotizacion.creadoEn)),
+      dato("Emisión", formatearFecha(cotizacion.fechaEmision)),
+      dato("Vencimiento", formatearFecha(cotizacion.fechaVencimiento)),
+      dato("Respuesta", formatearFechaHora(cotizacion.fechaRespuesta)),
+      dato("Total", formatearMoneda(cotizacion.total, monedaDe(cotizacion.moneda))),
+    ]} /></TarjetaSeccion> : null}
     <TarjetaSeccion titulo="Orden de trabajo"><ListaDatos className="xl:grid-cols-1" datos={[
       dato("Número", <Link href={`/ordenes/${cadena.orden.id}`} className="text-primary underline">{cadena.orden.numero}</Link>),
       dato("Estado", cadena.orden.estado), dato("Responsable", cadena.orden.responsable?.nombre ?? "Sin responsable"),

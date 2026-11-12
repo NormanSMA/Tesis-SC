@@ -27,11 +27,14 @@ function registrarTrazabilidad() {
       .rejects.toMatchObject({ status: 403 });
     const etapas = await entorno.servicio.obtenerEtapasOrden(orden.id, entorno.actor);
     expect(ficha.cliente.id).toBe(entorno.ordenes.cotizaciones.referencias.cliente.id);
-    expect(ficha.cotizacion.id).toBe(orden.cotizacion.id);
+    expect(ficha).not.toHaveProperty("cotizacion");
+    const comercial = await leerOrden(entorno.ordenes, orden.id, "ADMINISTRACION");
+    expect(comercial.cotizacion?.id).toBe(orden.cotizacion.id);
     expect(etapas[0].estado).toBe("COMPLETADA");
     expect(resumen.materiales.find((fila) => fila.material.id === materialId)?.neto).toBe("2.000");
     expect(resumen.movimientos[0].id).toBe(respuesta.movimientos[0].id);
-    expect(ficha.eventos.filter((evento) => evento.entidad === "MOVIMIENTO_INVENTARIO")).toHaveLength(1);
+    expect(ficha.eventos.some((evento) => evento.entidad === "MOVIMIENTO_INVENTARIO")).toBe(false);
+    expect(comercial.eventos.filter((evento) => evento.entidad === "MOVIMIENTO_INVENTARIO")).toHaveLength(1);
     expect(ficha.eventos.some((evento) => evento.accion === "CONVERTIR_EN_ORDEN")).toBe(true);
     expect(JSON.stringify(ficha)).not.toMatch(/precioUnitario|costoUnitario|subtotal|costoTotal/);
     expect(resumen.movimientos[0]).toHaveProperty("costoUnitario");
@@ -44,11 +47,11 @@ function registrarAgrupacion() {
     const primera = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn,
       responsableId: entorno.actor.id, fechaFinPlan: diaRelativo(-30) }, entorno.planificador);
     const tablero = await entorno.servicio.obtenerTablero({ q: orden.numero }, entorno.actor);
-    expect(tablero.datos).toHaveLength(2);
+    expect(tablero.datos).toHaveLength(1);
     expect(tablero.datos.find((fila) => fila.id === primera.id)?.atrasada).toBe(true);
-    expect(tablero.porArea[0].etapas).toHaveLength(2);
+    expect(tablero.porArea[0].etapas).toHaveLength(1);
     expect(tablero.porResponsable.find((grupo) => grupo.id === entorno.actor.id)?.etapas[0].id).toBe(primera.id);
-    expect(tablero.porResponsable.find((grupo) => grupo.id === null)?.nombre).toBe("Sin responsable");
+    expect(tablero.porResponsable.find((grupo) => grupo.id === null)).toBeUndefined();
   });
 }
 
@@ -67,6 +70,7 @@ function registrarFiltros() {
 function registrarVisibilidad() {
   it("tablero nunca muestra dinero para ningún perfil autorizado", async () => {
     const orden = await nuevaOrden(entorno);
+    await asignarEtapa(entorno, orden.etapas[0]);
     for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const) {
       if (perfil === "ADMIN") {
         await expect(entorno.servicio.obtenerTablero({ q: orden.numero }, entorno.ordenes.sesiones[perfil].actor))
@@ -74,7 +78,7 @@ function registrarVisibilidad() {
         continue;
       }
       const tablero = await entorno.servicio.obtenerTablero({ q: orden.numero }, entorno.ordenes.sesiones[perfil].actor);
-      expect(tablero.datos).toHaveLength(2);
+      expect(tablero.datos).toHaveLength(perfil === "PRODUCCION" ? 1 : 2);
       expect(JSON.stringify(tablero)).not.toMatch(/subtotal|impuesto|precio|costo|totalCotizacion|margen|moneda/);
       expect(Object.keys(tablero.datos[0].orden).sort()).toEqual(["estado", "fechaEntrega", "id", "numero"]);
     }

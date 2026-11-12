@@ -51,6 +51,7 @@ function FilaEtapa({ etapa, vista, permisos, referencia }: { etapa: EtapaTablero
       <Link href={`/ordenes/${etapa.orden.id}`}
         className="text-[15px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">{etapa.orden.numero}</Link>
       <p className="mt-0.5 break-words text-[15px] text-slate-900">{etapa.secuencia}. {etapa.nombre}</p>
+      {etapa.instrucciones ? <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{etapa.instrucciones}</p> : null}
       <p className={cn("mt-0.5 break-words text-sm", vista === "area" && !etapa.responsable ? "text-amber-700" : "text-slate-500")}>{secundario}</p>
     </div>
     <div className="flex min-w-0 flex-col gap-1.5 sm:items-end xl:items-start">

@@ -42,7 +42,7 @@ describe("XLSX de reportes", () => {
     expect(hoja.getCell("C7").value).toBe(1234.5);
     expect(hoja.getCell("C7").numFmt).toBe('"C$" #,##0.00');
     expect(hoja.getCell("A8").border?.bottom?.style).toBe("medium");
-    expect(hoja.getCell("A8").border?.bottom?.color?.argb).toBe("FFC9962F");
+    expect(hoja.getCell("A8").border?.bottom?.color?.argb).toBe("FFF3A320");
     expect(hoja.views[0]).toMatchObject({ state: "frozen", ySplit: 6 });
     expect(hoja.autoFilter).toBe("A6:C8");
     expect(hoja.pageSetup).toMatchObject({ orientation: "landscape", fitToWidth: 1 });

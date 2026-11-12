@@ -1,10 +1,12 @@
 import type { TotalesCotizacion, UnidadCobro, TipoLineaCosto } from "@/core/costeo";
 import type { ESTADOS } from "./schema";
+import type { Tarifa } from "./tarifas";
 
 export type EstadoCotizacion = (typeof ESTADOS)[number];
 export type LineaDto = {
   id: string; secuencia: number; tipo: TipoLineaCosto; descripcion: string; materialId: string | null;
   unidad: string; cantidad: string; costoUnitario: string; mermaPct: string; importe: string;
+  cantidadPorArea?: boolean; areaUnidadInventario?: string | null;
 };
 export type ItemDto = {
   id: string; secuencia: number; tipo: "CATALOGO" | "PERSONALIZADO"; productoId: string | null;
@@ -18,6 +20,8 @@ export type ClienteCotizacion = {
 };
 export type CotizacionDto = TotalesCotizacion & {
   descuentoPct: string | null;
+  tarifa: Tarifa; tarifaPct: string | null; descuentoManual: boolean; mostrarCondiciones: boolean;
+  instalacion?: { destino: string | null; km: string | null; tarifa: string | null; manoObra: string; total: string };
   id: string; numero: string; clienteId: string; cliente: ClienteCotizacion; estado: EstadoCotizacion;
   asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string; tipoCambio: string;
   vigenciaDias: number; fechaEmision: string | null; fechaVencimiento: string | null;
@@ -41,7 +45,8 @@ export type ProductoSelector = {
   id: string; codigo: string; nombre: string; categoriaId: string; categoria: string;
   unidadCobro: UnidadCobro; precioBase: string;
 };
-export type MaterialSelector = { id: string; codigo: string; nombre: string; unidad: string; costoPromedio: string };
+export type MaterialSelector = { id: string; codigo: string; nombre: string; unidad: string; costoPromedio: string;
+  unidadCotizacion?: string | null; precioCotizacion?: string };
 export type SelectoresEditor = {
   productos: ProductoSelector[]; materiales: MaterialSelector[]; categorias: { id: string; nombre: string }[];
 };

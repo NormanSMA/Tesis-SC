@@ -1,13 +1,14 @@
 import type { AdvertenciaEstimado } from "@/core/consumo-estimado";
-import type { EstadoEtapa, EstadoOrden, TipoCliente, TipoItem, TipoLineaCosto, UnidadCobro } from "@/generated/prisma/enums";
+import type { AreaMaterial, EstadoEtapa, EstadoOrden, TipoCliente, TipoItem, TipoLineaCosto, UnidadCobro } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ReferenciaOrden = { id: string; nombre: string };
 export type ClienteOrden = ReferenciaOrden & { codigoCliente: string; tipo: TipoCliente; telefono: string | null; correo: string | null;
   ruc?: string | null; direccion?: string | null };
+type CotizacionOrigen = { id: string; numero: string; asunto: string | null };
 export type OrdenFila = {
   id: string; numero: string; estado: EstadoOrden; categoria: ReferenciaOrden; responsable: ReferenciaOrden | null;
-  cliente: ClienteOrden; cotizacion: { id: string; numero: string; asunto: string | null };
+  cliente: ClienteOrden; cotizacion?: CotizacionOrigen;
   fechaEntrega: string; atrasada: boolean; actualizadoEn: string; creadoEn: string;
   /** Avance de etapas para la barra de progreso: completadas sobre total sin contar omitidas. Opcional en la ficha. */
   avance?: { completadas: number; total: number };
@@ -32,7 +33,7 @@ export type ItemOrden = {
 export type EtapaOrdenDto = {
   id: string; secuencia: number; nombre: string; estado: EstadoEtapa; area: ReferenciaOrden; responsable: ReferenciaOrden | null;
   fechaInicioPlan: string | null; fechaFinPlan: string | null; fechaInicioReal: string | null; fechaFinReal: string | null;
-  observaciones: string | null; actualizadoEn: string;
+  observaciones: string | null; instrucciones?: string | null; actualizadoEn: string;
 };
 export type EventoOrden = {
   id: string; entidad: string; entidadId: string; accion: string; estadoAnterior: string | null; estadoNuevo: string | null;
@@ -44,11 +45,15 @@ export type DineroCotizacion = {
 export type OrdenDto = OrdenFila & {
   especificaciones: string | null; fechaInicioReal: string | null; fechaEntregaReal: string | null;
   fechaCierre: string | null; motivoCancelacion: string | null;
-  cotizacion: OrdenFila["cotizacion"] & Partial<DineroCotizacion>;
+  cotizacion?: CotizacionOrigen & Partial<DineroCotizacion>;
   items: ItemOrden[]; etapas: EtapaOrdenDto[];
-  consumosEstimados: { id: string; material: ReferenciaOrden & { unidad: string }; cantidad: string; origen: string }[];
+  materialesTrabajo: { nombre: string; areaProduccion: AreaMaterial | null }[];
+  materialesSinEstimacion: { id: string; nombre: string; cantidad: string; unidad: string }[];
+  consumosEstimados: { id: string; material: ReferenciaOrden & { unidad: string }; cantidad: string; origen: string;
+    areaProduccion: AreaMaterial | null }[];
   eventos: EventoOrden[]; advertencias: AdvertenciaEstimado[];
 };
-export type OpcionesOrden = { responsables: ReferenciaOrden[]; categorias: (ReferenciaOrden & { etapas: number })[] };
+export type OpcionesOrden = { responsables: ReferenciaOrden[]; categorias: (ReferenciaOrden & { etapas: number })[];
+  areasConversion?: (ReferenciaOrden & { responsables: ReferenciaOrden[] })[] };
 export type PropuestaOrden = { cotizacionId: string; numero: string; cliente: string;
   categoriaId: string; especificaciones: string; orden: { id: string; numero: string } | null };

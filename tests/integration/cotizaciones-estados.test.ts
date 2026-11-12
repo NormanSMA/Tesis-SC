@@ -131,7 +131,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
 
   it("la base rechaza enviar cuando la suma guardada no coincide", async () => {
     const cotizacion = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
-    await db.cotizacion.update({ where: { id: cotizacion.id }, data: { subtotal: "100", impuesto: "15", total: "115" } });
+    await db.cotizacion.update({ where: { id: cotizacion.id }, data: { subtotal: "100", impuesto: "0", total: "100" } });
     await expect(db.cotizacion.update({ where: { id: cotizacion.id }, data: {
       estado: "ENVIADA", fechaEmision: new Date("2026-10-01"), fechaVencimiento: new Date("2026-10-16"),
     } })).rejects.toThrow(/SC003|no coincide/i);

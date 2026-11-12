@@ -5,7 +5,7 @@ import { cantidadMaterialPanel } from "./dto";
 import type { FilaOperativaDto, UrgenciaFeed } from "./tipos";
 
 export type FuenteFeed = { filas: FilaOperativaDto[]; total: number };
-type EntradaFuente = { hoy: string; instante: Date; actorId: string; verDinero: boolean };
+type EntradaFuente = { hoy: string; instante: Date; actorId: string; verDinero: boolean; verTodas?: boolean };
 
 async function consultarFuente(fuente: Prisma.Sql): Promise<FuenteFeed> {
   const [resultado] = await prisma.$queryRaw<FuenteFeed[]>`
@@ -30,7 +30,7 @@ export function consultarCotizacionesFeed(entrada: EntradaFuente, urgencia: Urge
     : urgencia === "SIN_RESPUESTA"
       ? Prisma.sql`c.estado = 'ENVIADA' AND c.fecha_respuesta IS NULL AND ${envio} < ${instante}::timestamptz - interval '3 days'`
       : Prisma.sql`c.estado = 'ENVIADA' AND c.fecha_respuesta IS NULL AND c.fecha_vencimiento BETWEEN ${hoy}::date AND ${hoy}::date + 3`;
-  const dinero = verDinero ? Prisma.sql`c.total::text AS monto, c.moneda AS moneda`
+  const dinero = verDinero ? Prisma.sql`CASE WHEN ${entrada.verTodas ?? false} OR c.creado_por_id = ${entrada.actorId}::uuid THEN c.total::text END AS monto, c.moneda AS moneda`
     : Prisma.sql`NULL::text AS monto, NULL::text AS moneda`;
   const detalle = urgencia === "AJUSTE_SOLICITADO" ? "Ajuste solicitado sin versión corregida"
     : urgencia === "SIN_RESPUESTA" ? "Enviada hace más de tres días sin respuesta" : "Vence en los próximos tres días";
@@ -41,14 +41,14 @@ export function consultarCotizacionesFeed(entrada: EntradaFuente, urgencia: Urge
       ${dinero}, ${referencia} AS referencia,
       greatest(floor(extract(epoch FROM (${instante}::timestamptz - ${referencia})) / 86400), 0)::int AS dias,
       '/cotizaciones/' || c.id AS destino FROM cotizacion c JOIN cliente cl ON cl.id = c.cliente_id
-    WHERE NOT c.archivada AND ${condicion}`);
+    WHERE NOT c.archivada AND ${condicion} AND (${entrada.verTodas ?? false} OR c.creado_por_id = ${entrada.actorId}::uuid)`);
 }
 
 export function consultarOrdenesFeed(entrada: EntradaFuente, urgencia: "ORDEN_ATRASADA" | "SIN_RESPONSABLE"): Promise<FuenteFeed> {
   const { hoy, instante, verDinero } = entrada;
   const atrasada = urgencia === "ORDEN_ATRASADA";
   const referencia = atrasada ? Prisma.sql`(o.fecha_entrega::timestamp AT TIME ZONE 'America/Managua')` : Prisma.sql`o.creado_en`;
-  const dinero = verDinero ? Prisma.sql`c.total::text AS monto, c.moneda AS moneda`
+  const dinero = verDinero ? Prisma.sql`CASE WHEN ${entrada.verTodas ?? false} OR c.creado_por_id = ${entrada.actorId}::uuid THEN c.total::text END AS monto, c.moneda AS moneda`
     : Prisma.sql`NULL::text AS monto, NULL::text AS moneda`;
   const enlace = verDinero ? Prisma.sql`JOIN cotizacion c ON c.id = o.cotizacion_id` : Prisma.empty;
   return consultarFuente(Prisma.sql`
@@ -93,7 +93,7 @@ export function consultarEtapasFeed(entrada: EntradaFuente, urgencia: "ETAPA_ATR
       greatest(floor(extract(epoch FROM (${instante}::timestamptz - ${referencia})) / 86400), 0)::int AS dias,
       '/ordenes/' || o.id AS destino FROM etapa_orden e JOIN orden_trabajo o ON o.id = e.orden_id
     WHERE e.responsable_id = ${actorId}::uuid AND o.estado NOT IN ('CERRADA','CANCELADA')
-      AND e.estado IN ('PENDIENTE','EN_CURSO')
+      AND e.estado IN ('PENDIENTE','EN_CURSO') AND NOT EXISTS (SELECT 1 FROM etapa_orden anterior WHERE anterior.orden_id=e.orden_id AND anterior.secuencia<e.secuencia AND anterior.estado NOT IN ('COMPLETADA','OMITIDA'))
       AND ${atrasada ? Prisma.sql`e.fecha_fin_plan < ${hoy}::date`
         : Prisma.sql`e.estado = 'EN_CURSO' AND e.fecha_inicio_real < ${instante}::timestamptz - interval '2 days'`}`);
 }

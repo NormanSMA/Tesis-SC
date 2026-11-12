@@ -7,6 +7,7 @@ import { AppError } from "@/lib/errores";
 import { aLineaDto } from "./dto";
 import { prefijarError, regla } from "./errores";
 import { aEntradaLinea, aLineaMotor } from "./mapeo";
+import { MENSAJE_AREA_MATERIAL, modalidadMaterial, precioParaCotizar, superficieTotal } from "./materiales";
 import type { ItemGuardado } from "./repo";
 import type { EntradaItem, EntradaLineaEditor } from "./schema";
 
@@ -14,6 +15,7 @@ type LineaCalculada = {
   id: string; secuencia: number; tipo: "MATERIAL" | "MANO_OBRA" | "TERCERO";
   descripcion: string; materialId: string | null; unidad: string;
   cantidad: string; costoUnitario: string; mermaPct: string; importe: string;
+  cantidadPorArea?: boolean; areaUnidadInventario?: string | null;
 };
 export type ItemCalculado = {
   id: string; secuencia: number; tipo: "CATALOGO" | "PERSONALIZADO"; productoId: string | null;
@@ -76,20 +78,26 @@ async function catalogo(contexto: ContextoItem): Promise<ItemCalculado> {
     productoId: producto.productoId, categoriaId: producto.categoriaId, descripcion: producto.descripcion, lineas: [] };
 }
 
-type ContextoLinea = { referencias: ReferenciasCosteo; linea: EntradaLineaEditor; anterior?: ItemGuardado; tipoCambio: string; duplicando?: boolean };
-async function prepararLinea({ referencias, linea, anterior, tipoCambio, duplicando }: ContextoLinea): Promise<EntradaLineaEditor> {
+type LineaPreparada = EntradaLineaEditor & { cantidadPorArea?: boolean; areaUnidadInventario?: string | null };
+type ContextoLinea = { referencias: ReferenciasCosteo; linea: EntradaLineaEditor; anterior?: ItemGuardado; tipoCambio: string;
+  conMedidas: boolean; duplicando?: boolean };
+async function prepararLinea({ referencias, linea, anterior, tipoCambio, conMedidas, duplicando }: ContextoLinea): Promise<LineaPreparada> {
   const guardada = anterior?.lineasCosto.find(({ id }) => id === linea.lineaId);
   if (linea.lineaId && !guardada) throw regla("LINEA_AJENA", "La línea no pertenece al ítem.");
   if (linea.tipo !== "MATERIAL" || !linea.materialId) return linea;
   const existente = guardada?.materialId === linea.materialId;
   const material = referencias.materiales.get(linea.materialId);
   if (!material || (!material.activo && !existente)) throw regla("MATERIAL_ARCHIVADO", "Seleccione un material activo.");
-  // Con material registrado el costo lo fija el servidor: el guardado si la línea ya existe, o el promedio vigente.
-  // El promedio está en córdobas: se convierte solo al tomarlo, nunca el costo ya guardado.
-  // El costo libre solo existe en líneas sin material (compras especiales).
-  const costoUnitario = existente ? guardada!.costoUnitario.toFixed(4)
-    : convertirDesdeCordobas(material.costoPromedio.toFixed(4), tipoCambio, 4);
-  return { ...linea, lineaId: duplicando ? undefined : linea.lineaId, costoUnitario };
+  const modalidad = modalidadMaterial(material, conMedidas);
+  const conservar = existente && (duplicando || !material.activo);
+  if (!conservar && modalidad === "FALTA_AREA") throw new AppError({ codigo: "VALIDACION", status: 422,
+    mensaje: MENSAJE_AREA_MATERIAL, campos: { materialId: MENSAJE_AREA_MATERIAL } });
+  const costoUnitario = conservar ? guardada!.costoUnitario.toFixed(4)
+    : convertirDesdeCordobas(precioParaCotizar(material), tipoCambio, 4);
+  const unidad = conservar ? guardada!.unidad : modalidad === "AREA" ? "M2" : material.unidadCotizacion ?? linea.unidad;
+  return { ...linea, unidad, lineaId: duplicando ? undefined : linea.lineaId, costoUnitario,
+    cantidadPorArea: conservar ? guardada!.cantidadPorArea : modalidad === "AREA",
+    areaUnidadInventario: (conservar ? guardada!.areaUnidadInventario : material.areaUnidadInventario)?.toFixed(6) ?? null };
 }
 
 async function exigirCategoria(contexto: ContextoItem): Promise<void> {
@@ -99,16 +107,30 @@ async function exigirCategoria(contexto: ContextoItem): Promise<void> {
   if (!categoria || (!categoria.activo && !existente)) throw regla("CATEGORIA_ARCHIVADA", "Seleccione una categoría activa.");
 }
 
-async function lineasPersonalizadas(contexto: ContextoItem): Promise<EntradaLineaEditor[]> {
+async function lineasPersonalizadas(contexto: ContextoItem): Promise<LineaPreparada[]> {
   const { entrada, anterior, referencias, tipoCambio, duplicando } = contexto;
   if (entrada.tipo !== "PERSONALIZADO") return [];
-  if (anterior && !entrada.actualizarPrecio) return anterior.lineasCosto.map((linea) => aEntradaLinea(aLineaDto(linea)));
-  const lineas: EntradaLineaEditor[] = [];
+  if (anterior && !entrada.actualizarPrecio) return anterior.lineasCosto.map((linea) => ({
+    ...aEntradaLinea(aLineaDto(linea)), cantidadPorArea: linea.cantidadPorArea,
+    areaUnidadInventario: linea.areaUnidadInventario?.toFixed(6) ?? null,
+  }));
+  const conMedidas = entrada.unidadCobro === "M2" || Boolean(entrada.ancho && entrada.alto);
+  const lineas: LineaPreparada[] = [];
   for (const [indice, linea] of entrada.lineas.entries()) {
-    try { lineas.push(await prepararLinea({ referencias, linea, anterior, tipoCambio, duplicando })); }
+    try { lineas.push(await prepararLinea({ referencias, linea, anterior, tipoCambio, conMedidas, duplicando })); }
     catch (error) { prefijarError(error, `lineas.${indice}.`); }
   }
   return lineas;
+}
+
+function recalcularSuperficie(lineas: LineaPreparada[], entrada: EntradaItem): LineaPreparada[] {
+  if (!lineas.some(({ cantidadPorArea }) => cantidadPorArea)) return lineas;
+  const cantidad = superficieTotal(entrada);
+  if (!cantidad) {
+    const mensaje = "Ingrese las medidas de la partida para calcular el material en m².";
+    throw new AppError({ codigo: "VALIDACION", status: 422, mensaje, campos: { ancho: mensaje, alto: mensaje } });
+  }
+  return lineas.map((linea) => linea.tipo === "MATERIAL" && linea.cantidadPorArea ? { ...linea, cantidad } : linea);
 }
 
 async function personalizado(contexto: ContextoItem): Promise<ItemCalculado> {
@@ -119,7 +141,7 @@ async function personalizado(contexto: ContextoItem): Promise<ItemCalculado> {
     ancho: entrada.ancho, alto: entrada.alto };
   const campos = validarItemCatalogo(medidas);
   if (Object.keys(campos).length) throw new AppError({ codigo: "VALIDACION", status: 422, mensaje: "Hay campos con errores.", campos });
-  const lineas = await lineasPersonalizadas(contexto);
+  const lineas = recalcularSuperficie(await lineasPersonalizadas(contexto), entrada);
   const margenPct = anterior && !entrada.actualizarPrecio ? anterior.margenPct!.toFixed(2) : entrada.margenPct;
   const costeado = costearItemPersonalizado({ cantidad: entrada.cantidad, margenPct, lineas: lineas.map(aLineaMotor) });
   return { ...costeado, id: !duplicando && anterior ? anterior.id : randomUUID(), secuencia,
@@ -128,6 +150,7 @@ async function personalizado(contexto: ContextoItem): Promise<ItemCalculado> {
     lineas: costeado.lineas.map((linea, indice) => ({ ...linea,
       id: !duplicando && lineas[indice].lineaId ? lineas[indice].lineaId : randomUUID(), secuencia: indice + 1,
       descripcion: lineas[indice].descripcion, unidad: lineas[indice].unidad,
+      cantidadPorArea: lineas[indice].cantidadPorArea ?? false, areaUnidadInventario: lineas[indice].areaUnidadInventario ?? null,
       materialId: lineas[indice].tipo === "MATERIAL" ? lineas[indice].materialId ?? null : null })) };
 }
 

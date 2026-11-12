@@ -1,6 +1,7 @@
 import { Prisma, type EstadoOrden } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
+import { nombresAreasConversion, ordenarAreasConversion } from "./areas-conversion";
 import { TERMINALES } from "./reglas";
 import type { ConsultaOrdenes } from "./schema";
 import type { CampoOrdenOrdenes, ConteosOrdenes, OrdenFila } from "./tipos";
@@ -43,7 +44,7 @@ export function buscarCotizacion(tx: Tx, id: string): Promise<CotizacionGuardada
   return tx.cotizacion.findUnique({ where: { id }, include: incluirCotizacion });
 }
 
-function filtroLista(consulta: ConsultaOrdenes, hoy: string): Prisma.OrdenTrabajoWhereInput {
+function filtroLista(consulta: ConsultaOrdenes, hoy: string, verCotizacion: boolean | string): Prisma.OrdenTrabajoWhereInput {
   const condiciones: Prisma.OrdenTrabajoWhereInput[] = [];
   if (consulta.terminales !== "todas") condiciones.push({ estado: consulta.terminales === "true" ? { in: TERMINALES } : { notIn: TERMINALES } });
   if (consulta.estado) condiciones.push({ estado: consulta.estado });
@@ -52,7 +53,8 @@ function filtroLista(consulta: ConsultaOrdenes, hoy: string): Prisma.OrdenTrabaj
   if (consulta.vencidas === "true") condiciones.push({ fechaEntrega: { lt: new Date(hoy) }, estado: { notIn: TERMINALES } });
   if (consulta.q) {
     const texto = { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
-    condiciones.push({ OR: [{ numero: texto }, { cotizacion: { asunto: texto } }, { cliente: { nombre: texto } }] });
+    condiciones.push({ OR: [{ numero: texto }, ...(verCotizacion ? [{ cotizacion: { asunto: texto, ...(typeof verCotizacion === "string" ? { creadoPorId: verCotizacion } : {}) } }] : []),
+      { cliente: { nombre: texto } }] });
   }
   return { AND: condiciones };
 }
@@ -80,8 +82,13 @@ async function consultarAvances(ids: string[]) {
   return avances;
 }
 
-export async function consultarOrdenes(consulta: ConsultaOrdenes, hoy = hoyManagua()) {
-  const where = filtroLista(consulta, hoy);
+type AlcanceLista = { hoy?: string; verCotizacion?: boolean | string; alcance?: Prisma.OrdenTrabajoWhereInput };
+function conAlcance(where: Prisma.OrdenTrabajoWhereInput, alcance: Prisma.OrdenTrabajoWhereInput) {
+  return Object.keys(alcance).length ? { AND: [where, alcance] } : where;
+}
+
+export async function consultarOrdenes(consulta: ConsultaOrdenes, { hoy = hoyManagua(), verCotizacion = true, alcance = {} }: AlcanceLista = {}) {
+  const where = conAlcance(filtroLista(consulta, hoy, verCotizacion), alcance);
   const [filas, total] = await Promise.all([
     prisma.ordenTrabajo.findMany({ where, include: incluirLista, orderBy: ordenLista(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
@@ -91,9 +98,9 @@ export async function consultarOrdenes(consulta: ConsultaOrdenes, hoy = hoyManag
   return { filas, total, avances };
 }
 
-export async function consultarConteosOrdenes(consulta: ConsultaOrdenes, hoy = hoyManagua()): Promise<ConteosOrdenes> {
-  const where = filtroLista({ ...consulta, estado: undefined, responsable: undefined,
-    vencidas: "false", terminales: "todas" }, hoy);
+export async function consultarConteosOrdenes(consulta: ConsultaOrdenes, { hoy = hoyManagua(), verCotizacion = true, alcance = {} }: AlcanceLista = {}): Promise<ConteosOrdenes> {
+  const where = conAlcance(filtroLista({ ...consulta, estado: undefined, responsable: undefined,
+    vencidas: "false", terminales: "todas" }, hoy, verCotizacion), alcance);
   const activas = { estado: { notIn: TERMINALES_CONTEOS } };
   const [porEstado, atrasadas, sinResponsable] = await Promise.all([
     prisma.ordenTrabajo.groupBy({ by: ["estado"], where, _count: { _all: true } }),
@@ -145,9 +152,16 @@ export function consultarResponsables(tx: Tx = prisma) {
 }
 
 export async function consultarOpciones() {
-  const [responsables, categorias] = await Promise.all([
+  const [responsables, categorias, areas] = await Promise.all([
     consultarResponsables(), prisma.categoria.findMany({ where: { activo: true }, orderBy: { nombre: "asc" },
       select: { id: true, nombre: true, _count: { select: { etapasPlantilla: { where: { activo: true } } } } } }),
+    prisma.area.findMany({ where: { activo: true, nombre: { in: nombresAreasConversion } },
+      select: { id: true, nombre: true, personal: { select: { usuarioId: true } } } }),
   ]);
-  return { responsables, categorias: categorias.map((categoria) => ({ id: categoria.id, nombre: categoria.nombre, etapas: categoria._count.etapasPlantilla })) };
+  const areasConversion = ordenarAreasConversion(areas).map((area) => {
+    const miembros = new Set(areas.find(({ id }) => id === area.id)?.personal.map(({ usuarioId }) => usuarioId));
+    return { ...area, responsables: responsables.filter(({ id }) => miembros.has(id)) };
+  });
+  return { responsables, areasConversion,
+    categorias: categorias.map((categoria) => ({ id: categoria.id, nombre: categoria.nombre, etapas: categoria._count.etapasPlantilla })) };
 }

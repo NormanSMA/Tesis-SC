@@ -2,7 +2,7 @@
 # Respaldo programado (RNF-06: al menos un respaldo exitoso cada 24 horas).
 # Corre dentro del servicio "respaldo" de compose.yaml (perfil respaldo):
 #   docker compose --profile respaldo up -d respaldo
-# Variables: INTERVALO_HORAS (23: deja margen para que RNF-06 se cumpla aunque el respaldo tarde), RETENCION_DIAS (7), REINTENTO_MINUTOS (60).
+# Variables: INTERVALO_HORAS (23: deja margen para que RNF-06 se cumpla aunque el respaldo tarde), RETENCION_DIAS (7), REINTENTO_MINUTOS (60), REVISION_SEGUNDOS (300).
 # Cada intento deja una linea en /respaldos/registro.log: fecha ISO, OK o FALLO, archivo y bytes.
 set -u
 
@@ -46,10 +46,18 @@ SQL
   return 0
 }
 
+# Un sleep largo no avanza mientras el equipo está suspendido y retrasaba el respaldo días enteros.
+# Se compara contra la hora real y se revisa en tramos cortos para respaldar poco después de reanudar.
+revision_s=${REVISION_SEGUNDOS:-300}
+proximo=0
 while true; do
-  if respaldar; then
-    sleep "$intervalo_s"
-  else
-    sleep "$reintento_s"
+  ahora=$(date +%s)
+  if [ "$ahora" -ge "$proximo" ]; then
+    if respaldar; then
+      proximo=$(( $(date +%s) + intervalo_s ))
+    else
+      proximo=$(( $(date +%s) + reintento_s ))
+    fi
   fi
+  sleep "$revision_s"
 done

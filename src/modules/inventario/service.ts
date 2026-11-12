@@ -2,12 +2,14 @@ import { can, exigir, type Actor } from "@/core/autorizacion";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
 import { registrarEvento } from "@/lib/bitacora";
 import { prisma, type Tx } from "@/lib/db";
+import { AppError } from "@/lib/errores";
 import { registro } from "@/lib/registro";
-import { aMaterialDto, aMovimientoDto, type ListaMateriales, type ListaMovimientos } from "./dto";
+import { aMaterialDto, aMovimientoDto, type ListaMateriales, type ListaMovimientos, type MaterialDto } from "./dto";
 import { conflictoEdicion, exigirVersion, noEncontrado, regla, traducirError } from "./errores";
 import { actualizarCondicionado, bloquearMaterial, consultarConciliacion, consultarMateriales, consultarMovimientos, consultarOpcionesLibro,
   type CambiosMaterial, type SeleccionLibro } from "./repo";
 import type { ConsultaMateriales, ConsultaMovimientos, CrearMaterial, EditarMaterial } from "./schema";
+import { unidadCotizacionValida } from "./schema";
 import { alertaMaterial } from "./reglas";
 
 export { leerIdMaterial } from "./errores";
@@ -35,13 +37,48 @@ export async function obtenerMaterial(id: string, actor: Actor) {
 export async function crearMaterial(entrada: CrearMaterial, actor: Actor) {
   exigir(actor, "material:gestionar");
   return transaccionInventario(async (tx) => {
-    const material = await tx.material.create({ data: entrada });
+    const { presentacion, ...campos } = entrada;
+    const material = await tx.material.create({ data: { ...campos, unidadCotizacion: campos.unidadCotizacion ?? (campos.unidad === "M2" ? "M2" : null),
+      ...columnasPresentacion(presentacion ?? null) } });
     const datos = aMaterialDto(material);
     await registrarEvento(tx, { entidad: "MATERIAL", entidadId: material.id, accion: "CREAR", actorId: actor.id,
       estadoNuevo: "ACTIVO", detalle: { material: datos } });
     return datos;
   });
 }
+
+function columnasPresentacion(presentacion: NonNullable<CrearMaterial["presentacion"]> | null) {
+  return { tipoPresentacion: presentacion?.tipo ?? null,
+    anchoPresentacion: presentacion?.ancho ?? null, largoPresentacion: presentacion?.largo ?? null };
+}
+
+function cambioPresentacion(antes: MaterialDto, presentacion: EditarMaterial["presentacion"]) {
+  if (presentacion === undefined) return {};
+  if (presentacion && antes.unidad !== "M2") {
+    const mensaje = "La presentación requiere una unidad de inventario en metros cuadrados.";
+    throw new AppError({ codigo: "VALIDACION", status: 422, mensaje, campos: { "presentacion.tipo": mensaje } });
+  }
+  const previa = antes.presentacion;
+  const igual = (!previa && !presentacion) || (previa && presentacion && previa.tipo === presentacion.tipo &&
+    comparar(leerDecimal(previa.ancho)!, leerDecimal(presentacion.ancho)!) === 0 &&
+    comparar(leerDecimal(previa.largo)!, leerDecimal(presentacion.largo)!) === 0);
+  return igual ? {} : columnasPresentacion(presentacion);
+}
+
+function cambioUnidadCotizacion(antes: MaterialDto, entrada: EditarMaterial): CambiosMaterial {
+  const unidadCotizacion = entrada.unidadCotizacion === undefined ? antes.unidadCotizacion : entrada.unidadCotizacion;
+  const areaUnidadInventario = entrada.areaUnidadInventario === undefined ? antes.areaUnidadInventario : entrada.areaUnidadInventario;
+  if (!unidadCotizacionValida({ unidad: antes.unidad, unidadCotizacion, areaUnidadInventario })) {
+    const mensaje = "Indique la unidad de inventario o el área de un pliego o rollo.";
+    throw new AppError({ codigo: "VALIDACION", status: 422, mensaje, campos: { unidadCotizacion: mensaje } });
+  }
+  const cambios: CambiosMaterial = {};
+  if (unidadCotizacion !== antes.unidadCotizacion) cambios.unidadCotizacion = unidadCotizacion;
+  if (Number(areaUnidadInventario) !== Number(antes.areaUnidadInventario)) cambios.areaUnidadInventario = areaUnidadInventario;
+  if ((unidadCotizacion ?? antes.unidad) !== (antes.unidadCotizacion ?? antes.unidad)) cambios.precioCotizacion = null;
+  return cambios;
+}
+
 export async function editarMaterial(id: string, entrada: EditarMaterial, actor: Actor) {
   exigir(actor, "material:gestionar");
   return transaccionInventario(async (tx) => {
@@ -52,8 +89,8 @@ export async function editarMaterial(id: string, entrada: EditarMaterial, actor:
       throw regla("MATERIAL_CON_EXISTENCIA", "El costo promedio solo se puede editar con existencia cero.");
     }
     const antes = aMaterialDto(actual);
-    const cambios: CambiosMaterial = {};
-    for (const campo of ["nombre", "descripcion", "stockMinimo", "costoPromedio"] as const) {
+    const cambios: CambiosMaterial = { ...cambioPresentacion(antes, entrada.presentacion), ...cambioUnidadCotizacion(antes, entrada) };
+    for (const campo of ["nombre", "descripcion", "stockMinimo", "costoPromedio", "areaProduccion"] as const) {
       const valor = entrada[campo];
       if (valor === undefined) continue;
       const igual = (campo === "stockMinimo" || campo === "costoPromedio")

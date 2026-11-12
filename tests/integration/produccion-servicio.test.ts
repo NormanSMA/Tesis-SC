@@ -31,8 +31,11 @@ function registrarFlujo() {
     const retrabajo = await servicio.reabrirPorRetrabajo(lista.id, { version: lista.actualizadoEn, motivo: "Corrección solicitada",
       nombre: "Corrección", areaId: primera.area.id }, actor);
     expect(retrabajo.fechaInicioReal).toBe(produciendo.fechaInicioReal);
+    // Quien participa en la orden ve todas sus etapas, incluida la de retrabajo.
     expect(retrabajo.etapas).toHaveLength(3);
-    const nueva = retrabajo.etapas[2];
+    const completa = await leerOrden(entorno.ordenes, orden.id);
+    expect(completa.etapas).toHaveLength(3);
+    const nueva = completa.etapas[2];
     expect(nueva).toMatchObject({ secuencia: 3, estado: "PENDIENTE", responsable: null });
     expect((await db.etapaOrden.findUniqueOrThrow({ where: { id: nueva.id } })).plantillaId).toBeNull();
     const asignada = await asignarEtapa(entorno, nueva);
@@ -76,7 +79,7 @@ function registrarVersionVieja() {
 function registrarSinResponsable() {
   it("rechaza iniciar sin responsable", async () => {
     const orden = await nuevaOrden(entorno);
-    await expect(entorno.servicio.iniciarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn }, entorno.actor))
+    await expect(entorno.servicio.iniciarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn }, entorno.operaciones))
       .rejects.toMatchObject({ status: 409, codigo: "ETAPA_SIN_RESPONSABLE" });
     expect((await leerOrden(entorno.ordenes, orden.id)).fechaInicioReal).toBeNull();
   });
@@ -99,7 +102,7 @@ function registrarResponsableInactivo() {
     const usuario = await crearUsuarioPrueba(db, { perfil: "PRODUCCION" });
     const asignada = await entorno.servicio.editarEtapa(orden.etapas[0].id, { version: orden.etapas[0].actualizadoEn, responsableId: usuario.id }, entorno.planificador);
     await db.usuario.update({ where: { id: usuario.id }, data: { activo: false } });
-    await expect(entorno.servicio.iniciarEtapa(asignada.id, { version: asignada.actualizadoEn }, entorno.actor)).rejects.toMatchObject({ status: 422 });
+    await expect(entorno.servicio.iniciarEtapa(asignada.id, { version: asignada.actualizadoEn }, entorno.operaciones)).rejects.toMatchObject({ status: 422 });
   });
 }
 
@@ -189,7 +192,7 @@ function registrarRollback() {
     const orden = await nuevaOrden(entorno);
     const etapa = await asignarEtapa(entorno, orden.etapas[0]);
     const antes = await leerOrden(entorno.ordenes, orden.id);
-    await expect(entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, { ...entorno.actor, id: randomUUID() })).rejects.toThrow();
+    await expect(entorno.servicio.iniciarEtapa(etapa.id, { version: etapa.actualizadoEn }, { ...entorno.operaciones, id: randomUUID() })).rejects.toThrow();
     expect(await leerOrden(entorno.ordenes, orden.id)).toEqual(antes);
   });
 }

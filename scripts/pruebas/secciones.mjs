@@ -36,7 +36,7 @@ export const SECCIONES = {
     unit: ["clientes", "cliente", "importacion"], integracion: ["clientes", "cliente", "importacion"], e2e: ["clientes", "importacion"],
   },
   catalogo: {
-    descripcion: "catálogo, recetas, categorías y plantillas",
+    descripcion: "catálogo, materiales del producto, categorías y plantillas",
     unit: ["catalogo"], integracion: ["catalogo"], e2e: ["catalogo", "produccion-catalogos"],
   },
   cotizaciones: {

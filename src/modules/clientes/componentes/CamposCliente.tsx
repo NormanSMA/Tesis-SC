@@ -1,5 +1,6 @@
 "use client";
 
+import { useWatch } from "react-hook-form";
 import { FormField } from "@/components/comunes/FormField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +14,7 @@ type PropiedadesCampos = { formulario: FormularioCliente };
 export function CamposIdentificacion({ formulario }: PropiedadesCampos) {
   const { register, formState } = formulario;
   const { errors } = formState;
+  const tipo = useWatch({ control: formulario.control, name: "tipo" });
   return (
     <div className="grid gap-5 md:grid-cols-2">
       <FormField id="nombre" etiqueta="Nombre" error={errors.nombre?.message} requerido className="md:col-span-2">
@@ -29,9 +31,9 @@ export function CamposIdentificacion({ formulario }: PropiedadesCampos) {
           </SelectNativo>
         )}
       </FormField>
-      <FormField id="ruc" etiqueta="RUC" ayuda="Opcional. Se guarda en mayúsculas y sin espacios." error={errors.ruc?.message}>
+      {tipo === "EMPRESA" ? <FormField id="ruc" etiqueta="RUC" ayuda="Opcional. Se guarda en mayúsculas y sin espacios." error={errors.ruc?.message}>
         {(atributos) => <Input {...atributos} {...register("ruc")} autoComplete="off" autoCapitalize="characters" />}
-      </FormField>
+      </FormField> : null}
     </div>
   );
 }
@@ -53,7 +55,7 @@ export function CamposContacto({ formulario }: PropiedadesCampos) {
       <FormField
         id="telefono"
         etiqueta="Teléfono"
-        ayuda="Incluya el código de país, por ejemplo +505 8756-8901. Obligatorio si no indica un correo."
+        ayuda="Opcional. Si lo indica, incluya el código de país, por ejemplo +505 8756-8901."
         error={errors.telefono?.message}
       >
         {(atributos) => <Input {...atributos} {...register("telefono")} type="tel" autoComplete="off" inputMode="tel" placeholder="+505 8756-8901" />}
@@ -61,7 +63,7 @@ export function CamposContacto({ formulario }: PropiedadesCampos) {
       <FormField
         id="correo"
         etiqueta="Correo electrónico"
-        ayuda="Obligatorio si no indica un teléfono."
+        ayuda="Opcional."
         error={errors.correo?.message}
       >
         {(atributos) => (
@@ -85,7 +87,7 @@ export function CamposAdicionales({ formulario }: PropiedadesCampos) {
   const { errors } = formState;
   return (
     <div className="grid gap-5">
-      <FormField id="direccion" etiqueta="Dirección" error={errors.direccion?.message}>
+      <FormField id="direccion" etiqueta="Dirección" ayuda="Opcional." error={errors.direccion?.message}>
         {(atributos) => <Textarea {...atributos} {...register("direccion")} rows={2} />}
       </FormField>
       <FormField id="notas" etiqueta="Notas" error={errors.notas?.message}>
