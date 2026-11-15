@@ -11,6 +11,8 @@ export function ResumenMaterial({ material }: { material: FichaMaterial }) {
   const { conciliacion } = material;
   const { presentacion } = material;
   return <div id="existencias-material" className="min-w-0 space-y-6">
+    {material.fotoVersion ? <div className="rounded-xl border bg-secondary/40 p-4">{/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/v1/materiales/${material.id}/foto?v=${encodeURIComponent(material.fotoVersion)}`} alt={`Foto de ${material.nombre}`} className="max-h-64 max-w-full rounded-lg object-contain" /></div> : null}
     {/* Cifras como lista de definiciones con aspecto de tarjeta de métrica: etiqueta arriba, valor grande. */}
     <dl className="grid min-w-0 grid-cols-2 gap-1.5 rounded-[20px] border border-slate-200/70 bg-slate-100/80 p-1.5 md:grid-cols-3 max-md:[&>*:last-child]:col-span-2">
       {[

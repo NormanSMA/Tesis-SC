@@ -25,7 +25,7 @@ describeConBase("producción: órdenes compartidas, botón Hecho y avisos por et
     await expect(servicioOrdenes.obtenerOrden(orden.id, ajeno.actor)).rejects.toMatchObject({ status: 404 });
     await expect(entorno.servicio.obtenerEtapasOrden(orden.id, ajeno.actor)).rejects.toMatchObject({ status: 404 });
     const trazabilidad = await import("@/modules/trazabilidad/service");
-    await expect(trazabilidad.obtenerTrazabilidad(orden.id, ajeno.actor)).rejects.toMatchObject({ status: 404 });
+    await expect(trazabilidad.obtenerTrazabilidad(orden.id, ajeno.actor)).rejects.toMatchObject({ status: 403 });
     // Gerencia y Operaciones conservan la vista completa.
     expect((await servicioOrdenes.obtenerOrden(orden.id, entorno.gerencia)).id).toBe(orden.id);
   });
@@ -39,6 +39,16 @@ describeConBase("producción: órdenes compartidas, botón Hecho y avisos por et
     expect(lista.datos.map((fila) => fila.id)).toEqual([orden.id]);
     const ficha = await servicioOrdenes.obtenerOrden(orden.id, companero.actor);
     expect(ficha.etapas.map((etapa) => etapa.id)).toEqual(orden.etapas.map((etapa) => etapa.id));
+  });
+
+  it("niega la trazabilidad y el historial a Producción aunque participe", async () => {
+    const orden = await nuevaOrden(entorno);
+    const companero = await sesionProduccion();
+    await asignarEtapa(entorno, orden.etapas[0], companero.actor);
+    const trazabilidad = await import("@/modules/trazabilidad/service");
+    await expect(trazabilidad.obtenerTrazabilidad(orden.id, companero.actor)).rejects.toMatchObject({ status: 403, codigo: "SIN_PERMISO" });
+    expect((await entorno.ordenes.modulos.servicio.obtenerOrden(orden.id, companero.actor)).eventos).toEqual([]);
+    expect((await entorno.ordenes.modulos.servicio.obtenerOrden(orden.id, entorno.gerencia)).eventos.length).toBeGreaterThan(0);
   });
 
   it("Hecho completa una etapa pendiente en un paso y deja ambos pasos en el historial", async () => {

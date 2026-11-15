@@ -368,6 +368,7 @@ model ClienteLogo {
 
 // Tipo de servicio (rotulacion, gran formato, letras corporeas...). Define las etapas de produccion.
 model Categoria {
+  prefijoCodigo String? @unique @map("prefijo_codigo") @db.VarChar(16)
   id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre      String  @unique @db.VarChar(80)
   descripcion String?
@@ -410,6 +411,7 @@ model UsuarioArea {
 }
 
 model Producto {
+  codigosAnteriores String[] @default([]) @map("codigos_anteriores")
   id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   codigo        String      @unique @db.VarChar(30)
   nombre        String      @db.VarChar(160)
@@ -428,6 +430,7 @@ model Producto {
   items     ItemCotizacion[]
 
   @@index([categoriaId, activo])
+  @@index([codigosAnteriores], type: Gin, map: "producto_codigos_anteriores_idx")
   @@map("producto")
 }
 
@@ -451,6 +454,9 @@ model RecetaProducto {
 // ---------------------------------------------------------------------------
 
 model Material {
+  codigosAnteriores String[] @default([]) @map("codigos_anteriores")
+  fotoVersion DateTime? @map("foto_version") @db.Timestamptz(6)
+  foto MaterialFoto?
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   codigo        String         @unique @db.VarChar(30)
   nombre        String         @db.VarChar(160)
@@ -480,6 +486,7 @@ model Material {
 
   @@index([activo, nombre])
   @@index([areaProduccion])
+  @@index([codigosAnteriores], type: Gin, map: "material_codigos_anteriores_idx")
   @@map("material")
 }
 
@@ -581,6 +588,7 @@ model Cotizacion {
   instalacionManoObra Decimal         @default(0) @map("instalacion_mano_obra") @db.Decimal(14, 2)
   instalacionTotal   Decimal          @default(0) @map("instalacion_total") @db.Decimal(14, 2)
   instalacionDestino String?          @map("instalacion_destino") @db.VarChar(120)
+  instalacionIdaVuelta Boolean        @default(false) @map("instalacion_ida_vuelta")
   // Duplicado de otra cotizacion (reutilizacion, R-02).
   cotizacionOrigenId String?          @map("cotizacion_origen_id") @db.Uuid
   moneda             String           @default("NIO") @db.Char(3)
@@ -632,6 +640,8 @@ model Cotizacion {
 }
 
 model ItemCotizacion {
+  gastosPersonalizados Json? @map("gastos_personalizados")
+  productoPersonalizado Json? @map("producto_personalizado")
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   cotizacionId   String       @map("cotizacion_id") @db.Uuid
   secuencia      Int
@@ -644,6 +654,8 @@ model ItemCotizacion {
   // Medidas en metros. Obligatorias cuando unidadCobro = M2.
   ancho          Decimal?     @db.Decimal(14, 3)
   alto           Decimal?     @db.Decimal(14, 3)
+  // Opcional. Con profundidad, el m² se cobra como caja abierta: ancho×alto + 2×profundidad×(ancho+alto).
+  profundidad    Decimal?     @db.Decimal(14, 3)
   // CATALOGO: precio base copiado del producto. PERSONALIZADO: importe / cantidad.
   precioUnitario Decimal      @map("precio_unitario") @db.Decimal(14, 2)
   // Solo PERSONALIZADO: suma de lineas de costo y margen sobre precio de venta.
@@ -663,6 +675,7 @@ model ItemCotizacion {
 }
 
 model LineaCosto {
+  esGastoPersonalizado Boolean @default(false) @map("es_gasto_personalizado")
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   itemId        String         @map("item_id") @db.Uuid
   secuencia     Int
@@ -875,4 +888,16 @@ model Contador {
 
   @@id([tipo, anio])
   @@map("contador")
+}
+
+model SecuenciaCodigo {
+  clave String @id @db.VarChar(30)
+  ultimo BigInt
+  @@map("secuencia_codigo")
+}
+model MaterialFoto {
+  materialId String @id @map("material_id") @db.Uuid
+  contenido Bytes
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  @@map("material_foto")
 }

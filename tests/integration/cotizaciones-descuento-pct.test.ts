@@ -15,7 +15,7 @@ describeConBase("cotizaciones: descuento por porcentaje", () => {
   const servicio = () => entorno.modulos.servicio;
   const actor = () => entorno.ventas.actor;
 
-  it("calcula instalación y aplica a dos materiales las dimensiones de una sola partida", async () => {
+  it("calcula instalación y aplica a dos materiales las dimensiones de un solo trabajo", async () => {
     const primero = await db.material.create({ data: {
       codigo: `AREA-${crypto.randomUUID().slice(0, 8)}`, nombre: "Acrílico para prueba", unidad: "M2",
       unidadCotizacion: "M2", precioCotizacion: "100",
@@ -94,7 +94,7 @@ describeConBase("cotizaciones: descuento por porcentaje", () => {
     expect(JSON.stringify(bitacora.detalle)).toContain("descuentoPct");
   });
 
-  it("reemplazar ítems recalcula el monto con el porcentaje vigente", async () => {
+  it("reemplazar productos recalcula el monto con el porcentaje vigente", async () => {
     const borrador = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias, "1")] });
     const con = await servicio().editarCotizacion(borrador.id, { version: borrador.actualizadoEn, descuentoPct: "10" }, actor());
     expect(con.descuento).toBe("132.00");

@@ -3,15 +3,13 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import type { Map as Mapa, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { leerCoordenadas, type PuntoInstalacion } from "../coordenadas";
 
-export type PuntoInstalacion = [latitud: number, longitud: number];
+export type { PuntoInstalacion } from "../coordenadas";
 export const CENTRO_ESTELI: PuntoInstalacion = [13.09289, -86.35629];
 
 export function leerPunto(destino: string): PuntoInstalacion | null {
-  const partes = destino.split(",").map((parte) => parte.trim());
-  if (partes.length !== 2 || partes.some((parte) => !/^-?\d+(\.\d+)?$/.test(parte))) return null;
-  const [latitud, longitud] = partes.map(Number);
-  return Math.abs(latitud) <= 90 && Math.abs(longitud) <= 180 ? [latitud, longitud] : null;
+  return leerCoordenadas(destino);
 }
 
 type Props = {
@@ -38,7 +36,7 @@ export function MapaInstalacion({ destino, trazado, alElegir, alFallar }: Props)
     if (trazado.length) {
       const ruta = L.polyline(trazado.map(([lon, lat]) => [lat, lon]), { color: "#245ad8", weight: 5 }).addTo(capa.current);
       mapa.current.fitBounds(ruta.getBounds(), { padding: [28, 28], maxZoom: 15 });
-    }
+    } else if (punto) mapa.current.setView(punto, 14);
   });
   const centroInicial = useEffectEvent(() => leerPunto(destino) ?? CENTRO_ESTELI);
   useEffect(() => {

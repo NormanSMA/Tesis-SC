@@ -11,9 +11,8 @@ import { FichaOrden } from "@/modules/ordenes/componentes/FichaOrden";
 import { monedaDe } from "@/modules/cotizaciones/moneda";
 import { ItemsOrden } from "@/modules/ordenes/componentes/ItemsOrden";
 import { LineaTiempoOrden } from "@/modules/ordenes/componentes/LineaTiempoOrden";
-import { MaterialesTrabajo } from "@/modules/ordenes/componentes/MaterialesTrabajo";
 import { cargarOrden } from "@/modules/ordenes/paginas";
-import { etapasEjecutables } from "@/modules/produccion/acceso";
+import { etapasEjecutables, soloEtapasPropias } from "@/modules/produccion/acceso";
 import { opcionesProduccion } from "@/modules/produccion/service";
 
 const cargarPagina = cache(async (id: string) => {
@@ -37,17 +36,16 @@ export default async function PaginaDetalleOrden({ params }: { params: Promise<{
     ? await opcionesProduccion(actor) : { areas: [], responsables: [] };
   const ejecutables = etapasEjecutables(orden.etapas.map((etapa) => ({ ...etapa, responsableId: etapa.responsable?.id ?? null })), actor);
   return <div className="min-w-0" key={orden.actualizadoEn}>
-    <EncabezadoOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+    <EncabezadoOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} verTrazabilidad={!soloEtapasPropias(actor)} />
     <div className="min-w-0 space-y-6">
-      <EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas} ejecutables={ejecutables}
+      <EtapasOrden etapas={orden.etapas} orden={orden} permisos={permisosEtapas} ejecutables={ejecutables} materiales={orden.materialesTrabajo}
         areas={opciones.areas.filter((area) => area.activo)} responsables={opciones.responsables} />
       <FichaOrden
-        especificaciones={<><DatosOrden orden={orden} /><ItemsOrden items={orden.items} moneda={monedaDe(orden.cotizacion?.moneda)} />
-          <MaterialesTrabajo materiales={orden.materialesTrabajo} /></>}
+        especificaciones={<><DatosOrden orden={orden} /><ItemsOrden items={orden.items} moneda={monedaDe(orden.cotizacion?.moneda)} /></>}
         cliente={orden.cotizacion ? <DatosCliente orden={orden} verCliente={can(actor, "cliente:ver")} /> : undefined}
         consumo={verInventario ? <ConsumoEstimadoOrden orden={orden} /> : undefined}
         materiales={verInventario ? <MaterialesOrden ordenId={orden.id} consumir={can(actor, "inventario:consumir")} /> : undefined}
-        historial={<LineaTiempoOrden eventos={orden.eventos} />} />
+        historial={soloEtapasPropias(actor) ? undefined : <LineaTiempoOrden eventos={orden.eventos} />} />
     </div>
   </div>;
 }

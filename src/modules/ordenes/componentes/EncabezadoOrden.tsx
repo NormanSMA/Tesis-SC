@@ -29,8 +29,8 @@ function CeldaResumen({ etiqueta, icono: Icono, children }: { etiqueta: string; 
 }
 
 /** Cabecera de la ficha (identidad, estado, siguiente paso) y resumen de avance, entrega y responsable. */
-export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
-  orden: OrdenDto; permisos: Permisos; permisosEtapas: PermisosProduccionOrden;
+export function EncabezadoOrden({ orden, permisos, permisosEtapas, verTrazabilidad = true }: {
+  orden: OrdenDto; permisos: Permisos; permisosEtapas: PermisosProduccionOrden; verTrazabilidad?: boolean;
 }) {
   const puedeAsignar = permisos.gestionar && EDITABLES.includes(orden.estado);
   const total = orden.etapas.length;
@@ -47,7 +47,7 @@ export function EncabezadoOrden({ orden, permisos, permisosEtapas }: {
       acciones={<>
         <Button asChild variant="outline"><Link href={`/ordenes/${orden.id}/imprimir`}>
           <Printer aria-hidden="true" />Imprimir orden</Link></Button>
-        <AccionesOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} />
+        <AccionesOrden orden={orden} permisos={permisos} permisosEtapas={permisosEtapas} verTrazabilidad={verTrazabilidad} />
       </>} />
     <BandejaMetricas className="mb-6 grid-cols-2">
       <TarjetaMetrica etiqueta="Avance de etapas" numero={porcentaje} texto={`${porcentaje} %`} formato="porcentaje" icono={ListChecks}

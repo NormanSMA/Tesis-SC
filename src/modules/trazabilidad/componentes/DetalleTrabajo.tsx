@@ -9,6 +9,7 @@ import { Timeline } from "@/components/comunes/Timeline";
 import { formatearCantidadPorUnidad, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { textoCambioEstado } from "../etiquetas";
 import type { TrazabilidadOrden } from "../tipos";
+import estilos from "./ResponsividadTrazabilidad.module.css";
 
 type Etapa = TrazabilidadOrden["cadena"]["etapas"][number];
 type Material = TrazabilidadOrden["materiales"][number];
@@ -34,10 +35,10 @@ export function DetalleTrabajo({ trazabilidad }: { trazabilidad: TrazabilidadOrd
   return <div className="min-w-0 space-y-6">
     <TarjetaSeccion titulo="Etapas" sinRelleno>
         <DataTable titulo="Etapas del trabajo" filas={trazabilidad.cadena.etapas} columnas={columnasEtapas} idFila={(fila) => fila.id}
-          apilarEnMovil className={claseTabla} /></TarjetaSeccion>
+          apilarEnMovil className={`${claseTabla} ${estilos.etapas}`} /></TarjetaSeccion>
     {trazabilidad.verConsumo ? <TarjetaSeccion titulo="Materiales" sinRelleno>
         <DataTable titulo="Materiales del trabajo" filas={trazabilidad.materiales} columnas={columnasMateriales("costoRealTotal" in trazabilidad)}
-          idFila={(fila) => fila.material.id} apilarEnMovil className={claseTabla}
+          idFila={(fila) => fila.material.id} apilarEnMovil className={`${claseTabla} ${estilos.materiales}`}
           vacio={<EmptyState icono={Boxes} titulo="Sin materiales" descripcion="Este trabajo no tiene materiales estimados ni movimientos." className="rounded-none border-0" />} />
         {"costoRealTotal" in trazabilidad ? <div className="space-y-1 border-t border-slate-100 p-5"><p className="font-semibold">Costo real total: {formatearMoneda(trazabilidad.costoRealTotal)}</p>
           <p className="text-sm text-muted-foreground">Incluye consumos menos devoluciones.</p></div> : null}

@@ -8,7 +8,7 @@ type CotizacionAcciones = Pick<CotizacionDto, "estado" | "archivada"> & {
 function pasoBorrador(cotizacion: CotizacionAcciones, permisos: PermisosCotizacion) {
   if (!permisos.enviar) return "Corresponde a un usuario con permiso de envío.";
   if (cotizacion.items.length) return "Envíe la cotización al cliente.";
-  return permisos.gestionar ? "Agregue ítems para poder enviar la cotización." : "Corresponde a un usuario con permiso de gestión.";
+  return permisos.gestionar ? "Agregue productos para poder enviar la cotización." : "Corresponde a un usuario con permiso de gestión.";
 }
 
 function siguientePaso(cotizacion: CotizacionAcciones, permisos: PermisosCotizacion) {

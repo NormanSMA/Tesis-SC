@@ -19,6 +19,6 @@ export function PieTotales({ control, cotizacion, selectores }: {
     descuentoPct: cotizacion.descuentoPct, instalacion: cotizacion.instalacion }}
     moneda={cotizacion.moneda} /> : <Alert>
     <CircleAlert aria-hidden="true" /><AlertTitle>Revise los campos para calcular los totales</AlertTitle>
-    <AlertDescription>{vista.errores.descuento ?? vista.errores.descuentoPct ?? "Complete productos, cantidades y líneas de costo."}</AlertDescription>
+    <AlertDescription>{vista.errores.descuento ?? vista.errores.descuentoPct ?? "Complete productos, cantidades y materiales y otros costos."}</AlertDescription>
   </Alert>;
 }

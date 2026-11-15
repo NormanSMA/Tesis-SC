@@ -119,7 +119,7 @@ describeConBase("cotizaciones: creación y costeo persistido", () => {
     expect(await entorno.modulos.servicio.obtenerCotizacion(inicial.id)).toEqual(inicial);
   });
 
-  it("rechaza reemplazar con subtotal menor al descuento y revierte los ítems", async () => {
+  it("rechaza reemplazar con subtotal menor al descuento y revierte los productos", async () => {
     const inicial = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
     const descontada = await entorno.modulos.servicio.editarCotizacion(inicial.id, {
       version: inicial.actualizadoEn, descuento: "100",

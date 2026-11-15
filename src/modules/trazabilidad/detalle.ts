@@ -23,7 +23,7 @@ const fichaMaterial: Regla = { ...material, stockMinimo: "valor", costoPromedio:
 const linea: Regla = { secuencia: "valor", tipo: "valor", descripcion: "valor", unidad: "valor", cantidad: "consumo",
   materialId: "valor", mermaPct: "consumo", costoUnitario: "dinero", importe: "dinero" };
 const item: Regla = { secuencia: "valor", descripcion: "valor", tipo: "valor", unidadCobro: "valor", cantidad: "valor",
-  ancho: "valor", alto: "valor", importe: "dinero", precioUnitario: "dinero", costoTotal: "dinero", margenPct: "dinero", lineas: [linea] };
+  ancho: "valor", alto: "valor", profundidad: "valor", importe: "dinero", precioUnitario: "dinero", costoTotal: "dinero", margenPct: "dinero", lineas: [linea] };
 const movimiento = { motivo: "valor", referencia: "valor", cantidad: "consumo", material, materialId: "valor",
   existenciaResultante: "consumo", costoUnitario: "dinero", costoPromedioResultante: "dinero" } satisfies Record<string, Regla>;
 
@@ -103,12 +103,12 @@ const ETIQUETAS: Record<string, string> = { nombre: "Nombre", asunto: "Asunto", 
   telefono: "Teléfono", correo: "Correo", ruc: "RUC", direccion: "Dirección", condiciones: "Condiciones",
   vigenciaDias: "Vigencia en días", stockMinimo: "Existencia mínima", activo: "Activo", archivada: "Archivada",
   fechaEmision: "Fecha de emisión", fechaVencimiento: "Fecha de vencimiento", unidad: "Unidad", unidadCobro: "Unidad de cobro",
-  ancho: "Ancho", alto: "Alto", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
+  ancho: "Ancho", alto: "Alto", profundidad: "Profundidad", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
 
 const CAMPOS_MONEDA = new Set(["costoUnitario", "costoPromedioResultante", "costoPromedio", "precioBase", "importe",
   "subtotal", "descuento", "impuesto", "total", "precioUnitario", "costoTotal"]);
 const CAMPOS_PORCENTAJE = new Set(["margenPct", "tasaImpuesto", "mermaPct"]);
-const CAMPOS_CANTIDAD = new Set(["cantidad", "existenciaResultante", "stockMinimo", "ancho", "alto"]);
+const CAMPOS_CANTIDAD = new Set(["cantidad", "existenciaResultante", "stockMinimo", "ancho", "alto", "profundidad"]);
 
 function sinCerosSobrantes(numero: string): string {
   return numero.includes(".") ? numero.replace(/\.?0+$/, "") : numero;

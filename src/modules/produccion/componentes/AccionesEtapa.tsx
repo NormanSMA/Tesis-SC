@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarDays, Check, RotateCcw, SkipForward, UserRoundPlus, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EtapaOrdenDto, ReferenciaOrden } from "@/modules/ordenes/tipos";
 import type { EstadoOrden } from "@/generated/prisma/enums";
 import { useSolicitudProduccion } from "../useSolicitudProduccion";
@@ -15,6 +17,16 @@ export type { PermisosEtapas } from "./accionesDisponibles";
 type Propiedades = { etapa: EtapaOrdenDto; estadoOrden: EstadoOrden; permisos: PermisosEtapas;
   responsables?: ReferenciaOrden[]; soloEjecucion?: boolean };
 type Dialogo = "responsable" | "fechas" | "omitir" | "hecho" | null;
+
+function BotonEtapa({ icono: Icono, etiqueta, ayuda, etapa, principal, deshabilitado, alPulsar }: {
+  icono: LucideIcon; etiqueta: string; ayuda: string; etapa: string; principal?: boolean;
+  deshabilitado: boolean; alPulsar: () => void;
+}) {
+  return <Tooltip><TooltipTrigger asChild>
+    <Button type="button" size="icon" variant={principal ? "default" : "outline"} disabled={deshabilitado}
+      aria-label={`${etiqueta}: ${etapa}`} onClick={alPulsar}><Icono aria-hidden="true" className="size-4" /></Button>
+  </TooltipTrigger><TooltipContent side="top" sideOffset={6}>{ayuda}</TooltipContent></Tooltip>;
+}
 
 function DialogosEtapa({ dialogo, etapa, responsables, cerrar }: {
   dialogo: Dialogo; etapa: EtapaOrdenDto; responsables: ReferenciaOrden[]; cerrar: () => void;
@@ -35,19 +47,19 @@ export function AccionesEtapa({ etapa, estadoOrden, permisos, responsables = [],
   async function ejecutar(accion: "restaurar") {
     await solicitud.enviar({ url: `/api/v1/etapas/${etapa.id}/${accion}`, metodo: "POST", cuerpo: { version: etapa.actualizadoEn } });
   }
-  return <div className="min-w-0 space-y-2 text-left"><AvisoProduccion {...solicitud} />
-    <div className="flex flex-wrap gap-2 max-md:[&>button]:flex-1">
-      {acciones.asignar ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
-        aria-label={`Asignar responsable: ${etapa.nombre}`} onClick={() => setDialogo("responsable")}>Asignar</Button> : null}
-      {acciones.fechas ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
-        aria-label={`Planificar fechas: ${etapa.nombre}`} onClick={() => setDialogo("fechas")}>Fechas</Button> : null}
-      {acciones.hecho ? <Button size="sm" className="h-10" disabled={solicitud.enviando} aria-label={`Hecho: ${etapa.nombre}`}
-        onClick={() => setDialogo("hecho")}>Hecho</Button> : null}
-      {acciones.omitir ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
-        aria-label={`Omitir: ${etapa.nombre}`} onClick={() => setDialogo("omitir")}>Omitir</Button> : null}
-      {acciones.restaurar ? <Button size="sm" className="h-10" variant="outline" disabled={solicitud.enviando}
-        aria-label={`Restaurar: ${etapa.nombre}`} onClick={() => ejecutar("restaurar")}>Restaurar</Button> : null}
+  return <TooltipProvider delayDuration={200}><div className="min-w-0 space-y-2 text-left"><AvisoProduccion {...solicitud} />
+    <div className="grid w-fit grid-cols-[repeat(2,2.5rem)] gap-2" role="group" aria-label={`Acciones de ${etapa.nombre}`}>
+      {acciones.asignar ? <BotonEtapa icono={UserRoundPlus} etiqueta="Asignar responsable" ayuda="Asignar responsable" etapa={etapa.nombre}
+        deshabilitado={solicitud.enviando} alPulsar={() => setDialogo("responsable")} /> : null}
+      {acciones.fechas ? <BotonEtapa icono={CalendarDays} etiqueta="Planificar fechas" ayuda="Planificar fechas" etapa={etapa.nombre}
+        deshabilitado={solicitud.enviando} alPulsar={() => setDialogo("fechas")} /> : null}
+      {acciones.hecho ? <BotonEtapa icono={Check} etiqueta="Hecho" ayuda="Marcar etapa como hecha" etapa={etapa.nombre} principal
+        deshabilitado={solicitud.enviando} alPulsar={() => setDialogo("hecho")} /> : null}
+      {acciones.omitir ? <BotonEtapa icono={SkipForward} etiqueta="Omitir" ayuda="Omitir etapa" etapa={etapa.nombre}
+        deshabilitado={solicitud.enviando} alPulsar={() => setDialogo("omitir")} /> : null}
+      {acciones.restaurar ? <BotonEtapa icono={RotateCcw} etiqueta="Restaurar" ayuda="Restaurar etapa" etapa={etapa.nombre}
+        deshabilitado={solicitud.enviando} alPulsar={() => ejecutar("restaurar")} /> : null}
     </div>
     <DialogosEtapa dialogo={dialogo} etapa={etapa} responsables={responsables} cerrar={() => setDialogo(null)} />
-  </div>;
+  </div></TooltipProvider>;
 }

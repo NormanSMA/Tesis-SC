@@ -13,6 +13,7 @@ import { fechaFiltroNavegable, limitesFiltroFecha } from "@/lib/listas/fecha";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { ACCION_TEXTO, ENTIDAD_TEXTO } from "../etiquetas";
 import { ACCIONES, ENTIDADES, type ConsultaBitacora } from "../schema";
+import estilos from "./ResponsividadTrazabilidad.module.css";
 
 const TODOS = "__todos__";
 const OPCIONES_ORDEN = [{ valor: "creadoEn:desc", etiqueta: "Más recientes" }, { valor: "creadoEn:asc", etiqueta: "Más antiguos" }];
@@ -46,9 +47,9 @@ function CampoFecha({ parametro, etiqueta, valor }: { parametro: "desde" | "hast
   const [fecha, setFecha] = useState(valor ?? "");
   const [previo, setPrevio] = useState(valor ?? "");
   if ((valor ?? "") !== previo) { setPrevio(valor ?? ""); setFecha(valor ?? ""); }
-  return <div className="flex items-center gap-2">
+  return <div className="min-w-0 space-y-2">
     <label htmlFor={id} className="text-sm font-medium">{etiqueta}</label>
-    <Input id={id} type="date" lang="es" value={fecha} className="w-auto" {...limitesFiltroFecha()}
+    <Input id={id} type="date" lang="es" value={fecha} className="w-full min-w-0" {...limitesFiltroFecha()}
       onChange={(evento) => {
         setFecha(evento.target.value);
         if (fechaFiltroNavegable(evento.target.value)) navegar({ [parametro]: evento.target.value || null });
@@ -61,11 +62,13 @@ export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBita
   const { navegar } = useParametrosUrl();
   const avanzados = [consulta.entidad, consulta.accion, consulta.usuario, consulta.orden, consulta.cotizacion].filter(Boolean).length;
   const hayFiltros = avanzados > 0 || Boolean(consulta.texto || consulta.desde || consulta.hasta);
-  return <div role="group" aria-label="Filtrar bitácora" className="mb-4 flex flex-wrap items-center gap-3">
+  return <div role="group" aria-label="Filtrar bitácora" className="mb-4 flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar en la bitácora" parametro="texto" marcador="Buscar por detalle"
-      className="basis-full sm:max-w-md lg:min-w-64 lg:basis-auto lg:flex-1" />
-    <CampoFecha parametro="desde" etiqueta="Desde" valor={consulta.desde} />
-    <CampoFecha parametro="hasta" etiqueta="Hasta" valor={consulta.hasta} />
+      className="min-w-0 basis-full lg:basis-64 lg:flex-1" />
+    <div className="grid min-w-0 basis-full grid-cols-2 gap-3 sm:basis-80">
+      <CampoFecha parametro="desde" etiqueta="Desde" valor={consulta.desde} />
+      <CampoFecha parametro="hasta" etiqueta="Hasta" valor={consulta.hasta} />
+    </div>
     <Popover>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" className="h-10 gap-2">
@@ -75,7 +78,8 @@ export function FiltrosBitacora({ consulta, usuarios }: { consulta: ConsultaBita
             {avanzados}<span className="sr-only"> activos</span></span> : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
+      <PopoverContent align="start" collisionPadding={16} aria-label="Filtros adicionales de trazabilidad"
+        className={`flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4 ${estilos.panelFiltros}`}>
         <Seleccion parametro="entidad" etiqueta="Entidad" valor={consulta.entidad}
           opciones={ENTIDADES.map((id) => ({ id, nombre: ENTIDAD_TEXTO[id] }))} />
         <Seleccion parametro="accion" etiqueta="Acción" valor={consulta.accion}

@@ -45,7 +45,7 @@ const orden: OrdenDto = {
   creadoEn: "2026-10-06T12:00:00Z", actualizadoEn: "2026-10-06T12:00:00Z", fechaInicioReal: null, fechaEntregaReal: null,
   fechaCierre: null, motivoCancelacion: null, especificaciones: "Especificaciones de prueba. ".repeat(30),
   items: [{ id, secuencia: 1, tipo: "PERSONALIZADO", descripcion: "Descripción extensa del trabajo solicitado", categoria,
-    unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
+    unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", profundidad: null, lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
       descripcion: "Material de prueba", unidad: "M2", cantidad: "7.200", mermaPct: "5.00", material: { id, nombre: "Vinil", unidad: "M2" } }] }],
   etapas: [{ id, secuencia: 1, nombre: "Impresión de gran formato", area: { id, nombre: "Área de impresión" }, estado: "PENDIENTE",
     responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null, actualizadoEn: "2026-10-06T12:00:00.000Z" }],
@@ -94,12 +94,14 @@ describe("órdenes: responsable opcional en componentes", () => {
     expect(html("LISTA", { ...permisos, entregar: false })).not.toContain(">Entregar<");
     expect(html("PENDIENTE", permisos, { planificar: false, ejecutar: false, avanzar: false })).not.toContain("Iniciar producción");
   });
-  it("lista: 7 columnas, fila enlazada a la ficha y filtro Sin responsable visible", () => {
+  it("lista: 7 columnas, fila enlazada a la ficha y filtro de vista desplegable", () => {
     const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { ...propiedadesTabla, lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20, conteos } }));
     expect(tabla.match(/<th [^>]*scope="col"/g)).toHaveLength(7);
     expect(tabla).toContain(`href="/ordenes/${id}"`);
     const filtros = renderToStaticMarkup(createElement(FiltrosOrdenes, { conteos, responsables: [responsable] }));
-    expect(filtros).toContain("Sin responsable");
+    expect(filtros).toContain('role="combobox"');
+    expect(filtros).toContain(">Vista</label>");
+    expect(filtros).not.toContain('role="radiogroup"');
   });
   it("renderiza edición sin responsable y restringe los campos al planificar", () => {
     const formulario = renderToStaticMarkup(createElement(FormularioOrden, {

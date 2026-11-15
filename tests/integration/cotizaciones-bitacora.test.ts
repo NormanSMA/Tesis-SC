@@ -12,7 +12,7 @@ import {
 function instantanea(item: ItemDto) {
   return { secuencia: item.secuencia, descripcion: item.descripcion, tipo: item.tipo,
     productoId: item.productoId, categoriaId: item.categoriaId, unidadCobro: item.unidadCobro,
-    cantidad: item.cantidad, ancho: item.ancho, alto: item.alto, precioUnitario: item.precioUnitario,
+    cantidad: item.cantidad, ancho: item.ancho, alto: item.alto, profundidad: item.profundidad, precioUnitario: item.precioUnitario,
     costoTotal: item.costoTotal, margenPct: item.margenPct, importe: item.importe, lineas: item.lineas };
 }
 
@@ -46,7 +46,7 @@ describeConBase("cotizaciones: bitácora reconstruible y transacciones", () => {
     });
   });
 
-  it("reconstruye ítems agregados, modificados y quitados usando el detalle EDITAR", async () => {
+  it("reconstruye productos agregados, modificados y quitados usando el detalle EDITAR", async () => {
     const inicial = await crearBorrador(entorno, {
       items: [itemUnidad(entorno.referencias), itemPersonalizado(entorno.referencias)],
     });

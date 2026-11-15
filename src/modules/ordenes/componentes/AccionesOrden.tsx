@@ -18,8 +18,8 @@ const CONFIRMACION = {
   lista: { titulo: "Marcar orden lista", descripcion: "Confirme que la orden está lista para entregar.", etiquetaConfirmar: "Marcar lista" },
 };
 
-export function AccionesOrden({ orden, permisos, permisosEtapas }: {
-  orden: OrdenDto; permisos: PermisosOrden; permisosEtapas: PermisosProduccionOrden;
+export function AccionesOrden({ orden, permisos, permisosEtapas, verTrazabilidad = true }: {
+  orden: OrdenDto; permisos: PermisosOrden; permisosEtapas: PermisosProduccionOrden; verTrazabilidad?: boolean;
 }) {
   const [accion, setAccion] = useState<Accion | null>(null);
   const solicitud = useSolicitudOrden();
@@ -41,7 +41,7 @@ export function AccionesOrden({ orden, permisos, permisosEtapas }: {
         onClick={() => setAccion("cerrar")}>Cerrar</Button> : null}
       {acciones.editar ? <Button asChild variant="outline">
         <Link href={`/ordenes/${orden.id}/editar`}>Editar</Link></Button> : null}
-      <Button asChild variant="outline"><Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button>
+      {verTrazabilidad ? <Button asChild variant="outline"><Link href={`/trazabilidad/ordenes/${orden.id}`}>Trazabilidad completa</Link></Button> : null}
       {acciones.cancelar ? <CancelarOrden orden={orden} /> : null}
     </div>
     {acciones.avisoLista ? <p className={acciones.avisoLista.clase}>{acciones.avisoLista.texto}</p> : null}

@@ -10,14 +10,12 @@ const ORIGIN = new URL(BASE).origin;
 const CAPTURAS = path.join("docs", "capturas", "inventario");
 const SELLO = Date.now();
 const MARCA = `E2E-${SELLO}-inventario-${Math.floor(Math.random() * 100000)}`;
-// El prefijo evita limpiar materiales ajenos y mantiene códigos menores de 30 caracteres.
-const PREFIJO_CODIGO = `E2E-${randomUUID().replaceAll("-", "").slice(0, 12)}-`.toUpperCase();
 const NOMBRE = `${MARCA} material`;
 const UNIDAD = "PLIEGO";
 // La ficha muestra la unidad legible en minúscula, con espacio duro tras la cifra.
 const UNIDAD_FICHA = "pliego";
 type Perfil = (typeof PERFILES)[number];
-type Material = { id: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
+type Material = { id: string; nombre: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
 const PERFIL = (codigo: string) => PERFILES.find((perfil) => perfil.codigo === codigo)!;
 const ADMINISTRACION = PERFIL("ADMINISTRACION");
 const ATENCION_CLIENTE = PERFIL("ATENCION_CLIENTE");
@@ -73,11 +71,10 @@ function listaMateriales(page: Page): Locator {
 }
 
 async function crearMaterial(page: Page): Promise<Material> {
-  const codigo = `${PREFIJO_CODIGO}${randomUUID().replaceAll("-", "").slice(0, 12)}`.toUpperCase();
   await entrarComo(page, ADMINISTRACION);
   await abrir(page, "/inventario/nuevo", "Crear material");
   const form = formulario(page, "Crear material");
-  await form.getByLabel("Código").fill(codigo);
+  await expect(form.getByLabel("Código automático")).toHaveAttribute("readonly", "");
   await form.getByLabel("Nombre").fill(NOMBRE);
   await form.getByLabel("Unidad").selectOption(UNIDAD);
   // El mínimo supera la existencia que alcanzará la prueba: así la alerta es esperable.
@@ -144,9 +141,9 @@ async function archivarDesdeFicha(page: Page, material: Material): Promise<void>
 
 async function archivarYVaciar(page: Page): Promise<void> {
   await entrarComo(page, ADMINISTRACION);
-  const lista = await page.request.get(`/api/v1/materiales?q=${PREFIJO_CODIGO}&activo=todos&porPagina=100`);
+  const lista = await page.request.get(`/api/v1/materiales?q=${encodeURIComponent(NOMBRE)}&activo=todos&porPagina=100`);
   expect(lista.status()).toBe(200);
-  for (const fila of ((await lista.json()).datos as Material[]).filter((fila) => fila.codigo.startsWith(PREFIJO_CODIGO) && fila.activo)) {
+  for (const fila of ((await lista.json()).datos as Material[]).filter((fila) => fila.nombre === NOMBRE && fila.activo)) {
     const ficha = await leerFicha(page, fila);
     if (Number(ficha.existencia) > 0) {
       const ajuste = await page.request.post("/api/v1/inventario/ajustes", {

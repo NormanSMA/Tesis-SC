@@ -18,7 +18,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     return { ...entorno, referencias: await crearReferencias(db) };
   }
 
-  it("conserva el precio de catálogo al modificar otro ítem", async () => {
+  it("conserva el precio de catálogo al modificar otro producto", async () => {
     const propio = await escenarioPropio();
     const inicial = await crearBorrador(propio, { items: [itemUnidad(propio.referencias), itemPersonalizado(propio.referencias)] });
     await db.producto.update({ where: { id: propio.referencias.unidad.id }, data: { precioBase: "9999" } });
@@ -48,7 +48,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     expect(actualizada.items[0]).toMatchObject({ unidadCobro: "M2", precioUnitario: "2000.00", importe: "12000.00" });
   });
 
-  it("rechaza cambiar la identidad del producto de un ítem existente", async () => {
+  it("rechaza cambiar la identidad del producto de un producto existente", async () => {
     const propio = await escenarioPropio();
     const inicial = await crearBorrador(propio, { items: [itemUnidad(propio.referencias)] });
     const entrada = { ...entradaExistente(inicial.items[0]), productoId: propio.referencias.superficie.id };
@@ -58,7 +58,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     expect(await entorno.modulos.servicio.obtenerCotizacion(inicial.id)).toEqual(inicial);
   });
 
-  it("conserva producto archivado incluido y rechaza nuevos ítems o actualización de precio", async () => {
+  it("conserva producto archivado incluido y rechaza nuevos productos o actualización de precio", async () => {
     const propio = await escenarioPropio();
     const inicial = await crearBorrador(propio, { items: [itemUnidad(propio.referencias)] });
     await db.producto.update({ where: { id: propio.referencias.unidad.id }, data: { activo: false } });
@@ -76,7 +76,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
   it("conserva costos y margen personalizados hasta solicitar actualizarPrecio", async () => {
     const inicial = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
     const entrada = entradaExistente(inicial.items[0]);
-    if (entrada.tipo !== "PERSONALIZADO") throw new Error("Falta el ítem personalizado.");
+    if (entrada.tipo !== "PERSONALIZADO") throw new Error("Falta el producto personalizado.");
     entrada.margenPct = "10";
     entrada.lineas = [{ tipo: "TERCERO", descripcion: "Costo nuevo", unidad: "servicio", costo: "900" }];
     const conservada = await entorno.modulos.servicio.reemplazarItems(inicial.id, {
@@ -104,7 +104,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     }, entorno.ventas.actor)).rejects.toMatchObject({ status: 409 });
   });
 
-  it("rechaza itemId ajeno y repetido sin alterar ítems ni bitácora", async () => {
+  it("rechaza itemId ajeno y repetido sin alterar productos ni bitácora", async () => {
     const inicial = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
     const ajena = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
     const eventos = await db.bitacora.count({ where: { cotizacionId: inicial.id } });
@@ -119,7 +119,7 @@ describeConBase("cotizaciones: instantáneas y reutilización", () => {
     expect(await db.bitacora.count({ where: { cotizacionId: inicial.id } })).toBe(eventos);
   });
 
-  it("duplica asunto, condiciones, descuento e ítems sin IVA y con la vigencia vigente", async () => {
+  it("duplica asunto, condiciones, descuento e productos sin IVA y con la vigencia vigente", async () => {
     const inicial = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias), itemPersonalizado(entorno.referencias)] });
     const editada = await entorno.modulos.servicio.editarCotizacion(inicial.id, {
       version: inicial.actualizadoEn, condiciones: "Anticipo acordado", descuento: "500",

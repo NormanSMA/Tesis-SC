@@ -54,7 +54,7 @@ export function FiltrosCotizaciones({ conteos, clientes }: {
   const hayFiltros = secundarios > 0 || Boolean(parametros.get("q")) || Boolean(parametros.get("estado"));
   // Fila 1: buscador y filtros secundarios. Fila 2: pastillas de estado (ocupan todo el ancho y pueden desplazarse).
   return <div className="mb-4 flex flex-col gap-3">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar cotizaciones" marcador="Buscar por número, cliente o asunto" className="sm:max-w-md sm:flex-1" />
     <Popover>
       <PopoverTrigger asChild>

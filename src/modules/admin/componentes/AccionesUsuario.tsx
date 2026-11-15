@@ -8,6 +8,7 @@ import type { UsuarioConClave, UsuarioDto } from "@/modules/admin/tipos";
 import { AvisoAdmin } from "./AvisoAdmin";
 import { ConfirmacionAdmin } from "./ConfirmacionAdmin";
 import { peticionAdministracion } from "./peticion";
+import estilos from "./ResponsividadUsuarios.module.css";
 
 const ACCIONES = {
   desbloquear: { etiqueta: "Desbloquear", descripcion: "Se limpiarán los intentos fallidos y el bloqueo." },
@@ -43,7 +44,7 @@ export function AccionesUsuario(props: Propiedades) {
   return (
     <section aria-label="Acciones del usuario" className="space-y-3">
       {error ? <AvisoAdmin mensaje={error} /> : null}
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 [&>button]:w-full">
+      <div className={`${estilos.acciones} [&>button]:w-full`}>
         <Button className="min-h-10" variant="outline" disabled={enviando} onClick={() => setAccion("desbloquear")}>Desbloquear</Button>
         <Button className="min-h-10" variant="outline" disabled={enviando} onClick={() => setAccion(props.usuario.activo ? "desactivar" : "reactivar")}>
           {props.usuario.activo ? "Desactivar" : "Reactivar"}

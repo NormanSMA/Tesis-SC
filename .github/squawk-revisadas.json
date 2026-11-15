@@ -1,0 +1,396 @@
+{
+  "fechaRevision": "2026-11-14",
+  "alcance": "Migraciones históricas aplicadas antes de esta publicación. No autoriza cambios de SQL ni excepciones para migraciones nuevas.",
+  "imagen": "ghcr.io/sbdchd/squawk@sha256:b7c8c1ad82439744e676c0c0b2447d95ea0866f72ae1f4095d8653dfc89db916",
+  "archivos": [
+    {
+      "archivo": "prisma/migrations/20261105210000_material_presentacion/migration.sql",
+      "sha256Lf": "cd43dc32f24744c69ce0e0f904d177a984964c55994f4bfb0b02e7e39471494d",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 6,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261106180000_cliente_contacto_opcional/migration.sql",
+      "sha256Lf": "1ea135138e08840da7cd0620124d2d682555d6511c926c46ca4ecf429b3d4601",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "ban-drop-constraint",
+          "linea": 0,
+          "columna": 20,
+          "motivo": "Cambio de contrato aprobado: contacto opcional en Clientes, o sustitución de restricciones por sus versiones nuevas en el mismo lote. No se elimina una protección por este registro."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261107120000_cotizacion_comercial/migration.sql",
+      "sha256Lf": "3ac8b205e3b5a771da5e240d25af0f9e6836436204aa9f8241747318077d7e7d",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 7,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261108233000_ordenes_y_cotizacion_sc/migration.sql",
+      "sha256Lf": "451de20265c1579a0bea2e89079d6c4041c6f0ff789477a7c88ccfba38d5e74c",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 17,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 18,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        },
+        {
+          "regla": "ban-drop-constraint",
+          "linea": 36,
+          "columna": 2,
+          "motivo": "Cambio de contrato aprobado: contacto opcional en Clientes, o sustitución de restricciones por sus versiones nuevas en el mismo lote. No se elimina una protección por este registro."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 37,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 44,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261109005100_responsables_por_area/migration.sql",
+      "sha256Lf": "7937dd0a1a6d46d05a94dc7bd8c5066d2d629f7e6716005a49f8a75614947007",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261109021000_materiales_por_area_y_fecha_orden/migration.sql",
+      "sha256Lf": "9bb7c51298875e016a0be3fa2ba0947467fb13c1aac7b6304e155ef4fef71bd5",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "require-concurrent-index-creation",
+          "linea": 4,
+          "columna": 0,
+          "motivo": "Índices de tablas nuevas o catálogos pequeños creados en mantenimiento. No aplicar con tráfico sin revisión adicional."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261109150000_areas_operativas_y_tarifas_iniciales/migration.sql",
+      "sha256Lf": "6db47f0472901813d3a68dfa8c534e0fa2bb5c6ae7d15d10909df4bd15ff05de",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 23,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 23,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261109220100_matriz_perfiles_definitiva/migration.sql",
+      "sha256Lf": "80c82d1b10bb161078c31c335e2d51df9f2016fb89d66aa3dcd00b51e2601b0d",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 18,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 18,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261110110000_permisos_individuales/migration.sql",
+      "sha256Lf": "0f4cbb1cc44e64a20e1cefdcbca3e55794f47d5156aba70d33b4c0d9b9fc7d1c",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 1,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 1,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261111160000_notificaciones_leidas/migration.sql",
+      "sha256Lf": "22c69191a0940b340d22379c146821dd28fdc717cafaea5b00dc8a8c78c63409",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261111170000_descripciones_permisos/migration.sql",
+      "sha256Lf": "46ee459dec78711d090903c1fff140e692575570aa3a65259d0d7fe6df4fe73f",
+      "hallazgos": []
+    },
+    {
+      "archivo": "prisma/migrations/20261112100000_profundidad_partidas/migration.sql",
+      "sha256Lf": "6bdeddd109dbf261a8897581c07a21de8420b263d3f7428c5f9e74b68f145b24",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 2,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "ban-drop-constraint",
+          "linea": 5,
+          "columna": 2,
+          "motivo": "Cambio de contrato aprobado: contacto opcional en Clientes, o sustitución de restricciones por sus versiones nuevas en el mismo lote. No se elimina una protección por este registro."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 6,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        },
+        {
+          "regla": "ban-drop-constraint",
+          "linea": 11,
+          "columna": 2,
+          "motivo": "Cambio de contrato aprobado: contacto opcional en Clientes, o sustitución de restricciones por sus versiones nuevas en el mismo lote. No se elimina una protección por este registro."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 12,
+          "columna": 2,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261112220000_gastos_personalizados/migration.sql",
+      "sha256Lf": "4d39c4e8a45396f124f76668cfcfefa3d208d10b8fe73b9715a6dc373a02a85f",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261113100000_instalacion_ida_vuelta/migration.sql",
+      "sha256Lf": "b1f4019465a864dd3d233fa3f86a1da60c285dc831785da623a10ded0df63054",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "ban-drop-constraint",
+          "linea": 1,
+          "columna": 23,
+          "motivo": "Cambio de contrato aprobado: contacto opcional en Clientes, o sustitución de restricciones por sus versiones nuevas en el mismo lote. No se elimina una protección por este registro."
+        },
+        {
+          "regla": "constraint-missing-not-valid",
+          "linea": 2,
+          "columna": 23,
+          "motivo": "Validación inmediata de restricciones sobre tablas pequeñas durante mantenimiento; las pruebas aplican y verifican las restricciones."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261113130000_producto_personalizado/migration.sql",
+      "sha256Lf": "fdccde765d24438822863edc5c47a314ecd28a2e182e7dfb7c140ea59e39a2c2",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 0,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        }
+      ]
+    },
+    {
+      "archivo": "prisma/migrations/20261113160000_codigos_fotos/migration.sql",
+      "sha256Lf": "652503d146040f6ce996a6c305adeeae40d4fe7aeea6375bbfb5a6adf3451f6b",
+      "hallazgos": [
+        {
+          "regla": "require-lock-timeout",
+          "linea": 1,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; requiere ventana de mantenimiento sin tráfico. Las nuevas migraciones deberán fijar lock_timeout."
+        },
+        {
+          "regla": "require-statement-timeout",
+          "linea": 1,
+          "columna": 0,
+          "motivo": "DDL histórico ya aplicado; ejecutado en mantenimiento. Las nuevas migraciones deberán fijar statement_timeout."
+        },
+        {
+          "regla": "disallowed-unique-constraint",
+          "linea": 3,
+          "columna": 60,
+          "motivo": "Prefijo único de categorías agregado sobre catálogo pequeño durante mantenimiento; preserva unicidad."
+        },
+        {
+          "regla": "require-concurrent-index-creation",
+          "linea": 6,
+          "columna": 0,
+          "motivo": "Índices de tablas nuevas o catálogos pequeños creados en mantenimiento. No aplicar con tráfico sin revisión adicional."
+        },
+        {
+          "regla": "require-concurrent-index-creation",
+          "linea": 7,
+          "columna": 0,
+          "motivo": "Índices de tablas nuevas o catálogos pequeños creados en mantenimiento. No aplicar con tráfico sin revisión adicional."
+        },
+        {
+          "regla": "ban-drop-table",
+          "linea": 57,
+          "columna": 0,
+          "motivo": "Solo se elimina cambio_codigo, tabla TEMP auxiliar creada por esta misma migración; no es una tabla de negocio."
+        }
+      ]
+    }
+  ]
+}

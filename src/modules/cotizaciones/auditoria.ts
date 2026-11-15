@@ -6,8 +6,9 @@ import type { ItemDto } from "./tipos";
 function instantanea(item: ItemDto): Prisma.InputJsonObject {
   return { secuencia: item.secuencia, descripcion: item.descripcion, tipo: item.tipo,
     productoId: item.productoId, categoriaId: item.categoriaId, unidadCobro: item.unidadCobro,
-    cantidad: item.cantidad, ancho: item.ancho, alto: item.alto, precioUnitario: item.precioUnitario,
-    costoTotal: item.costoTotal, margenPct: item.margenPct, importe: item.importe,
+    cantidad: item.cantidad, ancho: item.ancho, alto: item.alto, profundidad: item.profundidad, precioUnitario: item.precioUnitario,
+    ...(item.productoPersonalizado ? { productoPersonalizado: item.productoPersonalizado } : {}),
+    ...(item.gastosPersonalizados ? { gastosPersonalizados: item.gastosPersonalizados } : {}), costoTotal: item.costoTotal, margenPct: item.margenPct, importe: item.importe,
     lineas: item.lineas.map((linea) => ({ ...linea })) };
 }
 

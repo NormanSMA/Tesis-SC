@@ -1,3 +1,4 @@
+import { kilometrosCobrados } from "../instalacion";
 import Link from "next/link";
 import { ListaDatos, type DatoFicha } from "@/components/comunes/TarjetaSeccion";
 import { Fecha, Money } from "@/components/comunes/ValorFormateado";
@@ -14,7 +15,7 @@ export function DatosCotizacion({ cotizacion }: { cotizacion: CotizacionDto }) {
     { etiqueta: "Tarifa", valor: NOMBRES_TARIFA[cotizacion.tarifa] },
     ...(instalacion && (instalacion.km || Number(instalacion.manoObra) > 0) ? [
       { etiqueta: "Costo de instalación", valor: <Money valor={instalacion.manoObra} moneda={moneda} /> },
-      ...(instalacion.km ? [{ etiqueta: "Traslado de instalación", valor: <span>{instalacion.destino} · {Number(instalacion.km)} km × <Money valor={instalacion.tarifa} moneda={moneda} /></span> }] : []),
+      ...(instalacion.km ? [{ etiqueta: "Traslado de instalación", valor: <span>{instalacion.destino} · {kilometrosCobrados(instalacion.km, instalacion.idaVuelta ?? false)} km {instalacion.idaVuelta ? "(ida y vuelta)" : ""} × <Money valor={instalacion.tarifa} moneda={moneda} /></span> }] : []),
     ] : []),
     { etiqueta: "Emisión", valor: <Fecha valor={cotizacion.fechaEmision} /> },
     { etiqueta: "Vencimiento", valor: <Fecha valor={cotizacion.fechaVencimiento} /> },

@@ -69,3 +69,16 @@ Implementación y E2E: Codex (programar), que agotó su cuota al redactar el inf
 Medido al cierre de la Fase 3: typecheck y lint limpios; 1417 pruebas unitarias e integración en 79 archivos; E2E completo 544 verdes, 0 fallos, 316 omitidas por diseño.
 Correcciones del orquestador a la E2E de Codex (que no pudo ejecutarla): el primer argumento de `beforeEach` debía desestructurarse (Playwright rechazaba el archivo y detenía toda la corrida) y el selector `getByRole('alert')` chocaba con el anunciador de rutas de Next (se acotó).
 Cobertura: CF-06, R-08 y R-11 implementados. Jev 0.73 (bajo 0.8): a confirmar con el usuario.
+
+
+## BI-01 Gráficos de gestión y lectura de indicadores — 2026-11-13
+
+Cada uno de los cuatro reportes incluye indicadores, gráficos de barras 2D y la tabla completa. Se usa escala común desde cero, valores visibles, leyenda, texto de contexto y navegación por teclado. No hay perspectivas 3D que deformen la comparación. Se reutilizan las filas autorizadas del reporte; no se introducen consultas con un alcance mayor ni nuevas facultades de exportación. Las exportaciones CSV y Excel conservan los datos tabulares; los gráficos pertenecen a la vista web.
+
+Cotizaciones: cantidad y monto cotizado por estado actual de las ofertas creadas en el período. Los montos se expresan en córdobas equivalentes y solo aparecen con permiso monetario. No representan cobros o ingresos realizados. La aprobación es aprobadas / (aprobadas + rechazadas); sin respuestas se presenta 0 % y se explica esta convención.
+
+Inventario: cuenta materiales por saldo registrado cero, saldo positivo bajo mínimo y saldo positivo sin alerta. Son grupos excluyentes, no una suma de cantidades de diferentes unidades. El saldo cero importado requiere conteo físico; no acredita por sí mismo un faltante. Valor de inventario usa costo promedio contable. Es una fotografía actual, sin filtro de período histórico.
+
+Carga por operario: gráfico de pendientes y en curso actuales por responsable; otro gráfico para completadas en el período por su fecha real de finalización. Cantidad de etapas no mide horas de esfuerzo ni productividad. Las atrasadas son parte de las abiertas, no una cantidad para añadir al total.
+
+Órdenes por etapa: barras por área de la primera etapa abierta, con total y atrasadas como subconjunto. Es situación actual; la fecha de entrega vencida se interpreta en Managua. Se conserva la tabla por etapa para revisar el detalle. No se presentan tendencias históricas que el reporte no consulta.

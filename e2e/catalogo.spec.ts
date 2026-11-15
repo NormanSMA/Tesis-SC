@@ -78,7 +78,7 @@ async function crearProductoPorPantalla(page: Page, valores: { codigo: string; n
   await page.goto("/catalogo");
   await page.getByRole("link", { name: "Nuevo producto" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Nuevo producto" })).toBeVisible();
-  await page.locator("#codigo").fill(valores.codigo);
+  await expect(page.locator("#codigo")).toHaveAttribute("readonly", "");
   await page.locator("#nombre").fill(valores.nombre);
   await elegirOpcion(page, /Categoría/, CATEGORIA);
   await elegirOpcion(page, /Unidad de cobro/, "m²");
@@ -119,7 +119,7 @@ test.describe("Operaciones gestiona el catálogo", () => {
     await crearProductoPorPantalla(page, { codigo, nombre: nombreInicial });
     await expect(page.getByRole("heading", { level: 1, name: nombreInicial })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByText(codigo, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/^P-[A-Z0-9]+-\d{3,}$/).first()).toBeVisible();
     await expect(page.getByText(CATEGORIA).first()).toBeVisible();
     await expect(page.getByText("m²", { exact: true })).toBeVisible();
     await expect(page.getByText("C$ 125.50")).toBeVisible();

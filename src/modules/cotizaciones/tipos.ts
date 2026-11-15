@@ -1,17 +1,22 @@
+import type { SeleccionProducto } from "@/modules/personalizadas/seleccion-schema";
+import type { GastosPersonalizados } from "@/modules/personalizadas/gastos-schema";
 import type { TotalesCotizacion, UnidadCobro, TipoLineaCosto } from "@/core/costeo";
 import type { ESTADOS } from "./schema";
 import type { Tarifa } from "./tarifas";
 
 export type EstadoCotizacion = (typeof ESTADOS)[number];
 export type LineaDto = {
+  esGastoPersonalizado?: boolean;
   id: string; secuencia: number; tipo: TipoLineaCosto; descripcion: string; materialId: string | null;
   unidad: string; cantidad: string; costoUnitario: string; mermaPct: string; importe: string;
   cantidadPorArea?: boolean; areaUnidadInventario?: string | null;
 };
 export type ItemDto = {
+  productoPersonalizado?: SeleccionProducto;
+  gastosPersonalizados?: GastosPersonalizados;
   id: string; secuencia: number; tipo: "CATALOGO" | "PERSONALIZADO"; productoId: string | null;
   categoriaId: string; descripcion: string; unidadCobro: UnidadCobro; cantidad: string;
-  ancho: string | null; alto: string | null; precioUnitario: string; costoTotal: string | null;
+  ancho: string | null; alto: string | null; profundidad: string | null; precioUnitario: string; costoTotal: string | null;
   margenPct: string | null; importe: string; lineas: LineaDto[]; productoActivo: boolean | null;
 };
 export type ClienteCotizacion = {
@@ -21,7 +26,7 @@ export type ClienteCotizacion = {
 export type CotizacionDto = TotalesCotizacion & {
   descuentoPct: string | null;
   tarifa: Tarifa; tarifaPct: string | null; descuentoManual: boolean; mostrarCondiciones: boolean;
-  instalacion?: { destino: string | null; km: string | null; tarifa: string | null; manoObra: string; total: string };
+  instalacion?: { destino: string | null; km: string | null; tarifa: string | null; manoObra: string; total: string; idaVuelta?: boolean };
   id: string; numero: string; clienteId: string; cliente: ClienteCotizacion; estado: EstadoCotizacion;
   asunto: string | null; condiciones: string | null; cotizacionOrigenId: string | null; moneda: string; tipoCambio: string;
   vigenciaDias: number; fechaEmision: string | null; fechaVencimiento: string | null;

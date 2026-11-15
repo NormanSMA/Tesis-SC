@@ -1,7 +1,8 @@
 import { dividir, formatear, leerDecimal, multiplicar } from "@/core/decimal";
+import { superficiePieza } from "@/core/medidas";
 
 export const MENSAJE_AREA_MATERIAL = "Configure en Inventario el área de la lámina, pliego o rollo completo para cotizar este material en m².";
-export const MENSAJE_TARIFA_MATERIAL = "Tarifa pendiente. Configure un precio en Configuración → Tarifas y actualice el costo de la partida.";
+export const MENSAJE_TARIFA_MATERIAL = "Tarifa pendiente. Configure un precio en Configuración → Tarifas y actualice el costo de el trabajo.";
 
 export function faltaTarifaMaterial(costo: string | null | undefined) {
   const precio = costo ? leerDecimal(costo) : null;
@@ -14,11 +15,14 @@ export function modalidadMaterial(material: { unidad: string; unidadCotizacion?:
   return "CANTIDAD";
 }
 
-export function superficieTotal({ ancho, alto, cantidad }: { ancho?: string | null; alto?: string | null; cantidad: string }): string | null {
+export function superficieTotal({ ancho, alto, profundidad, cantidad }: {
+  ancho?: string | null; alto?: string | null; profundidad?: string | null; cantidad: string;
+}): string | null {
   const medidas = [ancho, alto, cantidad].map((valor) => valor ? leerDecimal(valor) : null);
   const [a, b, piezas] = medidas;
   if (!a || !b || !piezas || medidas.some((valor) => valor!.num <= BigInt(0))) return null;
-  const superficie = formatear(multiplicar(multiplicar(a, b), piezas), 3);
+  const p = profundidad ? leerDecimal(profundidad) : null;
+  const superficie = formatear(multiplicar(superficiePieza(a, b, p && p.num > BigInt(0) ? p : null), piezas), 3);
   return Number(superficie) > 0 ? superficie : null;
 }
 

@@ -19,11 +19,12 @@ export async function listarConfiguracion(actor: Actor) {
   const general = can(actor, "configuracion:gestionar");
   const [configuracion, materiales] = await Promise.all([consultarConfiguracion(prisma), tarifas
     ? prisma.material.findMany({ where: { activo: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }) : []]);
-  return [...configuracion.filter(({ clave }) => esTarifa(clave) ? tarifas : general).map(aConfiguracionDto),
+  return [...configuracion.filter(({ clave }) => clave !== "cotizacion_tipos_personalizados" && (esTarifa(clave) ? tarifas : general)).map(aConfiguracionDto),
     ...materiales.map(aPrecioMaterial)];
 }
 
 export async function editarConfiguracion(entrada: EntradaEditarConfiguracion, actor: Actor) {
+  if (entrada.clave === "cotizacion_tipos_personalizados") throw new AppError({ status: 422, codigo: "VALIDACION", mensaje: "Use Configuración de cotizaciones personalizadas." });
   if (!esTarifa(entrada.clave)) exigir(actor, "configuracion:gestionar");
   else if (!puedeGestionarTarifas(actor)) throw new AppError({ status: 403, codigo: "SIN_PERMISO",
     mensaje: "Solo Gerencia y Administración pueden editar las tarifas." });

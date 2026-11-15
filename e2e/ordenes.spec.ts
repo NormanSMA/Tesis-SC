@@ -73,7 +73,7 @@ async function crearMixta(page: Page): Promise<void> {
   await linea.getByLabel("Descripción de costo").fill(`${MARCA}-vinil`);
   await linea.getByLabel("Cantidad total consumida").fill("2");
   await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
-  await linea.getByLabel("Merma (%)").fill("10");
+  await linea.getByLabel("Desperdicio (%)").fill("10");
   const creada = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/cotizaciones") && respuesta.request().method() === "POST");
   await page.getByRole("button", { name: "Guardar borrador" }).click();
   const respuesta = await creada;
@@ -141,7 +141,7 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(page.getByRole("link", { name: CLIENTE, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: cotizacion!.numero, exact: true })).toBeVisible();
   await abrirPestana(page, "Especificaciones");
-  const items = page.getByRole("region", { name: "Ítems", exact: true });
+  const items = page.getByRole("region", { name: "Productos y servicios", exact: true });
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
   await expect(items).toContainText(PERSONALIZADO);
@@ -254,7 +254,7 @@ async function capturarFicha(page: Page, perfil: Perfil): Promise<void> {
   await page.goto(`/ordenes/${orden.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(orden.numero);
   await abrirPestana(page, "Especificaciones");
-  await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
+  await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("C$");
   for (const vista of VIEWPORTS) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
     await verificarEtapasYEstimado(page, perfil.codigo !== "ATENCION_CLIENTE");
@@ -439,10 +439,10 @@ test("Producción consulta lista y ficha sin gestión ni dinero", async ({ page 
   await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar(?! sesión)|Entregar|Convertir en orden/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
   await abrirPestana(page, "Especificaciones");
-  await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("Cantidad:");
+  await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("Cantidad:");
   await expect(page.getByRole("table", { name: "Etapas de la orden" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Consumo estimado", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Materiales para el trabajo" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Etapas de la orden" }).getByRole("columnheader", { name: "Materiales" })).toBeVisible();
   const cotizacionTab = page.getByRole("tab", { name: "Cliente y cotización", exact: true });
   await expect(cotizacionTab).toHaveCount(0);
   await expect(page.getByRole("link", { name: /^COT-/ })).toHaveCount(0);
@@ -460,7 +460,7 @@ for (const actor of [ATENCION_CLIENTE, GERENCIA, OPERACIONES]) {
     await entrarComo(page, actor);
     await abrirSembrada(page);
     await abrirPestana(page, "Especificaciones");
-    await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
+    await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("C$");
     await abrirPestana(page, "Cliente y cotización");
     await expect(page.getByRole("main")).toContainText("Total");
   });

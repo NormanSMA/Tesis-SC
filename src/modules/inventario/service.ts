@@ -1,3 +1,4 @@
+import { exigirCodigoDisponible, prefijoMaterial, siguienteCodigo } from "@/lib/codigos";
 import { can, exigir, type Actor } from "@/core/autorizacion";
 import { CERO, comparar, leerDecimal } from "@/core/decimal";
 import { registrarEvento } from "@/lib/bitacora";
@@ -11,6 +12,8 @@ import { actualizarCondicionado, bloquearMaterial, consultarConciliacion, consul
 import type { ConsultaMateriales, ConsultaMovimientos, CrearMaterial, EditarMaterial } from "./schema";
 import { unidadCotizacionValida } from "./schema";
 import { alertaMaterial } from "./reglas";
+
+import { prepararFoto, guardarFoto } from "./foto";
 
 export { leerIdMaterial } from "./errores";
 export { registrarEntrada, registrarAjuste } from "./libro";
@@ -37,10 +40,14 @@ export async function obtenerMaterial(id: string, actor: Actor) {
 export async function crearMaterial(entrada: CrearMaterial, actor: Actor) {
   exigir(actor, "material:gestionar");
   return transaccionInventario(async (tx) => {
-    const { presentacion, ...campos } = entrada;
-    const material = await tx.material.create({ data: { ...campos, unidadCotizacion: campos.unidadCotizacion ?? (campos.unidad === "M2" ? "M2" : null),
+    const { presentacion, codigo: anterior, fotoBase64, ...campos } = entrada;
+    const foto = await prepararFoto(fotoBase64);
+    await exigirCodigoDisponible(tx, { tipo: "material", codigo: anterior });
+    const codigo = await siguienteCodigo(tx, prefijoMaterial(campos.areaProduccion));
+    const material = await tx.material.create({ data: { ...campos, codigo, codigosAnteriores: anterior ? [anterior.toUpperCase()] : [], unidadCotizacion: campos.unidadCotizacion ?? (campos.unidad === "M2" ? "M2" : null),
       ...columnasPresentacion(presentacion ?? null) } });
-    const datos = aMaterialDto(material);
+    await guardarFoto(tx, { id: material.id, foto });
+    const datos = aMaterialDto(await tx.material.findUniqueOrThrow({ where: { id: material.id } }));
     await registrarEvento(tx, { entidad: "MATERIAL", entidadId: material.id, accion: "CREAR", actorId: actor.id,
       estadoNuevo: "ACTIVO", detalle: { material: datos } });
     return datos;
@@ -88,6 +95,7 @@ export async function editarMaterial(id: string, entrada: EditarMaterial, actor:
       && comparar(leerDecimal(actual.existencia.toString())!, CERO) !== 0) {
       throw regla("MATERIAL_CON_EXISTENCIA", "El costo promedio solo se puede editar con existencia cero.");
     }
+    if (entrada.fotoBase64 !== undefined && !actual.activo) throw regla("MATERIAL_ARCHIVADO", "Reactive el material antes de cambiar su foto.");
     const antes = aMaterialDto(actual);
     const cambios: CambiosMaterial = { ...cambioPresentacion(antes, entrada.presentacion), ...cambioUnidadCotizacion(antes, entrada) };
     for (const campo of ["nombre", "descripcion", "stockMinimo", "costoPromedio", "areaProduccion"] as const) {
@@ -97,8 +105,11 @@ export async function editarMaterial(id: string, entrada: EditarMaterial, actor:
         ? comparar(leerDecimal(valor as string)!, leerDecimal(antes[campo])!) === 0 : valor === antes[campo];
       if (!igual) Object.assign(cambios, { [campo]: valor });
     }
-    if (!Object.keys(cambios).length) return antes;
+    const foto = await prepararFoto(entrada.fotoBase64);
+    if (!Object.keys(cambios).length && foto === undefined) return antes;
+    if (!Object.keys(cambios).length) cambios.nombre = actual.nombre;
     if (!await actualizarCondicionado(tx, { id, version: entrada.version }, cambios)) throw conflictoEdicion();
+    await guardarFoto(tx, { id, foto });
     const despues = aMaterialDto(await tx.material.findUniqueOrThrow({ where: { id } }));
     await registrarEvento(tx, { entidad: "MATERIAL", entidadId: id, accion: "EDITAR", actorId: actor.id,
       detalle: { antes, despues } });

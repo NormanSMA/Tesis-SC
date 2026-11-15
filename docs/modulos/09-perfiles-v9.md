@@ -66,3 +66,6 @@ VENTAS pasa a ATENCION_CLIENTE (mismo UUID). Un usuario puede tener varios perfi
 4. Administración ve cotizaciones porque cotizacion:ver gobierna los costos de los consumos (decisión del módulo 4).
 5. Una orden por cotización (cotizacion_id único). La reapertura usa una versión corregida de la cotización.
 6. Producción no ve inventario (Tabla 14). Pierde orden:entregar; la entrega la registran Operaciones y Atención al cliente.
+
+## Actualización del 2026-11-11 (PROD-05)
+El perfil Producción conserva sus permisos, pero su alcance de datos depende de la participación: solo ve las órdenes donde es responsable general o de alguna etapa. Detalle en `docs/modulos/06-produccion.md`, "Ajustes del 2026-11-11".

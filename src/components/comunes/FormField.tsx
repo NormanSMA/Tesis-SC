@@ -18,17 +18,18 @@ type PropiedadesCampo = {
   error?: string;
   requerido?: boolean;
   className?: string;
+  compacto?: boolean;
   /** Recibe los atributos de accesibilidad que debe llevar el control. */
   children: (atributos: AtributosCampo) => ReactNode;
 };
 
-export function FormField({ id, etiqueta, ayuda, error, requerido, className, children }: PropiedadesCampo) {
+export function FormField({ id, etiqueta, ayuda, error, requerido, className, children, compacto = false }: PropiedadesCampo) {
   const idAyuda = `${id}-ayuda`;
   const idError = `${id}-error`;
   const descripcion = [ayuda ? idAyuda : null, error ? idError : null].filter(Boolean).join(" ");
   return (
-    <div className={cn("space-y-2", className)}>
-      <Label htmlFor={id} className="text-base">
+    <div className={cn("min-w-0", compacto ? "space-y-0" : "space-y-2", className)}>
+      <Label htmlFor={id} className={cn("text-base", compacto && "sr-only")}>
         {etiqueta}
         {requerido ? (
           <>
@@ -50,7 +51,7 @@ export function FormField({ id, etiqueta, ayuda, error, requerido, className, ch
           {ayuda}
         </p>
       ) : null}
-      <div aria-live="polite" className="empty:-mt-2">
+      <div aria-live="polite" className={compacto ? "empty:hidden" : "empty:-mt-2"}>
         {error ? (
           <p id={idError} className="flex items-start gap-1.5 text-sm font-medium text-danger">
             <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

@@ -27,7 +27,7 @@ export async function enviarCotizacion(id: string, version: string, actor: Actor
     exigirAccesoCotizacion(actor, actual);
     if (!transicionValidaCotizacion(actual.estado, "ENVIADA")) throw regla("TRANSICION_INVALIDA", "Solo se puede enviar una cotización en borrador.");
     exigirBorrador(actual);
-    if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un ítem antes de enviar la cotización.");
+    if (!actual.items.length) throw regla("SIN_ITEMS", "Agregue al menos un producto antes de enviar la cotización.");
     const sinTarifa = actual.items.flatMap(({ lineasCosto }) => lineasCosto.filter((linea) =>
       linea.tipo === "MATERIAL" && linea.materialId && faltaTarifaMaterial(linea.costoUnitario.toString())).map(({ descripcion }) => descripcion));
     if (sinTarifa.length) throw regla("TARIFA_MATERIAL_PENDIENTE",

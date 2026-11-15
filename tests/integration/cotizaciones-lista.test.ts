@@ -28,7 +28,7 @@ describeConBase("cotizaciones: consultas paginadas y archivo", () => {
     q: marca, archivadas: "false", pagina: 1, porPagina: 20, ...extra,
   });
 
-  it("oculta archivadas por defecto y conserva su ficha e ítems", async () => {
+  it("oculta archivadas por defecto y conserva su ficha e productos", async () => {
     const lista = await consultar();
     expect(lista).toMatchObject({ total: 4, pagina: 1, porPagina: 20 });
     expect(lista.datos.map((fila) => fila.id)).not.toContain(cotizaciones[0].id);

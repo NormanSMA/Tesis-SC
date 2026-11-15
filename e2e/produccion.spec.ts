@@ -108,7 +108,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   await linea.getByLabel("Descripción de costo").fill(MATERIAL);
   await linea.getByLabel("Cantidad total consumida").fill("4");
   await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
-  await linea.getByLabel("Merma (%)").fill("0");
+  await linea.getByLabel("Desperdicio (%)").fill("0");
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Guardar borrador" }).click();
   const respuesta = await creada;
@@ -162,6 +162,11 @@ async function abrirOrden(page: Page): Promise<void> {
 }
 
 async function verificarHistorialEtapa(page: Page, actor: string): Promise<void> {
+  // Producción no ve la trazabilidad ni el historial de la orden; se revisa con Gerencia.
+  await expect(page.getByRole("tab", { name: "Historial", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Trazabilidad completa", exact: true })).toHaveCount(0);
+  await entrarComo(page, GERENCIA);
+  await abrirOrden(page);
   // Cada transición muestra al actor y la fecha-hora.
   await abrirPestana(page, "Historial");
   const historial = page.getByRole("list", { name: "Historial de la orden" });
@@ -272,7 +277,7 @@ async function verificarCadena(page: Page, verConsumo = true): Promise<void> {
   await expect(page.getByRole("link", { name: CLIENTE, exact: true })).toHaveAttribute("href", /\/clientes\//);
   await expect(page.getByRole("link", { name: cotizacion.numero, exact: true })).toHaveAttribute("href", `/cotizaciones/${cotizacion.id}`);
   await abrirPestana(page, "Especificaciones");
-  const items = page.getByRole("region", { name: "Ítems", exact: true });
+  const items = page.getByRole("region", { name: "Productos", exact: true });
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
   await expect(items).toContainText(PERSONALIZADO);

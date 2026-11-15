@@ -10,6 +10,7 @@ import type { MaterialDto } from "../dto";
 import { esquemaCrearMaterial, esquemaEditarMaterial } from "../schema";
 import { useSolicitudInventario } from "../useSolicitudInventario";
 import { AvisoSolicitud } from "./AvisoSolicitud";
+import { FotoMaterial } from "./FotoMaterial";
 import { CamposMaterial, type ValoresMaterial } from "./CamposMaterial";
 
 export function FormularioMaterial({ material }: { material?: MaterialDto }) {
@@ -19,16 +20,19 @@ export function FormularioMaterial({ material }: { material?: MaterialDto }) {
     stockMinimo: material?.stockMinimo ?? "0", costoPromedio: material?.costoPromedio ?? "0",
     tipoPresentacion: material?.presentacion?.tipo ?? "", anchoPresentacion: material?.presentacion?.ancho ?? "",
     largoPresentacion: material?.presentacion?.largo ?? "" });
+  const [fotoBase64, setFotoBase64] = useState<string | null>();
+  const [procesandoFoto, setProcesandoFoto] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudInventario("formulario-material");
   async function guardar(evento: FormEvent) {
     evento.preventDefault();
+    if (procesandoFoto) return;
     const { codigo, unidad, tipoPresentacion, anchoPresentacion, largoPresentacion, unidadCotizacion, areaUnidadInventario, ...campos } = valores;
     const presentacion = unidad === "M2" && tipoPresentacion
       ? { tipo: tipoPresentacion, ancho: anchoPresentacion, largo: largoPresentacion } : null;
     const unidadVenta = unidadCotizacion || (unidad === "M2" ? "M2" : null);
     const areaUnidad = unidadVenta === "M2" && unidad !== "M2" ? areaUnidadInventario : null;
-    const compartidos = { ...campos, areaProduccion: campos.areaProduccion || null, presentacion,
+    const compartidos = { ...campos, fotoBase64, areaProduccion: campos.areaProduccion || null, presentacion,
       unidadCotizacion: unidadVenta, areaUnidadInventario: areaUnidad };
     const cuerpo = material ? { ...compartidos, version: material.actualizadoEn }
       : { ...compartidos, codigo, unidad };
@@ -48,9 +52,11 @@ export function FormularioMaterial({ material }: { material?: MaterialDto }) {
     <fieldset disabled={solicitud.enviando} className="min-w-0"><CuerpoFormulario>
       <CamposMaterial valores={valores} errores={{ ...errores, ...solicitud.campos }} editar={Boolean(material)}
         conExistencia={Boolean(material && comparar(leerDecimal(material.existencia)!, CERO) !== 0)} cambiar={cambiar} />
+      <FotoMaterial actual={material?.fotoVersion ? `/api/v1/materiales/${material.id}/foto?v=${encodeURIComponent(material.fotoVersion)}` : undefined}
+        valor={fotoBase64} alProcesar={setProcesandoFoto} error={errores.fotoBase64 ?? solicitud.campos.fotoBase64} alCambiar={foto => { setFotoBase64(foto); solicitud.cambiarContenido(); }} />
     </CuerpoFormulario></fieldset>
     <PieFormulario className="max-sm:[&>div]:flex-col max-sm:[&>div>*]:w-full">
       <Button asChild variant="outline"><Link href={material ? `/inventario/${material.id}` : "/inventario"}>Cancelar</Link></Button>
-      <Button type="submit" disabled={solicitud.enviando}>Guardar material</Button></PieFormulario>
+      <Button type="submit" disabled={solicitud.enviando || procesandoFoto}>Guardar material</Button></PieFormulario>
   </form>;
 }

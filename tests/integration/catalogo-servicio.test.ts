@@ -105,7 +105,7 @@ describeConBase("catálogo: productos, recetas y categorías transaccionales", (
     expect(repetido.status).toBe(409); expect(repetido.error?.codigo).toBe("DUPLICADO");
     expect(repetido.error?.campos?.codigo).toBeTruthy();
     const { datos: otro } = await crear();
-    expect((await editar(otro, { codigo: producto.codigo })).status).toBe(409);
+    expect((await editar(otro, { codigo: producto.codigo })).error?.codigo).toBe("CODIGO_AUTOMATICO");
     expect((await db.producto.findUniqueOrThrow({ where: { id: otro.id } })).codigo).toBe(otro.codigo);
     expect(await db.bitacora.count({ where: { entidad: "PRODUCTO" } })).toBe(antes + 1);
   });

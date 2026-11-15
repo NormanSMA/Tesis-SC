@@ -1,3 +1,5 @@
+import { esquemaGastos, tieneGastosFijos } from "@/modules/personalizadas/gastos-schema";
+import { esquemaSeleccionProducto } from "@/modules/personalizadas/seleccion-schema";
 import { z } from "zod";
 
 import { MONEDAS } from "@/core/moneda";
@@ -14,10 +16,12 @@ const texto = z.string().trim().min(1, "Es obligatorio.");
 const textoCorto = texto.max(200, "Admite hasta 200 caracteres.");
 const decimal = z.string({ error: "Ingrese una cadena decimal con punto." });
 const descuentoPct = esquemaPorcentajeTarifa;
-const medidas ={ ancho: decimal.nullish(), alto: decimal.nullish() };
+const medidas ={ ancho: decimal.nullish(), alto: decimal.nullish(), profundidad: decimal.nullish() };
 const vigenciaDias = z.number().int().min(1, "Debe ser mayor que 0.").max(365, "Admite hasta 365 días.");
 const condiciones = z.string().trim().max(2000, "Admite hasta 2000 caracteres.").nullable();
 const instalacion = z.object({
+  tarifa: z.string().regex(/^\d{1,10}(\.\d{1,2})?$/, "Ingrese una tarifa con hasta dos decimales.").nullish(),
+  idaVuelta: z.boolean().optional(),
   manoObra: z.string().regex(/^\d{1,10}(\.\d{1,2})?$/, "Ingrese un monto con hasta dos decimales.").default("0"),
   destino: z.string().trim().max(120).nullish(),
   km: z.string().regex(/^\d{1,6}(\.\d{1,3})?$/, "Ingrese kilómetros con hasta tres decimales.")
@@ -70,7 +74,7 @@ export const esquemaResponder = z.object({
   }
 });
 
-const baseLinea = { lineaId: id.optional(), descripcion: textoCorto, unidad: texto.max(20) };
+const baseLinea = { esGastoPersonalizado: z.boolean().optional(), lineaId: id.optional(), descripcion: textoCorto, unidad: texto.max(20) };
 export const esquemaLinea = z.discriminatedUnion("tipo", [
   z.object({ ...baseLinea, tipo: z.literal("MATERIAL"), materialId: id.nullish(), cantidad: decimal,
     costoUnitario: decimal.optional(), mermaPct: decimal }),
@@ -81,8 +85,10 @@ const baseItem = { itemId: id.optional(), actualizarPrecio: z.boolean().optional
 export const esquemaItem = z.discriminatedUnion("tipo", [
   z.object({ ...baseItem, tipo: z.literal("CATALOGO"), productoId: id }),
   z.object({ ...baseItem, tipo: z.literal("PERSONALIZADO"), categoriaId: id, descripcion: textoCorto,
-    unidadCobro: z.enum(["UNIDAD", "M2"]), margenPct: decimal, lineas: z.array(esquemaLinea).min(1).max(100) }),
-]);
+    unidadCobro: z.enum(["UNIDAD", "M2"]), margenPct: decimal, productoPersonalizado: esquemaSeleccionProducto.nullish(), gastosPersonalizados: esquemaGastos.nullish(), lineas: z.array(esquemaLinea).max(100) }),
+]).superRefine((item, ctx) => {
+  if (item.tipo === "PERSONALIZADO" && !item.lineas.length && !tieneGastosFijos(item.gastosPersonalizados)) ctx.addIssue({ code: "custom", path: ["lineas"], message: "Seleccione materiales del producto o registre horas de trabajo u otro costo para calcular el precio." });
+});
 export const esquemaCrearCotizacion = cabeceraCreacion.extend({ items: z.array(esquemaItem).max(200).optional() })
   .refine((entrada) => entrada.descuento === undefined || entrada.descuentoPct == null,
     { path: ["descuentoPct"], message: "Envíe el descuento como monto o como porcentaje, no ambos." });
@@ -91,7 +97,7 @@ export const esquemaReemplazarItems = z.object({ version, items: z.array(esquema
     const usados = new Set<string>();
     entrada.items.forEach((item, indice) => {
       if (item.itemId && usados.has(item.itemId)) {
-        contexto.addIssue({ code: "custom", path: ["items", indice, "itemId"], message: "El ítem está repetido." });
+        contexto.addIssue({ code: "custom", path: ["items", indice, "itemId"], message: "El producto está repetido." });
       }
       if (item.itemId) usados.add(item.itemId);
     });

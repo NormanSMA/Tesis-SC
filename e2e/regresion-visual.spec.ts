@@ -165,7 +165,7 @@ test.describe("regresión visual", () => {
     await fila.getByRole("link", { name: /COT-\d{4}-\d+/ }).click();
     await expect(page.locator("main h1")).toHaveText(/COT-\d{4}-\d+/);
     await expect(page.locator("main").getByText("Enviada", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Ítems de cotización" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Productos y servicios de la cotización" })).toBeVisible();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("atencion_cliente-ficha-cotizacion-enviada.png", {
       mask: [...mascarasVariables(page)],

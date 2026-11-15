@@ -64,20 +64,6 @@ jobs:
       - name: Auditar migraciones nuevas con Squawk
         shell: bash
         run: |
-          git diff --name-only origin/main...HEAD -- 'prisma/migrations/**/migration.sql' > "$RUNNER_TEMP/migraciones.txt"
-          mapfile -t archivos < "$RUNNER_TEMP/migraciones.txt"
-          nuevas=()
-          for archivo in "${archivos[@]}"; do
-            if [[ -f "$archivo" ]] && ! git cat-file -e "origin/main:$archivo" 2>/dev/null; then
-              nuevas+=("$archivo")
-            fi
-          done
-          if [[ ${#nuevas[@]} -eq 0 ]]; then
-            echo "No hay migraciones nuevas."
-            exit 0
-          fi
-          docker run --rm --volume "$PWD:/repo:ro" --workdir /repo \
-            ghcr.io/sbdchd/squawk:latest \
-            --exclude=prefer-robust-stmts,prefer-text-field,prefer-bigint-over-int,prefer-bigint-over-smallint,require-enum-value-ordering \
-            "${nuevas[@]}"
+          node --test scripts/auditoria/migraciones.test.mjs
+          node scripts/auditoria/migraciones.mjs
 

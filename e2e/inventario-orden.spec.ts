@@ -112,7 +112,7 @@ async function crearCotizacion(page: Page): Promise<void> {
   await linea.getByLabel("Descripción de costo").fill(`${MARCA}-material`);
   await linea.getByLabel("Cantidad total consumida").fill("4");
   await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
-  await linea.getByLabel("Merma (%)").fill("0");
+  await linea.getByLabel("Desperdicio (%)").fill("0");
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Guardar borrador" }).click();
   const respuesta = await creada;

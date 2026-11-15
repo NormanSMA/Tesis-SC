@@ -49,3 +49,14 @@ La inmutabilidad de la bitácora la garantiza la base (trigger SC001 y REVOKE al
 Implementación y E2E: Codex (programar). Verificación: orquestador (un solo verificador).
 Medido: typecheck y lint limpios; 132 pruebas del módulo verdes; E2E completo 522 verdes más los 7 de trazabilidad repetidos tras corregir un valor esperado mal calculado en la prueba (3.333 por 12.3456 es 41.1478848; la aplicación devolvía el valor correcto).
 Cobertura (Jev): CF-05 cubierto (0.89), CF-09 cubierto (1.0). R-01 y R-07 implementados.
+
+## Ajuste del 2026-11-12 (PROD-06)
+La trazabilidad de una orden no está disponible para el personal de Producción sin `produccion:planificar`: el servicio responde 403 y la interfaz no muestra el acceso ni el historial de la ficha.
+
+## GEN-08 Responsividad sin pérdida de contenido — 2026-11-14
+
+Sustituye la distribución anterior de filtros, tabla y cadena vinculada. Desde y Hasta permanecen agrupados con etiquetas superiores. Más filtros tiene nombre accesible y altura limitada al espacio visible, con desplazamiento interno; todos sus campos siguen disponibles y Escape devuelve el foco al botón.
+
+La bitácora conserva todas sus columnas y eventos paginados. En móvil organiza fecha/usuario y acción/estado en dos columnas, con entidad/registro y detalle a todo el ancho, sin resumir ni plegar los textos. En tableta mantiene una tabla con ancho de lectura y desplazamiento horizontal solo en su región. Cliente, Cotización y ODT se distribuyen según el espacio disponible y conservan todos los campos. Etapas y materiales reorganizan sus celdas en móvil; la columna del material gana ancho en PC. No se eliminan fechas, cantidades, costos, responsables ni eventos. La línea de tiempo completa permanece visible.
+
+No cambia el alcance de consulta, las listas blancas, permisos, importes ni la inmutabilidad de la bitácora. Las reglas históricas de presentación quedan sustituidas únicamente en estos aspectos de responsividad.

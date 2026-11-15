@@ -37,7 +37,7 @@ const costoUnitario = z.string({ error: "Ingrese el costo como cadena decimal." 
   }).optional();
 
 const camposProducto = {
-  codigo: textoObligatorio(30, "el código"),
+  codigo: z.string().trim().max(30).default(""),
   nombre: textoObligatorio(160, "el nombre del producto"),
   descripcion,
   categoriaId: identificador,
@@ -47,7 +47,7 @@ const camposProducto = {
 };
 export const esquemaCrearProducto = z.object(camposProducto);
 export const esquemaEditarProducto = z.strictObject({
-  ...esquemaCrearProducto.partial().shape, version,
+  ...esquemaCrearProducto.partial().shape, codigo: z.string().trim().max(30).optional(), version,
 });
 export const esquemaCambioEstado = z.strictObject({ version });
 export const esquemaReceta = z.strictObject({

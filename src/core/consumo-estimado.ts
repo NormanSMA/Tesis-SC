@@ -1,6 +1,7 @@
 // Previsión de materiales de una orden a partir de una cotización aprobada (CF-01, R-04).
 // Pura: sin base de datos. Mismos redondeos que el motor de costeo y que la siembra.
 import { CERO, CIEN, UNO, comparar, dividir, formatear, leerDecimal, multiplicar, redondear, sumar, type Racional } from "./decimal";
+import { superficiePieza } from "./medidas";
 
 export type OrigenEstimado = "RECETA" | "COTIZACION";
 
@@ -12,7 +13,7 @@ export type LineaMaterial = {
 
 export type ItemEstimable =
   | { secuencia: number; tipo: "CATALOGO"; unidadCobro: "UNIDAD" | "M2"; cantidad: string;
-      ancho: string | null; alto: string | null; receta: LineaReceta[] }
+      ancho: string | null; alto: string | null; profundidad?: string | null; receta: LineaReceta[] }
   | { secuencia: number; tipo: "PERSONALIZADO"; lineas: LineaMaterial[] };
 
 export type EntradaEstimado = { items: ItemEstimable[]; unidadesMaterial: Record<string, string> };
@@ -40,7 +41,8 @@ function aporteReceta(item: Extract<ItemEstimable, { tipo: "CATALOGO" }>, linea:
     return { materialId: linea.materialId, cantidad: redondear(base, 3), origen: "RECETA" };
   }
   if (item.ancho === null || item.alto === null) throw new Error("El cobro por m2 exige ancho y alto");
-  const area = multiplicar(redondear(leer(item.ancho), 3), redondear(leer(item.alto), 3));
+  const area = superficiePieza(redondear(leer(item.ancho), 3), redondear(leer(item.alto), 3),
+    item.profundidad ? redondear(leer(item.profundidad), 3) : null);
   return { materialId: linea.materialId, cantidad: redondear(multiplicar(base, area), 3), origen: "RECETA" };
 }
 

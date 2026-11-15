@@ -61,7 +61,7 @@ const pasos: { estado: EstadoCotizacion; items?: unknown[];
   permisos: PermisosCotizacion; texto: string }[] = [
   { estado: "BORRADOR", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de envío." },
   { estado: "BORRADOR", permisos: permisos[2], texto: "Corresponde a un usuario con permiso de gestión." },
-  { estado: "BORRADOR", permisos: permisos[3], texto: "Agregue ítems para poder enviar la cotización." },
+  { estado: "BORRADOR", permisos: permisos[3], texto: "Agregue productos para poder enviar la cotización." },
   { estado: "BORRADOR", items: [{}], permisos: permisos[2], texto: "Envíe la cotización al cliente." },
   { estado: "ENVIADA", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de respuesta." },
   { estado: "ENVIADA", permisos: permisos[4], texto: "Registre la respuesta del cliente: aprobación, rechazo o ajustes." },

@@ -23,6 +23,10 @@ function material(extra: Record<string, string> = {}): Record<string, string> {
   return { codigo: `P-${randomUUID().slice(0, 12)}`, nombre: "Material piloto", unidad: "UNIDAD", ...extra };
 }
 
+function referenciaMaterial(codigo: string) {
+  return { OR: [{ codigo }, { codigosAnteriores: { has: codigo.toUpperCase() } }] };
+}
+
 describeConBase("importación piloto: servicio y bitácora", () => {
   const db = crearClientePropietario();
   let servicio: typeof import("@/modules/importacion/service");
@@ -85,7 +89,7 @@ describeConBase("importación piloto: servicio y bitácora", () => {
     const resultado = respuesta.datos;
     expect(resultado.validas).toHaveLength(1);
     expect(resultado.errores).toEqual([]);
-    expect(await db.material.count({ where: { codigo: fila.codigo } })).toBe(0);
+    expect(await db.material.count({ where: referenciaMaterial(fila.codigo) })).toBe(0);
     expect(await db.bitacora.count({ where: { usuarioId: administracion.actor.id } })).toBe(eventos);
   });
 
@@ -108,7 +112,9 @@ describeConBase("importación piloto: servicio y bitácora", () => {
     const respuesta = await enviar("materiales", administracion, { texto: csv("materiales", [fila]), confirmar: true });
     expect(respuesta.status).toBe(200);
     expect(respuesta.datos).toMatchObject({ creadas: 1, omitidasDuplicadas: 0, conError: 0, confirmado: true });
-    const guardado = await db.material.findUniqueOrThrow({ where: { codigo: fila.codigo } });
+    const guardado = await db.material.findFirstOrThrow({ where: referenciaMaterial(fila.codigo) });
+    expect(guardado.codigo).toMatch(/^SA-\d{3,}$/);
+    expect(guardado.codigosAnteriores).toContain(fila.codigo.toUpperCase());
     expect(guardado.stockMinimo.toString()).toBe("0");
     expect(guardado.costoPromedio.toString()).toBe("0");
     expect(await db.bitacora.count({ where: { entidad: "MATERIAL", entidadId: guardado.id,
@@ -136,7 +142,7 @@ describeConBase("importación piloto: servicio y bitácora", () => {
     expect(resultado.validas).toHaveLength(1);
     expect(resultado.duplicados.map(({ fila }) => fila)).toEqual([2, 4]);
     expect(resultado).toMatchObject({ creadas: 1, omitidasDuplicadas: 2, conError: 0 });
-    expect(await db.material.count({ where: { codigo: nueva.codigo } })).toBe(1);
+    expect(await db.material.count({ where: referenciaMaterial(nueva.codigo) })).toBe(1);
   });
 
   it("rechaza el perfil sin permiso antes de validar el CSV", async () => {
@@ -157,7 +163,7 @@ describeConBase("importación piloto: servicio y bitácora", () => {
       }
     }
     expect(await db.cliente.count({ where: { nombre: filas.clientes.nombre } })).toBe(0);
-    expect(await db.material.count({ where: { codigo: filas.materiales.codigo } })).toBe(0);
+    expect(await db.material.count({ where: referenciaMaterial(filas.materiales.codigo) })).toBe(0);
     expect(await db.bitacora.count({ where: { usuarioId: operaciones.actor.id } })).toBe(eventos);
   });
 
@@ -201,8 +207,8 @@ describeConBase("importación piloto: servicio y bitácora", () => {
     const resultado = await servicio.importarMateriales(csv("materiales", [invalida, valida]), administracion.actor);
     expect(resultado).toMatchObject({ creadas: 1, omitidasDuplicadas: 0, conError: 1 });
     expect(resultado.errores[0].fila).toBe(2);
-    expect(await db.material.count({ where: { codigo: invalida.codigo } })).toBe(0);
-    expect(await db.material.count({ where: { codigo: valida.codigo } })).toBe(1);
+    expect(await db.material.count({ where: referenciaMaterial(invalida.codigo) })).toBe(0);
+    expect(await db.material.count({ where: referenciaMaterial(valida.codigo) })).toBe(1);
   });
 
   it("revierte solamente la fila cuyo evento falla y continúa con las siguientes", async () => {
@@ -230,7 +236,7 @@ describeConBase("importación piloto: servicio y bitácora", () => {
     const resultado = await servicio.importarMateriales(csv("materiales", filas), administracion.actor);
     expect(resultado).toMatchObject({ creadas: 1, omitidasDuplicadas: 1, conError: 0 });
     expect(resultado.duplicados).toEqual([{ fila: 2, mensaje: "Ya existe un material con ese código." }]);
-    expect(await db.material.count({ where: { codigo: filas[0].codigo } })).toBe(0);
-    expect(await db.material.count({ where: { codigo: filas[1].codigo } })).toBe(1);
+    expect(await db.material.count({ where: referenciaMaterial(filas[0].codigo) })).toBe(0);
+    expect(await db.material.count({ where: referenciaMaterial(filas[1].codigo) })).toBe(1);
   });
 });

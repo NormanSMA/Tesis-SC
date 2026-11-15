@@ -129,3 +129,67 @@ Actualización del 11 de noviembre de 2026.
 La concesión individual amplía permisos; no niega funciones heredadas del perfil. Solo las personas con permiso:gestionar pueden administrar estas concesiones. Ver cotizaciones ajenas no sustituye los permisos de edición, aprobación o conversión. ACC-03 y COT-16 precisan el alcance de la matriz ACC-02. PROD-02 sustituye la visibilidad general de etapas del perfil Producción.
 
 Verificación del 11 de noviembre de 2026: 2.872 pruebas aprobadas en Acceso, Cotizaciones, Producción, Órdenes, Clientes, Analítica, Núcleo e Interfaz. Compilación Docker, TypeScript y ESLint aprobados. En Edge se verificaron concesión y revocación desde la pantalla individual con una sesión ya abierta, privacidad de proforma, secuencia entre Nathaly y Gabriel, aviso emergente, emisión de sonido, teclado y ausencia de infracciones graves de axe en Perfiles y Permisos. Evidencias: docs/capturas/permisos-individuales.png y docs/capturas/avisos-asignacion.png.
+
+## Producción, notificaciones y permisos
+
+Actualización del 11 de noviembre de 2026. Mismos códigos y estado que el Word (Completado).
+
+| Cambio | Implementación | Revisión pendiente en la tesis |
+|---|---|---|
+| ORD-07 | La orden imprimible ya no muestra la tabla de partidas del trabajo. | Captura y descripción de la orden imprimible. |
+| CAT-04 | La interfaz usa "materiales del producto" en lugar de receta; el modelo conserva su nombre. | RF de catálogo, diccionario de datos y capturas. |
+| PROD-04 | Botón Hecho con confirmación; la etapa pasa por en curso y completada en una operación. | CF-02, flujo de Producción y diagrama de estados de la etapa. |
+| PROD-05 | Producción solo ve las órdenes en las que participa y, en ellas, todas las etapas; ejecuta solo las propias habilitadas. Sustituye la vista de PROD-02. | Tabla 14, CF-07, CF-09 y pruebas de acceso de Producción. |
+| GEN-04 | Campana de notificaciones con lectura por usuario y sonido persistente. Sustituye la barra de avisos de PROD-03. | Apartado 4.4, diagrama de interacción y modelo 4.6 (`notificacion_lectura`). |
+| ACC-05 | Perfiles y permisos en dos pestañas: por perfil y por usuario. | Captura de Perfiles y permisos. |
+| ACC-06 | Danny Gahona pertenece a Grabado y Corte Láser y a Diseño Gráfico; cada área genera su etapa y su aviso. | Actores y datos del plan de validación. |
+| DAT-02 | El respaldo programado mide el intervalo con la hora real. | RNF-06 y evidencia de respaldo. |
+
+Personal con acceso de validación: 17 cuentas desde ACC-04 (las 15 de ACC-01 más Flor Moreno y Brandi Castillo).
+
+## Interfaz, medidas y alcance de Producción
+
+Actualización del 12 de noviembre de 2026. Mismos códigos y estado que el Word.
+
+| Cambio | Implementación | Revisión pendiente en la tesis |
+|---|---|---|
+| COT-17 | Profundidad opcional en las partidas; con ella, el m² se calcula como caja abierta y ajusta precio y material. | RF de cotización, fórmula de costeo, modelo 4.6 y diccionario de datos. |
+| COT-18 | La lista de cotizaciones omite Vencimiento y Creada; se consultan en la ficha. | Captura de la lista de cotizaciones. |
+| ORD-08 | Materiales por etapa en la tabla de responsables e instrucciones, en ficha e imprimible. | Captura y descripción de la ODT. |
+| ORD-09 | Lista de ODT sin código de cliente y con avance en anillo. | Captura de la lista de órdenes. |
+| PROD-06 | Producción no ve la trazabilidad ni el historial de la orden. Sustituye la trazabilidad por participación de PROD-05. | Tabla 14, CF-07, CF-09 y pruebas de acceso. |
+| PROD-07 | Tablero de Producción en columnas compactas con tarjetas. | Captura del tablero de Producción. |
+| GEN-05 | Paleta neutra en modo oscuro y con menos blanco en modo claro. | Capturas de interfaz y apartado de diseño. |
+
+## COT-19 Cotizaciones personalizadas configurables
+
+Configuración incorpora categorías, tipos, unidad, margen sugerido y materiales habituales. El cotizador permite elegir el tipo y marcar los insumos que usará. La revisión en la tesis debe actualizar RF de cotización, CF-10, Configuración, modelo 4.6 (contenido de Configuracion), matriz de permisos y capturas del editor. Es la primera entrega del plan; gastos, conversión de presentaciones y alertas de faltantes no están implementados en COT-19.
+
+Validación COT-19 del 12 de noviembre de 2026: 366 pruebas de Cotizaciones y 344 de Acceso aprobadas; TypeScript, ESLint y compilación Docker correctos. En Edge, sobre copia QA: configuración de ocho categorías, alta de tipo, selección de material, guardado de partida y conservación de importes al retirar el tipo. Axe sin infracciones graves en la nueva pantalla y sin errores JavaScript observados. Instancia real comprobada con Administración, Operaciones y Producción sin escrituras de negocio. Word COT-19: Completado. Evidencias en docs/capturas/personalizadas-configuracion.png y personalizadas-cotizador.png.
+
+## COT-20 y COT-21 — 2026-11-12
+
+Actualizar descripción y diagrama de actividad de cotización personalizada: categoría comercial → producto → selección de materiales → cantidades y gastos del trabajo → revisión de precio. Documentar tarifas sugeridas por producto y moneda, renta fija o porcentual, ida y vuelta, horas por persona, viáticos, hospedaje y porcentajes sobre venta. Actualizar diccionario y modelo con gastos_personalizados y es_gasto_personalizado. Explicar validación de tasas, instantáneas y límite de descuento cero para porcentajes. No presentar reservas, alertas de compras, geometría por componente o equivalencias comerciales como implementadas. Registro Word con los mismos códigos; corrección del texto final de la tesis pendiente.
+
+## COT-22, COT-23 e INV-11 — 2026-11-13
+
+Actualizar capturas del cotizador y Configuración, diagrama de actividad de instalación (coordenadas, consulta de ruta y tarifa excepcional), fórmula de ida y vuelta y diccionario de instalacionIdaVuelta. Sustituir la captura de traslado por partida por la sección única de Instalación. Documentar la diferencia entre valores históricos de costeo, tarifas vigentes y costo promedio contable; incluir el catálogo normalizado y la carga inicial de existencias no verificadas en cero. No afirmar que se han implementado reservas o alertas nuevas de abastecimiento. Registro Word con los mismos códigos; la redacción de la tesis queda pendiente.
+
+## COT-24 — 2026-11-13
+
+Actualizar el flujo de cotización: seleccionar producto configurado carga materiales y sugerencias automáticamente, revisar consumos y completar horas/gastos, obtener precio y guardar. Describir captura manual como alternativa, eliminar el paso obligatorio Aplicar y las capturas antiguas de líneas de costo. Actualizar el diccionario con producto_personalizado como instantánea sin FK y los casos de servicio sin materiales. Usar lenguaje claro para el usuario y conservar ItemCotizacion/LineaCosto como nombres técnicos internos. Registro Word COT-24 con el mismo estado; redacción final de tesis pendiente.
+
+
+## GEN-06, COT-25, INV-12, CAT-05 y BI-01 — 2026-11-13
+
+Actualizar capturas y lineamientos de interfaz: títulos superiores, superficies diferenciadas, filtros desplegables y materiales/costos en tabla. Ajustar los flujos de alta de inventario y catálogo para códigos automáticos estables, secuencias, prefijos y búsqueda por referencias anteriores. Incluir MaterialFoto, fotoVersion, codigosAnteriores, Categoria.prefijoCodigo y SecuenciaCodigo en modelo entidad relación y diccionario de datos. Explicar almacenamiento privado, validación, auditoría y respaldo de fotos.
+
+Actualizar capturas de los cuatro reportes y describir cada KPI, denominador, moneda, alcance de permisos y fecha de referencia. Especificar gráficos 2D y tabla de detalle, saldos actuales frente a completadas del período, monto cotizado frente a cobros y saldo cero pendiente de conteo. No atribuir al sistema indicadores de facturación, utilidad realizada, productividad individual o historia de inventario que no implementa. Mismos códigos y estado en el Word; redacción final de tesis pendiente.
+
+## GEN-07, COT-26 y ORD-10 — 2026-11-14
+
+Actualizar capturas de barras de filtros, cotizador y formularios con marcos definidos, columnas numéricas alineadas y acción Quitar en columna separada. Registrar ayudas accesibles de íconos en acciones de etapas de ODT/Producción, navegación por teclado y conservación de confirmaciones. Esta entrega afecta presentación y accesibilidad; no modifica el modelo de datos, diagramas de estados, fórmulas ni matriz de permisos. Mismos códigos y estado en el Word; la edición final de la tesis permanece pendiente.
+
+## GEN-08 Responsividad de Usuarios y Trazabilidad — 2026-11-14
+
+Actualizar capturas de Usuarios (lista, alta y edición) y Trazabilidad (filtros, bitácora y detalle) en PC, tableta y móvil. Describir distribución por ancho disponible, tablas con desplazamiento localizado y panel de filtros con altura limitada y nombre accesible. Conservar la descripción íntegra de campos, historial y permisos: no cambia el modelo de datos, las fórmulas ni los diagramas de estados. La redacción final y las capturas en la tesis permanecen pendientes; registrar GEN-08 y el mismo estado en el Word.

@@ -1,0 +1,26 @@
+.ficha { container-type: inline-size; }
+.distribucion { display: grid; align-items: start; gap: 1rem; }
+.datos, .perfiles, .acceso { display: grid; gap: 1.25rem; }
+.datos { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+.perfiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: .75rem; }
+.acceso { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .5rem; }
+
+@container (min-width: 70rem) {
+  .distribucion { grid-template-columns: minmax(0, 1fr) 20rem; }
+}
+
+@media (min-width: 48rem) {
+  .tabla table { min-width: 48rem; table-layout: fixed; }
+  .tabla thead th:nth-child(1) { width: 28%; }
+  .tabla thead th:nth-child(2) { width: 34%; }
+  .tabla thead th:nth-child(3) { width: 26%; }
+  .tabla thead th:nth-child(4) { width: 12%; }
+}
+
+@media (width < 48rem) {
+  .tabla tbody tr { grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; }
+  .tabla tbody th, .tabla tbody td { min-width: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: .25rem; }
+  .tabla tbody td:nth-child(2), .tabla tbody td:nth-child(3) { grid-column: 1 / -1; }
+  .tabla tbody td:nth-child(4) { grid-column: 2; grid-row: 1; align-items: flex-end; }
+}

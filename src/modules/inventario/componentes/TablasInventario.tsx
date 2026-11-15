@@ -58,6 +58,8 @@ export function ExistenciaMaterial({ material }: { material: Pick<MaterialDto, "
 }
 const columnasMaterial: ColumnaTabla<MaterialDto>[] = [
   { id: "material", encabezado: "Material", celda: (fila) => <div className="min-w-0">
+    {fila.fotoVersion ? <span className="float-left mr-3">{/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/v1/materiales/${fila.id}/foto?v=${encodeURIComponent(fila.fotoVersion)}`} alt="" loading="lazy" className="size-12 rounded border bg-card object-contain" /></span> : null}
     <Link className={ENLACE_FILA} href={`/inventario/${fila.id}`}>{fila.nombre}</Link>
     <p className="text-xs text-muted-foreground">{fila.codigo} · {nombreUnidad(fila.unidad)} · {nombreAreaMaterial(fila.areaProduccion)}</p></div> },
   { id: "existencia", encabezado: "Existencia frente al mínimo", celda: (fila) => <ExistenciaMaterial material={fila} /> },

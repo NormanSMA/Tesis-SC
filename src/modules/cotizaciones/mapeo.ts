@@ -10,7 +10,7 @@ export function aLineaMotor(linea: EntradaLineaEditor): EntradaLinea {
 }
 
 export function aEntradaLinea(linea: LineaDto): EntradaLineaEditor {
-  const base = { lineaId: linea.id, descripcion: linea.descripcion, unidad: linea.unidad };
+  const base = { ...(linea.esGastoPersonalizado ? { esGastoPersonalizado: true } : {}), lineaId: linea.id, descripcion: linea.descripcion, unidad: linea.unidad };
   if (linea.tipo === "MATERIAL") return { ...base, tipo: linea.tipo, materialId: linea.materialId,
     cantidad: linea.cantidad, costoUnitario: linea.costoUnitario, mermaPct: linea.mermaPct };
   if (linea.tipo === "MANO_OBRA") return { ...base, tipo: linea.tipo, horas: linea.cantidad, tarifa: linea.costoUnitario };

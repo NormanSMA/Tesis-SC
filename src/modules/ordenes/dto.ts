@@ -36,7 +36,7 @@ function itemDto(item: ItemGuardado, permisos: { verDinero: boolean; verConsumo:
   const { verDinero, verConsumo } = permisos;
   const base = { id: item.id, secuencia: item.secuencia, tipo: item.tipo, descripcion: item.descripcion, categoria: item.categoria,
     unidadCobro: item.unidadCobro, cantidad: item.cantidad.toFixed(3), ancho: item.ancho?.toFixed(3) ?? null,
-    alto: item.alto?.toFixed(3) ?? null,
+    alto: item.alto?.toFixed(3) ?? null, profundidad: item.profundidad?.toFixed(3) ?? null,
     lineas: verConsumo ? item.lineasCosto.filter((linea) => verDinero || linea.tipo === "MATERIAL")
       .map((linea) => lineaDto(linea, verDinero)) : [] };
   return verDinero ? { ...base, precioUnitario: item.precioUnitario.toFixed(2), importe: item.importe.toFixed(2),
@@ -101,7 +101,6 @@ export function aOrdenDto(ficha: FichaGuardada, actor: Actor): OrdenDto {
   const base = aOrdenFila(ficha, actor);
   const cotizacion = ficha.cotizacion;
   const etapas = etapasVisibles(ficha, actor);
-  const idsEtapas = new Set(etapas.map(e => e.id));
   return { ...base, especificaciones: ficha.especificaciones, motivoCancelacion: ficha.motivoCancelacion,
     fechaInicioReal: ficha.fechaInicioReal?.toISOString() ?? null, fechaEntregaReal: ficha.fechaEntregaReal?.toISOString() ?? null,
     fechaCierre: ficha.fechaCierre?.toISOString() ?? null,
@@ -113,10 +112,9 @@ export function aOrdenDto(ficha: FichaGuardada, actor: Actor): OrdenDto {
     consumosEstimados: verConsumo ? ficha.consumosEstimados.map((consumo) => ({ id: consumo.id,
       material: { id: consumo.material.id, nombre: consumo.material.nombre, unidad: consumo.material.unidad },
       cantidad: consumo.cantidad.toFixed(3), origen: consumo.origen, areaProduccion: consumo.areaProduccion })) : [],
-    eventos: ficha.eventosBitacora.filter(({ entidad, entidadId }) =>
-      (verConsumo || entidad !== "MOVIMIENTO_INVENTARIO") &&
-      (verDinero || entidad !== "COTIZACION") &&
-      (!soloEtapasPropias(actor) || entidad !== "ETAPA_ORDEN" || idsEtapas.has(entidadId)))
+    // El personal de Producción no recibe la bitácora de la orden: la trazabilidad no le corresponde.
+    eventos: soloEtapasPropias(actor) ? [] : ficha.eventosBitacora.filter(({ entidad }) =>
+      (verConsumo || entidad !== "MOVIMIENTO_INVENTARIO") && (verDinero || entidad !== "COTIZACION"))
       .map((evento) => eventoDto(evento, permisos)), advertencias };
 }
 

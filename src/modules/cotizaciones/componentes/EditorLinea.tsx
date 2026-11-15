@@ -1,96 +1,85 @@
-﻿"use client";
-
+"use client";
 import { memo } from "react";
 import { useController, type UseFormReturn } from "react-hook-form";
-import { FormField } from "@/components/comunes/FormField";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Button } from "@/components/ui/button";
 import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
 import { faltaTarifaMaterial, MENSAJE_AREA_MATERIAL, MENSAJE_TARIFA_MATERIAL, modalidadMaterial } from "../materiales";
-import { simboloMoneda } from "../moneda";
 import type { EntradaLineaEditor, EntradaReemplazarItems } from "../schema";
 import type { LineaDto, MaterialSelector } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
-
 type PropiedadesLinea = { moneda: Moneda; linea: EntradaLineaEditor; prefijo: string; indice: number; materiales: MaterialSelector[];
   errores: CamposError; bloqueada: boolean; importe?: string; areaPartida?: string | null; medirMaterial: boolean; guardada?: LineaDto;
   alCambiar: (linea: EntradaLineaEditor) => void; alQuitar: () => void };
-const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Tercero" };
-
-function CamposMaterial({ moneda, linea, prefijo, materiales, errores, alCambiar, areaPartida, medirMaterial, guardada, bloqueada }: PropiedadesLinea) {
-  if (linea.tipo !== "MATERIAL") return null;
-  const opciones = [{ id: "__manual__", nombre: "Captura manual" }, ...materiales.map((material) =>
-    ({ id: material.id, nombre: `${material.codigo} · ${material.nombre}` }))];
-  if (linea.materialId && !materiales.some((material) => material.id === linea.materialId)) {
-    opciones.push({ id: linea.materialId, nombre: `${linea.descripcion} (archivado)` });
-  }
-  const seleccionar = (id: string) => {
-    const material = materiales.find((registro) => registro.id === id);
-    alCambiar({ ...linea, materialId: material?.id ?? null,
-      descripcion: material?.nombre ?? linea.descripcion, unidad: material?.unidadCotizacion ?? material?.unidad ?? linea.unidad,
-      costoUnitario: material?.precioCotizacion ?? material?.costoPromedio ?? linea.costoUnitario });
-  };
-  const material = materiales.find(({ id }) => id === linea.materialId);
-  const historial = guardada?.materialId === linea.materialId ? guardada : undefined;
-  const conservar = historial && (bloqueada || !material);
-  const modo = conservar ? historial.cantidadPorArea ? "AREA" : "CANTIDAD" : modalidadMaterial(material, medirMaterial);
-  const porArea = modo !== "CANTIDAD";
-  const costo = conservar ? linea.costoUnitario : material?.precioCotizacion ?? material?.costoPromedio ?? linea.costoUnitario;
-  const pendiente = Boolean(linea.materialId && faltaTarifaMaterial(costo));
-  return <>
-    <CampoSeleccion id={`${prefijo}.materialId`} etiqueta="Material registrado" valor={linea.materialId ?? "__manual__"}
-      opciones={opciones} error={errores[`${prefijo}.materialId`]} alCambiar={seleccionar} />
-    {modo === "FALTA_AREA" ? <p className="text-sm text-muted-foreground">{MENSAJE_AREA_MATERIAL}</p> : null}
-    {pendiente ? <p className="text-sm text-danger">{MENSAJE_TARIFA_MATERIAL}</p> : null}
-    <div className="grid gap-4 sm:grid-cols-3">
-      <CampoTexto id={`${prefijo}.cantidad`} etiqueta="Cantidad total consumida" decimal requerido
-        valor={porArea ? areaPartida ?? "" : linea.cantidad} deshabilitado={porArea}
-        ayuda={porArea ? "m² calculados con el ancho, el alto y la cantidad de piezas de la partida." : undefined}
-        error={errores[`${prefijo}.cantidad`]} alCambiar={(cantidad) => alCambiar({ ...linea, cantidad })} />
-      <CampoTexto id={`${prefijo}.costoUnitario`} etiqueta={`Costo unitario (${simboloMoneda(moneda)})`} decimal requerido valor={modo === "FALTA_AREA" || pendiente ? "" : costo ?? ""}
-        deshabilitado={Boolean(linea.materialId)} ayuda={porArea ? "Precio de cotización por m²." : linea.materialId ? "Precio de cotización del material." : undefined}
-        error={errores[`${prefijo}.costoUnitario`]} alCambiar={(costoUnitario) => alCambiar({ ...linea, costoUnitario })} />
-      <CampoTexto id={`${prefijo}.mermaPct`} etiqueta="Merma (%)" decimal requerido valor={linea.mermaPct}
-        error={errores[`${prefijo}.mermaPct`]} alCambiar={(mermaPct) => alCambiar({ ...linea, mermaPct })} />
-    </div>
-  </>;
+const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Servicio externo" };
+function datosMaterial(p: PropiedadesLinea) {
+  const linea = p.linea;
+  const material = linea.tipo === "MATERIAL" ? p.materiales.find(m => m.id === linea.materialId) : undefined;
+  const historial = p.linea.tipo === "MATERIAL" && p.guardada?.materialId === p.linea.materialId ? p.guardada : undefined;
+  const conservar = historial && (p.bloqueada || !material);
+  const modo = conservar ? historial.cantidadPorArea ? "AREA" : "CANTIDAD" : modalidadMaterial(material, p.medirMaterial);
+  return { material, modo, precio: p.linea.tipo === "MATERIAL" ? conservar ? p.linea.costoUnitario
+    : material?.precioCotizacion ?? material?.costoPromedio ?? p.linea.costoUnitario : undefined };
 }
-
-function CamposTrabajo({ moneda, linea, prefijo, errores, alCambiar }: PropiedadesLinea) {
-  if (linea.tipo === "MATERIAL") return null;
-  if (linea.tipo === "TERCERO") return <CampoTexto id={`${prefijo}.costo`} etiqueta={`Costo total del tercero (${simboloMoneda(moneda)})`} decimal requerido
-    valor={linea.costo} error={errores[`${prefijo}.costo`]} alCambiar={(costo) => alCambiar({ ...linea, costo })} />;
-  return <div className="grid gap-4 sm:grid-cols-2">
-    <CampoTexto id={`${prefijo}.horas`} etiqueta="Horas totales del ítem" decimal requerido valor={linea.horas}
-      error={errores[`${prefijo}.horas`]} alCambiar={(horas) => alCambiar({ ...linea, horas })} />
-    <CampoTexto id={`${prefijo}.tarifa`} etiqueta={`Tarifa por hora (${simboloMoneda(moneda)})`} decimal requerido valor={linea.tarifa}
-      error={errores[`${prefijo}.tarifa`]} alCambiar={(tarifa) => alCambiar({ ...linea, tarifa })} />
-  </div>;
+function DescripcionLinea(p: PropiedadesLinea) {
+  const { linea, prefijo, errores, alCambiar } = p;
+  if (linea.tipo !== "MATERIAL") return <CampoTexto compacto id={`${prefijo}.descripcion`} etiqueta="Descripción del costo" valor={linea.descripcion}
+    error={errores[`${prefijo}.descripcion`]} alCambiar={descripcion => alCambiar({ ...linea, descripcion })} />;
+  const opciones = [{ id: "__manual__", nombre: "Material sin registrar" }, ...p.materiales.map(m => ({ id: m.id, nombre: `${m.codigo} · ${m.nombre}` }))];
+  if (linea.materialId && !opciones.some(m => m.id === linea.materialId)) opciones.push({ id: linea.materialId, nombre: `${linea.descripcion} (archivado)` });
+  return <div className="min-w-0 space-y-2"><CampoSeleccion compacto id={`${prefijo}.materialId`} etiqueta="Material registrado" valor={linea.materialId ?? "__manual__"}
+    opciones={opciones} error={errores[`${prefijo}.materialId`]} deshabilitado={p.bloqueada} alCambiar={id => {
+      const m = p.materiales.find(m => m.id === id);
+      alCambiar({ ...linea, materialId: m?.id ?? null, descripcion: m?.nombre ?? linea.descripcion,
+        unidad: m?.unidadCotizacion ?? m?.unidad ?? linea.unidad, costoUnitario: m?.precioCotizacion ?? m?.costoPromedio ?? linea.costoUnitario });
+    }} />{!linea.materialId ? <CampoTexto compacto id={`${prefijo}.descripcion`} etiqueta="Descripción del material" valor={linea.descripcion}
+      error={errores[`${prefijo}.descripcion`]} alCambiar={descripcion => alCambiar({ ...linea, descripcion })} />
+      : <details className="text-sm"><summary className="cursor-pointer">Descripción para este trabajo</summary>
+        <div className="mt-2"><CampoTexto compacto id={`${prefijo}.descripcion`} etiqueta="Descripción del material en este trabajo" valor={linea.descripcion}
+          error={errores[`${prefijo}.descripcion`]} alCambiar={descripcion => alCambiar({ ...linea, descripcion })} /></div>
+      </details>}</div>;
 }
-
-function ContenidoLinea(propiedades: PropiedadesLinea) {
-  const { linea, prefijo, indice, errores, bloqueada, alCambiar } = propiedades;
-  const material = linea.tipo === "MATERIAL" ? propiedades.materiales.find(({ id }) => id === linea.materialId) : undefined;
-  const historial = linea.tipo === "MATERIAL" && propiedades.guardada?.materialId === linea.materialId ? propiedades.guardada : undefined;
-  const enMetros = historial && (bloqueada || !material) ? historial.cantidadPorArea
-    : modalidadMaterial(material, propiedades.medirMaterial) !== "CANTIDAD";
-  return <fieldset disabled={bloqueada} className="min-w-0 space-y-4 rounded-md border p-4">
-    <legend className="px-2 text-base font-semibold">Línea {indice + 1}: {ETIQUETA[linea.tipo]}</legend>
-    <div className="grid gap-4 sm:grid-cols-2">
-      <CampoTexto id={`${prefijo}.descripcion`} etiqueta="Descripción de costo" requerido valor={linea.descripcion}
-        error={errores[`${prefijo}.descripcion`]} alCambiar={(descripcion) => alCambiar({ ...linea, descripcion })} />
-      <CampoTexto id={`${prefijo}.unidad`} etiqueta="Unidad de costo" requerido valor={enMetros ? "m²" : linea.unidad}
-        deshabilitado={enMetros || Boolean(material?.unidadCotizacion)}
-        error={errores[`${prefijo}.unidad`]} alCambiar={(unidad) => alCambiar({ ...linea, unidad })} />
-    </div>
-    <CamposMaterial {...propiedades} /><CamposTrabajo {...propiedades} />
-    <FormField id={`${prefijo}.importe`} etiqueta="Importe de línea" error={errores[`${prefijo}.importe`]}>
-      {(atributos) => <output {...atributos} aria-live="off"><Money valor={propiedades.importe} moneda={propiedades.moneda} /></output>}
-    </FormField>
-    <Button type="button" variant="outline" onClick={propiedades.alQuitar}
-      aria-label={`Quitar línea ${indice + 1}: ${ETIQUETA[linea.tipo]}`}>Quitar línea</Button>
-  </fieldset>;
+function CantidadLinea(p: PropiedadesLinea) {
+  const { linea, prefijo, errores, alCambiar } = p, { modo } = datosMaterial(p);
+  const porArea = linea.tipo === "MATERIAL" && modo !== "CANTIDAD";
+  const valor = linea.tipo === "MANO_OBRA" ? linea.horas : linea.tipo === "MATERIAL" ? porArea ? p.areaPartida ?? "" : linea.cantidad : "1";
+  const campo = linea.tipo === "MANO_OBRA" ? "horas" : "cantidad";
+  return <><CampoTexto compacto id={`${prefijo}.${campo}`} etiqueta={linea.tipo === "MANO_OBRA" ? "Horas totales" : "Cantidad total consumida"} decimal valor={valor}
+    deshabilitado={p.bloqueada || porArea || linea.tipo === "TERCERO"} error={errores[`${prefijo}.${campo}`]} alCambiar={v => {
+      if (linea.tipo === "MATERIAL") alCambiar({ ...linea, cantidad: v });
+      if (linea.tipo === "MANO_OBRA") alCambiar({ ...linea, horas: v });
+    }} />{porArea ? <small>{modo === "FALTA_AREA" ? MENSAJE_AREA_MATERIAL : "Calculado"}</small> : null}</>;
+}
+function PrecioLinea(p: PropiedadesLinea) {
+  const { linea, prefijo, errores, alCambiar } = p, { precio, modo } = datosMaterial(p);
+  const campo = linea.tipo === "MATERIAL" ? "costoUnitario" : linea.tipo === "MANO_OBRA" ? "tarifa" : "costo";
+  const pendiente = linea.tipo === "MATERIAL" && Boolean(linea.materialId) && faltaTarifaMaterial(precio);
+  const valor = linea.tipo === "MATERIAL" ? modo === "FALTA_AREA" || pendiente ? "" : precio ?? "" : linea.tipo === "MANO_OBRA" ? linea.tarifa : linea.costo;
+  return <><CampoTexto compacto id={`${prefijo}.${campo}`} etiqueta="Costo unitario" decimal valor={valor} deshabilitado={p.bloqueada || linea.tipo === "MATERIAL" && Boolean(linea.materialId)}
+    error={errores[`${prefijo}.${campo}`]} alCambiar={v => {
+      if (linea.tipo === "MATERIAL") alCambiar({ ...linea, costoUnitario: v });
+      if (linea.tipo === "MANO_OBRA") alCambiar({ ...linea, tarifa: v });
+      if (linea.tipo === "TERCERO") alCambiar({ ...linea, costo: v });
+    }} />{pendiente ? <p className="text-sm text-danger">{MENSAJE_TARIFA_MATERIAL}</p> : null}</>;
+}
+function ContenidoLinea(p: PropiedadesLinea) {
+  const { linea, prefijo, errores, alCambiar } = p, { modo, material } = datosMaterial(p);
+  const enMetros = linea.tipo === "MATERIAL" && modo !== "CANTIDAD";
+  return <tr><td><fieldset disabled={p.bloqueada} className="min-w-0"><DescripcionLinea {...p} /></fieldset>
+    <p className="mt-2 text-xs text-muted-foreground">{p.indice + 1}. {ETIQUETA[linea.tipo]}</p></td>
+    <td><CantidadLinea {...p} /></td>
+    <td><CampoTexto compacto id={`${prefijo}.unidad`} etiqueta="Unidad de costo" valor={enMetros ? "m²" : linea.unidad}
+      deshabilitado={p.bloqueada || enMetros || Boolean(material?.unidadCotizacion)} error={errores[`${prefijo}.unidad`]}
+      alCambiar={unidad => alCambiar({ ...linea, unidad })} /></td>
+    <td><PrecioLinea {...p} /></td>
+    <td>{linea.tipo === "MATERIAL" ? <CampoTexto compacto id={`${prefijo}.mermaPct`} etiqueta="Desperdicio (%)" decimal valor={linea.mermaPct}
+      deshabilitado={p.bloqueada} error={errores[`${prefijo}.mermaPct`]} alCambiar={mermaPct => alCambiar({ ...linea, mermaPct })} /> : <span className="valor-costo">No aplica</span>}</td>
+    <td><output className="valor-costo" aria-label={`Costo total de línea ${p.indice + 1}`}><Money valor={p.importe} moneda={p.moneda} /></output>
+      {errores[`${prefijo}.importe`] ? <p role="alert">{errores[`${prefijo}.importe`]}</p> : null}
+    </td><td><Button className="h-10 px-3" type="button" size="sm" variant="outline" disabled={p.bloqueada} onClick={p.alQuitar}
+        aria-label={`Quitar línea ${p.indice + 1}: ${ETIQUETA[linea.tipo]}`}>Quitar</Button></td>
+  </tr>;
 }
 
 type LineaRegistrada = Omit<PropiedadesLinea, "linea" | "alCambiar" | "alQuitar"> & {

@@ -67,12 +67,12 @@ async function prepararMateriales(tx: Tx, texto: string): Promise<Preparacion<Cr
   const preparacion = validarFilas(texto, "materiales", esquemaFilaMaterial);
   if (!preparacion.nuevas.length) return preparacion;
   const existentes = await tx.material.findMany({
-    where: { codigo: { in: preparacion.nuevas.map(({ entrada }) => entrada.codigo) } }, select: { codigo: true },
+    select: { codigo: true, codigosAnteriores: true },
   });
-  const codigos = new Set(existentes.map(({ codigo }) => codigo));
+  const codigos = new Set(existentes.flatMap(({ codigo, codigosAnteriores }) => [codigo, ...codigosAnteriores]));
   return omitirDuplicados(preparacion, (entrada) => {
-    if (codigos.has(entrada.codigo)) return "Material omitido: código duplicado.";
-    codigos.add(entrada.codigo);
+    if (entrada.codigo && codigos.has(entrada.codigo.toUpperCase())) return "Material omitido: código duplicado.";
+    if (entrada.codigo) codigos.add(entrada.codigo.toUpperCase());
     return null;
   });
 }

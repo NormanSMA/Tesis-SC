@@ -22,7 +22,7 @@ export function FiltrosProduccion({ opciones }: { opciones: { areas: ReferenciaO
   const secundarios = Number(responsable !== TODOS);
   const hayFiltros = secundarios > 0 || ["q", "area", "estado"].some((clave) => Boolean(parametros.get(clave)));
   return <div className="flex flex-col gap-3">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-end gap-3">
       <BuscadorEnVivo etiqueta="Buscar orden" marcador="Buscar por número de orden"
         className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
       <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos="abiertas" opciones={[{ valor: "abiertas", etiqueta: "Abiertas" },

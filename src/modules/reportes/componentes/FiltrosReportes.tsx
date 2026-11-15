@@ -25,7 +25,7 @@ function FechaFiltro({ parametro, valor, error }: { parametro: "desde" | "hasta"
   const [previo, setPrevio] = useState(valor ?? "");
   if ((valor ?? "") !== previo) { setPrevio(valor ?? ""); setFecha(valor ?? ""); }
   return <div className="flex flex-col gap-1">
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-start gap-1.5">
       <Label htmlFor={id}>{parametro === "desde" ? "Desde" : "Hasta"}</Label>
       <Input id={id} name={parametro} type="date" lang="es" value={fecha} className="w-auto" aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined} {...limitesFiltroFecha()}
@@ -70,8 +70,8 @@ export function FiltrosReportes({ nombre, consulta, areas, campos }: Propiedades
   const conExtras = nombre === "existencias" || nombre === "ordenes-por-etapa";
   const hayFiltros = Boolean(consulta.texto || consulta.area) || consulta.soloAlertas === "true";
   return <div role="group" aria-label="Filtros de reportes" className="min-w-0 space-y-2">
-    <div className="flex flex-wrap items-start gap-3">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-col items-start gap-1.5">
         <Label htmlFor="reporte">Reporte</Label>
         <Select value={nombre} onValueChange={(valor) => navegar({ ...LIMPIAR, nombre: valor })}>
           <SelectTrigger id="reporte" className="w-64 max-w-full"><SelectValue /></SelectTrigger>
@@ -87,7 +87,8 @@ export function FiltrosReportes({ nombre, consulta, areas, campos }: Propiedades
       {conExtras ? <MasFiltros nombre={nombre} consulta={consulta} areas={areas} /> : null}
       {hayFiltros ? <Button type="button" variant="ghost" className="h-10" onClick={() => navegar(LIMPIAR)}>Limpiar filtros</Button> : null}
     </div>
+    {!periodo ? <p className="text-sm text-muted-foreground">Situación actual al consultar; este reporte no es un corte histórico.</p> : null}
     {/* El periodo ya se ve en Desde y Hasta; solo se aclara la regla que no es obvia. */}
-    {nombre === "carga-por-operario" ? <p className="text-sm text-muted-foreground">Las etapas completadas cuentan por su fecha de finalización.</p> : null}
+    {nombre === "carga-por-operario" ? <p className="text-sm text-muted-foreground">El período solo filtra las completadas por su fecha de finalización; la carga abierta corresponde a hoy.</p> : null}
   </div>;
 }

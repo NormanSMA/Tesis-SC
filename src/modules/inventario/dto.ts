@@ -9,7 +9,7 @@ export function aMaterialDto(material: Material) {
     ? { tipo: tipoPresentacion, ancho: anchoPresentacion.toFixed(3), largo: largoPresentacion.toFixed(3),
       areaM2: formatear(multiplicar(leerDecimal(anchoPresentacion.toString())!, leerDecimal(largoPresentacion.toString())!), 6) }
     : null;
-  const valores = { ...campos, presentacion, existencia: material.existencia.toFixed(3),
+  const valores = { ...campos, fotoVersion: material.fotoVersion?.toISOString() ?? null, presentacion, existencia: material.existencia.toFixed(3),
     areaUnidadInventario: material.areaUnidadInventario?.toFixed(6) ?? null,
     precioCotizacion: material.precioCotizacion?.toFixed(4) ?? null,
     costoPromedio: material.costoPromedio.toFixed(4), stockMinimo: material.stockMinimo.toFixed(3),

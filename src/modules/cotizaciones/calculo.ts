@@ -1,3 +1,6 @@
+import { tieneGastosFijos } from "@/modules/personalizadas/gastos-schema";
+import { gastosCalculados } from "@/modules/personalizadas/gastos-calculo";
+import { validarDescuentoGastos, LIMITE_DESCUENTO_GASTOS } from "@/modules/personalizadas/descuentos";
 import {
   costearItemCatalogo, costearItemPersonalizado, totalizarCotizacion,
   validarItemCatalogo, validarItemPersonalizado, validarCotizacion,
@@ -13,10 +16,11 @@ import type { EntradaItem, EntradaLineaEditor } from "./schema";
 import type { ItemDto, SelectoresEditor } from "./tipos";
 
 export function aEntradaItem(item: ItemDto): EntradaItem {
-  const base = { itemId: item.id, actualizarPrecio: false, cantidad: item.cantidad, ancho: item.ancho, alto: item.alto };
+  const base = { itemId: item.id, actualizarPrecio: false, cantidad: item.cantidad, ancho: item.ancho, alto: item.alto,
+    profundidad: item.profundidad };
   if (item.tipo === "CATALOGO") return { ...base, tipo: item.tipo, productoId: item.productoId ?? "" };
   return { ...base, tipo: item.tipo, categoriaId: item.categoriaId, descripcion: item.descripcion,
-    unidadCobro: item.unidadCobro, margenPct: item.margenPct ?? "0", lineas: item.lineas.map(aEntradaLinea) };
+    unidadCobro: item.unidadCobro, margenPct: item.margenPct ?? "0", ...(item.productoPersonalizado ? { productoPersonalizado: item.productoPersonalizado } : {}), ...(item.gastosPersonalizados ? { gastosPersonalizados: item.gastosPersonalizados } : {}), lineas: item.lineas.map(aEntradaLinea) };
 }
 
 function lineaParaMotor(linea: EntradaLineaEditor, selectores: SelectoresEditor,
@@ -31,10 +35,10 @@ type ContextoItem = { item: EntradaItem; original?: ItemDto; selectores: Selecto
 export type ItemCalculado = ItemCatalogoCosteado | ItemPersonalizadoCosteado;
 
 function calcularCatalogo({ item, original, selectores }: ContextoItem) {
-  if (item.tipo !== "CATALOGO") throw new Error("El ítem debe ser de catálogo.");
+  if (item.tipo !== "CATALOGO") throw new Error("El producto debe ser de catálogo.");
   const producto = selectores.productos.find((registro) => registro.id === item.productoId);
   const conservar = original && !item.actualizarPrecio;
-  const entrada = { cantidad: item.cantidad, ancho: item.ancho, alto: item.alto,
+  const entrada = { cantidad: item.cantidad, ancho: item.ancho, alto: item.alto, profundidad: item.profundidad,
     unidadCobro: conservar ? original.unidadCobro : producto?.unidadCobro ?? "UNIDAD",
     precioBase: conservar ? original.precioUnitario : producto?.precioBase ?? "" };
   const errores = validarItemCatalogo(entrada);
@@ -43,10 +47,10 @@ function calcularCatalogo({ item, original, selectores }: ContextoItem) {
 }
 
 function calcularPersonalizado({ item, original, selectores }: ContextoItem) {
-  if (item.tipo !== "PERSONALIZADO") throw new Error("El ítem debe ser personalizado.");
+  if (item.tipo !== "PERSONALIZADO") throw new Error("El producto debe ser personalizado.");
   const instantanea = original && !item.actualizarPrecio ? aEntradaItem(original) : item;
   if (instantanea.tipo !== "PERSONALIZADO") throw new Error("La instantánea debe ser personalizada.");
-  const modalidades = instantanea.lineas.map((linea) => {
+  const modalidades = instantanea.lineas.filter(l => !l.esGastoPersonalizado).map((linea) => {
     if (linea.tipo !== "MATERIAL" || !linea.materialId) return "CANTIDAD";
     const guardada = original?.lineas.find(({ id, materialId }) => id === linea.lineaId && materialId === linea.materialId);
     const material = selectores.materiales.find(({ id }) => id === linea.materialId);
@@ -57,19 +61,25 @@ function calcularPersonalizado({ item, original, selectores }: ContextoItem) {
   const porArea = modalidades.map((modo) => modo !== "CANTIDAD");
   const area = superficieTotal(item);
   const entrada = { cantidad: item.cantidad, margenPct: instantanea.margenPct,
-    lineas: instantanea.lineas.map((linea, indice) => lineaParaMotor(linea, selectores, {
+    lineas: instantanea.lineas.filter(l => !l.esGastoPersonalizado).map((linea, indice) => lineaParaMotor(linea, selectores, {
       area: porArea[indice] ? area : null,
       actualizar: Boolean(item.actualizarPrecio && linea.tipo === "MATERIAL" &&
         selectores.materiales.some(({ id }) => id === linea.materialId)),
     })) };
   const errores = validarItemPersonalizado(entrada);
+  if (!entrada.lineas.length && tieneGastosFijos(instantanea.gastosPersonalizados)) delete errores.lineas;
   modalidades.forEach((modo, indice) => {
     if (modo === "FALTA_AREA") errores[`lineas.${indice}.materialId`] = MENSAJE_AREA_MATERIAL;
   });
   const medidas = validarItemCatalogo({ cantidad: item.cantidad, precioBase: "0",
-    unidadCobro: porArea.some(Boolean) ? "M2" : item.unidadCobro, ancho: item.ancho, alto: item.alto });
+    unidadCobro: porArea.some(Boolean) ? "M2" : item.unidadCobro, ancho: item.ancho, alto: item.alto, profundidad: item.profundidad });
   if (porArea.some(Boolean) && !area) medidas.ancho ??= "Indique medidas que produzcan un área mayor que cero.";
   Object.assign(errores, medidas);
+  if (!Object.keys(errores).length && instantanea.gastosPersonalizados) {
+    try {
+      entrada.lineas.push(...gastosCalculados({ ...entrada, gastos: instantanea.gastosPersonalizados }).map(f => ({ tipo: "TERCERO" as const, costo: f.costo })));
+    } catch (e) { errores.gastosPersonalizados = e instanceof Error ? e.message : "Revise los gastos."; }
+  }
   return { errores, calculado: Object.keys(errores).length ? null : costearItemPersonalizado(entrada) };
 }
 
@@ -107,6 +117,7 @@ export function descuentoParaGuardar(modo: ModoDescuento, monto: string, porcent
 
 /** Totales de la cotización. Con porcentaje, el monto del descuento sale del subtotal vigente. */
 export function totalizarConDescuento(entrada: EntradaCotizacion & { descuentoPct: string | null }): TotalesCotizacion {
+  validarDescuentoGastos(entrada);
   const { descuentoPct, ...base } = entrada;
   if (descuentoPct === null) return totalizarCotizacion(base);
   const { subtotal } = totalizarCotizacion({ ...base, descuento: "0" });
@@ -118,6 +129,9 @@ type EntradaVista ={ items: EntradaItem[]; originales: ItemDto[]; selectores: Se
 
 export function calcularVista(entrada: EntradaVista) {
   const errores: CamposError = {};
+  const vigentes = entrada.items.map(i => entrada.originales.find(o => o.id === i.itemId && !i.actualizarPrecio) ?? i);
+  try { validarDescuentoGastos({ ...entrada, items: vigentes }); }
+  catch { errores.descuento = LIMITE_DESCUENTO_GASTOS; }
   const items = entrada.items.map((item, indice) => {
     const contexto = { item, original: entrada.originales.find((registro) => registro.id === item.itemId),
       selectores: entrada.selectores };

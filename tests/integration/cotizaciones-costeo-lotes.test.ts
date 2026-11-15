@@ -29,7 +29,7 @@ describeConBase("cotizaciones: lecturas de costeo por lotes", () => {
     });
   }
 
-  it("mantiene una lectura para 50 ítems del mismo producto y conserva los totales", async () => {
+  it("mantiene una lectura para 50 productos del mismo producto y conserva los totales", async () => {
     const uno = await medirCosteo([itemUnidad(referencias)]);
     const lote = await medirCosteo(Array.from({ length: 50 }, () => itemUnidad(referencias)));
     expect(uno.lecturas).toEqual([1, 0, 0, 0, 0, 0]);
@@ -43,7 +43,7 @@ describeConBase("cotizaciones: lecturas de costeo por lotes", () => {
       .toMatchObject({ subtotal: "66000.00", impuesto: "9900.00", total: "75900.00" });
   });
 
-  it("mantiene dos lecturas para 50 ítems con material y categoría repetidos", async () => {
+  it("mantiene dos lecturas para 50 productos con material y categoría repetidos", async () => {
     const uno = await medirCosteo([itemPersonalizado(referencias)]);
     const lote = await medirCosteo(Array.from({ length: 50 }, () => itemPersonalizado(referencias)));
     expect(uno.lecturas).toEqual([0, 0, 1, 0, 1, 0]);
@@ -59,7 +59,7 @@ describeConBase("cotizaciones: lecturas de costeo por lotes", () => {
       .toMatchObject({ subtotal: "1383138.50", impuesto: "207470.78", total: "1590609.28" });
   });
 
-  it("omite las lecturas cuando no hay ítems", async () => {
+  it("omite las lecturas cuando no hay productos", async () => {
     expect(await medirCosteo([])).toMatchObject({ costeados: [], lecturas: [0, 0, 0, 0, 0, 0] });
   });
 });

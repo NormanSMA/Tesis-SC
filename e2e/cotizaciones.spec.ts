@@ -126,7 +126,7 @@ async function agregarItemPersonalizado(page: Page): Promise<void> {
   await porId(page, "items.2.lineas.0.descripcion").fill("Vinil E2E"); await porId(page, "items.2.lineas.0.cantidad").fill("2");
   await porId(page, "items.2.lineas.0.costoUnitario").fill("10"); await page.getByRole("button", { name: "Agregar mano de obra" }).click();
   await porId(page, "items.2.lineas.1.horas").fill("3"); await porId(page, "items.2.lineas.1.tarifa").fill("50");
-  await page.getByRole("button", { name: "Agregar tercero" }).click(); await porId(page, "items.2.lineas.2.costo").fill("100");
+  await page.getByRole("button", { name: "Agregar servicio externo" }).click(); await porId(page, "items.2.lineas.2.costo").fill("100");
   await expect(page.getByRole("group", { name: /Línea 3: Tercero/ })).toBeVisible();
 }
 async function guardarItemsYComparar(page: Page): Promise<Totales> {
@@ -143,7 +143,7 @@ async function verificarItemsDelDetalle(page: Page): Promise<void> {
   await expect(vinil).toContainText("m²"); await expect(vinil).toContainText("C$ 4,950.00");
   await expect(page.getByRole("row", { name: /Panel ACM con vinil/ })).toContainText("C$ 9,200.00");
   await expect(page.getByRole("row", { name: /Trabajo personalizado E2E/ }).first()).toBeVisible(); await abrirPlegable(page, "Costos internos");
-  await expect(page.getByText("Costos del ítem 3: Trabajo personalizado E2E")).toBeVisible();
+  await expect(page.getByText("Costos del producto 3: Trabajo personalizado E2E")).toBeVisible();
 }
 async function enviarDesdeDetalle(page: Page): Promise<void> {
   await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible(); await page.getByRole("button", { name: "Enviar cotización" }).click();
@@ -441,8 +441,8 @@ test.describe("Accesibilidad (axe)", () => {
       expect(await violacionesGraves(page), "lista").toEqual([]);
       const borrador = await crearBorradorPorApi(page);
       await page.goto(`/cotizaciones/${borrador.id}/editar`);
-      await expect(page.getByRole("button", { name: "Guardar ítems" })).toBeEnabled();
-      await expect(page.getByRole("heading", { level: 2, name: "Ítem 3: Personalizado" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Guardar productos" })).toBeEnabled();
+      await expect(page.getByRole("heading", { level: 2, name: "Producto 3: Personalizado" })).toBeVisible();
       expect(await violacionesGraves(page), "editor").toEqual([]);
       await page.goto(`/cotizaciones/${datosMixta().id}`);
       await expect(page.getByLabel("Totales de cotización")).toBeVisible();
@@ -481,7 +481,7 @@ test.describe("CF-10: capturas de la cotización mixta aprobada", () => {
     await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
     await page.goto(`/cotizaciones/${borrador.id}/editar`);
-    await expect(page.getByRole("heading", { level: 2, name: "Ítem 3: Personalizado" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Producto 3: Personalizado" })).toBeVisible();
     await expect(page.getByLabel("Totales de cotización")).toBeVisible();
     await capturar(page, "CF-10-editor-ventas-portatil.png");
   });

@@ -18,7 +18,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     return entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
   }
 
-  it("exige al menos un ítem para enviar y conserva el borrador", async () => {
+  it("exige al menos un producto para enviar y conserva el borrador", async () => {
     const borrador = await crearBorrador(entorno);
     await expect(entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor))
       .rejects.toMatchObject({ status: 409 });
@@ -113,7 +113,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     }
   });
 
-  it("la base congela cabecera, ítems y líneas fuera de BORRADOR", async () => {
+  it("la base congela cabecera, productos y líneas fuera de BORRADOR", async () => {
     const borrador = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
     const cotizacion = await entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
     const item = cotizacion.items[0];

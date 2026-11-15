@@ -45,7 +45,7 @@ function CamposUnidadCotizacion({ valores, errores, cambiar }: Pick<Propiedades,
   const unidades = convertir ? [valores.unidad, "M2"] : [valores.unidad];
   return <SeccionFormulario titulo="Unidad para cotizaciones">
     <FormField id="unidadCotizacion" etiqueta="Unidad en Cotizaciones" error={errores.unidadCotizacion}
-      ayuda="Al elegir m², la cantidad se toma de las medidas de la partida. El precio se edita en Configuración.">
+      ayuda="Al elegir m², la cantidad se toma de las medidas del trabajo. El precio se edita en Configuración.">
       {(atributos) => <select {...atributos} value={valores.unidadCotizacion}
         className="h-11 w-full rounded-md border border-input bg-background px-3"
         onChange={(evento) => cambiar("unidadCotizacion", evento.target.value)}>
@@ -63,8 +63,8 @@ function CamposUnidadCotizacion({ valores, errores, cambiar }: Pick<Propiedades,
 
 export function CamposMaterial({ valores, errores, editar, conExistencia, cambiar }: Propiedades) {
   return <><SeccionFormulario titulo="Identificación"><div className="grid min-w-0 gap-4 sm:grid-cols-2">
-    <FormField id="codigo" etiqueta="Código" requerido error={errores.codigo}>{(atributos) =>
-      <Input {...atributos} value={valores.codigo} maxLength={30} disabled={editar} onChange={(e) => cambiar("codigo", e.target.value)} />}</FormField>
+    <FormField id="codigo" etiqueta="Código automático" ayuda="Se asigna al guardar según el área; después permanece fijo." error={errores.codigo}>{(atributos) =>
+      <Input {...atributos} value={valores.codigo || "Se genera al guardar"} readOnly />}</FormField>
     <FormField id="nombre" etiqueta="Nombre" requerido error={errores.nombre}>{(atributos) =>
       <Input {...atributos} value={valores.nombre} maxLength={160} onChange={(e) => cambiar("nombre", e.target.value)} />}</FormField>
     <FormField id="unidad" etiqueta="Unidad" requerido error={errores.unidad} ayuda="La unidad permanece fija después del alta.">{(atributos) =>

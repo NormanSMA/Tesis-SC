@@ -23,7 +23,7 @@ describeConBase("cotizaciones: costo de las líneas con material registrado", ()
   it("conserva el costo guardado al editar y no deja falsearlo con un costo menor", async () => {
     const cotizacion = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
     const reenvio = entradaExistente(cotizacion.items[0]);
-    if (reenvio.tipo !== "PERSONALIZADO") throw new Error("Se esperaba un ítem personalizado.");
+    if (reenvio.tipo !== "PERSONALIZADO") throw new Error("Se esperaba un producto personalizado.");
     reenvio.lineas[0] = { ...reenvio.lineas[0], tipo: "MATERIAL", cantidad: "6", costoUnitario: "1" } as typeof reenvio.lineas[0];
     const editada = await entorno.modulos.servicio.reemplazarItems(
       cotizacion.id, { version: cotizacion.actualizadoEn, items: [reenvio] }, entorno.ventas.actor,

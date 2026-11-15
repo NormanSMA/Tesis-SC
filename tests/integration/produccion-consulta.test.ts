@@ -35,7 +35,9 @@ function registrarTrazabilidad() {
     expect(resumen.movimientos[0].id).toBe(respuesta.movimientos[0].id);
     expect(ficha.eventos.some((evento) => evento.entidad === "MOVIMIENTO_INVENTARIO")).toBe(false);
     expect(comercial.eventos.filter((evento) => evento.entidad === "MOVIMIENTO_INVENTARIO")).toHaveLength(1);
-    expect(ficha.eventos.some((evento) => evento.accion === "CONVERTIR_EN_ORDEN")).toBe(true);
+    // PROD-06: Producción no recibe la bitácora de la orden; Administración sí.
+    expect(ficha.eventos).toEqual([]);
+    expect(comercial.eventos.some((evento) => evento.accion === "CONVERTIR_EN_ORDEN")).toBe(true);
     expect(JSON.stringify(ficha)).not.toMatch(/precioUnitario|costoUnitario|subtotal|costoTotal/);
     expect(resumen.movimientos[0]).toHaveProperty("costoUnitario");
   });

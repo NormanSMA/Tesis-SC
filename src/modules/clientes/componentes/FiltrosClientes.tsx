@@ -37,7 +37,7 @@ export function FiltrosClientes({ conteos, soloNombre }: { conteos?: ConteosClie
   const activo = parametros.get("activo") ?? "true";
   const archivados = activo === "false";
   const hayFiltros = archivados || Boolean(parametros.get("q")) || Boolean(parametros.get("tipo"));
-  return <div className="mb-4 flex flex-wrap items-center gap-3">
+  return <div className="mb-4 flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar clientes" marcador={soloNombre ? "Buscar por nombre" : "Buscar por nombre, RUC, contacto o correo"} className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
     <FiltroSegmentado etiqueta="Tipo" parametro="tipo" valorTodos="todos" opciones={opcionesTipo(conteos)} />
     <Popover>

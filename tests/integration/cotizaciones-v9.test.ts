@@ -81,7 +81,7 @@ describeConBase("cotizaciones v9: aprobación y versiones corregidas", () => {
         detalle: { motivoAjuste: "Cambiar las medidas", fechaRespuesta: solicitada.fechaRespuesta } });
   });
 
-  it("crear versión corregida copia los ítems y registra versión 2 con origen", async () => {
+  it("crear versión corregida copia los productos y registra versión 2 con origen", async () => {
     const solicitada = await solicitarAjustes(await enviada());
     const respuesta = await invocar<CotizacionDto>(entorno.modulos.versionCorregida.POST,
       peticion("POST", `/api/v1/cotizaciones/${solicitada.id}/version-corregida`, { cookie: entorno.ventas.cookie, cuerpo: {} }), solicitada.id);

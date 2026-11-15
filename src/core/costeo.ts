@@ -1,4 +1,5 @@
 import { AppError, type CamposError } from "@/lib/errores";
+import { superficiePieza } from "./medidas";
 
 import {
   CERO,
@@ -46,6 +47,8 @@ export type EntradaItemCatalogo = {
   cantidad: string;
   ancho?: string | null;
   alto?: string | null;
+  /** Opcional. Con profundidad, el m² se cobra como caja abierta (ver medidas.ts). */
+  profundidad?: string | null;
 };
 
 /** Valores listos para las columnas de item_cotizacion. */
@@ -65,6 +68,7 @@ export type ItemCatalogoCosteado = {
   cantidad: string;
   ancho: string | null;
   alto: string | null;
+  profundidad: string | null;
   precioUnitario: string;
   costoTotal: null;
   margenPct: null;
@@ -226,7 +230,7 @@ function calcularLinea(lector: Lector, entrada: EntradaLinea, prefijo = ""): Lin
 
 function leerLineas(lector: Lector, lineas: unknown): EntradaLinea[] {
   if (!Array.isArray(lineas) || lineas.length === 0) {
-    lector.rechazar("lineas", "Agrega al menos una línea de costo.");
+    lector.rechazar("lineas", "Seleccione materiales o registre las horas y otros costos del trabajo.");
     return [];
   }
   return lineas;
@@ -260,7 +264,7 @@ function leerMedida(lector: Lector, entrada: EntradaItemCatalogo, campo: "ancho"
   return null;
 }
 
-// UNIDAD: round(precio × cantidad, 2). M2: round(precio × ancho × alto × cantidad, 2). CHECK item_importe_catalogo.
+// UNIDAD: round(precio × cantidad, 2). M2: round(precio × superficie × cantidad, 2), con superficie de medidas.ts. CHECK item_importe_catalogo.
 function calcularItemCatalogo(lector: Lector, entrada: EntradaItemCatalogo): ItemCatalogoCosteado {
   const { unidadCobro } = entrada;
   if (unidadCobro !== "UNIDAD" && unidadCobro !== "M2") lector.rechazar("unidadCobro", "Usa UNIDAD o M2.");
@@ -268,14 +272,16 @@ function calcularItemCatalogo(lector: Lector, entrada: EntradaItemCatalogo): Ite
   const cantidad = lector.leer("cantidad", entrada.cantidad, CANTIDAD_POSITIVA);
   const ancho = leerMedida(lector, entrada, "ancho");
   const alto = leerMedida(lector, entrada, "alto");
+  const profundidad = entrada.profundidad != null ? lector.leer("profundidad", entrada.profundidad, CANTIDAD_POSITIVA) : null;
   const base = multiplicar(precio, cantidad);
-  const superficie = unidadCobro === "M2" ? multiplicar(ancho ?? CERO, alto ?? CERO) : UNO;
+  const superficie = unidadCobro === "M2" ? superficiePieza(ancho ?? CERO, alto ?? CERO, profundidad) : UNO;
   return {
     tipo: "CATALOGO",
     unidadCobro,
     cantidad: formatear(cantidad, CANTIDAD.decimales),
     ancho: ancho && formatear(ancho, CANTIDAD.decimales),
     alto: alto && formatear(alto, CANTIDAD.decimales),
+    profundidad: profundidad && formatear(profundidad, CANTIDAD.decimales),
     precioUnitario: formatear(precio, MONTO.decimales),
     costoTotal: null,
     margenPct: null,

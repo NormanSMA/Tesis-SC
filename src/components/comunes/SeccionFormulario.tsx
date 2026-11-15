@@ -11,17 +11,16 @@ type PropiedadesSeccion = {
 };
 
 /**
- * Bloque de formulario en dos columnas desde lg: a la izquierda qué se pide y por qué,
- * a la derecha los campos en una tarjeta. En móvil y tableta, el texto va arriba de la tarjeta.
+ * El encabezado precede a los campos en todos los anchos de pantalla.
  */
-export function SeccionFormulario({ titulo, descripcion, className, children, vertical }: PropiedadesSeccion) {
+export function SeccionFormulario({ titulo, descripcion, className, children }: PropiedadesSeccion) {
   return (
-    <section className={cn("grid gap-3", !vertical && "lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8", className)}>
-      <div className="lg:pt-1">
+    <section className={cn("grid min-w-0 gap-3", className)}>
+      <div className="border-l-4 border-primary/60 pl-3">
         <h2 className="text-base font-semibold text-foreground">{titulo}</h2>
         {descripcion ? <p className="mt-1 text-sm text-muted-foreground">{descripcion}</p> : null}
       </div>
-      <div className="min-w-0 space-y-4 rounded-xl border border-border/80 bg-card p-5 shadow-sm">{children}</div>
+      <div className="min-w-0 space-y-4 rounded-xl border-[1.5px] border-formulario bg-secondary/40 p-5 shadow-sm">{children}</div>
     </section>
   );
 }

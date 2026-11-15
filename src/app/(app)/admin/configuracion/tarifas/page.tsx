@@ -18,6 +18,7 @@ export default async function PaginaTarifas() {
   const instalacion = filas.find(({ clave }) => clave === "tarifa_instalacion_km");
   return <div className="max-w-5xl space-y-5">
     <PageHeader titulo="Tarifas" descripcion="Precios y descuentos vigentes para las nuevas cotizaciones." />
+
     <section aria-labelledby="tarifas-comerciales" className="divide-y rounded-xl border bg-card">
       <h2 id="tarifas-comerciales" className="p-5 font-semibold">Tarifas comerciales</h2>
       {filas.filter(({ clave }) => clave.startsWith("tarifa_") && clave !== "tarifa_instalacion_km").map((fila) =>

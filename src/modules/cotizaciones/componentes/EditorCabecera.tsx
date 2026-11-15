@@ -16,7 +16,7 @@ import { CampoMostrarCondiciones, CampoTarifa } from "./CamposComerciales";
 import { CamposInstalacion, entradaInstalacion } from "./CamposInstalacion";
 import { CampoTexto } from "./CamposEditor";
 
-function useCabecera(cotizacion: CotizacionDto) {
+function useCabecera(cotizacion: CotizacionDto, tarifaInstalacion: string) {
   const [entrada, setEntrada] = useState({ asunto: cotizacion.asunto ?? "", condiciones: cotizacion.condiciones ?? "",
     descuento: cotizacion.descuento, descuentoPct: cotizacion.descuentoPct ?? "", vigenciaDias: String(cotizacion.vigenciaDias) });
   const [modo, setModo] = useState<ModoDescuento>(cotizacion.descuentoPct === null ? "MONTO" : "PORCENTAJE");
@@ -24,7 +24,7 @@ function useCabecera(cotizacion: CotizacionDto) {
   const [manual, setManual] = useState(cotizacion.descuentoManual);
   const [mostrarCondiciones, setMostrarCondiciones] = useState(cotizacion.mostrarCondiciones);
   const [instalacion, setInstalacion] = useState({ manoObra: cotizacion.instalacion?.manoObra ?? "",
-    fuera: Boolean(cotizacion.instalacion?.km), destino: cotizacion.instalacion?.destino ?? "", km: cotizacion.instalacion?.km ?? "" });
+    fuera: Boolean(cotizacion.instalacion?.km), destino: cotizacion.instalacion?.destino ?? "", km: cotizacion.instalacion?.km ?? "", tarifa: cotizacion.instalacion?.tarifa ?? convertirDesdeCordobas(tarifaInstalacion, cotizacion.tipoCambio, 2), idaVuelta: cotizacion.instalacion?.idaVuelta ?? !cotizacion.instalacion?.km });
   const [errores, setErrores] = useState<Record<string, string>>({});
   const solicitud = useSolicitudCotizacion("cabecera-cotizacion");
   const campos = { ...errores, ...solicitud.campos };
@@ -61,7 +61,7 @@ export function EditorCabecera({ cotizacion, tarifas, tarifaInstalacion }: {
 }) {
   const moneda = monedaDe(cotizacion.moneda);
   const { entrada, actualizar, modo, cambiarModo, montoCalculado, tarifa, setTarifa, manual, setManual,
-    mostrarCondiciones, setMostrarCondiciones, solicitud, campos, guardar, instalacion, setInstalacion } = useCabecera(cotizacion);
+    mostrarCondiciones, setMostrarCondiciones, solicitud, campos, guardar, instalacion, setInstalacion } = useCabecera(cotizacion, tarifaInstalacion);
   return <form id="cabecera-cotizacion" aria-label="Datos de cotización" onSubmit={guardar} noValidate className="space-y-4">
     <AvisoGuardado {...solicitud} />
     <fieldset disabled={solicitud.enviando} className="min-w-0 space-y-4">
@@ -81,8 +81,8 @@ export function EditorCabecera({ cotizacion, tarifas, tarifaInstalacion }: {
         <CampoTexto id="cabecera-vigencia" etiqueta="Vigencia (días)" decimal valor={entrada.vigenciaDias} error={campos.vigenciaDias} alCambiar={(valor) => actualizar("vigenciaDias", valor)} />
       </div>
       {manual ? <p className="text-sm text-muted-foreground">{modo === "PORCENTAJE"
-        ? "El monto se calcula sobre el subtotal vigente y se recalcula solo al guardar los ítems."
-        : "Guarde los ítems antes de aplicar un descuento sobre su nuevo subtotal."}</p> : null}
+        ? "El monto se calcula sobre el subtotal vigente y se recalcula solo al guardar los productos."
+        : "Guarde los productos antes de aplicar un descuento sobre su nuevo subtotal."}</p> : null}
       <CampoMostrarCondiciones mostrar={mostrarCondiciones} condiciones={entrada.condiciones} error={campos.condiciones}
         alMostrar={setMostrarCondiciones} alCambiar={(valor) => actualizar("condiciones", valor)} />
       <div className="space-y-3 border-t pt-3">

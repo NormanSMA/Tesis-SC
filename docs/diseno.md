@@ -29,12 +29,12 @@ Los tokens viven en `src/app/globals.css`. Tailwind los expone con `@theme inlin
 | `--primary-soft-border` | #d7d0e5 en claro, #675780 en oscuro | Borde tenue del primario |
 | `--brand-gold` | #f3a320 | Acento de marca |
 | `--ring` | #2d264f en claro, #ffb847 en oscuro | Anillo de foco |
-| `--background` | #f8f7fa en claro, #181625 en oscuro | Fondo de página |
-| `--card` | #FFFFFF | Superficie |
-| `--border` | #E2E8F0 | Contorno decorativo |
+| `--background` | #eeedf1 en claro, #141316 en oscuro (GEN-05, 2026-11-12) | Fondo de página |
+| `--card` | #fbfbfc en claro, #1d1c21 en oscuro | Superficie |
+| `--border` | #d9d7e0 en claro, #35343c en oscuro | Contorno decorativo |
 | `--input` | #64748B | Contorno de controles |
 | `--foreground` | #2d2022 en claro, #f5f2fb en oscuro | Texto |
-| `--muted-foreground` | #475569 | Texto secundario |
+| `--muted-foreground` | #4b4757 en claro, #aaa8b2 en oscuro | Texto secundario |
 | `--success` | #15803D | Éxito |
 | `--warning` | #B45309 | Advertencia |
 | `--danger` | #B91C1C | Peligro y errores |
@@ -45,6 +45,21 @@ Use #cbd5e1: `globals.css` cambió durante la actualización documental y contie
 
 Cada estado tiene fondo tenue y borde tenue: `--success-soft`, `--warning-soft`, `--danger-soft`, `--info-soft`, `--primary-soft`.
 `--neutral-strong` (#334155) pinta el estado Cerrada.
+
+### Contraste vigente (GEN-05, medido el 2026-11-12)
+
+| Par | Razón |
+|---|---|
+| Claro: texto sobre fondo / tarjeta | 13.43:1 / 15.14:1 |
+| Claro: texto secundario sobre fondo / muted | 7.71:1 / 7.37:1 |
+| Claro: primario sobre tarjeta | 13.52:1 |
+| Claro: borde de control sobre tarjeta | 4.60:1 |
+| Oscuro: texto sobre fondo / tarjeta | 15.60:1 / 14.27:1 |
+| Oscuro: texto secundario sobre tarjeta / muted | 7.22:1 / 6.40:1 |
+| Oscuro: dorado sobre tarjeta y texto sobre dorado | 8.12:1 |
+| Oscuro: borde de control sobre tarjeta | 3.90:1 |
+
+El modo oscuro deja de usar grises con tinte violeta: grafito con leve calidez del carbón de la marca y dorado como acción.
 
 ### Contraste histórico: por recalcular
 
@@ -229,3 +244,26 @@ Las 8 se redibujaron el 2026-11-04 con el generador de imágenes de Codex. Norma
 
 `/diseno` muestra tokens, tipografía, botones, formularios, estados, tabla, indicadores, línea de tiempo y componentes interactivos.
 Responde 404 en producción.
+
+
+## GEN-06 Formularios y filtros uniformes — 2026-11-13
+
+Regla vigente: todo bloque de formulario presenta título y descripción encima de los campos en todos los anchos. SeccionFormulario sustituye su antigua columna lateral por un encabezado superior y superficie gris violeta suave. Las entradas mantienen fondo claro y borde visible; los campos calculados usan fondo secundario y resultados diferenciados, también con texto. Se conserva la paleta semántica y el tema oscuro. Las filas editables de tarifas presentan nombre y explicación arriba del control.
+
+Los filtros de opciones se presentan en listas desplegables, con búsqueda para colecciones largas. FiltroSegmentado conserva su contrato interno pero ahora representa un desplegable con etiqueta y conteos. Catálogo usa una única selección de categoría visible en la barra. Búsqueda y fechas siguen siendo controles propios; se mantienen URL, paginación, limpieza y ordenación. Los tabs de navegación no se convierten en filtros.
+
+COT-25 organiza costos en tablas con encabezados, entradas accesibles y desplazamiento local en móvil. BI-01 usa barras 2D, valores visibles y tablas de respaldo; no depende solo del color, del puntero o de animaciones.
+
+## GEN-07 Alineación de controles y marcos — 2026-11-14
+
+Las barras de filtros alinean los controles por su base, de modo que una etiqueta superior no desplace los botones de búsqueda, filtros u orden. Los controles conservan su altura de 40 px y pueden pasar a la siguiente fila en pantallas estrechas. Se aplica a Catálogo, Clientes, Inventario, Cotizaciones, Órdenes, Producción, Reportes y Bitácora.
+
+Los paneles de formulario usan un borde específico más definido, separado del borde de las tablas de consulta: --form-border #a6a0b3 en claro y #68616f en oscuro. Los bloques principales usan 1.5 px; los grupos internos mantienen 1 px con menor intensidad. Se conservan las superficies suaves y se evita dibujar marcos adicionales alrededor de todos los fieldsets. El token border-formulario también se aplica a costos, configuración y productos personalizables.
+
+FormField.compacto conserva la etiqueta accesible y el mensaje de error sin reservar una línea visual para la etiqueta en tablas. Los mensajes quedan debajo del control. COT-26 sustituye la ocultación global por CSS de las etiquetas de tabla por esta presentación explícita; las casillas de materiales conservan su texto visible.
+
+## GEN-08 Responsividad de Usuarios y Trazabilidad — 2026-11-14
+
+Sustituye para estas pantallas la distribución previa basada solo en el ancho del viewport. La ficha de usuario usa el ancho disponible: Acceso pasa debajo cuando no caben cómodamente ambos bloques. Campos, perfiles y acciones se distribuyen mediante mínimos de lectura; los filtros se alinean por la base. Usuarios mantiene tabla en PC y una ficha móvil con correo y perfiles a todo el ancho; conserva nombre, estado, etiquetas y acciones.
+
+Trazabilidad agrupa Desde/Hasta con etiquetas superiores. Más filtros limita su altura al espacio visible, admite desplazamiento interno, tiene nombre accesible y conserva todos los filtros. Las tablas mantienen comparación en PC y desplazamiento horizontal localizado en tableta; en móvil reorganizan las celdas sin quitar información. Cliente/Cotización/ODT y sus datos se distribuyen por el ancho real; material tiene más ancho que las cantidades. El historial y todos sus detalles permanecen visibles: no se aplican recortes, resúmenes sustitutivos ni secciones plegadas. CSS limitado a estos módulos, sin alterar el componente DataTable para el resto del sistema.

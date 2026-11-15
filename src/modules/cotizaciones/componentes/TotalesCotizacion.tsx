@@ -19,7 +19,7 @@ export function TotalesCotizacion({ totales, moneda, mostrarMargen = true }: Pro
       {totales.instalacion && Number(totales.instalacion.total) > 0 ? <div className="flex justify-between gap-4"><dt>Instalación interna</dt>
         <dd><Money valor={totales.instalacion.total} moneda={monedaTotales} /></dd></div> : null}
       <div className="flex justify-between gap-4 border-t pt-3 text-xl font-semibold"><dt>Total</dt><dd><Money valor={totales.total} moneda={monedaTotales} /></dd></div>
-      {mostrarMargen ? <div className="flex justify-between gap-4"><dt>Margen de ítems personalizados</dt>
+      {mostrarMargen ? <div className="flex justify-between gap-4"><dt>Ganancia de trabajos personalizados</dt>
         <dd>{totales.margenPct === null ? "—" : `${totales.margenPct} %`}</dd></div> : null}
     </dl>
   </Card>;

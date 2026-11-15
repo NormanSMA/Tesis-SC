@@ -117,3 +117,59 @@ Lo siguiente no tiene código v9 propio. Las pruebas existen en `tests/` y `e2e/
 | Administración de usuarios, permisos y configuración | `src/modules/admin/` | `tests/integration/admin-usuarios-api.test.ts`; `tests/integration/admin-permisos-api.test.ts`; `tests/integration/admin-configuracion-api.test.ts` |
 | Accesibilidad WCAG 2.2 AA con axe | `src/components`; `src/app/(app)/layout.tsx` | `e2e/base.spec.ts`; `e2e/diseno.spec.ts`; `e2e/ayudas.ts` |
 | Despliegue reproducible, siembra de datos ficticios y secretos fuera del repositorio | `compose.yaml`; `Dockerfile`; `prisma/seed/`; `.env.example` | `tests/integration/seed.test.ts`; `tests/unit/seed-datos.test.ts`; `tests/unit/seed-calculos.test.ts` |
+
+## Actualización del 2026-11-11
+
+| Código | Criterios afectados | Implementación | Pruebas |
+|---|---|---|---|
+| PROD-04 | CF-02 | `POST /api/v1/etapas/[id]/terminar`, `src/modules/produccion/etapas.ts` (`terminarEtapa`), `ConfirmarHecho.tsx` | `tests/integration/produccion-participacion.test.ts`, `tests/unit/produccion-acciones-disponibles.test.ts` |
+| PROD-05 | CF-07, CF-09 | `src/modules/produccion/acceso.ts` (participación), lista, ficha, etapas y trazabilidad de la orden | `tests/integration/produccion-participacion.test.ts`, `ordenes-*`, `contadores.test.ts` |
+| GEN-04 | CF-02, CF-07 | `src/modules/notificaciones/`, `GET /api/v1/notificaciones`, `POST /api/v1/notificaciones/leidas` | `tests/integration/produccion-participacion.test.ts` |
+| DAT-02 | RNF-06 | `scripts/respaldo-programado.sh` con hora real | Evidencia en `docs/pruebas/respaldo-RNF-06-07.md` |
+
+## Actualización del 2026-11-12
+
+| Código | Criterios afectados | Implementación | Pruebas |
+|---|---|---|---|
+| COT-17 | CF-01, CF-09 | `src/core/medidas.ts`, `costeo.ts`, `consumo-estimado.ts`, `cotizaciones/materiales.ts`, migración 20261112100000 | `tests/unit/costeo-profundidad.test.ts`, `tests/integration/cotizaciones-profundidad.test.ts` |
+| ORD-08 | CF-02 | `ordenes/materiales-por-area.ts` (`materialesPorEtapa`), `EtapasOrden.tsx`, `OrdenImprimible.tsx` | `e2e/ordenes.spec.ts` |
+| PROD-06 | CF-07, CF-09 | `trazabilidad/service.ts`, `ordenes/dto.ts`, ficha de la orden | `tests/integration/produccion-participacion.test.ts`, `trazabilidad-api-perfiles.test.ts` |
+
+| COT-19 | CF-10, CF-07 | src/modules/personalizadas, GET/PUT /api/v1/personalizadas y Configuración → Cotizaciones personalizadas | tests/integration/cotizaciones-personalizadas-configuracion.test.ts; verificación de navegador en copia QA |
+
+## COT-20 y COT-21 — 2026-11-12
+
+CF-01/CF-02: configuración guiada de tipos y materiales y presupuesto personalizado con gastos estructurados, tarifas y cantidades separadas, fórmula de venta con porcentajes, guardado y recálculo sin duplicación. CF-10: versión optimista, autorización existente y bitácora transaccional. Evidencia: tests/unit/cotizaciones-gastos.test.ts, tests/integration/cotizaciones-gastos.test.ts, prueba existente de configuración y capturas personalizadas-configuracion-guiada.png / personalizadas-gastos.png. La distribución de descuentos sobre los gastos porcentuales permanece pendiente y la combinación se rechaza explícitamente.
+
+## COT-22, COT-23 e INV-11 — 2026-11-13
+
+CF-01/CF-02: formulario amplio, ubicación por coordenadas, traslado único de ida y vuelta y tarifa excepcional guardada. CF-03/CF-04: catálogo de insumos normalizado con stock sin verificar en cero y sin movimientos ficticios. CF-10: auditoría de carga y de tarifa, conservación histórica y restricción SQL del importe. Pruebas: cotizaciones-coordenadas.test.ts, cotizaciones-instalacion-ruta.test.ts y validación QA del importador (idempotencia, filas previas intactas, 63 eventos y cero movimientos). Capturas: cotizaciones-mapa-coordenadas.png, cotizaciones-distribucion-amplia.png y configuracion-controles-plegables.png.
+
+## COT-24 — 2026-11-13
+
+CF-01/CF-02: elegir un producto calcula con sus materiales y medidas sin captura manual redundante; servicios sin materiales calculables por horas/gastos. CF-10: snapshot descriptivo, auditoría, preservación de precios y duplicación. Evidencia: tests/unit/cotizaciones-producto-configurado.test.ts y tests/integration/cotizaciones-producto-configurado.test.ts; prueba de navegador sobre copia con Fascia, renta 8 %, quitar/reponer material, servicio de C$1000 sin materiales, recarga y captura manual. Captura cotizacion-producto-configurado-directo.png. Terminología clara en formularios, errores y vistas relacionadas.
+
+
+## GEN-06, COT-25, INV-12, CAT-05 y BI-01 — 2026-11-13
+
+| Código | Criterios | Implementación y evidencia |
+|---|---|---|
+| GEN-06 | CF-08, CF-10 | SeccionFormulario, FiltroSegmentado y filtros de Catálogo; tipos, lint, interfaz y verificación de anchos/teclado. |
+| COT-25 | CF-01, CF-02, CF-08 | EditorLinea y MaterialesDelProducto como tablas; pruebas existentes de cálculos, snapshots y suscripciones más verificación de navegador. |
+| INV-12 | CF-03, CF-04, CF-09, CF-10 | Secuencias y aliases, migración, foto transaccional privada; inventario-codigos-fotos.test.ts cubre concurrencia, permisos, reversión, versión y búsqueda. |
+| CAT-05 | CF-01, CF-10 | Código por categoría y conservación al editar; pruebas de catálogo y comprobación de altas en copia QA. |
+| BI-01 | CF-06, CF-08, CF-09 | graficosReporte y GraficosReporte; reportes-graficos.test.ts, pruebas de autorización/cálculo de reportes y revisión visual accesible. |
+
+## GEN-07, COT-26 y ORD-10 — 2026-11-14
+
+| Código | Criterios | Implementación y evidencia |
+|---|---|---|
+| GEN-07 | CF-08, CF-10 | Filtros de módulos, SeccionFormulario, FormField y token de borde. Comprobación de bases de controles, cinco anchos, claro/oscuro y axe. |
+| COT-26 | CF-01, CF-08 | EditorLinea, EditorItem y MaterialesDelProducto; comparación geométrica de controles, m² automático, columna Acciones y confinamiento de selectores largos. |
+| ORD-10 | CF-02, CF-07, CF-08 | AccionesEtapa con íconos, tooltip al pasar cursor/enfocar y nombres accesibles; diálogos y permisos existentes comprobados. |
+
+Pruebas existentes: sección Interfaz y produccion-acciones-disponibles.test.ts, cotizaciones-editor-claves.test.ts, cotizaciones-producto-configurado.test.ts. Evidencia detallada de navegador, verificaciones y límites en docs/auditoria/2026-11-14-alineacion-etapas.md.
+
+## GEN-08 — Responsividad de Usuarios y Trazabilidad (2026-11-14)
+
+CF-08 y CF-10: distribución de filtros, campos, acciones y tablas por ancho disponible; panel de filtros confinado también por altura, con nombre accesible y teclado. CF-05 conserva consulta íntegra de bitácora y línea de tiempo: no se recortan campos ni eventos. Evidencia: comparación del contenido antes/después, navegador en ocho anchos, cinco alturas/tamaños del panel y temas claro/oscuro; sección Interfaz. Ver docs/auditoria/2026-11-14-responsividad-gen08.md para resultados y límites. Las autorizaciones y los servicios no se modifican.

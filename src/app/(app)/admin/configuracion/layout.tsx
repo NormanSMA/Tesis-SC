@@ -8,11 +8,13 @@ export default async function MenuConfiguracion({ children }: { children: ReactN
   const actor = await obtenerSesion();
   if (!actor) return children;
   return <>
-    <nav aria-label="Submenú de Configuración" className="mb-4 flex gap-2 border-b pb-2">
+    <nav aria-label="Submenú de Configuración" className="mb-4 flex flex-wrap gap-2 border-b pb-2">
       {can(actor, "configuracion:gestionar") ? <Link className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted"
         href="/admin/configuracion">General</Link> : null}
       {puedeGestionarTarifas(actor) ? <Link className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted"
         href="/admin/configuracion/tarifas">Tarifas</Link> : null}
+      {puedeGestionarTarifas(actor) ? <Link className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted"
+        href="/admin/configuracion/personalizadas">Cotizaciones personalizadas</Link> : null}
     </nav>
     {children}
   </>;

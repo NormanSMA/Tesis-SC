@@ -1,5 +1,6 @@
 import { puedeVerCotizacion } from "@/modules/cotizaciones/acceso";
-import { etapasVisibles, exigirParticipacion, soloEtapasPropias } from "@/modules/produccion/acceso";
+import { soloEtapasPropias } from "@/modules/produccion/acceso";
+import { AppError } from "@/lib/errores";
 import { can, exigir, type Actor } from "@/core/autorizacion";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
@@ -23,6 +24,9 @@ export async function listarBitacora(consulta: ConsultaBitacora, actor: Actor) {
 
 export async function obtenerTrazabilidad(id: string, actor: Actor) {
   exigir(actor, "orden:ver");
+  // El personal de Producción ejecuta etapas; la trazabilidad de la orden no le corresponde.
+  if (soloEtapasPropias(actor)) throw new AppError({ status: 403, codigo: "SIN_PERMISO",
+    mensaje: "La trazabilidad de la orden no está disponible para su perfil." });
   const verConsumo = can(actor, "inventario:ver");
 
   return prisma.$transaction(async (tx) => {
@@ -30,16 +34,12 @@ export async function obtenerTrazabilidad(id: string, actor: Actor) {
     if (!orden) throw noEncontrado();
     const verCotizacion = puedeVerCotizacion(actor, orden.cotizacion);
     const visible = verCotizacion ? actor : { ...actor, permisos: actor.permisos.filter(p => p !== "cotizacion:ver") };
-    exigirParticipacion(actor, orden);
-    orden.etapas = etapasVisibles(orden, actor);
-    const idsEtapas = new Set(orden.etapas.map(e => e.id));
-    const eventos = (await consultarEventosOrden(tx, orden)).filter(({ entidad, entidadId }) =>
-      (!soloEtapasPropias(actor) || entidad !== "ETAPA_ORDEN" || idsEtapas.has(entidadId)) &&
+    const eventos = (await consultarEventosOrden(tx, orden)).filter(({ entidad }) =>
       (verCotizacion || entidad !== "COTIZACION") && (verConsumo || entidad !== "MOVIMIENTO_INVENTARIO"));
     const [referencias, materiales, costos, historial] = await Promise.all([leerReferencias(tx, eventos),
       verConsumo ? leerResumenMateriales(tx, id) : [], verConsumo && verCotizacion ? leerCostos(tx, id) : undefined,
       consultarHistorialEtapas(tx, id)]);
-    return { cadena: aCadenaDto(orden, visible, soloEtapasPropias(actor) ? historial.filter(h => idsEtapas.has(h.etapa.id)) : historial),
+    return { cadena: aCadenaDto(orden, visible, historial),
       eventos: eventos.map((evento) => aEventoDto({ evento, actor: visible, referencias })),
       verConsumo, materiales: aMaterialesDto(materiales, costos), ...(costos ? { costoRealTotal: costos.total } : {}),
       responsables: responsablesTrabajo({ orden, eventos, referencias }) };

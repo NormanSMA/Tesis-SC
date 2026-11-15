@@ -1148,4 +1148,41 @@ Consulte ADR-014 y `docs/auditoria/2-2-invariantes-en-datos.md` para el contexto
 
 UsuarioPermiso relaciona Usuario y Permiso mediante una clave compuesta, conserva otorgadoPorId y creadoEn y se une a los permisos heredados al resolver una sesión. El nuevo permiso cotizacion:ver_todas amplía la visibilidad comercial; cotizacion:ver sigue siendo necesario. La autoría se comprueba tanto al consultar como al modificar una cotización y se aplica a las consultas derivadas que podrían revelar sus importes.
 
-En Producción, el responsable solo ve sus etapas habilitadas. Para habilitar una etapa, todas las de menor secuencia de la misma orden deben estar COMPLETADAS u OMITIDAS. La validación del inicio y del completado ocurre bajo bloqueo de la orden. Los avisos de disponibilidad se derivan de las asignaciones pendientes; no agregan un estado de negocio a la orden.
+En Producción sin permiso de planificación, la visibilidad depende de la participación en la orden: ser responsable general o responsable de alguna etapa (PROD-05, confirmado por el usuario el 2026-11-12). Quien participa puede consultar todas las etapas de esa orden, incluidas las de sus compañeros y las pendientes de habilitación. Solo puede ejecutar las etapas propias habilitadas; una orden ajena responde 404. Para habilitar una etapa, todas las de menor secuencia de la misma orden deben estar COMPLETADAS u OMITIDAS. La validación del inicio, del completado y de la acción Hecho ocurre bajo bloqueo de la orden. Los avisos de disponibilidad se derivan de las asignaciones pendientes; no agregan un estado de negocio a la orden.
+
+Regla histórica sustituida por PROD-05: PROD-02 limitaba también la consulta a las etapas propias habilitadas. La restricción vigente distingue la consulta de todas las etapas de una orden compartida de la ejecución exclusiva de las etapas propias habilitadas.
+
+NotificacionLectura (`notificacion_lectura`, migración 20261111160000, GEN-04) guarda por usuario el instante `leidasHasta` hasta el que leyó sus avisos. Clave primaria `usuario_id` con borrado en cascada. Los avisos no se almacenan: se calculan con el estado de etapas, órdenes, materiales y cotizaciones. La migración 20261111170000 solo actualiza las descripciones visibles de `catalogo:gestionar` y `produccion:ejecutar`.
+
+`item_cotizacion.profundidad` (DECIMAL(14,3), opcional, migración 20261112100000, COT-17): tercera medida en metros. El CHECK `item_valores_positivos` exige que sea positiva si existe y `item_importe_catalogo` calcula el importe por m² con `ancho × alto + 2 × coalesce(profundidad, 0) × (ancho + alto)`. Las partidas anteriores no tienen profundidad y conservan su importe.
+
+### COT-19 Tipos configurables de cotización personalizada
+
+El registro se almacena como JSON validado en Configuracion, clave cotizacion_tipos_personalizados (tipo TEXTO), sin tabla ni migración nueva. Contiene categorías referidas a Categoria y tipos con UUID, nombre, unidadCobro, margenPct y lista de materiales sugeridos. Solo se aceptan materiales activos y categorías activas. Nuevas categorías se crean con auditoría; no se renombran referencias históricas automáticamente. Se valida la versión de la configuración bajo bloqueo transaccional, incluida su primera creación. La configuración general no permite editar esta clave por fuera del servicio dedicado.
+
+La cotización guarda sus líneas y valores habituales; no depende de una referencia dinámica al tipo. La descripción del trabajo puede conservar el nombre sugerido o el texto del usuario. Esta entrega no agrega un identificador de plantilla a ItemCotizacion.
+
+## COT-21 Gastos de partidas personalizadas — 2026-11-12
+
+Migración 20261112220000_gastos_personalizados: item_cotizacion.gastos_personalizados jsonb nullable contiene los parámetros estructurados de renta, traslado, horas, viáticos, hospedaje, imprevistos e impuestos internos. linea_costo.es_gasto_personalizado boolean NOT NULL DEFAULT false identifica costos internos derivados; los importes los calcula el servidor. No cambia las filas históricas ni la fórmula SQL de costo total. El borrado y reemplazo de partidas, las instantáneas y la bitácora usan la transacción existente de Cotizaciones.
+
+El registro versionado cotizacion_tipos_personalizados admite tarifas opcionales por tipo con moneda y montos; se valida por zod, se audita y mantiene la exclusión del editor genérico. Los porcentajes sobre venta requieren descuento cero para conservar su base. No se crean movimientos de inventario ni reservas por guardar gastos.
+
+## COT-23 e INV-11 — 2026-11-13
+
+Migración 20261113100000_instalacion_ida_vuelta: Cotizacion.instalacionIdaVuelta boolean NOT NULL DEFAULT false conserva en falso las filas históricas y distingue nuevos cálculos de ida y vuelta. instalacionKm sigue guardando distancia de ida; la tarifa es una instantánea editable por cotización. cotizacion_instalacion_valida usa el factor 2 o 1 según el indicador. El DTO omite el indicador si es falso para mantener compatibilidad histórica. No se crea tabla de coordenadas; se conserva el destino decimal en instalacionDestino.
+
+Los campos de traslado de gastosPersonalizados y la antigua tarifa km por producto se interpretan solo por compatibilidad; ya no se capturan ni copian en partidas nuevas. INV-11 utiliza Material, AreaMaterial y Bitacora existentes, sin migración de inventario ni movimientos ficticios. La carga es transaccional e idempotente y conserva fuente y datos pendientes.
+
+## COT-24 Selección personalizada como instantánea — 2026-11-13
+
+Migración 20261113130000_producto_personalizado: item_cotizacion.producto_personalizado JSONB nullable conserva id del tipo, nombre y lista de UUID de materiales sugeridos. Se valida con zod. Es una instantánea descriptiva, no una clave foránea ni una fuente de precios: el cálculo sigue usando los materiales reales y los valores autorizados del servidor. No depende de que el tipo siga existiendo en Configuración. Las filas históricas quedan en null sin alterar importes.
+
+El DTO, la entrada de edición, duplicación y bitácora conservan la instantánea. Retirarla al pasar a captura manual se registra junto al cambio de costos; se respeta actualizarPrecio para registros existentes. Los gastos estructurados pueden generar todos los costos de un servicio sin líneas manuales, manteniendo las restricciones SQL de suma y margen.
+
+
+## INV-12 y CAT-05 Modelo de códigos y fotos — 2026-11-13
+
+Migración 20261113160000_codigos_fotos: SecuenciaCodigo(clave varchar(30) PK, ultimo bigint) mantiene el último consecutivo comprometido por prefijo mediante INSERT ON CONFLICT UPDATE dentro de la transacción de alta. Material y Producto incorporan codigosAnteriores text[] con índice GIN, sin sustituir sus claves UUID. Categoria incorpora prefijoCodigo varchar(16) único y estable; la función prefijo_categoria serializa la primera asignación. El código de material depende de su área inicial y el del producto de su categoría inicial, sin renumerar por reclasificación posterior.
+
+MaterialFoto tiene materialId UUID PK/FK a Material con borrado en cascada y contenido bytea entre 1 y 524288 bytes. Material.fotoVersion timestamptz es nulo cuando no tiene foto. La imagen se valida y convierte a WebP en servidor; la respuesta del material no incorpora bytes. La transacción del material guarda o quita la foto y registra antes/después mediante fotoVersion, conservando el bloqueo y versión optimista. El GET de imagen requiere permiso y no usa almacenamiento público. La migración no modifica movimientos, precios, consumos, cotizaciones ni órdenes.

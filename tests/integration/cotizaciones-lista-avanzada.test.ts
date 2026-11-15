@@ -37,7 +37,7 @@ async function insertarFila(entrada: DatosFila) {
     } });
     await tx.itemCotizacion.create({ data: { cotizacionId: nueva.id, tipo: "CATALOGO", secuencia: 1,
       productoId: entorno.referencias.unidad.id, categoriaId: entorno.referencias.categoria.id,
-      descripcion: "Ítem de prueba", unidadCobro: "UNIDAD", cantidad: "1", precioUnitario: total, importe: total } });
+      descripcion: "Producto de prueba", unidadCobro: "UNIDAD", cantidad: "1", precioUnitario: total, importe: total } });
     if (entrada.estado !== "BORRADOR") await tx.cotizacion.update({ where: { id: nueva.id }, data: { estado: "ENVIADA" } });
     if (entrada.estado !== "BORRADOR" && (entrada.estado !== "ENVIADA" || respondida)) {
       await tx.cotizacion.update({ where: { id: nueva.id }, data: {

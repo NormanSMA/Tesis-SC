@@ -32,6 +32,8 @@ No requiere instalar las dependencias de Node en el equipo anfitrión.
 | Félix Osegueda | Producción | felix.osegueda@solucionescreativas.test |
 | Mario Pineda | Producción | mario.pineda@solucionescreativas.test |
 | Luis Zeledón | Producción | luis.zeledon@solucionescreativas.test |
+| Flor Moreno | Producción | flor.moreno@solucionescreativas.test |
+| Brandi Castillo | Producción | brandi.castillo@solucionescreativas.test |
 
 La cuenta técnica `pruebas.admin@solucionescreativas.test` tiene los seis perfiles y su unión de permisos.
 Jorge conserva únicamente Gerencia. Las direcciones `.test` son identificadores de acceso, no buzones reales.
@@ -62,3 +64,7 @@ Si una ejecución se interrumpe, conserva el archivo de accesos y vuelve a ejecu
 No ejecutes dos instancias a la vez ni durante cambios de responsables desde la interfaz.
 Un reinicio destructivo de la demostración restaura los usuarios ficticios; después debes ejecutar
 otra vez `pnpm usuarios:reales`. Un arranque normal conserva los usuarios reales.
+
+## Áreas de producción (vigente desde el 2026-11-11)
+
+17 cuentas del personal: las 15 iniciales más Flor Moreno y Brandi Castillo (ACC-04). Danny Gahona pertenece a Grabado y Corte Láser y a Diseño Gráfico (ACC-06); si una orden lo incluye en ambas áreas, cada área es una etapa con su propio aviso. Las áreas por persona se definen en `scripts/usuarios-reales/personas.ts` (`area` y `areasAdicionales`).

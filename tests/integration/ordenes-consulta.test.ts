@@ -59,8 +59,8 @@ describeConBase("órdenes: DTO, lista y opciones", () => {
     expect(ficha.materialesTrabajo).toEqual(orden.materialesTrabajo);
     expect(ficha.materialesTrabajo.length).toBeGreaterThan(0);
     expect(orden.consumosEstimados[0].cantidad).toBe("9.409");
-    expect(ficha.eventos.find((evento) => evento.accion === "EDITAR")?.detalle).toEqual({ motivo: "Motivo visible" });
-    expect(ficha.eventos[0]).toMatchObject({ accion: expect.any(String), actor: expect.any(String), creadoEn: expect.any(String) });
+    // PROD-06: la bitácora de la orden no corresponde al personal de Producción.
+    expect(ficha.eventos).toEqual([]);
     const atencionCliente = await leerOrden(entorno, orden.id);
     expect(atencionCliente.cotizacion?.total).toBeTruthy();
     expect(atencionCliente.items[2].lineas).toEqual([]);

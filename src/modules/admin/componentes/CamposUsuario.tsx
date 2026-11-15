@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PERFILES } from "@/core/permisos";
 import type { EntradaCrearUsuario } from "@/modules/admin/schema";
+import estilos from "./ResponsividadUsuarios.module.css";
 
 function MarcaObligatorio() {
   return (
@@ -20,7 +21,7 @@ function MarcaObligatorio() {
 export function CamposUsuario({ formulario }: { formulario: UseFormReturn<EntradaCrearUsuario> }) {
   const errores = formulario.formState.errors;
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className={estilos.datos}>
       <div className="space-y-2">
         <Label htmlFor="usuario-nombre">Nombre<MarcaObligatorio /></Label>
         <Input id="usuario-nombre" className="min-h-10" autoComplete="name" maxLength={120} required
@@ -47,15 +48,15 @@ export function PerfilesUsuario({ formulario }: { formulario: UseFormReturn<Entr
     <fieldset className="min-w-0 space-y-3" aria-describedby={error ? "perfiles-ayuda perfiles-error" : "perfiles-ayuda"}>
       <legend className="font-medium">Perfiles<MarcaObligatorio /></legend>
       <p id="perfiles-ayuda" className="text-sm text-muted-foreground">Asigne al menos un perfil.</p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={estilos.perfiles}>
         {PERFILES.map(({ codigo, nombre, descripcion }, indice) => (
-          <div key={codigo} className="flex items-start gap-3 rounded-md border p-3">
+          <div key={codigo} className="flex min-w-0 items-start gap-3 rounded-md border p-3">
             <Checkbox id={`perfil-${codigo}`} className="size-10" checked={seleccionados.includes(codigo)}
               ref={indice === 0 ? registro.ref : undefined} aria-invalid={Boolean(error)}
               aria-describedby={error ? "perfiles-error" : undefined}
               onCheckedChange={(marcado) => formulario.setValue("perfiles", marcado === true
                 ? [...seleccionados, codigo] : seleccionados.filter((perfil) => perfil !== codigo), { shouldValidate: true, shouldDirty: true })} />
-            <Label htmlFor={`perfil-${codigo}`} className="min-h-10 flex-1 cursor-pointer flex-col items-start gap-1 leading-5">
+            <Label htmlFor={`perfil-${codigo}`} className="min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 break-words leading-5">
               <span>{nombre}</span><span className="font-normal text-muted-foreground">{descripcion}</span>
             </Label>
           </div>

@@ -1,0 +1,46 @@
+.panelFiltros {
+  max-height: min(var(--radix-popover-content-available-height, calc(100dvh - 2rem)), calc(100dvh - 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.cadena {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+.orden { grid-column: 1 / -1; }
+.datosCadena { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+@container (min-width: 90rem) {
+  .orden { grid-column: auto; }
+}
+
+@media (min-width: 48rem) {
+  .bitacora table, .etapas table, .materiales table { min-width: 48rem; }
+  .bitacora thead th:nth-child(1) { width: 26%; }
+  .bitacora thead th:nth-child(2) { width: 22%; }
+  .bitacora thead th:nth-child(3) { width: 24%; }
+  .bitacora thead th:nth-child(4) { width: 28%; }
+  .materiales thead th:first-child { width: 34%; }
+  .materiales thead th:last-child { width: 18%; }
+}
+
+@media (width < 48rem) {
+  .bitacora tbody tr, .etapas tbody tr, .materiales tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 1rem;
+  }
+  .bitacora tbody th, .bitacora tbody td,
+  .etapas tbody th, .etapas tbody td,
+  .materiales tbody th, .materiales tbody td {
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: .25rem;
+    text-align: left;
+  }
+  .bitacora tbody td:nth-child(3), .bitacora tbody td:nth-child(4),
+  .materiales tbody th, .materiales tbody td:nth-child(6) { grid-column: 1 / -1; }
+}

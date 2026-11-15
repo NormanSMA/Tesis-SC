@@ -149,6 +149,7 @@ ALTER TABLE item_cotizacion
   ADD CONSTRAINT item_valores_positivos CHECK (
     secuencia > 0 AND cantidad > 0 AND precio_unitario >= 0 AND importe >= 0
     AND (ancho IS NULL OR ancho > 0) AND (alto IS NULL OR alto > 0)
+    AND (profundidad IS NULL OR profundidad > 0)
   ),
   DROP CONSTRAINT IF EXISTS item_medidas_m2,
   ADD CONSTRAINT item_medidas_m2 CHECK (unidad_cobro <> 'M2' OR (ancho IS NOT NULL AND alto IS NOT NULL)),
@@ -164,7 +165,9 @@ ALTER TABLE item_cotizacion
   ADD CONSTRAINT item_importe_catalogo CHECK (
     tipo <> 'CATALOGO'
     OR (unidad_cobro = 'UNIDAD' AND importe = round(precio_unitario * cantidad, 2))
-    OR (unidad_cobro = 'M2' AND importe = round(precio_unitario * ancho * alto * cantidad, 2))
+    -- Con profundidad, caja abierta: frente más cuatro laterales (src/core/medidas.ts).
+    OR (unidad_cobro = 'M2' AND importe = round(precio_unitario
+        * (ancho * alto + 2 * coalesce(profundidad, 0) * (ancho + alto)) * cantidad, 2))
   );
 
 ALTER TABLE linea_costo

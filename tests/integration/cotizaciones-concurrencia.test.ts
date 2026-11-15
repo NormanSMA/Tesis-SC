@@ -41,7 +41,7 @@ describeConBase("cotizaciones: escrituras concurrentes y versión optimista", ()
     }
   });
 
-  it(`enviar frente a editar conserva estado, totales e ítems del ganador (${RONDAS} rondas)`, async () => {
+  it(`enviar frente a editar conserva estado, totales e productos del ganador (${RONDAS} rondas)`, async () => {
     for (let ronda = 0; ronda < RONDAS; ronda += 1) {
       const inicial = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
       const previos = await eventos(inicial.id, "EDITAR");

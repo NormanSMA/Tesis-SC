@@ -14,6 +14,7 @@ function itemEstimable(item: CotizacionGuardada["items"][number]): ItemEstimable
   }
   return { secuencia: item.secuencia, tipo: "CATALOGO", unidadCobro: item.unidadCobro,
     cantidad: item.cantidad.toFixed(3), ancho: item.ancho?.toFixed(3) ?? null, alto: item.alto?.toFixed(3) ?? null,
+    profundidad: item.profundidad?.toFixed(3) ?? null,
     receta: item.producto.receta.map((linea) => ({ materialId: linea.materialId, cantidad: linea.cantidad.toFixed(3) })) };
 }
 

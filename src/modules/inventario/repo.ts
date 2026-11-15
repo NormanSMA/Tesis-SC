@@ -26,7 +26,7 @@ export async function consultarMateriales(consulta: ConsultaMateriales) {
     ...(consulta.area && { areaProduccion: consulta.area === "SIN_CLASIFICAR" ? null : consulta.area }) };
   if (consulta.q) {
     const texto = { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
-    where.OR = [{ nombre: texto }, { codigo: texto }, { descripcion: texto }];
+    where.OR = [{ nombre: texto }, { codigo: texto }, { descripcion: texto }, { codigosAnteriores: { has: consulta.q.toUpperCase() } }];
   }
   if (consulta.bajoMinimo === "true") where.AND = [filtroAlerta()];
   const [filas, total, materiales, enAlerta, sinExistencia] = await Promise.all([
@@ -50,7 +50,7 @@ const COLUMNAS = { nombre: "nombre", descripcion: "descripcion", stockMinimo: "s
   costoPromedio: "costo_promedio", activo: "activo", tipoPresentacion: "tipo_presentacion", areaProduccion: "area_produccion",
   anchoPresentacion: "ancho_presentacion", largoPresentacion: "largo_presentacion",
   unidadCotizacion: "unidad_cotizacion", areaUnidadInventario: "area_unidad_inventario", precioCotizacion: "precio_cotizacion" } as const;
-export type CambiosMaterial = Omit<EditarMaterial, "version" | "presentacion"> & {
+export type CambiosMaterial = Omit<EditarMaterial, "version" | "presentacion" | "fotoBase64"> & {
   activo?: boolean;
   tipoPresentacion?: "ROLLO" | "LAMINA" | null;
   anchoPresentacion?: string | null;

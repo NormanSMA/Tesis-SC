@@ -34,17 +34,19 @@ export function unidadCotizacionValida(datos: { unidad: string; unidadCotizacion
   if (!datos.unidadCotizacion || datos.unidadCotizacion === datos.unidad) return datos.areaUnidadInventario == null;
   return datos.unidadCotizacion === "M2" && ["PLIEGO", "ROLLO"].includes(datos.unidad) && datos.areaUnidadInventario != null;
 }
+const fotoBase64 = z.string().max(700000).regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).nullable().optional();
 const camposMaterial = {
+  fotoBase64,
   nombre: z.string().trim().min(1, "Ingrese el nombre.").max(160),
   descripcion: descripcion.optional(), stockMinimo: cantidad.default("0"), costoPromedio: costo.default("0"),
   areaProduccion: z.enum(AREAS_MATERIAL).nullish(),
 };
 export const esquemaCrearMaterial = z.strictObject({
-  codigo: z.string().trim().min(1, "Ingrese el código.").max(30), unidad: z.enum(UNIDADES), ...camposMaterial, presentacion, ...unidadesCotizacion,
+  codigo: z.string().trim().max(30).default(""), unidad: z.enum(UNIDADES), ...camposMaterial, presentacion, ...unidadesCotizacion,
 }).refine(({ unidad, presentacion }) => !presentacion || unidad === "M2", {
   path: ["presentacion", "tipo"], message: "La presentación requiere una unidad de inventario en metros cuadrados.",
 }).refine(unidadCotizacionValida, { path: ["unidadCotizacion"], message: "Indique la unidad de inventario o el área de un pliego o rollo." });
-export const esquemaEditarMaterial = z.strictObject({ version,
+export const esquemaEditarMaterial = z.strictObject({ version, fotoBase64,
   nombre: camposMaterial.nombre.optional(), descripcion: descripcion.optional(),
   areaProduccion: camposMaterial.areaProduccion,
   stockMinimo: cantidad.optional(), costoPromedio: costo.optional(), presentacion, ...unidadesCotizacion,

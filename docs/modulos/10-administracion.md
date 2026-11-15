@@ -48,3 +48,28 @@ Accesibilidad WCAG 2.2 AA y cuatro viewports, igual que los otros módulos.
 3. API: rutas bajo `src/app/api/v1/{usuarios,permisos,configuracion}`.
 4. UI: tres páginas y componentes en `src/modules/admin/componentes`.
 5. Pruebas: unitarias de reglas, integración por perfil (solo ADMIN accede), concurrencia del último ADMIN, E2E de las tres pantallas.
+
+## Actualización del 2026-11-11 (ACC-05)
+Perfiles y permisos se divide en dos pestañas: "Permisos por perfil" (matriz) y "Permisos por usuario" (funciones adicionales, ACC-03).
+
+## COT-19 Tipos de cotización personalizada
+
+Configuración tiene un submenú General, Tarifas y Cotizaciones personalizadas. La última sección requiere tarifa:gestionar en página, servicio y PUT /api/v1/personalizadas. GET requiere cotizacion:gestionar. El registro JSON se valida y versiona; no puede alterarse mediante el editor genérico de parámetros. El tipo contiene sugerencias comerciales y materiales, no cambia permisos ni etapas de Producción.
+
+## Formulario por producto — COT-20 y COT-21
+
+Desde 2026-11-12, Cotizaciones personalizadas organiza categoría, producto y materiales en pasos numerados; tarifas opcionales dentro del producto, con moneda explícita. Se guarda un producto a la vez mediante el registro versionado existente. El cambio de selección advierte si hay modificaciones sin guardar. Permisos de COT-19 sin cambios. Tarifas de material siguen en Tarifas; tarifas específicas sugeridas se administran con el producto que las usa. No se incorporaron nuevos parámetros genéricos editables ni permisos.
+
+## COT-22 y COT-23 — 2026-11-13
+
+Las secciones plegables de Configuración muestran una flecha con tamaño y ubicación definidos. La tarifa por km queda solo en Configuración → Tarifas como valor base y en Instalación como tarifa excepcional de la cotización. Se retira de las tarifas sugeridas de cada producto; los valores históricos de km en el registro JSON son compatibles, pero ya no se copian al aplicar un tipo.
+
+## COT-24 Significado de materiales del producto — 2026-11-13
+
+Los materiales marcados en la configuración se cargan automáticamente al elegir el producto en la cotización. El formulario lo explica y permite revisarlos, quitar opciones y ajustar cantidades antes de guardar. Sustituye la aplicación manual de sugerencias de COT-19. La configuración no fija consumos reales ni requiere inventar tarifas pendientes. Solo se copian las tarifas de gastos cuando coincide la moneda y el trabajo no tiene gastos capturados; si no coincide, se muestra aviso. Permiso tarifa:gestionar sin cambios.
+
+## GEN-08 Responsividad de Usuarios — 2026-11-14
+
+Presentación vigente: filtros alineados por su base; tabla de PC con mayor espacio para correo, perfiles contenidos y desplazamiento local en tableta. Bajo 768 px cada ficha muestra nombre y estado arriba, correo y perfiles a todo el ancho. Conserva etiquetas, correo completo, todos los perfiles, enlaces y paginación.
+
+La ficha de edición distribuye formulario y Acceso por el ancho disponible del bloque, en lugar de forzar dos tercios/un tercio desde 1024 px. Nombre/correo, tarjetas de perfiles, datos y acciones de acceso se adaptan por mínimos de lectura. Sustituye solo la distribución anterior. No cambia altas, validaciones, confirmaciones, contraseñas, permisos ni llamadas a la API.

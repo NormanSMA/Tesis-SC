@@ -142,10 +142,10 @@ export async function reemplazarItems(id: string, entrada: EntradaReemplazarItem
 
 function entradaDeOrigen(item: FichaGuardada["items"][number]): EntradaItem {
   const dto = aItemDto(item);
-  const base = { itemId: dto.id, cantidad: dto.cantidad, ancho: dto.ancho, alto: dto.alto };
+  const base = { itemId: dto.id, cantidad: dto.cantidad, ancho: dto.ancho, alto: dto.alto, profundidad: dto.profundidad };
   if (dto.tipo === "CATALOGO") return { ...base, tipo: "CATALOGO", productoId: dto.productoId! };
   return { ...base, tipo: "PERSONALIZADO", categoriaId: dto.categoriaId, descripcion: dto.descripcion,
-    unidadCobro: dto.unidadCobro, margenPct: dto.margenPct!, lineas: dto.lineas.map(aEntradaLinea) };
+    unidadCobro: dto.unidadCobro, margenPct: dto.margenPct!, ...(dto.productoPersonalizado ? { productoPersonalizado: dto.productoPersonalizado } : {}), ...(dto.gastosPersonalizados ? { gastosPersonalizados: dto.gastosPersonalizados } : {}), lineas: dto.lineas.map(aEntradaLinea) };
 }
 
 async function duplicarBorrador(id: string, actor: Actor, corregida: boolean): Promise<CotizacionDto> {

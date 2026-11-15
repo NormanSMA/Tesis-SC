@@ -8,6 +8,7 @@ import { escaparComodines } from "@/modules/clientes/repo";
 import { hoyManagua, sumarDias } from "./fechas";
 import { CONDICIONES_PREDETERMINADAS, type ConsultaCotizaciones } from "./schema";
 import type { CampoOrdenCotizacion, ConteosCotizaciones, SelectoresEditor } from "./tipos";
+import { leerPersonalizadas } from "@/modules/personalizadas/service";
 import { SERVICIOS_SC } from "./servicios-sc";
 import { precioParaCotizar } from "./materiales";
 import { esquemaPorcentajeTarifa, TARIFAS_INICIALES, type PorcentajesTarifa } from "./tarifas";
@@ -145,8 +146,9 @@ export async function buscarClientesSelector(q: string) {
   });
 }
 
-export function consultarCategoriasSelector() {
-  return prisma.categoria.findMany({ where: { activo: true, nombre: { in: SERVICIOS_SC } },
+export async function consultarCategoriasSelector() {
+  const personalizadas = await leerPersonalizadas();
+  return prisma.categoria.findMany({ where: { activo: true, OR: [{ nombre: { in: SERVICIOS_SC } }, { id: { in: personalizadas.categorias.map(c => c.id) } }] },
     select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
 }
 

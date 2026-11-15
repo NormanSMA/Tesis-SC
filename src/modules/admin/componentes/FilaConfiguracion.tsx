@@ -114,15 +114,15 @@ export function FilaConfiguracion({ inicial }: { inicial: ParametroDto }) {
   return (
     <div className="min-w-0 px-5 py-4">
       <form onSubmit={fila.guardar} noValidate aria-label={`Parámetro ${nombre}`} className="space-y-2">
-        <fieldset disabled={!hidratado} className="grid min-w-0 items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_6rem]">
+        <fieldset disabled={!hidratado} className="grid min-w-0 items-start gap-3 rounded-lg border border-formulario/70 bg-secondary/30 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <legend className="sr-only">Editar parámetro</legend>
-          <div className="min-w-0">
+          <div className="min-w-0 sm:col-span-2">
             <p className="font-medium">{nombre}</p>
             <p id={`${id}-descripcion`} className="text-sm text-muted-foreground">{descripcionVisible(fila.parametro)}</p>
             <p className="text-xs text-muted-foreground">Última edición: {fechaAdministracion(fila.parametro.actualizadoEn)}</p>
           </div>
           <CampoParametro fila={fila} />
-          {soloLectura ? <p className="text-sm text-muted-foreground md:col-span-3">La zona horaria es de solo lectura.</p>
+          {soloLectura ? <p className="text-sm text-muted-foreground sm:col-span-2">La zona horaria es de solo lectura.</p>
             : <Button type="submit" className="min-h-10" disabled={fila.enviando || fila.conflicto}>{fila.enviando ? "Guardando…" : "Guardar"}</Button>}
         </fieldset>
         {fila.conflicto ? <AvisoAdmin mensaje="Otra persona modificó este parámetro." alRecargar={fila.recargar} /> : null}

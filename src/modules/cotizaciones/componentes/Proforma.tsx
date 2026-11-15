@@ -42,7 +42,7 @@ export function Proforma({ cotizacion }: { cotizacion: CotizacionDto }) {
       <p><strong>Referencia:</strong> {cotizacion.asunto}</p>
     </div>
     <div className="proforma-cuerpo">
-      <table aria-label="Partidas de la proforma">
+      <table aria-label="Trabajos de la proforma">
         <colgroup><col style={{ width: "58%" }} /><col style={{ width: "10%" }} /><col style={{ width: "16%" }} /><col /></colgroup>
         <thead><tr><th scope="col">Descripción</th><th scope="col">Cantidad</th><th scope="col">Costo Unitario</th><th scope="col">Total</th></tr></thead>
         <tbody>

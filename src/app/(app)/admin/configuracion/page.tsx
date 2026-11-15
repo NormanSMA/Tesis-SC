@@ -10,7 +10,7 @@ import { esTarifa, puedeGestionarTarifas } from "@/modules/admin/tarifas-configu
 
 export const metadata: Metadata = { title: "Configuración" };
 
-const CLAVES_TECNICAS = ["siembra_version"];
+const CLAVES_TECNICAS = ["siembra_version", "cotizacion_tipos_personalizados"];
 
 const TEMAS = [
   { id: "empresa", titulo: "Empresa", descripcion: "Datos de la empresa, moneda y zona horaria." },
@@ -38,6 +38,7 @@ export default async function Pagina() {
   return (
     <div className="min-w-0">
       <PageHeader titulo="Configuración" tituloVisible={false} descripcion="Guarde cada parámetro por separado. Los cambios no alteran las cotizaciones existentes." />
+
       <div className="max-w-5xl space-y-4">
         {temas.map((tema) => (
           <section key={tema.id} aria-labelledby={`tema-${tema.id}`} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-card shadow-sm">

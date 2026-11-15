@@ -2,6 +2,7 @@ import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { IconoServicio } from "@/components/comunes/IconoServicio";
 import { Money } from "@/components/comunes/ValorFormateado";
 import { Card } from "@/components/ui/card";
+import { textoMedidas } from "@/core/medidas";
 import type { Moneda } from "@/core/moneda";
 import { formatearCantidadPorUnidad } from "@/lib/formato";
 import { monedaDe } from "../moneda";
@@ -17,7 +18,7 @@ function columnasItems(categorias: Categorias, moneda: Moneda): ColumnaTabla<Ite
       <p className="font-medium">{item.descripcion}</p>
       {categoria ? <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
         <IconoServicio categoria={categoria} tamano={20} decorativo /><span>{categoria}</span></p> : null}
-      {item.ancho && item.alto ? <p className="text-xs text-muted-foreground">{item.ancho} × {item.alto} m</p> : null}
+      {textoMedidas(item) ? <p className="text-xs text-muted-foreground">{textoMedidas(item)}</p> : null}
     </div>;
   } },
   { id: "cantidad", encabezado: "Cantidad", alinear: "derecha", celda: (item) => formatearCantidadPorUnidad(item.cantidad, item.unidadCobro === "M2" ? "M2" : "UNIDAD") },
@@ -26,7 +27,7 @@ function columnasItems(categorias: Categorias, moneda: Moneda): ColumnaTabla<Ite
   { id: "importe", encabezado: "Importe", alinear: "derecha", celda: (item) => <Money valor={item.importe} moneda={moneda} /> },
   ];
 }
-const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Tercero" };
+const ETIQUETA = { MATERIAL: "Material", MANO_OBRA: "Mano de obra", TERCERO: "Servicio externo" };
 const columnasLineas = (moneda: Moneda): ColumnaTabla<LineaDto>[] => [
   { id: "descripcion", encabezado: "Descripción", principal: true, celda: (linea) => <span className="block max-w-36 whitespace-normal">{linea.descripcion}</span> },
   { id: "tipo", encabezado: "Tipo", celda: (linea) => ETIQUETA[linea.tipo] },
@@ -39,14 +40,14 @@ const columnasLineas = (moneda: Moneda): ColumnaTabla<LineaDto>[] => [
 function CostosItem({ item, moneda }: { item: ItemDto; moneda: Moneda }) {
   return <details className="rounded-md border px-4">
     <summary className="flex min-h-10 cursor-pointer items-center rounded-md py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-ring">
-      Costos del ítem {item.secuencia}: {item.descripcion}
+      Costos del producto {item.secuencia}: {item.descripcion}
     </summary>
     <dl className="my-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
       <div><dt>Costo total</dt><dd><Money valor={item.costoTotal} moneda={moneda} /></dd></div>
       <div><dt>Margen sobre precio</dt><dd>{item.margenPct} %</dd></div>
     </dl>
-    <p className="mb-3 text-sm text-muted-foreground">Los consumos corresponden al ítem completo.</p>
-    <DataTable titulo={`Líneas de costo del ítem ${item.secuencia}`} columnas={columnasLineas(moneda)} filas={item.lineas} idFila={(linea) => linea.id} />
+    <p className="mb-3 text-sm text-muted-foreground">Los consumos corresponden al producto completo.</p>
+    <DataTable titulo={`Materiales y otros costos del producto ${item.secuencia}`} columnas={columnasLineas(moneda)} filas={item.lineas} idFila={(linea) => linea.id} />
   </details>;
 }
 
@@ -58,7 +59,7 @@ export function CostosInternosCotizacion({ items, margenPct, moneda }: { items: 
     <summary className="flex min-h-10 cursor-pointer items-center rounded-md text-base font-semibold focus-visible:outline-2 focus-visible:outline-ring">
       Costos internos
     </summary>
-    <dl className="my-4 flex justify-between gap-4 text-sm"><dt>Margen de ítems personalizados</dt>
+    <dl className="my-4 flex justify-between gap-4 text-sm"><dt>Ganancia de trabajos personalizados</dt>
       <dd>{margenPct === null ? "—" : `${margenPct} %`}</dd></dl>
     <div className="space-y-3">{personalizados.map((item) => <CostosItem key={item.id} item={item} moneda={monedaDe(moneda)} />)}</div>
   </details></Card>;
@@ -75,7 +76,7 @@ export function ItemsCotizacion({ items, moneda, mostrarCostos = true, categoria
   const monedaItems = monedaDe(moneda);
   const nombres = new Map(categorias.map((categoria) => [categoria.id, categoria.nombre]));
   return <div className="space-y-4">
-    <DataTable titulo="Ítems de cotización" columnas={columnasItems(nombres, monedaItems)} filas={items} idFila={(item) => item.id} apilarEnMovil={apilarEnMovil}
+    <DataTable titulo="Productos de cotización" columnas={columnasItems(nombres, monedaItems)} filas={items} idFila={(item) => item.id} apilarEnMovil={apilarEnMovil}
       className={sinMarco ? "rounded-none border-0 shadow-none" : undefined} />
     {mostrarCostos ? items.filter((item) => item.tipo === "PERSONALIZADO").map((item) => <CostosItem key={item.id} item={item} moneda={monedaItems} />) : null}
   </div>;

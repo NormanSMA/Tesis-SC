@@ -39,17 +39,11 @@ describeConBase("trazabilidad: costos y protección de datos", () => {
     expect(eventos).toHaveLength(3);
     for (const evento of eventos) expect(traza.eventos.map((fila) => fila.id)).toContain(evento.id);
   });
-  it("Producción recibe toda la respuesta sin dinero, RUC, dirección ni campos desconocidos", async () => {
+  it("Producción no recibe la trazabilidad de la orden (PROD-06)", async () => {
     const { orden } = await libroConCostos(entorno);
-    await db.cliente.update({ where: { id: orden.cliente.id }, data: { ruc: `TRA${Date.now()}`, direccion: "DIRECCION_PRIVADA" } });
     await inyectarDetalle(entorno, orden.id);
-    const traza = await entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones.PRODUCCION.actor);
-    comprobarSinDinero(traza); comprobarSinCliente(traza);
-    expect(JSON.stringify(traza)).not.toMatch(/98765|34567|RUC_PRIVADO|DIRECCION_PRIVADA|NO_MOSTRAR/);
-    expect(traza.cadena.cotizacion).toBeNull(); expect(traza.cadena.cliente.href).toBeNull();
-    expect(traza.materiales).toEqual([]);
-    expect(traza.eventos.some((evento) => "cantidad" in evento.detalle || "existenciaResultante" in evento.detalle)).toBe(false);
-    expect(traza.eventos.some((fila) => fila.resumen.includes("Detalle visible"))).toBe(true);
+    await expect(entorno.servicio.obtenerTrazabilidad(orden.id, entorno.sesiones.PRODUCCION.actor))
+      .rejects.toMatchObject({ status: 403, codigo: "SIN_PERMISO" });
   });
   it("ADMIN sin acceso compartido no recibe eventos de cotizaciones ajenas", async () => {
     const { orden } = await libroConCostos(entorno);

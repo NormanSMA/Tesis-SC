@@ -24,7 +24,7 @@ const personalizado: EntradaItem & { tipo: "PERSONALIZADO" } = {
 };
 const baseItem: ItemDto = {
   id: "i1", secuencia: 1, tipo: "CATALOGO", productoId: "p1", categoriaId: "c", descripcion: "Unidad guardada",
-  unidadCobro: "UNIDAD", cantidad: "2.000", ancho: null, alto: null, precioUnitario: "80.00",
+  unidadCobro: "UNIDAD", cantidad: "2.000", ancho: null, alto: null, profundidad: null, precioUnitario: "80.00",
   costoTotal: null, margenPct: null, importe: "160.00", lineas: [], productoActivo: true,
 };
 
@@ -48,7 +48,7 @@ describe("cotizaciones: mapeo del editor al motor", () => {
     expect(aEntradaLinea(lineas[0]).lineaId).toBe("l1");
   });
 
-  it("calcula los tres tipos de ítem con las funciones puras", () => {
+  it("calcula los tres tipos de producto con las funciones puras", () => {
     const items: EntradaItem[] = [
       { tipo: "CATALOGO", productoId: "p1", cantidad: "3" },
       { tipo: "CATALOGO", productoId: "p2", cantidad: "2", ancho: "0.333", alto: "0.777" }, personalizado,
@@ -78,7 +78,7 @@ describe("cotizaciones: mapeo del editor al motor", () => {
 
   it("conserva costos y margen personalizados salvo actualización explícita", () => {
     const original: ItemDto = { ...baseItem, tipo: "PERSONALIZADO", productoId: null, costoTotal: "20.00", margenPct: "50.00", importe: "40.00",
-      lineas: [{ id: "l3", secuencia: 1, tipo: "TERCERO", descripcion: "Tercero", unidad: "servicio", materialId: null,
+      lineas: [{ id: "l3", secuencia: 1, tipo: "TERCERO", descripcion: "Servicio externo", unidad: "servicio", materialId: null,
         cantidad: "1.000", costoUnitario: "20.0000", mermaPct: "0.00", importe: "20.00" }] };
     const cambiado = { ...personalizado, itemId: original.id, margenPct: "20" };
     expect(vista([cambiado], [original]).items[0]).toMatchObject({ costoTotal: "20.00", margenPct: "50.00", importe: "40.00" });
@@ -95,7 +95,7 @@ describe("cotizaciones: mapeo del editor al motor", () => {
     expect(dos?.precioUnitario).toBe("488.46");
   });
 
-  it("prefija errores por ítem y línea, incluyendo medidas M2", () => {
+  it("prefija errores por producto y línea, incluyendo medidas M2", () => {
     const errores = vista([{ tipo: "CATALOGO", productoId: "p2", cantidad: "2" },
       { ...personalizado, lineas: [{ tipo: "MANO_OBRA", descripcion: "Diseño", unidad: "h", horas: "0", tarifa: "100" }] }]).errores;
     expect(Object.keys(errores)).toEqual(expect.arrayContaining(["items.0.ancho", "items.0.alto", "items.1.lineas.0.horas"]));

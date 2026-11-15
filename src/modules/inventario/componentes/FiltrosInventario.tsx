@@ -70,7 +70,7 @@ export function FiltrosMateriales({ resumen }: { resumen: { materiales: number; 
     { valor: "archivados", etiqueta: "Archivados" },
   ];
   const hayFiltros = Boolean(parametros.get("q") || parametros.get("estado") || parametros.get("area"));
-  return <div className="flex flex-wrap items-center gap-3">
+  return <div className="flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar material" marcador="Buscar por nombre o código" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
     <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos={TODOS} opciones={opciones} />
     <FiltroBuscable etiqueta="Área de producción" parametro="area" textoTodos="Todas las áreas" valorTodos={TODOS} opciones={[
@@ -91,7 +91,7 @@ export function FiltrosMovimientos({ materialId, opciones }: { materialId?: stri
   const claves = materialId ? CLAVES_OTROS.filter((clave) => clave !== "material") : CLAVES_OTROS;
   const activos = claves.filter((clave) => parametros.get(clave)).length;
   const hayFiltros = activos > 0 || Boolean(parametros.get("tipo"));
-  return <div className="flex flex-wrap items-center gap-3">
+  return <div className="flex flex-wrap items-end gap-3">
     <FiltroSegmentado etiqueta="Tipo de movimiento" parametro="tipo" valorTodos={TODOS} opciones={segmentos} />
     <BotonMasFiltros activos={activos}>
       {materialId ? null : <CampoSelect etiqueta="Material" parametro="material"

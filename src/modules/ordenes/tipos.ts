@@ -27,7 +27,7 @@ export type LineaOrden = {
 };
 export type ItemOrden = {
   id: string; secuencia: number; tipo: TipoItem; descripcion: string; categoria: ReferenciaOrden;
-  unidadCobro: UnidadCobro; cantidad: string; ancho: string | null; alto: string | null; lineas: LineaOrden[];
+  unidadCobro: UnidadCobro; cantidad: string; ancho: string | null; alto: string | null; profundidad: string | null; lineas: LineaOrden[];
   precioUnitario?: string; importe?: string; costoTotal?: string | null; margenPct?: string | null;
 };
 export type EtapaOrdenDto = {

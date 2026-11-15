@@ -3,7 +3,7 @@
 // Uso: node scripts/ci-local.mjs [--sin-build] [--sin-pruebas] [--paralelo N] [--solo <verificar|auditoria|pruebas>]
 // Necesita Docker solo para gitleaks y Squawk (imágenes ya descargadas). No hace push ni cambia git.
 // Como en GitHub, las pruebas corren a la vez que verificar y auditoria: cada sección clona su propia base.
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,11 +22,6 @@ function ejecutar(comando, argumentos, opciones = {}) {
       shell: process.platform === "win32" && comando !== "docker", ...opciones });
     hijo.on("close", (estado) => resolver(estado ?? 1));
   });
-}
-
-function salida(comando, argumentos) {
-  const r = spawnSync(comando, argumentos, { cwd: raiz, encoding: "utf8", shell: process.platform === "win32" });
-  return { estado: r.status ?? 1, texto: `${r.stdout ?? ""}`.trim() };
 }
 
 const resultados = [];
@@ -86,14 +81,8 @@ async function verificarYAuditar() {
   await paso("auditoria", "Escanear secretos con gitleaks (historial completo)", () =>
     ejecutar("docker", ["run", "--rm", "-v", `${raiz}:/repo:ro`, "zricethezav/gitleaks:latest", "detect", "--source", "/repo",
       "--config", "/repo/.gitleaks.toml", "--redact", "--no-banner"], DOCKER_SIN_RUTAS));
-  await paso("auditoria", "Squawk sobre migraciones nuevas respecto de origin/main", () => {
-    const { texto } = salida("git", ["diff", "--name-only", "--diff-filter=A", "origin/main...HEAD", "--", "prisma/migrations/**/migration.sql"]);
-    const nuevas = texto.split("\n").filter(Boolean);
-    if (!nuevas.length) { console.log("No hay migraciones nuevas."); return 0; }
-    return ejecutar("docker", ["run", "--rm", "-v", `${raiz}:/repo:ro`, "--workdir", "/repo", "ghcr.io/sbdchd/squawk:latest",
-      "--exclude=prefer-robust-stmts,prefer-text-field,prefer-bigint-over-int,prefer-bigint-over-smallint,require-enum-value-ordering", ...nuevas],
-    DOCKER_SIN_RUTAS);
-  });
+  await paso("auditoria", "Validar protección del histórico SQL", () => ejecutar("node", ["--test", "scripts/auditoria/migraciones.test.mjs"]));
+  await paso("auditoria", "Squawk sobre migraciones pendientes y huellas históricas", () => ejecutar("node", ["scripts/auditoria/migraciones.mjs"]));
 }
 
 const inicioTotal = Date.now();
