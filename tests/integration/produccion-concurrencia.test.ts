@@ -46,15 +46,17 @@ function registrarPrimerInicio(ronda: number) {
 }
 
 function registrarEtapasDistintas(ronda: number) {
-  it(`dos etapas distintas inician con versiones propias, ronda ${ronda}`, async () => {
+  it(`dos inicios concurrentes respetan la secuencia, ronda ${ronda}`, async () => {
     const orden = await nuevaOrden(entorno);
-    const [primera, segunda] = await Promise.all(orden.etapas.map((etapa) => asignarEtapa(entorno, etapa)));
+    const primera = await asignarEtapa(entorno, orden.etapas[0]);
+    const segunda = await asignarEtapa(entorno, orden.etapas[1], segundoActor);
     const resultados = await carrera({ ordenId: orden.id,
       primera: () => entorno.servicio.iniciarEtapa(primera.id, { version: primera.actualizadoEn }, entorno.actor),
       segunda: () => entorno.servicio.iniciarEtapa(segunda.id, { version: segunda.actualizadoEn }, segundoActor) });
-    expect(resultados.every((resultado) => resultado.ok)).toBe(true);
+    expect(resultados[0].ok).toBe(true);
+    expect(resultados[1]).toMatchObject({ ok: false, error: { codigo: "ETAPA_ANTERIOR_PENDIENTE" } });
     const actual = await leerOrden(entorno.ordenes, orden.id);
-    expect(actual.etapas.map((etapa) => etapa.estado)).toEqual(["EN_CURSO", "EN_CURSO"]);
+    expect(actual.etapas.map((etapa) => etapa.estado)).toEqual(["EN_CURSO", "PENDIENTE"]);
     expect(actual.fechaInicioReal).toBe(actual.etapas[0].fechaInicioReal);
     expect(actual.eventos.filter((evento) => evento.entidad === "ORDEN_TRABAJO" && evento.estadoNuevo === "EN_PRODUCCION")).toHaveLength(1);
   });
@@ -88,6 +90,7 @@ function registrarEjecucionCancelacion(ronda: number) {
         const orden = await nuevaOrden(entorno);
         const asignada = await asignarEtapa(entorno, orden.etapas[0]);
         const iniciada = await entorno.servicio.iniciarEtapa(asignada.id, { version: asignada.actualizadoEn }, entorno.actor);
+        if (accion === "iniciar") await entorno.servicio.completarEtapa(iniciada.id, { version: iniciada.actualizadoEn }, entorno.actor);
         const actual = await leerOrden(entorno.ordenes, orden.id);
         const etapa = accion === "completar" ? iniciada : await asignarEtapa(entorno, orden.etapas[1]);
         const ejecutar = () => accion === "completar"

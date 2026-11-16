@@ -16,10 +16,11 @@ import { FormularioUsuario } from "./FormularioUsuario";
 import { EstadoUsuarioBadge } from "./ListaUsuarios";
 import { estadoUsuario, fechaAdministracion } from "./interfaz";
 import { peticionAdministracion } from "./peticion";
+import estilos from "./ResponsividadUsuarios.module.css";
 
 // Nombre, correo y perfiles ya están en la cabecera y en el formulario: aquí solo los datos de acceso.
 function DatosAcceso({ usuario, ahora }: { usuario: UsuarioDto; ahora: number }) {
-  return <ListaDatos columnas={2} className="sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" datos={[
+  return <ListaDatos columnas={2} className={estilos.acceso} datos={[
     { etiqueta: "Estado", valor: <EstadoUsuarioBadge estado={estadoUsuario(usuario, ahora)} /> },
     { etiqueta: "Intentos fallidos", valor: usuario.intentosFallidos },
     { etiqueta: "Último acceso", valor: fechaAdministracion(usuario.ultimoAcceso) },
@@ -43,7 +44,7 @@ export function FichaUsuario({ inicial, ahora }: { inicial: UsuarioDto; ahora: n
     setMensaje("Cambios guardados.");
   }
   return (
-    <div className="min-w-0">
+    <div className={`min-w-0 ${estilos.ficha}`}>
       <CabeceraFicha titulo={usuario.nombre} volver={{ href: "/admin/usuarios", etiqueta: "Usuarios" }}
         marca={<AvatarIniciales nombre={usuario.nombre} className="size-12 text-sm" />}
         meta={<>
@@ -53,8 +54,8 @@ export function FichaUsuario({ inicial, ahora }: { inicial: UsuarioDto; ahora: n
       <p role="status" className="sr-only">{mensaje}</p>
       {mensaje ? <p aria-hidden="true" className="mb-4 text-sm text-success">{mensaje}</p> : null}
       {error ? <AvisoAdmin mensaje={error} /> : null}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="min-w-0 lg:col-span-2">
+      <div className={estilos.distribucion}>
+        <div className="min-w-0">
           <FormularioUsuario key={usuario.actualizadoEn} usuario={usuario} alGuardar={(datos) => actualizar(datos.usuario)} alRecargar={recargar} />
         </div>
         <TarjetaSeccion titulo="Acceso" descripcion="Bloqueos, estado de la cuenta y clave.">

@@ -1,7 +1,7 @@
 import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import { AvatarIniciales } from "@/components/comunes/AvatarIniciales";
-import { BarraProgresoAnimada } from "@/components/comunes/BarraProgresoAnimada";
+import { AvanceCircular } from "@/components/comunes/AvanceCircular";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
 import { EstadoBadge } from "@/components/comunes/EstadoBadge";
@@ -29,16 +29,14 @@ function columnasDe(referencia: string): ColumnaTabla<OrdenFila>[] {
   return [
     { id: "numero", encabezado: "Orden", ordenable: "numero", celda: (fila) => <div className="min-w-0">
       <Link href={`/ordenes/${fila.id}`} className={ENLACE_FILA}>{fila.numero}</Link>
-      {fila.cotizacion.asunto ? <p className="truncate text-xs text-muted-foreground" title={fila.cotizacion.asunto}>{fila.cotizacion.asunto}</p> : null}
+      {fila.cotizacion?.asunto ? <p className="truncate text-xs text-muted-foreground" title={fila.cotizacion.asunto}>{fila.cotizacion.asunto}</p> : null}
     </div> },
     { id: "cliente", encabezado: "Cliente", ordenable: "cliente", celda: (fila) => <div className="min-w-0">
       <span className="block truncate" title={fila.cliente.nombre}>{fila.cliente.nombre}</span>
-      <span className="block truncate text-xs text-muted-foreground">{fila.cliente.codigoCliente}</span>
     </div> },
     { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoBadge tipo="orden" estado={fila.estado} /> },
     { id: "avance", encabezado: "Avance", celda: (fila) => fila.avance && fila.avance.total > 0
-      ? <BarraProgresoAnimada valor={fila.avance.completadas} total={fila.avance.total} etiqueta="Etapas completadas"
-        texto={`${fila.avance.completadas} de ${fila.avance.total}`} className="md:max-lg:flex-col md:max-lg:items-stretch md:max-lg:gap-0.5" />
+      ? <AvanceCircular completadas={fila.avance.completadas} total={fila.avance.total} />
       : <span aria-label="Sin etapas" className="text-muted-foreground">—</span> },
     { id: "entrega", encabezado: "Entrega", ordenable: "fechaEntrega", celda: (fila) => <div className="min-w-0">
       <span><span className="text-muted-foreground md:hidden">Entrega: </span><Fecha valor={fila.fechaEntrega} /></span>

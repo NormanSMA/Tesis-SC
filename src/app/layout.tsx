@@ -10,9 +10,17 @@ import "./globals.css";
 
 export const metadata: Metadata = METADATOS_APP;
 
+const TEMA_INICIAL = `(() => {
+  let tema;
+  try { tema = localStorage.getItem("tracore-tema"); } catch {}
+  document.documentElement.dataset.tema = tema === "oscuro" || (tema !== "claro" && matchMedia("(prefers-color-scheme: dark)").matches)
+    ? "oscuro" : "claro";
+})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} /></head>
       <body>
         <a
           href="#contenido"
@@ -21,7 +29,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Saltar al contenido
         </a>
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
-        <Toaster position="top-right" />
+        {/* Abajo: arriba a la derecha vive la campana de notificaciones. */}
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

@@ -102,17 +102,19 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
       });
     });
 
-    it("rechaza con 422 un cliente sin teléfono ni correo y señala ambos campos", async () => {
-      const { status, error } = await crear({ nombre: nombreUnico(), tipo: "EMPRESA" });
-      expect(status).toBe(422);
-      expect(Object.keys(error?.campos ?? {}).sort()).toEqual(["correo", "telefono"]);
+    it("crea personas y empresas con RUC, correo y dirección en blanco", async () => {
+      for (const tipo of ["PERSONA", "EMPRESA"]) {
+        const { status, datos } = await crear({ nombre: nombreUnico(), tipo, ruc: "", correo: "", direccion: "" });
+        expect(status).toBe(201);
+        expect(datos).toMatchObject({ ruc: null, correo: null, direccion: null, telefono: null });
+      }
     });
 
-    it("rechaza un teléfono vacío o de solo espacios sin correo", async () => {
+    it("normaliza un teléfono vacío o de solo espacios sin correo", async () => {
       for (const telefono of ["", "   "]) {
-        const { status, error } = await crear({ nombre: nombreUnico(), tipo: "EMPRESA", telefono });
-        expect(status).toBe(422);
-        expect(error?.campos?.telefono).toBeTruthy();
+        const { status, datos } = await crear({ nombre: nombreUnico(), tipo: "EMPRESA", telefono });
+        expect(status).toBe(201);
+        expect(datos.telefono).toBeNull();
       }
     });
 
@@ -210,22 +212,20 @@ describeConBase("clientes: crear, editar, archivar y reactivar con su bitácora"
       expect((await eventos(cliente.id)).map((evento) => evento.accion)).toEqual(["CREAR"]);
     });
 
-    it("rechaza con 422 un PATCH que deja al cliente sin medio de contacto, y no cambia nada", async () => {
-      const cliente = await clienteNuevo({ telefono: "8888 1111" });
-      const { status, error } = await editar(cliente.id, { version: cliente.actualizadoEn, telefono: "", notas: "Ignorada" });
-      expect(status).toBe(422);
-      expect(Object.keys(error?.campos ?? {}).sort()).toEqual(["correo", "telefono"]);
+    it("permite borrar correo y dirección en la misma edición", async () => {
+      const cliente = await clienteNuevo({ correo: "prueba@empresa.test", direccion: "Estelí" });
+      const { status } = await editar(cliente.id, { version: cliente.actualizadoEn, telefono: "", correo: "", direccion: "" });
+      expect(status).toBe(200);
       const guardado = await db.cliente.findUniqueOrThrow({ where: { id: cliente.id } });
-      expect(guardado.telefono).toBe("8888 1111");
-      expect(guardado.notas).toBeNull();
+      expect(guardado).toMatchObject({ telefono: null, correo: null, direccion: null });
     });
 
-    it("permite quitar el teléfono si queda el correo, y exige uno de los dos al quitar ambos", async () => {
+    it("permite quitar el teléfono y luego el correo", async () => {
       const cliente = await clienteNuevo({ correo: "dos@medios.test" });
       const sinTelefono = await editar(cliente.id, { version: cliente.actualizadoEn, telefono: null });
       expect(sinTelefono.status).toBe(200);
       const sinNada = await editar(cliente.id, { version: sinTelefono.datos.actualizadoEn, correo: null });
-      expect(sinNada.status).toBe(422);
+      expect(sinNada.status).toBe(200);
     });
 
     it("rechaza con 409 DUPLICADO un RUC ajeno y deja el cliente y la bitácora como estaban", async () => {

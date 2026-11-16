@@ -9,7 +9,7 @@ import tailwindcss from "@tailwindcss/postcss";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { PageHeader } from "@/components/comunes/PageHeader";
 import { ConsumoEstimadoOrden } from "@/modules/ordenes/componentes/ConsumoEstimadoOrden";
-import { DatosCliente, DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
+import { DatosOrden } from "@/modules/ordenes/componentes/DatosOrden";
 import { EncabezadoOrden } from "@/modules/ordenes/componentes/EncabezadoOrden";
 import { EtapasOrden, recuperarFocoEtapas } from "@/modules/ordenes/componentes/EtapasOrden";
 import { atributosErrorCliente, enfocarResultadoCliente, FormularioCliente } from "@/modules/clientes/componentes/FormularioCliente";
@@ -45,11 +45,12 @@ const orden: OrdenDto = {
   creadoEn: "2026-10-06T12:00:00Z", actualizadoEn: "2026-10-06T12:00:00Z", fechaInicioReal: null, fechaEntregaReal: null,
   fechaCierre: null, motivoCancelacion: null, especificaciones: "Especificaciones de prueba. ".repeat(30),
   items: [{ id, secuencia: 1, tipo: "PERSONALIZADO", descripcion: "Descripción extensa del trabajo solicitado", categoria,
-    unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
+    unidadCobro: "M2", cantidad: "3.000", ancho: "1.200", alto: "2.000", profundidad: null, lineas: [{ id, secuencia: 1, tipo: "MATERIAL",
       descripcion: "Material de prueba", unidad: "M2", cantidad: "7.200", mermaPct: "5.00", material: { id, nombre: "Vinil", unidad: "M2" } }] }],
   etapas: [{ id, secuencia: 1, nombre: "Impresión de gran formato", area: { id, nombre: "Área de impresión" }, estado: "PENDIENTE",
     responsable: null, fechaInicioPlan: "2026-10-06", fechaFinPlan: "2026-10-07", fechaInicioReal: null, fechaFinReal: null, observaciones: null, actualizadoEn: "2026-10-06T12:00:00.000Z" }],
-  consumosEstimados: [{ id, material: { id, nombre: "Material de prueba", unidad: "M2" }, cantidad: "7.560", origen: "COTIZACION" }],
+  materialesTrabajo: [{ nombre: "Material de prueba", areaProduccion: null }], materialesSinEstimacion: [],
+  consumosEstimados: [{ id, material: { id, nombre: "Material de prueba", unidad: "M2" }, cantidad: "7.560", origen: "COTIZACION", areaProduccion: null }],
   advertencias: [{ itemSecuencia: 1, lineaSecuencia: 2, mensaje: "Línea 2: unidad distinta del material; no se estimó." }],
   eventos: [{ id, entidad: "ORDEN_TRABAJO", entidadId: id, accion: "CONVERTIR_EN_ORDEN", actor: "Operaciones",
     estadoAnterior: null, estadoNuevo: "PENDIENTE", creadoEn: "2026-10-06T12:00:00Z", detalle: {} }],
@@ -66,7 +67,6 @@ function contenido(pantalla: "lista" | "ficha" | "nueva" | "editar"): ReactNode[
     createElement(EtapasOrden, { key: "etapas", etapas: orden.etapas }),
     createElement(FichaOrden, { key: "ficha",
       especificaciones: [createElement(DatosOrden, { key: "datos", orden }), createElement(ItemsOrden, { key: "items", items: orden.items })],
-      cliente: createElement(DatosCliente, { orden, verCliente: false, verCotizacion: false }),
       consumo: createElement(ConsumoEstimadoOrden, { orden }), historial: createElement(LineaTiempoOrden, { eventos: orden.eventos }) })];
   return [encabezado, pantalla === "editar" ? createElement(FormularioOrden, { key: "editar", opciones, hoy: "2026-10-06", orden })
     : createElement(FormularioOrden, { key: "nueva", opciones, hoy: "2026-10-06", propuesta: { cotizacionId: id, numero: "COT-2026-0001",
@@ -94,12 +94,14 @@ describe("órdenes: responsable opcional en componentes", () => {
     expect(html("LISTA", { ...permisos, entregar: false })).not.toContain(">Entregar<");
     expect(html("PENDIENTE", permisos, { planificar: false, ejecutar: false, avanzar: false })).not.toContain("Iniciar producción");
   });
-  it("lista: 7 columnas, fila enlazada a la ficha y filtro Sin responsable visible", () => {
+  it("lista: 7 columnas, fila enlazada a la ficha y filtro de vista desplegable", () => {
     const tabla = renderToStaticMarkup(createElement(TablaOrdenes, { ...propiedadesTabla, lista: { datos: [orden], total: 1, pagina: 1, porPagina: 20, conteos } }));
     expect(tabla.match(/<th [^>]*scope="col"/g)).toHaveLength(7);
     expect(tabla).toContain(`href="/ordenes/${id}"`);
     const filtros = renderToStaticMarkup(createElement(FiltrosOrdenes, { conteos, responsables: [responsable] }));
-    expect(filtros).toContain("Sin responsable");
+    expect(filtros).toContain('role="combobox"');
+    expect(filtros).toContain(">Vista</label>");
+    expect(filtros).not.toContain('role="radiogroup"');
   });
   it("renderiza edición sin responsable y restringe los campos al planificar", () => {
     const formulario = renderToStaticMarkup(createElement(FormularioOrden, {
@@ -113,8 +115,7 @@ describe("órdenes: responsable opcional en componentes", () => {
   it("muestra Sin responsable en la cadena de trabajo y el panel", () => {
     const cadena = renderToStaticMarkup(createElement(CadenaTrabajo, { cadena: {
       cliente: { ...orden.cliente, contactoPrincipal: null, href: null },
-      cotizacion: { ...orden.cotizacion, estado: "Aprobada", creadoEn: orden.creadoEn,
-        fechaEmision: null, fechaVencimiento: null, fechaRespuesta: null, href: null },
+      cotizacion: null,
       orden: { id, numero: orden.numero, estado: "Pendiente", responsable: null,
         especificaciones: null, fechaEntrega: orden.fechaEntrega, creadoEn: orden.creadoEn,
         fechaInicioReal: null, fechaEntregaReal: null, fechaCierre: null }, etapas: [],
@@ -159,7 +160,7 @@ describe("órdenes: componentes renderizados, accesibilidad y tamaños", () => {
           const resultado = await new AxeBuilder({ page: pagina }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
           expect(resultado.violations.map((violacion) => ({ id: violacion.id, nodos: violacion.nodes.map((nodo) => nodo.target) })), pantalla).toEqual([]);
           if (pantalla === "ficha") {
-            expect(await pagina.getByRole("link", { name: orden.cotizacion.numero }).count()).toBe(0);
+            expect(await pagina.getByRole("tab", { name: "Cliente y cotización" }).count()).toBe(0);
             expect(await pagina.getByText("Atrasada", { exact: true }).count()).toBe(1);
           }
         }

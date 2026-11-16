@@ -50,7 +50,8 @@ export function registrarEntrada(entorno: EntornoConsumo, { materialId, cantidad
 
 export async function nuevaOrden(entorno: EntornoConsumo, estado: EstadoOrden = "PENDIENTE") {
   const aprobada = await crearAprobada(entorno.ordenes);
-  const orden = await entorno.ordenes.modulos.servicio.crearOrden(entradaConversion(entorno.ordenes, aprobada.id), entorno.sesiones.OPERACIONES.actor);
+  // Las cotizaciones son privadas por autor: convierte la misma sesión que la creó.
+  const orden = await entorno.ordenes.modulos.servicio.crearOrden(entradaConversion(entorno.ordenes, aprobada.id), entorno.ordenes.sesiones.OPERACIONES.actor);
   await ponerEstado(entorno.db, orden.id, estado);
   return orden;
 }

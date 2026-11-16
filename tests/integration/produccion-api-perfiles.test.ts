@@ -24,10 +24,10 @@ const PERMISOS: Record<PermisoGrupo, readonly Operacion[]> = { "produccion:ver":
 type PermisoGrupo = "produccion:ver" | "produccion:planificar" | "produccion:ejecutar" | "orden:avanzar" | "catalogo:gestionar";
 const PERFILES_POR_PERMISO: Record<PermisoGrupo, readonly PerfilCodigo[]> = {
   "produccion:ver": ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION"],
-  "produccion:planificar": ["ADMINISTRACION", "OPERACIONES"],
-  "produccion:ejecutar": ["ADMINISTRACION", "PRODUCCION"],
-  "orden:avanzar": ["ADMINISTRACION", "OPERACIONES", "PRODUCCION"],
-  "catalogo:gestionar": ["OPERACIONES"],
+  "produccion:planificar": ["GERENCIA", "ADMINISTRACION", "OPERACIONES"],
+  "produccion:ejecutar": ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "PRODUCCION"],
+  "orden:avanzar": ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "PRODUCCION"],
+  "catalogo:gestionar": ["GERENCIA", "OPERACIONES"],
 };
 let entorno: EntornoProduccion;
 let db: PrismaClient;
@@ -57,6 +57,8 @@ async function prepararLectura(operacion: Operacion): Promise<Llamada> {
     return { manejador: rutas.plantillas.GET, metodo: "GET", ruta: `/api/v1/categorias/${id}/plantillas`, id };
   }
   const orden = await nuevaOrden(entorno);
+  // El personal de Producción solo consulta órdenes en las que participa.
+  await asignarEtapa(entorno, orden.etapas[0]);
   return { manejador: rutas.etapas.GET, metodo: "GET", ruta: `/api/v1/ordenes/${orden.id}/etapas`, id: orden.id };
 }
 
@@ -189,13 +191,13 @@ function registrarVersiones() {
 }
 
 function registrarGuardasEtapas() {
-  it("iniciar sin responsable responde 409 y conserva la orden", async () => {
+  it("Operaciones no puede iniciar sin responsable y conserva la orden", async () => {
     const orden = await nuevaOrden(entorno);
     const etapa = orden.etapas[0];
     const respuesta = await invocar(entorno.rutas.iniciar.POST, peticion("POST", `/api/v1/etapas/${etapa.id}/iniciar`, {
-      cookie: cookie("PRODUCCION"), cuerpo: { version: etapa.actualizadoEn } }), etapa.id);
+      cookie: cookie("OPERACIONES"), cuerpo: { version: etapa.actualizadoEn } }), etapa.id);
     expect(respuesta).toMatchObject({ status: 409, error: { codigo: "ETAPA_SIN_RESPONSABLE" } });
-    expect(await leerOrden(entorno.ordenes, orden.id)).toEqual(orden);
+    expect(await leerOrden(entorno.ordenes, orden.id, "OPERACIONES")).toEqual(orden);
   });
   for (const estado of ["LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as const) {
     it(`${estado}: todas las acciones de etapa responden 409`, async () => {

@@ -1,5 +1,8 @@
 "use client";
+import { MaterialesDelProducto } from "@/modules/personalizadas/MaterialesDelProducto";
+import { GastosPartida } from "@/modules/personalizadas/GastosPartida";
 
+import { ElegirPersonalizada } from "@/modules/personalizadas/ElegirPersonalizada";
 import { useId } from "react";
 import { useController, useFieldArray, useWatch, type UseFormReturn } from "react-hook-form";
 
@@ -12,6 +15,7 @@ import type { TipoLineaCosto } from "@/core/costeo";
 import type { Moneda } from "@/core/moneda";
 import type { CamposError } from "@/lib/errores";
 import { calcularVista, type ItemCalculado } from "../calculo";
+import { superficieTotal } from "../materiales";
 import type { EntradaItem, EntradaLineaEditor, EntradaReemplazarItems } from "../schema";
 import type { ItemDto, SelectoresEditor } from "../tipos";
 import { CampoSeleccion, CampoTexto } from "./CamposEditor";
@@ -29,7 +33,7 @@ function nuevaLinea(tipo: TipoLineaCosto): EntradaLineaEditor {
   if (tipo === "MATERIAL") return { tipo, descripcion: "", unidad: "unidad", materialId: null,
     cantidad: "1", costoUnitario: "0", mermaPct: "0" };
   if (tipo === "MANO_OBRA") return { tipo, descripcion: "Mano de obra", unidad: "hora", horas: "1", tarifa: "0" };
-  return { tipo, descripcion: "Servicio de tercero", unidad: "servicio", costo: "0" };
+  return { tipo, descripcion: "Servicio externo", unidad: "servicio", costo: "0" };
 }
 
 function CamposCatalogo({ moneda, item, indice, original, selectores, errores, alCambiar }: CamposItem) {
@@ -54,23 +58,31 @@ function CamposCatalogo({ moneda, item, indice, original, selectores, errores, a
 }
 
 function MedidasItem({ item, indice, errores, alCambiar }: Pick<CamposItem, "item" | "indice" | "errores" | "alCambiar">) {
-  return <div className="grid gap-4 sm:grid-cols-2">
+  return <div className="grid gap-4 sm:grid-cols-3">
     <CampoTexto id={`items.${indice}.ancho`} etiqueta="Ancho (m)" decimal requerido valor={item.ancho ?? ""}
       error={errores[`items.${indice}.ancho`]} alCambiar={(ancho) => alCambiar({ ...item, ancho: ancho || null })} />
     <CampoTexto id={`items.${indice}.alto`} etiqueta="Alto (m)" decimal requerido valor={item.alto ?? ""}
       error={errores[`items.${indice}.alto`]} alCambiar={(alto) => alCambiar({ ...item, alto: alto || null })} />
+    <CampoTexto id={`items.${indice}.profundidad`} etiqueta="Profundidad (m, opcional)" decimal valor={item.profundidad ?? ""}
+      error={errores[`items.${indice}.profundidad`]} alCambiar={(profundidad) => alCambiar({ ...item, profundidad: profundidad || null })} />
+    <p className="text-sm text-muted-foreground sm:col-span-3">Con profundidad, el m² incluye el frente y los cuatro laterales.</p>
   </div>;
 }
 
-function CamposPersonalizado({ item, indice, original, selectores, errores, alCambiar }: CamposItem) {
+function CamposPersonalizado({ moneda, item, indice, original, selectores, errores, alCambiar }: CamposItem) {
   if (item.tipo !== "PERSONALIZADO") return null;
+  const requiereMedidas = item.lineas.some((linea) => linea.tipo === "MATERIAL" && Boolean(linea.materialId) &&
+    (original?.lineas.some((guardada) => guardada.id === linea.lineaId && guardada.materialId === linea.materialId && guardada.cantidadPorArea)
+      || (!original || item.actualizarPrecio) && selectores.materiales.find((material) => material.id === linea.materialId)?.unidadCotizacion === "M2"));
   const categorias = [...selectores.categorias];
   if (original && !categorias.some((registro) => registro.id === original.categoriaId)) {
     categorias.push({ id: original.categoriaId, nombre: "Categoría guardada (archivada)" });
   }
   return <>
+    <ElegirPersonalizada moneda={moneda} item={item} indice={indice} selectores={selectores} bloqueado={Boolean(original && !item.actualizarPrecio)} alCambiar={alCambiar} />
     <div className="grid gap-4 sm:grid-cols-2">
       <CampoSeleccion id={`items.${indice}.categoriaId`} etiqueta="Categoría" requerido valor={item.categoriaId} opciones={categorias}
+        deshabilitado={Boolean(item.productoPersonalizado)}
         error={errores[`items.${indice}.categoriaId`]} alCambiar={(categoriaId) => alCambiar({ ...item, categoriaId })} />
       <CampoSeleccion id={`items.${indice}.unidadCobro`} etiqueta="Unidad de cobro" valor={item.unidadCobro}
         opciones={[{ id: "UNIDAD", nombre: "Unidad" }, { id: "M2", nombre: "m²" }]}
@@ -78,11 +90,11 @@ function CamposPersonalizado({ item, indice, original, selectores, errores, alCa
     </div>
     <CampoTexto id={`items.${indice}.descripcion`} etiqueta="Descripción del trabajo" requerido valor={item.descripcion}
       error={errores[`items.${indice}.descripcion`]} alCambiar={(descripcion) => alCambiar({ ...item, descripcion })} />
-    {item.unidadCobro === "M2" ? <MedidasItem item={item} indice={indice} errores={errores} alCambiar={alCambiar} /> : null}
-    <CampoTexto id={`items.${indice}.margenPct`} etiqueta="Margen sobre precio (%)" decimal requerido valor={item.margenPct}
+    {item.unidadCobro === "M2" || requiereMedidas ? <MedidasItem item={item} indice={indice} errores={errores} alCambiar={alCambiar} /> : null}
+    <CampoTexto id={`items.${indice}.margenPct`} etiqueta="Ganancia sobre el precio de venta (%)" decimal requerido valor={item.margenPct}
       deshabilitado={Boolean(original && !item.actualizarPrecio)} error={errores[`items.${indice}.margenPct`]}
       alCambiar={(margenPct) => alCambiar({ ...item, margenPct })} />
-    <p className="text-sm text-muted-foreground">Las líneas representan consumos totales del ítem. La cantidad solo divide el precio unitario.</p>
+    <p className="text-sm text-muted-foreground">Los materiales en m² usan el ancho, el alto, la profundidad si se indica y la cantidad de este trabajo.</p>
   </>;
 }
 
@@ -91,18 +103,20 @@ function LineasItem({ moneda, item, indice, original, selectores, calculado, err
   const bloqueada = Boolean(original && !item.actualizarPrecio);
   const lineas = calculado?.tipo === "PERSONALIZADO" ? calculado.lineas : [];
   return <div className="space-y-4">
-    <h3 className="text-base font-semibold">Líneas de costo</h3>
-    <GrupoCampo id={`items.${indice}.lineas`} etiqueta="Consumos del ítem" className="space-y-4"
+    <h3 className="text-base font-semibold">Materiales y otros costos</h3>
+    <GrupoCampo id={`items.${indice}.lineas`} etiqueta="Materiales y servicios del trabajo" className="space-y-4"
       error={errores[`items.${indice}.lineas`]}>
-      {fields.map((linea, posicion) => <EditorLinea key={linea.id}
+      <div className="min-w-0 overflow-x-auto rounded-lg border border-formulario" role="region" aria-label="Tabla de costos del producto" tabIndex={0}><table className="tabla-costos tabla-costos-manual"><caption className="sr-only">Materiales y servicios del trabajo</caption><colgroup>{[30,12,10,14,10,14,10].map((ancho,i) => <col key={i} style={{width:`${ancho}%`}} />)}</colgroup><thead><tr>{["Material o servicio", "Cantidad", "Unidad", "Costo unitario", "Desperdicio %", "Costo total", "Acciones"].map(t => <th scope="col" key={t} className={["Cantidad", "Costo unitario", "Desperdicio %", "Costo total"].includes(t) ? "text-right" : undefined}>{t}</th>)}</tr></thead><tbody>{fields.map((linea, posicion) => linea.esGastoPersonalizado ? null : <EditorLinea key={linea.id}
         moneda={moneda} formulario={formulario} prefijo={`items.${indice}.lineas.${posicion}`} indice={posicion} materiales={selectores.materiales}
-        errores={errores} bloqueada={bloqueada} importe={lineas[posicion]?.importe}
-        quitar={remove} />)}
+        areaPartida={superficieTotal(item)} medirMaterial={item.tipo === "PERSONALIZADO" && (item.unidadCobro === "M2" || Boolean(item.ancho && item.alto))}
+        guardada={original?.lineas.find(({ id }) => id === linea.lineaId)}
+        errores={errores} bloqueada={bloqueada} importe={lineas[fields.slice(0, posicion).filter(l => !l.esGastoPersonalizado).length]?.importe}
+        quitar={remove} />)}</tbody></table></div>
     </GrupoCampo>
     <div className="flex flex-wrap gap-2">
       {(["MATERIAL", "MANO_OBRA", "TERCERO"] as const).map((tipo) => <Button key={tipo} type="button" variant="outline"
         disabled={bloqueada} onClick={() => append(nuevaLinea(tipo))}>
-        Agregar {tipo === "MATERIAL" ? "material" : tipo === "MANO_OBRA" ? "mano de obra" : "tercero"}
+        Agregar {tipo === "MATERIAL" ? "material" : tipo === "MANO_OBRA" ? "mano de obra" : "servicio externo"}
       </Button>)}
     </div>
   </div>;
@@ -127,20 +141,22 @@ function ActualizarInstantanea({ item, indice, original, alCambiar }: CamposItem
 
 function ContenidoItem(propiedades: CamposItem & { formulario?: UseFormReturn<EntradaReemplazarItems> }) {
   const { moneda, item, indice, calculado, errores, alCambiar, alQuitar } = propiedades;
-  return <Card className="px-5"><div className="space-y-5">
+  return <Card className="min-w-0 border-[1.5px] border-formulario px-5"><div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-xl font-semibold">Ítem {indice + 1}: {item.tipo === "CATALOGO" ? "Catálogo" : "Personalizado"}</h2>
-      <Button type="button" variant="outline" onClick={alQuitar} aria-label={`Quitar ítem ${indice + 1}`}>Quitar ítem</Button>
+      <h2 className="text-xl font-semibold">Producto {indice + 1}: {item.tipo === "CATALOGO" ? "Catálogo" : "Personalizado"}</h2>
+      <Button type="button" variant="outline" onClick={alQuitar} aria-label={`Quitar producto ${indice + 1}`}>Quitar producto</Button>
     </div>
     <ActualizarInstantanea {...propiedades} />
     <CamposCatalogo {...propiedades} /><CamposPersonalizado {...propiedades} />
-    <CampoTexto id={`items.${indice}.cantidad`} etiqueta="Cantidad del ítem" decimal requerido valor={item.cantidad}
+    <CampoTexto id={`items.${indice}.cantidad`} etiqueta="Cantidad del producto" decimal requerido valor={item.cantidad}
       error={errores[`items.${indice}.cantidad`]} alCambiar={(cantidad) => alCambiar({ ...item, cantidad })} />
-    {item.tipo === "PERSONALIZADO" && propiedades.formulario ? <LineasItem {...propiedades} formulario={propiedades.formulario} /> : null}
+    {item.tipo === "PERSONALIZADO" && item.productoPersonalizado ? <MaterialesDelProducto {...propiedades} item={item} bloqueado={Boolean(propiedades.original && !item.actualizarPrecio)} /> : item.tipo === "PERSONALIZADO" && propiedades.formulario ? <LineasItem {...propiedades} formulario={propiedades.formulario} /> : null}
+    {item.tipo === "PERSONALIZADO" ? <GastosPartida item={item} indice={indice} moneda={moneda} selectores={propiedades.selectores}
+      bloqueado={Boolean(propiedades.original && !item.actualizarPrecio)} alCambiar={alCambiar} error={errores.gastosPersonalizados ?? errores[`items.${indice}.gastosPersonalizados`]} /> : null}
     <dl className="flex flex-wrap gap-x-8 gap-y-3 border-t pt-4 text-sm">
       <div><dt>Precio unitario</dt><dd><Money valor={calculado?.precioUnitario} moneda={moneda} /></dd></div>
       {item.tipo === "PERSONALIZADO" ? <div><dt>Costo total</dt><dd><Money valor={calculado?.costoTotal} moneda={moneda} /></dd></div> : null}
-      <div><dt>Importe del ítem</dt><dd className="font-semibold"><Money valor={calculado?.importe} moneda={moneda} /></dd></div>
+      <div><dt>Importe del producto</dt><dd className="font-semibold"><Money valor={calculado?.importe} moneda={moneda} /></dd></div>
     </dl>
   </div></Card>;
 }

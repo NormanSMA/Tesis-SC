@@ -158,6 +158,9 @@ erDiagram
         varchar codigo UK
         varchar nombre
         UnidadMaterial unidad
+        TipoPresentacionMaterial tipoPresentacion
+        decimal anchoPresentacion
+        decimal largoPresentacion
         decimal existencia
         decimal costoPromedio
         decimal stockMinimo
@@ -197,6 +200,10 @@ erDiagram
         EstadoCotizacion estado
         varchar asunto
         text condiciones
+        boolean mostrarCondiciones
+        varchar tarifa
+        decimal tarifaPct
+        boolean descuentoManual
         uuid cotizacionOrigenId FK
         char moneda
         decimal tasaImpuesto
@@ -331,6 +338,7 @@ Las columnas `creadoEn` y `actualizadoEn` se omiten salvo que tengan regla propi
 | TipoCliente | PERSONA, EMPRESA | SD-12 |
 | UnidadCobro | UNIDAD, M2 | 2.6 (medidas); SD-15 |
 | UnidadMaterial | UNIDAD, METRO, M2, YARDA, PIE, LITRO, GALON, KILOGRAMO, LIBRA, PLIEGO, ROLLO | SD-15 |
+| TipoPresentacionMaterial | ROLLO, LAMINA | AT-03 |
 | EstadoCotizacion | BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA, AJUSTE_SOLICITADO | S-06; ADR-014 |
 | TipoItem | CATALOGO, PERSONALIZADO | 1.1, 2.6; R-03 |
 | TipoLineaCosto | MATERIAL, MANO_OBRA, TERCERO | R-03; SD-14 |
@@ -466,10 +474,15 @@ Justificación: CF-06 y P7 piden carga de trabajo **por área**. Sin esta entida
 | nombre | varchar(160) | no | Índice (activo, nombre) | 1.7 |
 | descripcion | text | sí | | |
 | unidad | UnidadMaterial | no | | SD-15 |
+| tipoPresentacion | TipoPresentacionMaterial | sí | ROLLO o LAMINA. Requiere unidad M2 y ambas dimensiones. | AT-03 |
+| anchoPresentacion | decimal(7,3) | sí | Ancho en metros, mayor que cero. | AT-03 |
+| largoPresentacion | decimal(7,3) | sí | Largo en metros, mayor que cero. | AT-03 |
 | existencia | decimal(14,3) | no | default 0. CHECK >= 0. Solo la escribe el trigger del libro. Alta con 0 | Tabla C2; S-09 |
 | costoPromedio | decimal(14,4) | no | default 0. CHECK >= 0. Editable a mano solo con existencia 0 | S-05; D-14 |
 | stockMinimo | decimal(14,3) | no | default 0. CHECK >= 0. Umbral de alerta | Tabla C2 (alertas); F01 |
 | activo | boolean | no | default true | convención |
+
+La presentación nominal es opcional. La base exige que el tipo y ambas medidas estén juntos o que los tres campos sean nulos. El área por presentación se calcula multiplicando ancho por largo. Los saldos se registran en el libro de movimientos.
 
 ### MovimientoInventario (`movimiento_inventario`)
 
@@ -524,10 +537,14 @@ Justificación: el estimado no tiene movimiento. Mezclarlo en `ConsumoOrden` har
 | clienteId | uuid | no | FK cliente. Índice (clienteId, creadoEn) | 2.6; CF-11 |
 | estado | EstadoCotizacion | no | default BORRADOR. Índice (estado, fechaVencimiento). Trigger de transición | S-06; CF-06 |
 | asunto | varchar(200) | sí | | |
-| condiciones | text | sí | Texto impreso en la proforma | F11 |
+| condiciones | text | sí | Texto de las condiciones comerciales | F11 |
+| mostrarCondiciones | boolean | no | Controla la visibilidad de las condiciones en la proforma | COT-04 |
+| tarifa | varchar(16) | no | OCASIONAL, INTERMEDIA o PREFERENCIAL | COT-03 |
+| tarifaPct | decimal(5,2) | sí | Porcentaje de la tarifa al seleccionarla. Nulo en cotizaciones anteriores al cambio | COT-03 |
+| descuentoManual | boolean | no | Indica si el descuento manual sustituye al de la tarifa | COT-03 |
 | cotizacionOrigenId | uuid | sí | FK cotizacion (duplicado). Índice | R-02; F13 |
 | moneda | char(3) | no | default 'NIO'. CHECK `^[A-Z]{3}$`; no valida pertenencia a ISO 4217 | S-04 |
-| tasaImpuesto | decimal(5,2) | no | CHECK 0..100. Copia del IVA vigente | S-04 |
+| tasaImpuesto | decimal(5,2) | no | Cero en borradores y cotizaciones nuevas. Conserva el valor registrado en documentos emitidos antes del cambio | COT-02 |
 | subtotal | decimal(14,2) | no | CHECK >= 0. Igual a Σ ítems al enviar | R-03; snapshot |
 | descuento | decimal(14,2) | no | CHECK 0..subtotal. Monto global | SD-14; F14 |
 | impuesto | decimal(14,2) | no | CHECK = round((subtotal − descuento) × tasa / 100, 2) | S-04 |
@@ -679,7 +696,7 @@ Solo se escribe con `siguiente_numero(tipo)`.
 
 | ID | Supuesto |
 |---|---|
-| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único. Teléfono o correo obligatorio |
+| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único cuando se informa. Teléfono, correo y dirección opcionales. |
 | SD-13 | Área de producción como catálogo editable. Cada etapa pertenece a un área |
 | SD-14 | Ítem personalizado = Σ líneas (material con merma, mano de obra, terceros). Margen sobre precio de venta por ítem. Descuento como monto global |
 | SD-15 | Unidades: UNIDAD o M2 para cobro. Lista cerrada para material. Texto libre en líneas de costo |
@@ -746,7 +763,7 @@ La línea de tiempo de una orden se ve con `orden:ver`. No requiere `bitacora:ve
 
 | Desde | Hacia | Permiso | Condición del servicio | Efecto en datos | Bitácora |
 |---|---|---|---|---|---|
-| (alta) | BORRADOR | cotizacion:gestionar | Cliente activo | `numero = siguiente_numero('COTIZACION')`. Copia IVA y vigencia | CREAR, estadoNuevo BORRADOR |
+| (alta) | BORRADOR | cotizacion:gestionar | Cliente activo | `numero = siguiente_numero('COTIZACION')`. Copia la vigencia y el porcentaje de la tarifa. Total sin IVA | CREAR, estadoNuevo BORRADOR |
 | BORRADOR | ENVIADA | cotizacion:enviar | Al menos un ítem. Totales recalculados | fechaEmision = hoy. fechaVencimiento = hoy + vigencia | CAMBIAR_ESTADO |
 | ENVIADA | APROBADA | cotizacion:responder | hoy ≤ fechaVencimiento | fechaRespuesta, usuarioAprobacionId, referenciaAprobacion no vacía | CAMBIAR_ESTADO, detalle.medio |
 | ENVIADA | RECHAZADA | cotizacion:responder | | fechaRespuesta, motivoRechazo | CAMBIAR_ESTADO |
@@ -844,7 +861,7 @@ Así las pruebas de base no dependen del reloj.
 | CF-06 | Cotizacion, Material, EtapaOrden, OrdenTrabajo, Area | Índices: cotizacion(estado, fecha_vencimiento); material(activo, nombre) con existencia y stock_minimo; etapa_orden(responsable_id, estado) y (area_id, estado); orden_trabajo(responsable_id, estado) y (estado, fecha_entrega) |
 | CF-07 | Perfil, Permiso, PerfilPermiso, Usuario, UsuarioPerfil, Sesion | Matriz recurso:acción en tabla. Varios perfiles por usuario mediante usuario_perfil. Sesión con token en hash. Decisión en el servidor |
 | CF-09 | Todas las anteriores | Cadena de FK: cliente → cotizacion → orden_trabajo → etapa_orden y consumo_orden → movimiento_inventario → material. Todas con RESTRICT. Sin borrado físico |
-| CF-10 | ItemCotizacion, LineaCosto, Producto, RecetaProducto | `tipo` CATALOGO o PERSONALIZADO con CHECK de coherencia. Líneas por tipo con merma. CHECK de fórmulas. Snapshot de precios, costos, IVA y totales |
+| CF-10 | ItemCotizacion, LineaCosto, Producto, RecetaProducto | `tipo` CATALOGO o PERSONALIZADO con CHECK de coherencia. Líneas por tipo con merma. CHECK de fórmulas. Instantánea de precios, costos, tarifa y totales. |
 | CF-11 | Cliente, Cotizacion, OrdenTrabajo | Índices cotizacion(cliente_id, creado_en) y orden_trabajo(cliente_id). Relación directa del cliente con sus órdenes |
 
 CF-08 (dispositivo) no depende del modelo de datos.
@@ -1126,3 +1143,46 @@ Consulte ADR-014 y `docs/auditoria/2-2-invariantes-en-datos.md` para el contexto
   Consulte índices `usuario_perfil(perfil_id)` y `usuario_perfil(asignado_por_id)`.
   Conserve índices de `bitacora`: `(orden_id, creado_en)`, `(cotizacion_id, creado_en)`, `(entidad, entidad_id, creado_en)`.
   Conserve también índices `bitacora(usuario_id, creado_en)` y `bitacora(creado_en)`.
+
+### Permisos individuales y privacidad comercial de noviembre de 2026
+
+UsuarioPermiso relaciona Usuario y Permiso mediante una clave compuesta, conserva otorgadoPorId y creadoEn y se une a los permisos heredados al resolver una sesión. El nuevo permiso cotizacion:ver_todas amplía la visibilidad comercial; cotizacion:ver sigue siendo necesario. La autoría se comprueba tanto al consultar como al modificar una cotización y se aplica a las consultas derivadas que podrían revelar sus importes.
+
+En Producción sin permiso de planificación, la visibilidad depende de la participación en la orden: ser responsable general o responsable de alguna etapa (PROD-05, confirmado por el usuario el 2026-11-12). Quien participa puede consultar todas las etapas de esa orden, incluidas las de sus compañeros y las pendientes de habilitación. Solo puede ejecutar las etapas propias habilitadas; una orden ajena responde 404. Para habilitar una etapa, todas las de menor secuencia de la misma orden deben estar COMPLETADAS u OMITIDAS. La validación del inicio, del completado y de la acción Hecho ocurre bajo bloqueo de la orden. Los avisos de disponibilidad se derivan de las asignaciones pendientes; no agregan un estado de negocio a la orden.
+
+Regla histórica sustituida por PROD-05: PROD-02 limitaba también la consulta a las etapas propias habilitadas. La restricción vigente distingue la consulta de todas las etapas de una orden compartida de la ejecución exclusiva de las etapas propias habilitadas.
+
+NotificacionLectura (`notificacion_lectura`, migración 20261111160000, GEN-04) guarda por usuario el instante `leidasHasta` hasta el que leyó sus avisos. Clave primaria `usuario_id` con borrado en cascada. Los avisos no se almacenan: se calculan con el estado de etapas, órdenes, materiales y cotizaciones. La migración 20261111170000 solo actualiza las descripciones visibles de `catalogo:gestionar` y `produccion:ejecutar`.
+
+`item_cotizacion.profundidad` (DECIMAL(14,3), opcional, migración 20261112100000, COT-17): tercera medida en metros. El CHECK `item_valores_positivos` exige que sea positiva si existe y `item_importe_catalogo` calcula el importe por m² con `ancho × alto + 2 × coalesce(profundidad, 0) × (ancho + alto)`. Las partidas anteriores no tienen profundidad y conservan su importe.
+
+### COT-19 Tipos configurables de cotización personalizada
+
+El registro se almacena como JSON validado en Configuracion, clave cotizacion_tipos_personalizados (tipo TEXTO), sin tabla ni migración nueva. Contiene categorías referidas a Categoria y tipos con UUID, nombre, unidadCobro, margenPct y lista de materiales sugeridos. Solo se aceptan materiales activos y categorías activas. Nuevas categorías se crean con auditoría; no se renombran referencias históricas automáticamente. Se valida la versión de la configuración bajo bloqueo transaccional, incluida su primera creación. La configuración general no permite editar esta clave por fuera del servicio dedicado.
+
+La cotización guarda sus líneas y valores habituales; no depende de una referencia dinámica al tipo. La descripción del trabajo puede conservar el nombre sugerido o el texto del usuario. Esta entrega no agrega un identificador de plantilla a ItemCotizacion.
+
+## COT-21 Gastos de partidas personalizadas — 2026-11-12
+
+Migración 20261112220000_gastos_personalizados: item_cotizacion.gastos_personalizados jsonb nullable contiene los parámetros estructurados de renta, traslado, horas, viáticos, hospedaje, imprevistos e impuestos internos. linea_costo.es_gasto_personalizado boolean NOT NULL DEFAULT false identifica costos internos derivados; los importes los calcula el servidor. No cambia las filas históricas ni la fórmula SQL de costo total. El borrado y reemplazo de partidas, las instantáneas y la bitácora usan la transacción existente de Cotizaciones.
+
+El registro versionado cotizacion_tipos_personalizados admite tarifas opcionales por tipo con moneda y montos; se valida por zod, se audita y mantiene la exclusión del editor genérico. Los porcentajes sobre venta requieren descuento cero para conservar su base. No se crean movimientos de inventario ni reservas por guardar gastos.
+
+## COT-23 e INV-11 — 2026-11-13
+
+Migración 20261113100000_instalacion_ida_vuelta: Cotizacion.instalacionIdaVuelta boolean NOT NULL DEFAULT false conserva en falso las filas históricas y distingue nuevos cálculos de ida y vuelta. instalacionKm sigue guardando distancia de ida; la tarifa es una instantánea editable por cotización. cotizacion_instalacion_valida usa el factor 2 o 1 según el indicador. El DTO omite el indicador si es falso para mantener compatibilidad histórica. No se crea tabla de coordenadas; se conserva el destino decimal en instalacionDestino.
+
+Los campos de traslado de gastosPersonalizados y la antigua tarifa km por producto se interpretan solo por compatibilidad; ya no se capturan ni copian en partidas nuevas. INV-11 utiliza Material, AreaMaterial y Bitacora existentes, sin migración de inventario ni movimientos ficticios. La carga es transaccional e idempotente y conserva fuente y datos pendientes.
+
+## COT-24 Selección personalizada como instantánea — 2026-11-13
+
+Migración 20261113130000_producto_personalizado: item_cotizacion.producto_personalizado JSONB nullable conserva id del tipo, nombre y lista de UUID de materiales sugeridos. Se valida con zod. Es una instantánea descriptiva, no una clave foránea ni una fuente de precios: el cálculo sigue usando los materiales reales y los valores autorizados del servidor. No depende de que el tipo siga existiendo en Configuración. Las filas históricas quedan en null sin alterar importes.
+
+El DTO, la entrada de edición, duplicación y bitácora conservan la instantánea. Retirarla al pasar a captura manual se registra junto al cambio de costos; se respeta actualizarPrecio para registros existentes. Los gastos estructurados pueden generar todos los costos de un servicio sin líneas manuales, manteniendo las restricciones SQL de suma y margen.
+
+
+## INV-12 y CAT-05 Modelo de códigos y fotos — 2026-11-13
+
+Migración 20261113160000_codigos_fotos: SecuenciaCodigo(clave varchar(30) PK, ultimo bigint) mantiene el último consecutivo comprometido por prefijo mediante INSERT ON CONFLICT UPDATE dentro de la transacción de alta. Material y Producto incorporan codigosAnteriores text[] con índice GIN, sin sustituir sus claves UUID. Categoria incorpora prefijoCodigo varchar(16) único y estable; la función prefijo_categoria serializa la primera asignación. El código de material depende de su área inicial y el del producto de su categoría inicial, sin renumerar por reclasificación posterior.
+
+MaterialFoto tiene materialId UUID PK/FK a Material con borrado en cascada y contenido bytea entre 1 y 524288 bytes. Material.fotoVersion timestamptz es nulo cuando no tiene foto. La imagen se valida y convierte a WebP en servidor; la respuesta del material no incorpora bytes. La transacción del material guarda o quita la foto y registra antes/después mediante fotoVersion, conservando el bloqueo y versión optimista. El GET de imagen requiere permiso y no usa almacenamiento público. La migración no modifica movimientos, precios, consumos, cotizaciones ni órdenes.

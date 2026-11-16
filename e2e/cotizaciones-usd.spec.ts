@@ -17,6 +17,7 @@ const ATENCION_CLIENTE = PERFILES.find((perfil) => perfil.codigo === "ATENCION_C
 
 async function elegirEn(page: Page, id: string, opcion: string | RegExp): Promise<void> {
   await page.locator(`[id="${id}"]`).click();
+  if (id === "clienteId" && typeof opcion === "string") await page.getByLabel("Buscar cliente por nombre").fill(opcion);
   await page.getByRole("option", { name: opcion }).click();
 }
 
@@ -40,15 +41,11 @@ test("Atención al cliente cotiza en dólares: encabezado, editor, proforma y li
   await usarSesion(page, ATENCION_CLIENTE);
 
   try {
-    await page.goto("/cotizaciones");
-    await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
+    await page.goto("/cotizaciones/nueva");
     await expect(page.getByRole("heading", { level: 1, name: "Nueva cotización" })).toBeVisible();
     await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
     await elegirEn(page, "moneda", "Dólares (USD)");
     await page.locator("#asunto").fill(asunto);
-    await page.getByRole("button", { name: "Crear cotización" }).click();
-    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
-    id = page.url().split("/").slice(-2)[0];
 
     // Editor: ítem de catálogo por m², importes en dólares.
     await page.getByRole("button", { name: "Agregar catálogo" }).click();
@@ -59,12 +56,12 @@ test("Atención al cliente cotiza en dólares: encabezado, editor, proforma y li
     const totalesEditor = page.getByLabel("Totales de cotización");
     await expect(totalesEditor).toContainText("US$");
     await expect(totalesEditor).not.toContainText("C$");
-    const editor = page.getByRole("form", { name: "Ítems de cotización" });
-    await expect(editor).toContainText(/Moneda:\s*Dólares \(USD\)/);
+    const editor = page.getByRole("form", { name: "Nueva cotización" });
     await expect(editor).not.toContainText(C_FUERA_DEL_TIPO_DE_CAMBIO);
 
-    await page.getByRole("button", { name: "Guardar ítems" }).click();
+    await page.getByRole("button", { name: "Guardar borrador" }).click();
     await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
+    id = page.url().split("/").at(-1) ?? null;
 
     // Ficha: moneda, tipo de cambio e importes.
     const numero = ((await page.getByRole("heading", { level: 1 }).textContent()) ?? "").trim();
@@ -82,8 +79,8 @@ test("Atención al cliente cotiza en dólares: encabezado, editor, proforma y li
     // Proforma imprimible.
     await page.goto(`/cotizaciones/${id}/imprimir`);
     const proforma = page.locator("#proforma");
-    await expect(proforma).toContainText(`Proforma ${numero}`);
-    await expect(proforma).toContainText(/Moneda:\s*Dólares \(USD\)/);
+    await expect(proforma.getByRole("heading", { name: "Condiciones comerciales" })).toHaveCount(0);
+    await expect(proforma).toHaveAttribute("aria-label", `Proforma ${numero}`);
     await expect(proforma).toContainText("US$");
     await expect(proforma).not.toContainText(C_FUERA_DEL_TIPO_DE_CAMBIO);
 

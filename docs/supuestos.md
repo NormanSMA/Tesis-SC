@@ -13,7 +13,7 @@ Alimenta el Capítulo IV y la matriz de pruebas del OE3.
 | S-01 | Perfiles | Use seis perfiles: GERENCIA, ADMINISTRACION, OPERACIONES, ATENCION_CLIENTE, PRODUCCION y ADMIN. Permita varios perfiles por usuario. Una permisos efectivos. Reserve edición de matriz para ADMIN | Aplique Tabla 14 v9 y ADR-014 | Tesis v9; matriz de perfiles | Clasificación histórica: F09 documentado 0.94 |
 | S-02 | Inventario y perfiles | Reserve entradas, consumos, devoluciones, ajustes y materiales para ADMINISTRACION. Permita consulta a ADMINISTRACION, OPERACIONES y GERENCIA. Combine perfiles mediante usuario_perfil | Aplique el reparto entre los seis perfiles v9 | Tabla 14 v9; ADR-014 | - |
 | S-03 | Operarios | Use usuarios con perfil PRODUCCION. La siembra incluye cinco, según usuarios.json | P7 pide carga por operario | Anexo C P7 | F17 documentado 0.96 |
-| S-04 | Moneda e impuesto | Córdoba. IVA 15 % configurable. La cotización es proforma | 1.7 excluye facturación electrónica | Vacío 2.6 | F04 supuesto 1.00 |
+| S-04 | Moneda e impuesto | Córdobas o dólares. La proforma nueva se calcula sin IVA. Los documentos emitidos antes de COT-02 conservan el importe histórico. | 1.7 excluye facturación electrónica | COT-02 y ADR-018 | F04 antecedente |
 | S-05 | Valoración del material | Costo promedio ponderado por entrada | Se exige costo por orden, no el método | P8, Tabla 1 | F05 supuesto 0.68 |
 | S-06 | Estados de cotización | BORRADOR, ENVIADA, APROBADA, RECHAZADA, VENCIDA, AJUSTE_SOLICITADO. Exija referencia al aprobar y motivo al solicitar ajuste. Cree una versión corregida | Aplique ADR-014 y los esquemas vigentes | P7, 2.6; tesis v9 | Clasificación histórica: F02 supuesto 0.96 |
 | S-07 | Estados de orden | PENDIENTE, EN_PRODUCCION, LISTA, ENTREGADA, CERRADA, CANCELADA | 1.2 y P4 nombran pendiente, entrega y cierre | P4, 1.2 | F03 supuesto 0.94 |
@@ -44,7 +44,7 @@ Donde un SD detalla o corrige un S, manda el SD.
 
 | ID | Supuesto | Relación con S |
 |---|---|---|
-| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único. Teléfono o correo obligatorio | Detalla S-13 |
+| SD-12 | Cliente: nombre y tipo obligatorios. RUC opcional y único cuando se informa. Teléfono, correo y dirección opcionales. | Detalla S-13 y CLI-02 a CLI-04 |
 | SD-13 | Área de producción como catálogo editable. Cada etapa pertenece a un área | Nuevo. Lo exige la carga por área (CF-06) |
 | SD-14 | Ítem personalizado = suma de líneas (material con merma, mano de obra, terceros). Margen sobre precio de venta por ítem. Descuento como monto global | Corrige S-15 |
 | SD-15 | Unidad de cobro: UNIDAD o M2. Lista cerrada de unidades de material. Texto libre en líneas de costo | Corrige S-14 |

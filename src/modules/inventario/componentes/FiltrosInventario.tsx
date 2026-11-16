@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId, type ReactNode } from "react";
+import { AREAS_MATERIAL, nombreAreaMaterial } from "@/core/areas-material";
 import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
@@ -68,12 +69,16 @@ export function FiltrosMateriales({ resumen }: { resumen: { materiales: number; 
     { valor: "bajo", etiqueta: "Bajo mínimo", conteo: resumen.enAlerta },
     { valor: "archivados", etiqueta: "Archivados" },
   ];
-  const hayFiltros = Boolean(parametros.get("q")) || Boolean(parametros.get("estado"));
-  return <div className="flex flex-wrap items-center gap-3">
+  const hayFiltros = Boolean(parametros.get("q") || parametros.get("estado") || parametros.get("area"));
+  return <div className="flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar material" marcador="Buscar por nombre o código" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
     <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos={TODOS} opciones={opciones} />
+    <FiltroBuscable etiqueta="Área de producción" parametro="area" textoTodos="Todas las áreas" valorTodos={TODOS} opciones={[
+      ...AREAS_MATERIAL.map((id) => ({ id, nombre: nombreAreaMaterial(id) })),
+      { id: "SIN_CLASIFICAR", nombre: nombreAreaMaterial(null) },
+    ]} />
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
-      onClick={() => navegar({ q: null, estado: null })}>Limpiar filtros</Button> : null}
+      onClick={() => navegar({ q: null, estado: null, area: null })}>Limpiar filtros</Button> : null}
     <SelectorOrden parametro="ordenar" opciones={OPCIONES_ORDEN_MATERIAL} valorPorDefecto={textoOrden(ORDEN_MATERIAL_DEFECTO)} className="ml-auto" />
   </div>;
 }
@@ -86,7 +91,7 @@ export function FiltrosMovimientos({ materialId, opciones }: { materialId?: stri
   const claves = materialId ? CLAVES_OTROS.filter((clave) => clave !== "material") : CLAVES_OTROS;
   const activos = claves.filter((clave) => parametros.get(clave)).length;
   const hayFiltros = activos > 0 || Boolean(parametros.get("tipo"));
-  return <div className="flex flex-wrap items-center gap-3">
+  return <div className="flex flex-wrap items-end gap-3">
     <FiltroSegmentado etiqueta="Tipo de movimiento" parametro="tipo" valorTodos={TODOS} opciones={segmentos} />
     <BotonMasFiltros activos={activos}>
       {materialId ? null : <CampoSelect etiqueta="Material" parametro="material"

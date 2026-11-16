@@ -149,15 +149,14 @@ describe("esquemaCrearCliente: longitudes", () => {
 });
 
 describe("esquemaCrearCliente: medio de contacto", () => {
-  it("exige teléfono o correo y reporta ambos campos", () => {
-    const resultado = esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA" });
-    expect(resultado.success).toBe(false);
-    expect(camposConError(resultado).sort()).toEqual(["correo", "telefono"]);
+  it("acepta un particular sin datos de contacto ni identificación fiscal", () => {
+    const resultado = esquemaCrearCliente.parse({ nombre: "A", tipo: "PERSONA" });
+    expect(resultado).toMatchObject({ telefono: null, correo: null, ruc: null, direccion: null });
   });
 
   it("trata un teléfono vacío como ausente", () => {
     const resultado = esquemaCrearCliente.safeParse({ nombre: "A", tipo: "PERSONA", telefono: "  " });
-    expect(resultado.success).toBe(false);
+    expect(resultado.success).toBe(true);
   });
 
   it("acepta solo correo o solo teléfono", () => {

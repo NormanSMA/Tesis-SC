@@ -39,23 +39,23 @@ export function EditorReceta({ producto, materiales, puedeVerMateriales }: { pro
   const errores = formulario.formState.errors;
   const errorGlobal = errores.version?.message ?? errores.materiales?.root?.message ?? errores.materiales?.message;
   const disponibles = [...materiales, ...producto.receta.map((fila) => fila.material).filter((material) => !materiales.some((otro) => otro.id === material.id))];
-  return <form noValidate onSubmit={enviar} aria-label="Editar receta">
+  return <form noValidate onSubmit={enviar} aria-label="Editar materiales del producto">
     <CuerpoFormulario>
-    <SeccionFormulario titulo="Receta de materiales"
-      descripcion={`Cantidades por ${producto.unidadCobro === "M2" ? "m²" : "unidad"} de cobro. Guarde la receta por separado.`}>
-      {error ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>No se pudo guardar la receta</AlertTitle>
+    <SeccionFormulario titulo="Materiales del producto"
+      descripcion={`Cantidades por ${producto.unidadCobro === "M2" ? "m²" : "unidad"} de cobro. Guarde los materiales por separado.`}>
+      {error ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>No se pudieron guardar los materiales</AlertTitle>
         <AlertDescription>{error}{conflicto ? <Button type="button" variant="outline" onClick={recargar}>Recargar datos</Button> : null}</AlertDescription>
       </Alert> : null}
-      {errorGlobal ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>Revise la receta</AlertTitle>
+      {errorGlobal ? <Alert variant="destructive"><CircleAlert aria-hidden="true" /><AlertTitle>Revise los materiales</AlertTitle>
         <AlertDescription>{errorGlobal}</AlertDescription>
       </Alert> : null}
       {!puedeVerMateriales ? <p>Necesita inventario:ver para consultar materiales nuevos.</p> : null}
       <fieldset disabled={!hidratado || enviando} className="flex min-w-0 flex-col gap-4">
         {filas.fields.map((fila, indice) => <FilaReceta key={fila.id} formulario={formulario} indice={indice} materiales={disponibles} quitar={() => filas.remove(indice)} />)}
-        {!filas.fields.length ? <p className="text-sm text-muted-foreground">Sin materiales. La receta es opcional.</p> : null}
+        {!filas.fields.length ? <p className="text-sm text-muted-foreground">Sin materiales. Son opcionales.</p> : null}
         <div className="flex flex-wrap gap-3">
           {puedeVerMateriales ? <Button type="button" variant="outline" disabled={filas.fields.length >= 100} onClick={() => filas.append({ materialId: "", cantidad: "1" })}><Plus aria-hidden="true" />Agregar material</Button> : null}
-          <Button type="submit">Guardar receta</Button>
+          <Button type="submit">Guardar materiales</Button>
         </div>
       </fieldset>
     </SeccionFormulario>

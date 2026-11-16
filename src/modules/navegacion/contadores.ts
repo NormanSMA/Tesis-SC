@@ -2,6 +2,7 @@ import { can, type Actor } from "@/core/autorizacion";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
+import { soloEtapasPropias } from "@/modules/produccion/acceso";
 
 export type ContadorMenu = { total: number; tono: "neutro" | "peligro" };
 export type ContadoresMenu = Record<string, ContadorMenu>;
@@ -46,7 +47,8 @@ export async function obtenerContadores(actor: Actor, instante = new Date()): Pr
   if (can(actor, "cotizacion:ver")) {
     fuentes.push({ ruta: "/cotizaciones", consulta: cotizaciones(instante, hoy), tono: "neutro" });
   }
-  if (can(actor, "orden:ver")) {
+  // El personal de Producción no ve el total de órdenes ajenas: su contador vive en /produccion.
+  if (can(actor, "orden:ver") && !soloEtapasPropias(actor)) {
     fuentes.push({ ruta: "/ordenes", consulta: ordenes(hoy), tono: "neutro" });
   }
   if (can(actor, "inventario:ver")) {

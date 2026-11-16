@@ -3,17 +3,17 @@ import fs from "fs";
 import path from "path";
 
 import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
-import { elegir } from "./elegir";
+import { elegir, elegirAreasDeOrden, PERSONAL_DE_PRUEBA } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
 const CAPTURAS = path.join("docs", "capturas", "ordenes");
 const MARCA = `E2E-${Date.now()}-ordenes-${Math.floor(Math.random() * 100000)}`;
 const CLIENTE = "Agencia Viajes Tropical";
-const CATEGORIA = "Rotulación y gran formato";
+const CATEGORIA = "Rotulación";
 const PERSONALIZADO = `${MARCA}-personalizado`;
 const ESPECIFICACIONES = `${MARCA}-instalación según arte aprobado`;
-const ETAPAS = ["Diseño y aprobación de arte", "Impresión", "Laminado y corte", "Armado de estructura", "Instalación"];
+const ETAPAS = Object.keys(PERSONAL_DE_PRUEBA);
 type Perfil = (typeof PERFILES)[number];
 type Cotizacion = { id: string; numero: string; asunto: string | null; archivada: boolean; actualizadoEn: string };
 type Orden = { id: string; numero: string; estado: string; actualizadoEn: string; cotizacion: { asunto: string | null } };
@@ -55,16 +55,11 @@ async function abrirPestana(page: Page, nombre: string): Promise<void> {
 }
 
 async function crearMixta(page: Page): Promise<void> {
-  await page.goto("/cotizaciones");
-  await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
-  await elegir(page.getByRole("combobox", { name: /^Cliente/ }), CLIENTE, page);
+  await page.goto("/cotizaciones/nueva");
+  await page.getByRole("combobox", { name: /^Cliente/ }).click();
+  await page.getByLabel("Buscar cliente por nombre").fill(CLIENTE);
+  await page.getByRole("option", { name: CLIENTE, exact: true }).click();
   await page.getByLabel("Asunto").fill(MARCA);
-  const creada = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/cotizaciones") && respuesta.request().method() === "POST");
-  await page.getByRole("button", { name: "Crear cotización" }).click();
-  const respuesta = await creada;
-  expect(respuesta.status()).toBe(201);
-  cotizacion = (await respuesta.json()).datos as Cotizacion;
-  await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}/editar$`));
   await page.getByRole("button", { name: "Agregar catálogo" }).click();
   await elegir(page.getByRole("combobox", { name: /^Producto\b/, includeHidden: true }), /ROT-VIN-001/, page);
   await page.getByLabel("Ancho (m)").fill("2");
@@ -78,8 +73,12 @@ async function crearMixta(page: Page): Promise<void> {
   await linea.getByLabel("Descripción de costo").fill(`${MARCA}-vinil`);
   await linea.getByLabel("Cantidad total consumida").fill("2");
   await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
-  await linea.getByLabel("Merma (%)").fill("10");
-  await page.getByRole("button", { name: "Guardar ítems" }).click();
+  await linea.getByLabel("Desperdicio (%)").fill("10");
+  const creada = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/cotizaciones") && respuesta.request().method() === "POST");
+  await page.getByRole("button", { name: "Guardar borrador" }).click();
+  const respuesta = await creada;
+  expect(respuesta.status()).toBe(201);
+  cotizacion = (await respuesta.json()).datos as Cotizacion;
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}$`));
   await expect(page.getByRole("main")).toContainText(CLIENTE);
   await page.getByRole("button", { name: "Enviar cotización" }).click();
@@ -92,7 +91,7 @@ async function aprobarMixta(page: Page): Promise<void> {
   await entrarComo(page, GERENCIA);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
   await expect(page.getByRole("main")).toContainText("Enviada");
-  await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Aprobar", exact: true })).toBeVisible();
   await entrarComo(page, OPERACIONES);
   await page.goto(`/cotizaciones/${cotizacion.id}`);
   await page.getByRole("button", { name: "Aprobar", exact: true }).click();
@@ -117,7 +116,8 @@ async function abrirConversion(page: Page): Promise<void> {
 
 async function convertirMixta(page: Page): Promise<void> {
   await abrirConversion(page);
-  // La orden nace sin responsable: se asigna después.
+  await elegir(page.getByRole("combobox", { name: /^Responsable de la orden/ }), "Marco López", page);
+  await elegirAreasDeOrden(page, ETAPAS);
   await page.getByLabel("Fecha de entrega").fill(fechaFutura(14));
   await page.getByLabel("Especificaciones").fill(ESPECIFICACIONES);
   const respuestaPendiente = page.waitForResponse((respuesta) => respuesta.url().endsWith("/api/v1/ordenes") && respuesta.request().method() === "POST");
@@ -129,9 +129,8 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`/ordenes/${orden.id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^OT-\d{4}-\d{4}$/);
   await expect(page.getByRole("main").getByText("Pendiente", { exact: true }).first()).toBeVisible();
-  expect(conversion.responsableId).toBeFalsy();
-  await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveAttribute("href", `/ordenes/${orden.id}/editar`);
-  await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
+  expect(conversion.responsableId).toBeTruthy();
+  await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
   // La fecha de entrega va en la tarjeta de cifras de la cabecera.
   await expect(page.getByRole("main").getByText(fechaVisible(conversion.fechaEntrega), { exact: true }).first()).toBeVisible();
   // El siguiente paso de una orden pendiente es iniciar la producción.
@@ -142,22 +141,31 @@ async function convertirMixta(page: Page): Promise<void> {
   await expect(page.getByRole("link", { name: CLIENTE, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: cotizacion!.numero, exact: true })).toBeVisible();
   await abrirPestana(page, "Especificaciones");
-  const items = page.getByRole("region", { name: "Ítems", exact: true });
+  const items = page.getByRole("region", { name: "Productos y servicios", exact: true });
   await expect(items.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(items).toContainText("Rótulo vinil adhesivo personalizado");
   await expect(items).toContainText(PERSONALIZADO);
   await expect(items).toContainText("Cantidad: 1 m²");
   await expect(items).toContainText("Medidas: 2.000 × 1.500 m");
   await verificarEtapasYEstimado(page);
+  const legado = await page.request.patch(`/api/v1/ordenes/${orden.id}`, { headers: { Origin: ORIGIN },
+    data: { version: orden.actualizadoEn, responsableId: null } });
+  expect(legado.status()).toBe(200);
+  orden = (await legado.json()).datos as Orden;
 }
 
-async function verificarEtapasYEstimado(page: Page): Promise<void> {
+async function verificarEtapasYEstimado(page: Page, verConsumo = true): Promise<void> {
   const etapas = page.getByRole("table", { name: "Etapas de la orden" });
-  await expect(etapas.getByRole("row")).toHaveCount(6);
+  await expect(etapas.getByRole("row")).toHaveCount(ETAPAS.length + 1);
   for (const nombre of ETAPAS) {
     const fila = etapas.getByRole("row").filter({ hasText: nombre });
     await expect(fila).toContainText("Pendiente");
-    await expect(fila).toContainText("Sin responsable");
+    await expect(fila).toContainText(PERSONAL_DE_PRUEBA[nombre]);
+    await expect(fila).toContainText(`Trabajo de ${nombre}`);
+  }
+  if (!verConsumo) {
+    await expect(page.getByRole("tab", { name: "Consumo estimado", exact: true })).toHaveCount(0);
+    return;
   }
   await abrirPestana(page, "Consumo estimado");
   const consumo = page.getByRole("table", { name: "Consumo estimado de materiales" });
@@ -246,10 +254,10 @@ async function capturarFicha(page: Page, perfil: Perfil): Promise<void> {
   await page.goto(`/ordenes/${orden.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(orden.numero);
   await abrirPestana(page, "Especificaciones");
-  await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
+  await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("C$");
   for (const vista of VIEWPORTS) {
     await page.setViewportSize({ width: vista.width, height: vista.height });
-    await verificarEtapasYEstimado(page);
+    await verificarEtapasYEstimado(page, perfil.codigo !== "ATENCION_CLIENTE");
     await sinDesbordeHorizontal(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.evaluate(() => document.fonts.ready);
@@ -312,7 +320,7 @@ function registrarListaYAsignacion(): void {
     if (!orden) throw new Error("Falta la orden convertida.");
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/ordenes/${orden.id}`);
-    await expect(page.getByRole("main").getByText("Sin responsable", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("main").getByText("Sin responsable").first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
     await entrarComo(page, ADMINISTRACION);
     await page.goto(`/ordenes/${orden.id}`);
@@ -330,10 +338,10 @@ function registrarListaYAsignacion(): void {
 }
 
 function registrarGestion(): void {
-  test("Gerencia y Administración no cancelan; Operaciones edita, registra eventos y cancela", async ({ page }, info) => {
+  test("Atención al Cliente consulta; Administración puede cancelar y Operaciones edita y cancela", async ({ page }, info) => {
     soloPortatil(info.project.name);
     if (!orden || !conversion) throw new Error("Falta la orden convertida.");
-    await entrarComo(page, GERENCIA);
+    await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/ordenes/${orden.id}`);
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Cancelar orden" })).toHaveCount(0);
@@ -341,7 +349,7 @@ function registrarGestion(): void {
     await entrarComo(page, ADMINISTRACION);
     await page.goto(`/ordenes/${orden.id}`);
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Cancelar orden", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Cancelar orden", exact: true })).toBeVisible();
     await entrarComo(page, OPERACIONES);
     await page.goto(`/ordenes/${orden.id}`);
     await page.getByRole("link", { name: "Editar", exact: true }).click();
@@ -379,7 +387,7 @@ test.describe("Conversión y gestión de una orden propia", () => {
     if (info.project.name === "portatil") await limpiarCreadas(browser);
   });
 
-  test("Atención al cliente crea y envía una cotización mixta; Operaciones la aprueba y Gerencia no", async ({ page }, info) => {
+  test("Atención al cliente crea y envía una cotización mixta y Operaciones la aprueba", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
     await entrarComo(page, ATENCION_CLIENTE);
@@ -389,12 +397,12 @@ test.describe("Conversión y gestión de una orden propia", () => {
 
   registrarPruebasAxe();
 
-  test("Atención al cliente no convierte; Operaciones convierte sin responsable y ve etapas y consumo", async ({ page }, info) => {
+  test("Atención al cliente tiene acceso a conversión y Operaciones registra la orden con etapas y consumo", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(90000);
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto(`/cotizaciones/${cotizacion!.id}`);
-    await expect(page.getByRole("link", { name: "Convertir en orden", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Convertir en orden", exact: true })).toBeVisible();
     await entrarComo(page, OPERACIONES);
     await convertirMixta(page);
   });
@@ -431,12 +439,12 @@ test("Producción consulta lista y ficha sin gestión ni dinero", async ({ page 
   await expect(page.getByRole("button", { name: /Cancelar orden|Cerrar(?! sesión)|Entregar|Convertir en orden/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Asignar", exact: true })).toHaveCount(0);
   await abrirPestana(page, "Especificaciones");
-  await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("Cantidad:");
+  await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("Cantidad:");
   await expect(page.getByRole("table", { name: "Etapas de la orden" })).toBeVisible();
-  await abrirPestana(page, "Consumo estimado");
-  await expect(page.getByRole("table", { name: "Consumo estimado de materiales" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Consumo estimado", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("table", { name: "Etapas de la orden" }).getByRole("columnheader", { name: "Materiales" })).toBeVisible();
   const cotizacionTab = page.getByRole("tab", { name: "Cliente y cotización", exact: true });
-  if (await cotizacionTab.count()) await cotizacionTab.click();
+  await expect(cotizacionTab).toHaveCount(0);
   await expect(page.getByRole("link", { name: /^COT-/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.body.innerText)).not.toContain("C$");
 });
@@ -452,7 +460,7 @@ for (const actor of [ATENCION_CLIENTE, GERENCIA, OPERACIONES]) {
     await entrarComo(page, actor);
     await abrirSembrada(page);
     await abrirPestana(page, "Especificaciones");
-    await expect(page.getByRole("region", { name: "Ítems", exact: true })).toContainText("C$");
+    await expect(page.getByRole("region", { name: "Productos y servicios", exact: true })).toContainText("C$");
     await abrirPestana(page, "Cliente y cotización");
     await expect(page.getByRole("main")).toContainText("Total");
   });
@@ -466,8 +474,7 @@ for (const actor of [OPERACIONES, ATENCION_CLIENTE, ADMINISTRACION, GERENCIA, PR
       test.skip(filas.length === 0, `No existe una orden sembrada ${estado}.`);
       await page.goto(`/ordenes/${filas[0].id}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(filas[0].numero);
-      // Entregan y cierran solo Operaciones y Atención al cliente.
-      const puede = ["OPERACIONES", "ATENCION_CLIENTE"].includes(actor.codigo);
+      const puede = ["OPERACIONES", "ADMINISTRACION", "GERENCIA"].includes(actor.codigo);
       await expect(page.getByRole("button", { name: "Entregar", exact: true })).toHaveCount(estado === "LISTA" && puede ? 1 : 0);
       await expect(page.getByRole("button", { name: "Cerrar", exact: true })).toHaveCount(estado === "ENTREGADA" && puede ? 1 : 0);
     });

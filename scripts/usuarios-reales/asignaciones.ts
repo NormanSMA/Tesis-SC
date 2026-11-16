@@ -2,21 +2,17 @@ import type { Actor } from "../../src/core/autorizacion";
 import { prisma } from "../../src/lib/db";
 import { editarEtapa } from "../../src/modules/produccion/etapas";
 import { editarOrden } from "../../src/modules/ordenes/service";
+import { nombreOficialArea } from "../../src/modules/ordenes/areas-conversion";
 import ficticios from "../../prisma/seed/datos/usuarios.json";
 import { personas } from "./personas";
-const equivalencias: Record<string, string> = {
-  'Diseño y artes gráficas': 'Diseño Gráfico', 'Impresión': 'Impresión Digital',
-  'Corte y láser': 'Grabado y Corte Láser', 'Carpintería y metalmecánica': 'Taller',
-  'Acabados': 'Acabado y Montaje', 'Instalación': 'Acabado y Montaje',
-  'Electricidad y LED': 'Taller', 'Despacho': 'Acabado y Montaje',
-};
 const turnos = new Map<string, number>();
 function siguienteOperario(area: string) {
-  const especialidad = equivalencias[area];
+  const nombre = nombreOficialArea(area);
+  const especialidad = nombre === "Acabado" ? "Acabado y Montaje" : nombre;
   const candidatos = personas.filter(c => c.perfil === 'PRODUCCION' && c.area === especialidad);
   if (!candidatos.length) throw new Error(`Área sin correspondencia: ${area}`);
-  const turno = turnos.get(area) ?? 0;
-  turnos.set(area, turno + 1);
+  const turno = turnos.get(nombre) ?? 0;
+  turnos.set(nombre, turno + 1);
   return candidatos[turno % candidatos.length];
 }
 

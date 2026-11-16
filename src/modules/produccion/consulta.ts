@@ -1,21 +1,23 @@
-import { exigir, type Actor } from "@/core/autorizacion";
+import { can, exigir, type Actor } from "@/core/autorizacion";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { idsEtapasDisponibles, soloEtapasPropias } from "./acceso";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
 import { consultarResponsables } from "@/modules/ordenes/repo";
 import { aAreaDto, aEtapaDto } from "./dto";
-import { incluirEtapa } from "./repo";
+import { consultarAreasProduccion, incluirEtapa } from "./repo";
 import type { ConsultaTablero } from "./schema";
 import type { EtapaTablero, GrupoEtapas, OpcionesProduccion, TableroProduccion } from "./tipos";
 
 // Tope de etapas por petición del tablero. `total` informa el conteo completo.
 const LIMITE_TABLERO = 500;
 
-function filtroTablero(consulta: ConsultaTablero): Prisma.EtapaOrdenWhereInput {
+function filtroTablero(consulta: ConsultaTablero, verCotizacion: boolean | string): Prisma.EtapaOrdenWhereInput {
   const texto = consulta.q ? { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const } : undefined;
   return { estado: consulta.estado ?? { in: ["PENDIENTE", "EN_CURSO"] }, areaId: consulta.area, responsableId: consulta.responsable,
     orden: { estado: { notIn: ["ENTREGADA", "CERRADA", "CANCELADA"] },
-      ...(texto && { OR: [{ numero: texto }, { cotizacion: { asunto: texto } }, { cotizacion: { cliente: { nombre: texto } } }] }) } };
+      ...(texto && { OR: [{ numero: texto }, { cliente: { nombre: texto } },
+        ...(verCotizacion ? [{ cotizacion: { asunto: texto, ...(typeof verCotizacion === "string" ? { creadoPorId: verCotizacion } : {}) } }] : [])] }) } };
 }
 function agrupar(datos: EtapaTablero[], campo: "area" | "responsable"): GrupoEtapas[] {
   const grupos = new Map<string | null, GrupoEtapas>();
@@ -29,7 +31,8 @@ function agrupar(datos: EtapaTablero[], campo: "area" | "responsable"): GrupoEta
 }
 export async function obtenerTablero(consulta: ConsultaTablero, actor: Actor): Promise<TableroProduccion> {
   exigir(actor, "produccion:ver");
-  const where = filtroTablero(consulta);
+  const where = filtroTablero(consulta, can(actor, "cotizacion:ver") && (can(actor, "cotizacion:ver_todas") || actor.id));
+  if (soloEtapasPropias(actor)) where.id = { in: await idsEtapasDisponibles(prisma, actor) };
   const [filas, total] = await Promise.all([
     prisma.etapaOrden.findMany({ where, include: { ...incluirEtapa,
       orden: { select: { id: true, numero: true, estado: true, fechaEntrega: true } } },
@@ -46,7 +49,7 @@ export async function obtenerTablero(consulta: ConsultaTablero, actor: Actor): P
 export async function opcionesProduccion(actor: Actor): Promise<OpcionesProduccion> {
   exigir(actor, "produccion:ver");
   const [areas, responsables, categorias] = await Promise.all([
-    prisma.area.findMany({ orderBy: [{ nombre: "asc" }, { id: "asc" }] }), consultarResponsables(),
+    consultarAreasProduccion(), consultarResponsables(),
     prisma.categoria.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
   ]);
   return { areas: areas.map(aAreaDto), responsables, categorias };

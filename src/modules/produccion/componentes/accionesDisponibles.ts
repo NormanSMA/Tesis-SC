@@ -10,8 +10,9 @@ export function accionesDisponibles({ estadoEtapa, estadoOrden, permisos, soloEj
   return {
     asignar: planificar && estadoEtapa !== "COMPLETADA",
     fechas: planificar && ["PENDIENTE", "EN_CURSO"].includes(estadoEtapa),
-    iniciar: permisos.ejecutar && estadoEtapa === "PENDIENTE" && (estadoOrden !== "PENDIENTE" || permisos.avanzar),
-    completar: permisos.ejecutar && estadoEtapa === "EN_CURSO",
+    // "Hecho" sustituye a Iniciar y Completar: una etapa pendiente se completa en un solo paso.
+    hecho: permisos.ejecutar && (estadoEtapa === "EN_CURSO"
+      || (estadoEtapa === "PENDIENTE" && (estadoOrden !== "PENDIENTE" || permisos.avanzar))),
     omitir: planificar && estadoEtapa === "PENDIENTE",
     restaurar: planificar && estadoEtapa === "OMITIDA",
   };

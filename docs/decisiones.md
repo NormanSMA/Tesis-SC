@@ -147,3 +147,93 @@ Estado: diferido. Evaluación del agente arquitecto con documentación oficial d
 - Cantidades de material: sin ceros sobrantes (8, 3.7, 0.125). Una unidad discreta con fracción conserva su valor real (3.7 rollos no se redondea a 4). Los campos de entrada conservan el decimal exacto para editar.
 - Costos y precios: 2 decimales con `formatearMoneda`. Se retiró el valor exacto de 7 decimales de la ficha de trazabilidad; el DTO conserva la precisión.
 - Migración `20261014100000_cotizacion_descuento_pct`, con reversión en `prisma/migrations-down`.
+
+## Acceso individual y secuencia de producción — 2026-11-11
+
+Por solicitud del responsable del proyecto, los permisos efectivos son la unión de perfiles y concesiones individuales. Las concesiones no incluyen denegaciones por usuario. Gerencia conserva el catálogo completo y Arely Rodríguez recibe cotizacion:ver_todas; otros autores solo acceden a sus cotizaciones. Cada concesión y retirada se audita y se evalúa con la sesión actual.
+
+Regla histórica de PROD-02, sustituida en su alcance de consulta por PROD-05: Producción sin permiso de planificación solo consultaba y ejecutaba sus etapas una vez completadas u omitidas las anteriores. La ejecución toma el bloqueo de la orden y valida la secuencia bajo ese bloqueo. Planificar permite supervisar las etapas de otros responsables; la ejecución también respeta la secuencia. Los avisos originales de PROD-03 eran internos a la aplicación, se consultaban cada diez segundos y usaban Web Audio API tras una activación explícita del usuario; GEN-04 los sustituye por el centro de notificaciones descrito a continuación.
+
+## Producción por participación, botón Hecho y centro de notificaciones — 2026-11-11
+
+Solicitud del usuario durante la validación con el personal.
+- PROD-04: la interfaz completa una etapa con un solo botón Hecho y confirmación. La máquina de estados de la base no cambia: Hecho aplica PENDIENTE → EN_CURSO → COMPLETADA en una transacción y el historial conserva ambos pasos. Las rutas `iniciar` y `completar` se mantienen en la API.
+- PROD-05: el personal de Producción sin `produccion:planificar` solo conoce las órdenes en las que participa (responsable general o de alguna etapa), actuales e históricas. Dentro de ellas ve todas las etapas, incluidas las de sus compañeros, y ejecuta solo las propias habilitadas. Fuera de su alcance la orden responde 404 para no revelar su existencia. Sustituye la vista de PROD-02 limitada a las etapas propias.
+- Confirmación del usuario del 2026-11-12: el comportamiento implementado de PROD-05 es el correcto. La documentación debe distinguir la consulta de todas las etapas de una orden en la que participa de la ejecución exclusiva de las propias habilitadas.
+- GEN-04: los avisos se calculan con el estado actual en lugar de guardarse como mensajes. Solo se persiste el instante de lectura por usuario (`notificacion_lectura`), separado de `usuario` para no alterar su versión optimista. Cada fuente exige su permiso.
+- El sonido queda activo por defecto y se habilita con el primer gesto de cada visita porque los navegadores bloquean el audio sin interacción.
+- CAT-04: "receta" se sustituye por "materiales del producto" solo en la interfaz; el modelo conserva `receta_producto`.
+
+## Respaldo programado con hora real — 2026-11-11
+
+DAT-02: el servicio `respaldo` compara la hora real con el último respaldo y revisa cada 300 s. Un `sleep` de 23 h no avanzaba con el equipo suspendido y dejó dos días sin respaldo. RNF-06 sigue exigiendo que el servidor permanezca encendido.
+
+## Profundidad, trazabilidad de Producción y limpieza de interfaz — 2026-11-12
+
+Solicitud del usuario.
+- COT-17: la profundidad es opcional y afecta precio y material. El usuario eligió la fórmula de caja abierta (frente más cuatro laterales) frente a caja cerrada o solo laterales, y que se aplique tanto al precio por m² como al consumo de materiales.
+- PROD-06: la trazabilidad y el historial de la orden no corresponden al personal de Producción, aunque participe. Sustituye la trazabilidad por participación de PROD-05.
+- ORD-08: los materiales se integran en la tabla de etapas para leer en una sola tabla responsable, materiales e instrucciones.
+- COT-18 y ORD-09: las listas muestran solo lo decisivo a primera vista; el resto queda en la ficha. Otras pantallas se limpiarán solo con aprobación del usuario.
+- GEN-05: paleta oscura neutra (grafito con leve calidez) y clara con menos blanco, alineadas a la marca. Contrastes medidos en `docs/diseno.md`.
+
+## Planificación del cotizador personalizado — 2026-11-12
+
+Sin cambios de código ni datos. Fuente nueva: PRESUPUESTOS VARIADOS.xlsx. El usuario confirmó renta asignada según cada trabajo, mano de obra por horas de trabajo por persona e imprevistos e impuestos internos sobre el precio final de venta. Indicó C$16 por km recorrido, ida y vuelta; imprevistos de 5 % o 6 % local y 10 % fuera de Estelí; impuestos internos opcionales de 2 % o 3 %. Son requisitos para la próxima implementación, no tarifas ya desplegadas. La base exacta ante descuentos o impuestos al cliente sigue pendiente.
+
+Propuesta para revisión: plantillas de cotización por familia con componentes calculables, gastos compartidos por pedido y precio obtenido sin circularidad. Plan completo en docs/planificacion/cotizador-personalizado-2026-11-12.md; referencias de materiales en el anexo del mismo directorio. La carga a Inventario sigue pendiente: primero normalizar unidades, presentaciones, costos y coincidencias; no duplicar materiales existentes ni crear movimientos ficticios.
+
+### Aclaración del listado de rotulación y propuesta de categorías — 2026-11-12
+
+El usuario confirmó que el Excel repite el listado común de materiales y marca en amarillo los seleccionados para cada trabajo; luego registra cantidades. Propone categorías comerciales como las de SC, tipos de producto como subcategorías, selección editable de materiales y porcentajes de renta y ganancia, más aviso de faltantes antes de aprobar/ejecutar. Solo planificación. El porcentaje y base de renta siguen por definir; no se sustituyó la configuración actual. Se amplió el plan del cotizador con esta interpretación y con una propuesta de disponibilidad y reservas distinta del consumo físico.
+
+## COT-19 Configuración de tipos personalizables
+
+El usuario autorizó iniciar la implementación y confirmó que presentaciones, equivalencias y tarifas se cargarán posteriormente; no deben bloquear el desarrollo. Primera entrega: registro validado de tipos por categoría y materiales sugeridos, editable por tarifa:gestionar, con selección explícita en partidas personalizadas. Se reutilizan Configuracion y Categoria para no introducir un segundo catálogo comercial ni alterar partidas históricas. El editor copia sugerencias a las líneas habituales; no aplica una receta obligatoria ni inventa consumos. Renta, gastos estructurados, cálculo por componente y abastecimiento quedan en entregas posteriores del plan.
+
+## 2026-11-12 · COT-20 y COT-21
+
+Se reemplaza la edición simultánea de todas las categorías y tipos por selección de categoría, ficha de un producto y materiales. Se pueden preparar las ocho categorías comerciales de SC desde la interfaz sin confundirlas con áreas productivas.
+
+Los datos pendientes pueden quedar sin definir en las tarifas sugeridas; el cotizador exige los necesarios cuando activa el gasto. Las tarifas por producto solo se copian si coincide la moneda y no reemplazan gastos ya capturados. Se separan cantidades totales del trabajo de la cantidad de productos. La renta se asigna como monto o porcentaje sobre venta, de forma excluyente. Los impuestos internos e imprevistos usan la venta final, conforme aclaración del usuario. La base porcentual de renta es una decisión explícita de esta implementación, sin bandas automáticas.
+
+Se limita el descuento a cero cuando hay porcentajes sobre venta; el usuario puede ajustar el margen para negociar. Queda pendiente la distribución de descuentos y gastos compartidos entre partidas. No se añaden costos operativos automáticamente por el solo hecho de existir una tarifa; se requieren cantidades. La instalación general sigue separada: no duplicarla con traslado u horas de la partida.
+
+## 2026-11-13 · COT-22, COT-23 e INV-11
+
+Por solicitud del usuario, se corrigen las flechas de secciones plegables y se amplía el espacio de los campos de cotización. El traslado queda exclusivamente en Instalación: coordenadas pegadas desde un mapa o selección visual, ruta desde Estelí, ida por dos y tarifa base de Configuración editable para esa oferta. No se cambia globalmente la tarifa al negociar una instalación. Se preserva el cálculo anterior mediante un indicador explícito; no se cobran kilómetros adicionales a documentos guardados por una migración.
+
+La carga del Excel separa materiales de servicios y gastos, une variantes de escritura, conserva tres referencias previas y crea 63 altas con stock cero. No se reemplazan tarifas existentes ni se considera el amarillo una cantidad real de inventario. Cuando falta unidad del precio se conserva tarifa pendiente, nunca se interpreta cero como material gratuito. Se documentan 47 referencias históricas y 16 pendientes; se separa caja y libra de soldadura sin inventar su equivalencia.
+
+## 2026-11-13 · COT-24
+
+El usuario señaló que seleccionar un producto configurado todavía exigía agregar líneas de costo y pidió vocabulario claro. Se reconoce un problema del flujo: COT-19 cargaba sugerencias solo después de marcarlas y pulsar Aplicar. Se sustituye por carga inmediata al elegir el producto, con materiales inicialmente incluidos, cantidades revisables y posibilidad de desmarcar. La captura manual queda como alternativa; se mantienen registros internos para costeo, inventario y ODT sin exigir que el usuario los construya de nuevo.
+
+La selección se persiste como instantánea independiente del registro de tipos. No se infiere retrospectivamente por coincidencia de descripción. Para servicios sin materiales se aceptan horas y gastos fijos como base; porcentajes sin base no producen un precio ficticio. El lenguaje visible usa trabajos, productos, materiales, servicios externos, desperdicio y ganancia sobre venta.
+
+
+## 2026-11-13 · GEN-06, COT-25, INV-12, CAT-05 y BI-01
+
+El usuario aprobó ejecutar la propuesta de organización de formularios, tablas de costos, fotos de inventario, filtros y códigos automáticos, tomando la recomendación de gráficos 2D profesionales para reportes. Se conserva una interfaz sobria, con diferencias de superficie y estados acompañados de texto. Los títulos se ubican encima de los campos, incluidos los parámetros de Configuración.
+
+Los códigos identifican registros de forma estable; no son una clasificación que deba cambiar cada vez que se mueve el material o producto. Se renumeran los existentes una vez, se conservan los anteriores para búsquedas/importación y se generan los siguientes bajo bloqueo transaccional. Los prefijos de categorías similares se distinguen sin eliminar categorías o unificarlas por su nombre. Las fotos se guardan en PostgreSQL para que los respaldos existentes las incluyan y la autorización no dependa de archivos públicos.
+
+Los reportes representan los cuatro conjuntos ya disponibles con definiciones y tablas. No se confunde cotización con cobro, saldo importado cero con conteo físico, número de etapas con productividad o carga actual con historia del período. Se evita 3D porque la perspectiva dificulta comparar longitudes. No se crean reservas, alertas de abastecimiento nuevas ni equivalencias de materiales dentro de esta entrega.
+
+## 2026-11-14 · GEN-07, COT-26 y ORD-10
+
+El usuario pidió alinear botones y campos de las tablas de cotización, sustituir por íconos las acciones junto a cada etapa de ODT y definir mejor los marcos de formularios. Se alinea la base de los filtros y la parte superior de los campos tabulares, conservando etiquetas accesibles sin espacio visual reservado. Quitar pasa a una columna propia. Se refuerzan solo los marcos de paneles/grupos para mantener una jerarquía sobria en ambos temas.
+
+Los íconos usan ayudas con cursor y teclado, nombres accesibles por etapa y tamaño uniforme. Se reutiliza la presentación compartida de AccionesEtapa para mantener coherencia con Producción; la autorización y las confirmaciones continúan intactas.
+
+## 2026-11-14 · GEN-08 Responsividad conservando contenido
+
+Tras revisar Usuarios y Trazabilidad, el usuario autorizó corregir exclusivamente responsividad y reiteró que no se elimine contenido. Se mantienen todos los datos visibles, etiquetas, filtros, acciones y eventos. A diferencia de la alternativa de detalles ampliables del análisis inicial, esta entrega conserva el historial completo abierto y mejora su distribución. PC mantiene tablas; móvil reorganiza celdas; tableta puede desplazar una tabla dentro de su región. Los paneles de filtros respetan también la altura disponible. Campos y tarjetas se adaptan al ancho útil del bloque, considerando el espacio de la barra lateral.
+
+No se modifican reglas de negocio, API, permisos, modelo ni datos. La comparación del contenido renderizado antes/después forma parte de la verificación.
+
+## 2026-11-14 · Publicación y conservación del histórico SQL
+
+El usuario solicita publicar todo el avance sin coautores. Se versionan el registro Word revisado y las evidencias visuales, además de código, migraciones, pruebas y documentación. El estado operativo y las credenciales permanecen locales.
+
+Para conservar migraciones ya aplicadas, la revisión SQL registra únicamente advertencias históricas concretas con su huella y ubicación; no reescribe el SQL aplicado. Las huellas se verifican y los hallazgos nuevos fallan. Se mantienen los riesgos de bloqueo documentados y la necesidad de mantenimiento al aplicar estas migraciones en otro entorno. Ver docs/auditoria/2026-11-14-publicacion.md. La preparación elimina dos ciclos de importación sin cambiar comportamiento, esquema o fórmulas.

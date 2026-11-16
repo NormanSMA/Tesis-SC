@@ -16,7 +16,7 @@ export function FiltrosCatalogoProduccion({ busqueda, marcador, conteos, categor
   const { parametros, navegar } = useParametrosUrl();
   const hayFiltros = ["q", "estado"].some((clave) => Boolean(parametros.get(clave)));
   return <div className="mb-4 flex flex-col gap-3">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-end gap-3">
       <BuscadorEnVivo etiqueta={busqueda} marcador={marcador} className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
       <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos="todas" opciones={[
         { valor: "todas", etiqueta: "Todas", conteo: conteos.todas },

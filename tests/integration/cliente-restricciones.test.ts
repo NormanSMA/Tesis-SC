@@ -32,7 +32,7 @@ describeConBase("restricciones endurecidas de cliente", () => {
     await expect(insertarCliente(null, " contacto@empresa.test")).rejects.toThrow(/cliente_correo_valido/);
   });
 
-  test("sigue exigiendo un medio de contacto", async () => {
-    await expect(insertarCliente(null, null)).rejects.toThrow(/cliente_medio_contacto/);
+  test("acepta un cliente sin medio de contacto", async () => {
+    await expect(insertarCliente(null, null)).resolves.toBe(1);
   });
 });

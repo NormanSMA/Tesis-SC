@@ -1,3 +1,4 @@
+import { GraficosReporte } from "./GraficosReporte";
 import { BarChart3 } from "lucide-react";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
@@ -34,6 +35,10 @@ export function ResultadoReporte({ nombre, reporte, dinero }: { nombre: NombreRe
       <BandejaMetricas className={COLUMNAS_TOTALES[Object.keys(reporte.totales).length] ?? "lg:grid-cols-3"}>{Object.entries(reporte.totales).map(([campo, valor]) =>
         <TarjetaMetrica key={campo} etiqueta={etiquetaVisible(ETIQUETAS_TOTALES[campo])} numero={numeroTotal(valor)}
           texto={String(totalVisible(campo, valor) ?? "")} formato={formatoTotal(campo)} />)}</BandejaMetricas></section>
+    <GraficosReporte nombre={nombre} reporte={reporte} dinero={dinero} />
+    <details className="rounded-lg border bg-secondary/30 p-4"><summary className="cursor-pointer font-medium">Cómo interpretar los indicadores</summary>
+      <p className="mt-3 text-sm">{nombre === "cotizaciones-por-estado" ? "Aprobación = aprobadas ÷ (aprobadas + rechazadas). Si no hay respuestas, se muestra 0 %. Se agrupa el estado actual de las cotizaciones creadas en las fechas elegidas; no es un historial de cambios de estado. El monto cotizado incluye todos los estados y no representa dinero cobrado." : nombre === "carga-por-operario" ? "Pendientes, en curso, atrasadas y órdenes a cargo reflejan la situación actual. El período solo filtra las completadas por su fecha real de finalización. Atrasadas es un subconjunto de pendientes y en curso. Los totales de etapas no miden productividad ni complejidad." : nombre === "existencias" ? "Saldo registrado actual de materiales activos, con los filtros aplicados. El valor del inventario usa saldo × costo promedio contable, no la tarifa de venta. No se suman cantidades de distintas unidades. Un saldo inicial cero pendiente de conteo no confirma un faltante físico." : "Órdenes abiertas a la fecha de consulta, agrupadas por su primera etapa pendiente o en curso. Atrasadas se determina por la fecha de entrega vencida en Managua y ya está incluido en el total."}</p>
+    </details>
     <DataTable apilarEnMovil titulo={TITULOS_REPORTES[nombre]} columnas={columnas} filas={reporte.filas}
       idFila={(fila) => JSON.stringify(fila)} className="min-w-0 md:[&_table]:min-w-[40rem] [&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] [&_th]:px-2 [&_td]:px-2"
       vacio={<EmptyState icono={BarChart3} titulo="Sin resultados" descripcion="No hay registros con estos filtros." />} />

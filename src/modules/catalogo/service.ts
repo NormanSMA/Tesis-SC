@@ -1,3 +1,4 @@
+import { exigirCodigoDisponible, prefijoCategoria, siguienteCodigo } from "@/lib/codigos";
 import { can, type Actor } from "@/core/autorizacion";
 import { costearItemCatalogo } from "@/core/costeo";
 import { registrarEvento } from "@/lib/bitacora";
@@ -31,6 +32,7 @@ function valorAnterior(actual: FilaFicha, campo: (typeof CAMPOS_PRODUCTO)[number
 function cambiosProducto(actual: FilaFicha, entrada: EntradaEditarProducto): CambiosProducto {
   const cambios: CambiosProducto = {};
   for (const campo of CAMPOS_PRODUCTO) {
+    if (campo === "codigo") continue;
     const nuevo = campo === "precioBase" && entrada.precioBase !== undefined ? precioNormalizado(entrada.precioBase) : entrada[campo];
     const anterior = valorAnterior(actual, campo);
     if (nuevo !== undefined && nuevo !== anterior) cambios[campo] = nuevo;
@@ -49,7 +51,9 @@ function detalleCambios(actual: FilaFicha, cambios: CambiosProducto) {
 export async function crearProducto(entrada: EntradaCrearProducto, actor: Actor) {
   try {
     return await prisma.$transaction(async (tx) => {
-      const producto = await insertarProducto(tx, { ...entrada, precioBase: precioNormalizado(entrada.precioBase) });
+      await exigirCodigoDisponible(tx, { tipo: "producto", codigo: entrada.codigo });
+      const codigo = await siguienteCodigo(tx, await prefijoCategoria(tx, entrada.categoriaId));
+      const producto = await insertarProducto(tx, { ...entrada, codigo, codigosAnteriores: entrada.codigo ? [entrada.codigo.toUpperCase()] : [], precioBase: precioNormalizado(entrada.precioBase) });
       await registrarEvento(tx, { entidad: "PRODUCTO", entidadId: producto.id, accion: "CREAR",
         actorId: actor.id, estadoNuevo: "ACTIVO", detalle: { codigo: producto.codigo, nombre: producto.nombre,
           costoUnitario: producto.costoUnitario?.toFixed(4) ?? null } });
@@ -63,6 +67,7 @@ export async function editarProducto(id: string, entrada: EntradaEditarProducto,
       const actual = await exigirProducto(tx, id);
       exigirVersion(actual, entrada.version);
       exigirProductoActivo(actual);
+      if (entrada.codigo !== undefined && entrada.codigo !== actual.codigo) throw new AppError({ codigo: "CODIGO_AUTOMATICO", status: 409, mensaje: "El código se genera automáticamente y no se puede cambiar." });
       const cambios = cambiosProducto(actual, entrada);
       if (!Object.keys(cambios).length) return aProductoDto(actual, can(actor, "cotizacion:ver"));
       if (!await actualizarProducto(tx, { id, activo: true, version: entrada.version }, cambios)) throw conflictoEdicion();

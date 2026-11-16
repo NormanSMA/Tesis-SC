@@ -26,10 +26,11 @@ function nuevoItem(tipo: EntradaItem["tipo"]): EntradaItem {
   return { tipo, categoriaId: "", descripcion: "", unidadCobro: "UNIDAD", cantidad: "1", margenPct: "30", lineas: [] };
 }
 
-function aMonedaCotizacion(selectores: SelectoresEditor, tipoCambio: string): SelectoresEditor {
+export function aMonedaCotizacion(selectores: SelectoresEditor, tipoCambio: string): SelectoresEditor {
   return { ...selectores,
     productos: selectores.productos.map((producto) => ({ ...producto, precioBase: convertirDesdeCordobas(producto.precioBase, tipoCambio, 2) })),
-    materiales: selectores.materiales.map((material) => ({ ...material, costoPromedio: convertirDesdeCordobas(material.costoPromedio, tipoCambio, 4) })) };
+    materiales: selectores.materiales.map((material) => ({ ...material, costoPromedio: convertirDesdeCordobas(material.costoPromedio, tipoCambio, 4),
+      precioCotizacion: convertirDesdeCordobas(material.precioCotizacion ?? material.costoPromedio, tipoCambio, 4) })) };
 }
 
 function useEditor(propiedades: Propiedades) {
@@ -55,25 +56,33 @@ function CamposItems({ propiedades, editor, pie }: {
   propiedades: Propiedades; editor: ReturnType<typeof useEditor>; pie: ReactNode;
 }) {
   const { cotizacion } = propiedades;
-  const { formulario, selectores, campos } = editor;
-  const { fields, append, remove } = useFieldArray({ control: formulario.control, name: "items" });
   return <fieldset disabled={editor.solicitud.enviando} className="min-w-0 space-y-5">
-    <legend className="mb-4 text-base font-semibold">Ítems de cotización</legend>
+    <legend className="mb-4 text-base font-semibold">Productos y servicios</legend>
     <p className="text-sm">Moneda: {nombreMoneda(cotizacion.moneda)}</p>
+    <CamposPartidas {...editor} moneda={cotizacion.moneda} originales={cotizacion.items} />
+    {pie}
+  </fieldset>;
+}
+
+export function CamposPartidas({ formulario, selectores, campos, moneda, originales }: {
+  formulario: UseFormReturn<EntradaReemplazarItems>; selectores: SelectoresEditor;
+  campos: Record<string, string>; moneda: string; originales: CotizacionDto["items"];
+}) {
+  const { fields, append, remove } = useFieldArray({ control: formulario.control, name: "items" });
+  return <>
     <GrupoCampo id="items" etiqueta="Productos y trabajos" error={campos.items}>
-      {fields.map((item, indice) => <EditorItem key={item.id} moneda={monedaDe(cotizacion.moneda)} indice={indice}
-        formulario={formulario} original={cotizacion.items.find((original) => original.id === item.itemId)}
+      {fields.map((item, indice) => <EditorItem key={item.id} moneda={monedaDe(moneda)} indice={indice}
+        formulario={formulario} original={originales.find((original) => original.id === item.itemId)}
         selectores={selectores} errores={campos} alQuitar={() => remove(indice)} />)}
     </GrupoCampo>
-    {!fields.length ? <EmptyState titulo="Agregue el primer ítem" descripcion="Seleccione catálogo o capture un trabajo personalizado." /> : null}
+    {!fields.length ? <EmptyState titulo="Agregue el primer producto" descripcion="Seleccione catálogo o capture un trabajo personalizado." /> : null}
     <div className="flex flex-wrap gap-3 max-sm:[&>*]:flex-1">
       <Button type="button" variant="outline" disabled={fields.length >= 200 || !selectores.productos.length}
         onClick={() => append(nuevoItem("CATALOGO"))}>Agregar catálogo</Button>
       <Button type="button" variant="outline" disabled={fields.length >= 200 || !selectores.categorias.length}
         onClick={() => append(nuevoItem("PERSONALIZADO"))}>Agregar personalizado</Button>
     </div>
-    {pie}
-  </fieldset>;
+  </>;
 }
 
 function PieEditor({ propiedades, formulario, selectores, enviando }: {
@@ -84,7 +93,7 @@ function PieEditor({ propiedades, formulario, selectores, enviando }: {
     <PieTotales control={formulario.control} cotizacion={cotizacion} selectores={selectores} />
     <div className={variante === "drawer" ? "flex flex-wrap gap-3" : "flex flex-wrap gap-3 max-sm:[&>*]:flex-1"}>
       <Button type="submit" form="items-cotizacion" disabled={enviando}>
-      {variante === "drawer" ? "Guardar borrador" : "Guardar ítems"}</Button>
+      {variante === "drawer" ? "Guardar borrador" : "Guardar productos"}</Button>
       {variante === "drawer" ? <Button asChild variant="outline" disabled={enviando}>
         <Link href={`/cotizaciones/${cotizacion.id}/editar`}>Abrir editor completo</Link></Button> :
         alCancelar ? <Button type="button" variant="outline" onClick={alCancelar}>Cancelar</Button> :
@@ -98,12 +107,12 @@ export function EditorItems(propiedades: Propiedades) {
   const pie = <PieEditor propiedades={propiedades} formulario={editor.formulario}
     selectores={editor.selectores} enviando={editor.solicitud.enviando} />;
   const drawer = propiedades.variante === "drawer";
-  return <form id="items-cotizacion" aria-label="Ítems de cotización" onSubmit={editor.guardar} noValidate className="space-y-5">
+  return <form id="items-cotizacion" aria-label="Productos de cotización" onSubmit={editor.guardar} noValidate className="space-y-5">
     <AvisoGuardado {...editor.solicitud} recargar={propiedades.alRecargar ?? editor.solicitud.recargar} />
     {drawer ? <CamposItems propiedades={propiedades} editor={editor} pie={null} /> :
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="space-y-6">
         <CamposItems propiedades={propiedades} editor={editor} pie={null} />
-        <aside aria-label="Totales y acciones" className="min-w-0 lg:sticky lg:top-6">{pie}</aside>
+        <aside aria-label="Totales y acciones" className="min-w-0 border-t pt-5">{pie}</aside>
       </div>}
     {drawer && propiedades.pie ? createPortal(pie, propiedades.pie) : null}
   </form>;

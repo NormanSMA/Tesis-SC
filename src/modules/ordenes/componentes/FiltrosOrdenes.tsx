@@ -34,7 +34,7 @@ export function FiltrosOrdenes({ conteos, responsables }: { conteos?: ConteosOrd
   const hayFiltros = secundarios > 0 || ["q", "vista", "cliente"].some((clave) => Boolean(parametros.get(clave)));
   // Fila 1: buscador y filtros secundarios. Fila 2: vistas rápidas (ocupan todo el ancho y pueden desplazarse).
   return <div className="mb-4 flex flex-col gap-3">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-end gap-3">
       <BuscadorEnVivo etiqueta="Buscar órdenes" marcador="Buscar por número, cliente o asunto"
         className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
       <Popover>

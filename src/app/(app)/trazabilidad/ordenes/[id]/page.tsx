@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ClipboardList } from "lucide-react";
 import { CabeceraFicha, MarcaIcono } from "@/components/comunes/CabeceraFicha";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
@@ -14,6 +14,7 @@ export default async function PaginaTrabajo({ params }: { params: Promise<{ id: 
   const actor = await exigirPermisoPagina("orden:ver");
   const trazabilidad = await obtenerTrazabilidad(leerId((await params).id), actor).catch((error: unknown) => {
     if (error instanceof AppError && error.status === 404) notFound();
+    if (error instanceof AppError && error.status === 403) redirect("/sin-acceso");
     throw error;
   });
   return <><CabeceraFicha titulo={`Trazabilidad completa: ${trazabilidad.cadena.orden.numero}`}

@@ -2,7 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId } from "react";
-import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
+import { FormField } from "@/components/comunes/FormField";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
 import { FiltroSegmentado, type OpcionSegmento } from "@/components/comunes/FiltroSegmentado";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import type { ConteosCotizaciones } from "../tipos";
+import { SelectorCliente } from "./SelectorCliente";
 
 const TODOS = "__todos__";
 const ARCHIVADAS = [
@@ -53,7 +54,7 @@ export function FiltrosCotizaciones({ conteos, clientes }: {
   const hayFiltros = secundarios > 0 || Boolean(parametros.get("q")) || Boolean(parametros.get("estado"));
   // Fila 1: buscador y filtros secundarios. Fila 2: pastillas de estado (ocupan todo el ancho y pueden desplazarse).
   return <div className="mb-4 flex flex-col gap-3">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar cotizaciones" marcador="Buscar por número, cliente o asunto" className="sm:max-w-md sm:flex-1" />
     <Popover>
       <PopoverTrigger asChild>
@@ -65,7 +66,11 @@ export function FiltrosCotizaciones({ conteos, clientes }: {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
-        <FiltroBuscable etiqueta="Cliente" parametro="cliente" opciones={clientes} valorTodos={TODOS} />
+        <FormField id="filtro-cotizaciones-cliente" etiqueta="Cliente">
+          {(atributos) => <SelectorCliente atributos={atributos} valor={cliente} opciones={clientes}
+            alCambiar={(id) => navegar({ cliente: id })} />}
+        </FormField>
+        {cliente !== TODOS ? <Button type="button" variant="ghost" onClick={() => navegar({ cliente: null })}>Quitar filtro de cliente</Button> : null}
         <CampoSeleccion etiqueta="Archivo" valor={archivadas} alCambiar={(valor) => navegar({ archivadas: valor === "false" ? null : valor })}
           opciones={ARCHIVADAS} />
       </PopoverContent>

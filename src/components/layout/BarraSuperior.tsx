@@ -3,14 +3,17 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CentroNotificaciones } from "@/modules/notificaciones/componentes/CentroNotificaciones";
 import { cn } from "@/lib/utils";
 
 import { Migas } from "./Migas";
+import { AlternarTema } from "./AlternarTema";
 import { Reloj } from "./Reloj";
 import { gruposNavegacion, itemActivo } from "./navegacion";
 
 type PropiedadesBarra = {
   ruta: string;
+  usuarioId: string;
   /** Fecha de hoy ya formateada por el servidor; se muestra junto al título del panel. */
   fechaHoy?: string;
   rielExpandido: boolean;
@@ -23,7 +26,7 @@ type PropiedadesBarra = {
 const BOTON_MENU = "text-slate-500 hover:bg-slate-200/60 hover:text-slate-900";
 
 // Cabecera estilo Mise: ícono de la sección, título grande y fecha. Contraer el menú vive junto a la marca.
-export function BarraSuperior({ ruta, fechaHoy, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
+export function BarraSuperior({ ruta, usuarioId, fechaHoy, rielExpandido, compacto, alAbrirMenuMovil, alAlternarRiel, alAlternarCompacto }: PropiedadesBarra) {
   const IconoRiel = rielExpandido ? PanelLeftClose : PanelLeftOpen;
   const IconoSeccion = itemActivo(gruposNavegacion, ruta)?.icono;
   return (
@@ -50,6 +53,8 @@ export function BarraSuperior({ ruta, fechaHoy, rielExpandido, compacto, alAbrir
         ) : null}
       </div>
       <Reloj />
+      <CentroNotificaciones usuarioId={usuarioId} />
+      <AlternarTema />
     </header>
   );
 }

@@ -1,6 +1,8 @@
 import type { PerfilCodigo } from "../../src/core/permisos";
 
-type Persona = { nombre: string; correo: string; perfil: PerfilCodigo; area: string };
+type Persona = { nombre: string; correo: string; perfil: PerfilCodigo; area: string; areasAdicionales: string[] };
+// Áreas de producción adicionales: cada una genera etapas y avisos propios en la orden.
+const ADICIONALES: Record<string, string[]> = { 'danny.gahona': ['Diseño Gráfico'] };
 const datos: [string, string, PerfilCodigo, string][] = [
   ['Jorge Isaac Rodríguez', 'jorge.rodriguez', 'GERENCIA', 'Gerencia General'],
   ['Arely Rodríguez', 'arely.rodriguez', 'ADMINISTRACION', 'Administración'],
@@ -17,7 +19,9 @@ const datos: [string, string, PerfilCodigo, string][] = [
   ['Félix Osegueda', 'felix.osegueda', 'PRODUCCION', 'Acabado y Montaje'],
   ['Mario Pineda', 'mario.pineda', 'PRODUCCION', 'Taller'],
   ['Luis Zeledón', 'luis.zeledon', 'PRODUCCION', 'Taller'],
+  ['Flor Moreno', 'flor.moreno', 'PRODUCCION', 'Bordado y Serigrafía'],
+  ['Brandi Castillo', 'brandi.castillo', 'PRODUCCION', 'Bordado y Serigrafía'],
 ];
 export const personas: Persona[] = datos.map(([nombre, alias, perfil, area]) => ({
-  nombre, correo: `${alias}@solucionescreativas.test`, perfil, area,
+  nombre, correo: `${alias}@solucionescreativas.test`, perfil, area, areasAdicionales: ADICIONALES[alias] ?? [],
 }));

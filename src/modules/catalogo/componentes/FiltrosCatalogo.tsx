@@ -5,7 +5,6 @@ import { useId } from "react";
 
 import { FiltroBuscable } from "@/components/comunes/SelectorBuscable";
 import { BuscadorEnVivo } from "@/components/comunes/BuscadorEnVivo";
-import { FiltroSegmentado } from "@/components/comunes/FiltroSegmentado";
 import { SelectorOrden } from "@/components/comunes/SelectorOrden";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,16 +31,17 @@ function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: s
   </div>;
 }
 
-/** Barra de la lista: búsqueda en vivo, categorías como pastillas y estado en "Más filtros". Todo vive en la URL. */
+/** Barra de la lista: búsqueda en vivo, categorías desplegables y estado en "Más filtros". Todo vive en la URL. */
 export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) {
   const { parametros, navegar } = useParametrosUrl();
   const activo = parametros.get("activo") ?? "true";
   const archivados = activo === "false";
   const hayFiltros = archivados || Boolean(parametros.get("q")) || Boolean(parametros.get("categoriaId"));
-  const opciones = [{ valor: "todas", etiqueta: "Todas" }, ...categorias.map((categoria) => ({ valor: categoria.id, etiqueta: categoria.nombre }))];
   return <div className="mb-4 flex flex-col gap-3">
-   <div className="flex flex-wrap items-center gap-3">
+   <div className="flex flex-wrap items-end gap-3">
     <BuscadorEnVivo etiqueta="Buscar productos" marcador="Buscar por código, nombre o descripción" className="basis-full sm:max-w-md sm:flex-1 sm:basis-auto" />
+    <FiltroBuscable etiqueta="Categoría" parametro="categoriaId" valorTodos="todas" textoTodos="Todas"
+      opciones={categorias.map(categoria => ({ id: categoria.id, nombre: categoria.nombre }))} />
     <Popover>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" className="h-10 gap-2">
@@ -52,9 +52,6 @@ export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) 
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4">
-        {/* En móvil la categoría vive aquí: las pastillas ocuparían varias líneas. */}
-        <FiltroBuscable etiqueta="Categoría" parametro="categoriaId" valorTodos="todas" textoTodos="Todas" className="md:hidden"
-          opciones={categorias.map((categoria) => ({ id: categoria.id, nombre: categoria.nombre }))} />
         <CampoEstado valor={activo} alCambiar={(valor) => navegar({ activo: valor === "true" ? null : valor })} />
       </PopoverContent>
     </Popover>
@@ -62,6 +59,6 @@ export function FiltrosCatalogo({ categorias }: { categorias: CategoriaDto[] }) 
     {hayFiltros ? <Button type="button" variant="ghost" className="h-10"
       onClick={() => navegar({ q: null, categoriaId: null, activo: null })}>Limpiar filtros</Button> : null}
    </div>
-    <FiltroSegmentado etiqueta="Categoría" parametro="categoriaId" valorTodos="todas" opciones={opciones} className="self-start max-md:hidden" />
+
   </div>;
 }

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CAMPOS_ORDEN_CLIENTE, type ClienteFila } from "@/modules/clientes/tipos";
 
+import { sembrarConfiguracion } from "../../prisma/seed/catalogos";
 import { sembrarReferencia } from "../../prisma/seed/referencia";
 import { liberarClienteGlobal, peticion } from "../helpers/auth";
 import { crearClientePropietario, describeConBase } from "../helpers/db";
@@ -21,12 +22,17 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
   const db = crearClientePropietario();
   let modulos: ModuloClientes;
   let ventas: Sesion;
+  let gerencia: Sesion;
+  let operaciones: Sesion;
   const marca = `Lst${randomUUID().slice(0, 6)}`;
 
   beforeAll(async () => {
     await sembrarReferencia(db);
+    await sembrarConfiguracion(db);
     modulos = await cargarModuloClientes();
     ventas = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
+    gerencia = await abrirSesion(db, modulos, "GERENCIA");
+    operaciones = await abrirSesion(db, modulos, "OPERACIONES");
   });
 
   afterAll(async () => {
@@ -34,18 +40,48 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
     await db.$disconnect();
   });
 
-  function consultar(parametros: Record<string, string>): Promise<RespuestaApi<ClienteFila[]>> {
+  function consultar(parametros: Record<string, string>, sesion = ventas): Promise<RespuestaApi<ClienteFila[]>> {
     const texto = new URLSearchParams(parametros).toString();
     return invocar<ClienteFila[]>(
       modulos.lista.GET,
-      peticion("GET", `/api/v1/clientes?${texto}`, { cookie: ventas.cookie, origen: null }),
+      peticion("GET", `/api/v1/clientes?${texto}`, { cookie: sesion.cookie, origen: null }),
     );
   }
 
   describe("búsqueda", () => {
+    it("quien gestiona clientes recibe el directorio y Operaciones busca por nombre", async () => {
+      const cliente = await crearClienteDirecto(db, { nombre: `Privado ${randomUUID()}` });
+      const consultas: Record<string, string>[] = [{}, { q: "   ", activo: "false" }, { tipo: "EMPRESA", pagina: "2" }];
+      for (const filtros of consultas) {
+        const lista = await consultar(filtros, operaciones);
+        expect(lista.cuerpo).toMatchObject({ datos: [], total: 0, conteos: { todos: 0, EMPRESA: 0, PERSONA: 0 } });
+      }
+      expect((await consultar({}, gerencia)).cuerpo.total).toBeGreaterThan(0);
+      expect((await consultar({})).cuerpo.total).toBeGreaterThan(0);
+      expect((await consultar({ q: cliente.codigoCliente }, operaciones)).datos).toEqual([]);
+      expect((await consultar({ q: cliente.nombre }, operaciones)).datos.map(({ id }) => id)).toEqual([cliente.id]);
+    });
+
+    it("Cotizaciones prepara el formulario sin precargar clientes y el selector busca solo por nombre", async () => {
+      const { GET: preparar } = await import("@/app/api/v1/cotizaciones/preparar/route");
+      const { GET: buscar } = await import("@/app/api/v1/cotizaciones/clientes/route");
+      const cliente = await crearClienteDirecto(db, { nombre: `Selector ${randomUUID()}` });
+      const opciones = { cookie: ventas.cookie, origen: null };
+      const preparacion = await invocar(preparar, peticion("GET", "/api/v1/cotizaciones/preparar", opciones));
+      expect(preparacion.status).toBe(200);
+      expect(preparacion.datos).toMatchObject({ clientes: [] });
+      for (const q of ["", "   ", cliente.codigoCliente]) {
+        const respuesta = await invocar(buscar, peticion("GET", `/api/v1/cotizaciones/clientes?q=${encodeURIComponent(q)}`, opciones));
+        expect(respuesta.status).toBe(200);
+        expect(respuesta.datos).toEqual([]);
+      }
+      const respuesta = await invocar(buscar, peticion("GET", `/api/v1/cotizaciones/clientes?q=${encodeURIComponent(cliente.nombre)}`, opciones));
+      expect(respuesta.datos).toEqual([{ id: cliente.id, nombre: cliente.nombre, codigoCliente: cliente.codigoCliente }]);
+    });
+
     it("busca por código sin distinguir mayúsculas y devuelve el código en lista y ficha", async () => {
       const cliente = await crearClienteDirecto(db);
-      const lista = await consultar({ q: cliente.codigoCliente.toLowerCase() });
+      const lista = await consultar({ q: cliente.codigoCliente.toLowerCase() }, gerencia);
       expect(lista.status).toBe(200);
       expect(lista.datos).toMatchObject([{ id: cliente.id, codigoCliente: cliente.codigoCliente }]);
       const ficha = await invocar(modulos.ficha.GET,
@@ -61,14 +97,14 @@ describeConBase("clientes: lista con búsqueda, filtros y paginación", () => {
       const porCorreo = await crearClienteDirecto(db, { correo: `ventas.${token}@ejemplo.test` });
       await crearClienteDirecto(db);
 
-      const encontrados = await consultar({ q: token.toUpperCase() });
+      const encontrados = await consultar({ q: token.toUpperCase() }, gerencia);
       expect(encontrados.status).toBe(200);
       const ids = encontrados.datos.map((fila) => fila.id).sort();
       expect(ids).toEqual([porNombre.id, porRuc.id, porContacto.id, porCorreo.id].sort());
       expect(encontrados.cuerpo.total).toBe(4);
 
       expect((await consultar({ q: `zeta-${token}-TALLER` })).datos.map((f) => f.id)).toEqual([porNombre.id]);
-      expect((await consultar({ q: `ruc${token}`.toLowerCase() })).datos.map((f) => f.id)).toEqual([porRuc.id]);
+      expect((await consultar({ q: `ruc${token}`.toLowerCase() }, gerencia)).datos.map((f) => f.id)).toEqual([porRuc.id]);
     });
 
     it("trata % y _ como texto, no como comodines", async () => {

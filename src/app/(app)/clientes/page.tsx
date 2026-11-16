@@ -7,6 +7,7 @@ import { can } from "@/core/autorizacion";
 import { exigirPermisoPagina } from "@/lib/auth/guardia";
 import { ProveedorLista } from "@/lib/listas/contexto-lista";
 import { leerOrden, textoOrden } from "@/lib/listas/orden";
+import { puedeCrearCliente, puedeListarClientes } from "@/modules/clientes/acceso";
 import { COOKIE_COLUMNAS_CLIENTES, columnasPermitidas } from "@/modules/clientes/columnas";
 import { columnasDeLista } from "@/modules/clientes/componentes/columnasLista";
 import { FiltrosClientes } from "@/modules/clientes/componentes/FiltrosClientes";
@@ -40,6 +41,8 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const actor = await exigirPermisoPagina("cliente:ver");
   const { consulta, orden, enlaces } = leerConsulta(await searchParams);
   const lista = await listarClientes(consulta, actor);
+  const soloNombre = !puedeListarClientes(actor);
+  const esperaBusqueda = soloNombre && !consulta.q;
   const puedeGestionar = can(actor, "cliente:gestionar");
   const conCotizaciones = can(actor, "cotizacion:ver");
   const columnasVisibles = columnasPermitidas(
@@ -48,16 +51,15 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
     <PageHeader titulo="Clientes" tituloVisible={false} descripcion="Personas y empresas que solicitan trabajos."
       acciones={<>
         <SelectorColumnas visibles={columnasVisibles} conCotizaciones={conCotizaciones} />
-        {puedeGestionar ? <>
-          <Button asChild variant="outline"><Link href="/importar?tipo=clientes">Importar CSV</Link></Button>
-          <NuevoCliente devolverFoco />
-        </> : null}
+        {puedeGestionar ? <Button asChild variant="outline"><Link href="/importar?tipo=clientes">Importar CSV</Link></Button> : null}
+        {puedeCrearCliente(actor) ? <NuevoCliente devolverFoco /> : null}
       </>} />
     <ProveedorLista>
       {/* Hasta que el servicio entregue los conteos, las pastillas se muestran sin contador. */}
-      <FiltrosClientes conteos={lista.conteos as ConteosClientes | undefined} />
-      <TablaClientes lista={lista} parametros={enlaces} orden={orden} puedeGestionar={puedeGestionar}
-        conCotizaciones={conCotizaciones} columnasVisibles={columnasVisibles} />
+      <FiltrosClientes conteos={esperaBusqueda ? undefined : lista.conteos as ConteosClientes | undefined} soloNombre={soloNombre} />
+      {esperaBusqueda ? <p className="text-sm text-muted-foreground">Escriba el nombre del cliente para ver coincidencias.</p> :
+        <TablaClientes lista={lista} parametros={enlaces} orden={orden} puedeGestionar={puedeGestionar}
+          conCotizaciones={conCotizaciones} columnasVisibles={columnasVisibles} />}
     </ProveedorLista>
   </>;
 }

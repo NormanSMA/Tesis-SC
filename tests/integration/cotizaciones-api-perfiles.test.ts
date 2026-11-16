@@ -12,11 +12,15 @@ import {
 
 type Operacion = "listar" | "crear" | "ver" | "editar" | "items" | "enviar" | "responder" | "duplicar" | "archivar" | "ajustes" | "versionCorregida";
 const OPERACIONES: Operacion[] = ["listar", "crear", "ver", "editar", "items", "enviar", "responder", "duplicar", "archivar", "ajustes", "versionCorregida"];
+const COMPLETO = { listar: 200, crear: 201, ver: 200, editar: 200, items: 200, enviar: 200, responder: 200, duplicar: 201,
+  archivar: 200, ajustes: 200, versionCorregida: 201 };
+const AJENAS = { listar: 200, crear: 201, ver: 404, editar: 404, items: 404, enviar: 404, responder: 404, duplicar: 404,
+  archivar: 404, ajustes: 404, versionCorregida: 404 };
 const ESPERADO: Record<PerfilCodigo, Record<Operacion, number>> = {
-  GERENCIA: { listar: 200, crear: 403, ver: 200, editar: 403, items: 403, enviar: 403, responder: 403, duplicar: 403, archivar: 403, ajustes: 403, versionCorregida: 403 },
-  ADMINISTRACION: { listar: 200, crear: 403, ver: 200, editar: 403, items: 403, enviar: 403, responder: 403, duplicar: 403, archivar: 403, ajustes: 403, versionCorregida: 403 },
-  OPERACIONES: { listar: 200, crear: 403, ver: 200, editar: 403, items: 403, enviar: 403, responder: 200, duplicar: 403, archivar: 403, ajustes: 200, versionCorregida: 403 },
-  ATENCION_CLIENTE: { listar: 200, crear: 201, ver: 200, editar: 200, items: 200, enviar: 200, responder: 200, duplicar: 201, archivar: 200, ajustes: 200, versionCorregida: 201 },
+  GERENCIA: COMPLETO,
+  ADMINISTRACION: AJENAS,
+  OPERACIONES: AJENAS,
+  ATENCION_CLIENTE: COMPLETO,
   PRODUCCION: { listar: 403, crear: 403, ver: 403, editar: 403, items: 403, enviar: 403, responder: 403, duplicar: 403, archivar: 403, ajustes: 403, versionCorregida: 403 },
   ADMIN: { listar: 403, crear: 403, ver: 403, editar: 403, items: 403, enviar: 403, responder: 403, duplicar: 403, archivar: 403, ajustes: 403, versionCorregida: 403 },
 };
@@ -96,7 +100,7 @@ describeConBase("cotizaciones: API por perfil y validaciones", () => {
   it("escrituras rechazadas conservan la cotización y su bitácora", async () => {
     const cotizacion = await destino("editar");
     const eventos = await db.bitacora.count({ where: { cotizacionId: cotizacion.id } });
-    for (const perfil of ["GERENCIA", "ADMINISTRACION", "OPERACIONES", "PRODUCCION", "ADMIN"] as const) {
+    for (const perfil of ["PRODUCCION", "ADMIN"] as const) {
       for (const operacion of ["editar", "items", "enviar", "archivar"] as const) {
         expect((await ejecutar(operacion, sesiones[perfil].cookie, cotizacion)).status).toBe(403);
       }
@@ -189,7 +193,7 @@ describeConBase("cotizaciones: API por perfil y validaciones", () => {
         items: [{ ...entradaExistente(cotizacion.items[0]), precioUnitario: "1", importe: "1", cantidad: "2" }] },
     }), cotizacion.id);
     expect(respuesta.status).toBe(200);
-    expect(respuesta.datos).toMatchObject({ subtotal: "2640.00", impuesto: "396.00", total: "3036.00" });
+    expect(respuesta.datos).toMatchObject({ subtotal: "2640.00", impuesto: "0.00", total: "2640.00" });
   });
 
   it("devuelve 404 para identificadores ausentes o mal formados", async () => {

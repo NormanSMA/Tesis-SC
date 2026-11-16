@@ -31,14 +31,14 @@ function VistaPrevia({ vista, nombre }: { vista: string | null; nombre: string }
   return (
     <div aria-label="Vista previa del logo" role="group" className="grid gap-3 rounded-xl border border-dashed border-border bg-slate-50 p-3 sm:grid-cols-2">
       <div className="min-w-0 space-y-1.5">
-        <p className="text-xs font-medium text-slate-500">En la ficha</p>
+        <p className="text-xs font-medium text-muted-foreground">En la ficha</p>
         <div className="flex min-w-0 items-center gap-3 rounded-lg bg-card p-2.5 ring-1 ring-border/80">
           <Imagen vista={vista} nombre={nombre} className="size-12 text-sm" />
           <p className="truncate text-base font-semibold text-slate-900">{texto}</p>
         </div>
       </div>
       <div className="min-w-0 space-y-1.5">
-        <p className="text-xs font-medium text-slate-500">En la lista</p>
+        <p className="text-xs font-medium text-muted-foreground">En la lista</p>
         <div className="flex min-w-0 items-center gap-3 rounded-lg bg-card p-2.5 ring-1 ring-border/80">
           <Imagen vista={vista} nombre={nombre} className="size-9 text-xs" />
           <p className="truncate text-sm font-medium text-primary">{texto}</p>
@@ -51,7 +51,7 @@ function VistaPrevia({ vista, nombre }: { vista: string | null; nombre: string }
 function SelectorAjuste({ nombre, ajuste, alCambiar }: { nombre: string; ajuste: AjusteLogo; alCambiar: (ajuste: AjusteLogo) => void }) {
   return (
     <fieldset className="space-y-1.5">
-      <legend className="text-xs font-medium text-slate-500">Ajuste</legend>
+      <legend className="text-xs font-medium text-muted-foreground">Ajuste</legend>
       <div className="flex flex-wrap gap-2">
         {AJUSTES.map((opcion) => <label key={opcion.valor} title={opcion.ayuda}
           className={cn("inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
@@ -93,7 +93,7 @@ export function CampoLogo({ id, nombre, logoVersion, cambio, alCambiar }: Propie
       <div className="flex flex-wrap items-center gap-4">
         <Imagen vista={vista} nombre={nombre} className="size-20 text-lg" />
         <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium">Logo o foto <span className="font-normal text-slate-500">(opcional)</span></p>
+          <p className="text-sm font-medium">Logo o foto <span className="font-normal text-muted-foreground">(opcional)</span></p>
           <div className="flex flex-wrap gap-2">
             <input ref={entrada} type="file" accept={TIPOS_LOGO.join(",")} className="sr-only" aria-label="Archivo del logo"
               aria-describedby={idAyuda} onChange={(evento) => {
@@ -109,7 +109,7 @@ export function CampoLogo({ id, nombre, logoVersion, cambio, alCambiar }: Propie
               <Trash2 aria-hidden="true" />Quitar
             </Button> : null}
           </div>
-          <p id={idAyuda} className="text-xs text-slate-500">PNG, JPG o WebP. Se guarda cuadrado de 256 px.</p>
+          <p id={idAyuda} className="text-xs text-muted-foreground">PNG, JPG o WebP. Se guarda cuadrado de 256 px.</p>
         </div>
       </div>
       {archivo ? <SelectorAjuste nombre={`${idAyuda}-ajuste`} ajuste={ajuste}

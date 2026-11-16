@@ -44,11 +44,13 @@ function valoresIniciales(modo: ModoFormulario): ValoresFormulario {
 }
 
 function peticionDe(modo: ModoFormulario, valores: EntradaCrearCliente): { url: string; metodo: string; cuerpo: object } {
-  if (modo.modo === "crear") return { url: "/api/v1/clientes", metodo: "POST", cuerpo: valores };
+  const { ruc, ...campos } = valores;
+  const cuerpo = valores.tipo === "EMPRESA" ? { ...campos, ruc } : campos;
+  if (modo.modo === "crear") return { url: "/api/v1/clientes", metodo: "POST", cuerpo };
   return {
     url: `/api/v1/clientes/${modo.cliente.id}`,
     metodo: "PATCH",
-    cuerpo: { ...valores, version: modo.cliente.actualizadoEn },
+    cuerpo: { ...cuerpo, version: modo.cliente.actualizadoEn },
   };
 }
 

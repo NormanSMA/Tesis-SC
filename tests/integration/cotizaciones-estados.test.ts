@@ -18,7 +18,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     return entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
   }
 
-  it("exige al menos un ítem para enviar y conserva el borrador", async () => {
+  it("exige al menos un producto para enviar y conserva el borrador", async () => {
     const borrador = await crearBorrador(entorno);
     await expect(entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor))
       .rejects.toMatchObject({ status: 409 });
@@ -113,7 +113,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
     }
   });
 
-  it("la base congela cabecera, ítems y líneas fuera de BORRADOR", async () => {
+  it("la base congela cabecera, productos y líneas fuera de BORRADOR", async () => {
     const borrador = await crearBorrador(entorno, { items: [itemPersonalizado(entorno.referencias)] });
     const cotizacion = await entorno.modulos.servicio.enviarCotizacion(borrador.id, borrador.actualizadoEn, entorno.ventas.actor);
     const item = cotizacion.items[0];
@@ -131,7 +131,7 @@ describeConBase("cotizaciones: estados, fechas Managua y congelación", () => {
 
   it("la base rechaza enviar cuando la suma guardada no coincide", async () => {
     const cotizacion = await crearBorrador(entorno, { items: [itemUnidad(entorno.referencias)] });
-    await db.cotizacion.update({ where: { id: cotizacion.id }, data: { subtotal: "100", impuesto: "15", total: "115" } });
+    await db.cotizacion.update({ where: { id: cotizacion.id }, data: { subtotal: "100", impuesto: "0", total: "100" } });
     await expect(db.cotizacion.update({ where: { id: cotizacion.id }, data: {
       estado: "ENVIADA", fechaEmision: new Date("2026-10-01"), fechaVencimiento: new Date("2026-10-16"),
     } })).rejects.toThrow(/SC003|no coincide/i);

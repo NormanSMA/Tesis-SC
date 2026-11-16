@@ -63,7 +63,7 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
   });
 
   it.each([
-    ["GERENCIA", 200, 403], ["ADMINISTRACION", 403, 403], ["OPERACIONES", 200, 403],
+    ["GERENCIA", 200, 201], ["ADMINISTRACION", 200, 201], ["OPERACIONES", 200, 403],
     ["ATENCION_CLIENTE", 200, 201], ["PRODUCCION", 403, 403], ["ADMIN", 403, 403],
   ] as const)("%s consulta y gestiona clientes según la matriz", async (perfil, lectura, escritura) => {
     const { cookie } = await cookieDe(perfil);
@@ -78,8 +78,8 @@ describeConBase("manejar: sesión, permiso, origen y validación", () => {
     expect(await respuesta.json()).toEqual({ datos: { actor: usuario.id } });
   });
 
-  it("el permiso se decide por acción: Gerencia ve clientes pero no los gestiona", async () => {
-    const { cookie } = await cookieDe("GERENCIA");
+  it("el permiso se decide por acción: Operaciones ve clientes sin permiso de gestión completa", async () => {
+    const { cookie } = await cookieDe("OPERACIONES");
     expect((await leerClientes(peticion("GET", "/api/v1/clientes", { cookie, origen: null }))).status).toBe(200);
     const respuesta = await crearCliente(peticion("POST", "/api/v1/clientes", { cookie, cuerpo: { nombre: "X" } }));
     expect(respuesta.status).toBe(403);

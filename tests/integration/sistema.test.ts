@@ -46,10 +46,12 @@ async function crearSesionPerfil(codigo: PerfilCodigo): Promise<string> {
 
 let cookieAdmin: string;
 let cookieGerencia: string;
+let cookieOperaciones: string;
 
 beforeAll(async () => {
   cookieAdmin = await crearSesionPerfil("ADMIN");
   cookieGerencia = await crearSesionPerfil("GERENCIA");
+  cookieOperaciones = await crearSesionPerfil("OPERACIONES");
 });
 
 describe("API de estado del sistema", () => {
@@ -57,8 +59,9 @@ describe("API de estado del sistema", () => {
     expect((await GET(solicitud(""))).status).toBe(401);
   });
 
-  it("rechaza GERENCIA", async () => {
-    expect((await GET(solicitud(cookieGerencia))).status).toBe(403);
+  it("permite Gerencia y rechaza Operaciones", async () => {
+    expect((await GET(solicitud(cookieGerencia))).status).toBe(200);
+    expect((await GET(solicitud(cookieOperaciones))).status).toBe(403);
   });
 
   it("devuelve el estado a ADMIN sin datos sensibles", async () => {

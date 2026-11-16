@@ -14,3 +14,28 @@ export async function elegirDato(campo: Locator, opcion: string, page: Page): Pr
   if (await campo.evaluate((elemento) => elemento.tagName === "SELECT")) await campo.selectOption({ label: opcion });
   else await elegir(campo, opcion, page);
 }
+
+export const PERSONAL_DE_PRUEBA: Record<string, string> = {
+  "Diseño Gráfico": "Marco López",
+  "Impresión Digital": "Gabriel Cortez",
+  "Grabado y Corte Láser": "Alfonso Mejía",
+  Taller: "Humberto Silva",
+};
+
+export async function elegirAreasDeOrden(page: Page, areas: string[]): Promise<void> {
+  for (const area of areas) {
+    const casilla = page.getByRole("checkbox", { name: new RegExp(`^${area}`) });
+    const responsable = page.getByRole("combobox", { name: `Responsable de ${area}` });
+    await expect(async () => {
+      await casilla.check();
+      await expect(responsable).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+    const opcion = page.getByRole("option", { name: PERSONAL_DE_PRUEBA[area], exact: true });
+    await expect(async () => {
+      if (!await opcion.isVisible()) await responsable.click();
+      await expect(opcion).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+    await opcion.click();
+    await page.getByRole("textbox", { name: `Instrucciones de ${area}` }).fill(`Trabajo de ${area}`);
+  }
+}

@@ -45,7 +45,7 @@ describe("catálogo: esquemas", () => {
       }
     }
   });
-  it.each(["codigo", "nombre", "categoriaId", "unidadCobro", "precioBase"])("exige %s", (campo) => {
+  it.each(["nombre", "categoriaId", "unidadCobro", "precioBase"])("exige %s", (campo) => {
     expect(esquemaCrearProducto.safeParse({ ...producto, [campo]: undefined }).success).toBe(false);
   });
   it("rechaza campos vacíos, extensos y UUID inválido", () => {

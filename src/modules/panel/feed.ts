@@ -4,7 +4,7 @@ import type { ContenidoPanel, PerfilPanel } from "./tipos";
 
 export async function consultarFeed(entrada: { perfil: PerfilPanel; actor: Actor; hoy: string; instante: Date }): Promise<Pick<ContenidoPanel, "atencion" | "atencionTotal">> {
   const { perfil, actor, hoy, instante } = entrada;
-  const parametros = { hoy, instante, actorId: actor.id, verDinero: can(actor, "cotizacion:ver") };
+  const parametros = { hoy, instante, actorId: actor.id, verDinero: can(actor, "cotizacion:ver"), verTodas: can(actor, "cotizacion:ver_todas") };
   const fuentes: Promise<FuenteFeed>[] = [];
   if ((perfil === "GERENCIA" || perfil === "ATENCION_CLIENTE") && can(actor, "cotizacion:ver")) {
     for (const urgencia of ["SIN_RESPUESTA", "POR_VENCER", "AJUSTE_SOLICITADO"] as const) {

@@ -32,13 +32,13 @@ function CampoEstado({ valor, alCambiar }: { valor: string; alCambiar: (valor: s
 }
 
 /** Barra de la lista: búsqueda en vivo, pastillas de tipo y filtro de estado. Todo vive en la URL. */
-export function FiltrosClientes({ conteos }: { conteos?: ConteosClientes }) {
+export function FiltrosClientes({ conteos, soloNombre }: { conteos?: ConteosClientes; soloNombre: boolean }) {
   const { parametros, navegar } = useParametrosUrl();
   const activo = parametros.get("activo") ?? "true";
   const archivados = activo === "false";
   const hayFiltros = archivados || Boolean(parametros.get("q")) || Boolean(parametros.get("tipo"));
-  return <div className="mb-4 flex flex-wrap items-center gap-3">
-    <BuscadorEnVivo etiqueta="Buscar clientes" marcador="Buscar por nombre, RUC, contacto o correo" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
+  return <div className="mb-4 flex flex-wrap items-end gap-3">
+    <BuscadorEnVivo etiqueta="Buscar clientes" marcador={soloNombre ? "Buscar por nombre" : "Buscar por nombre, RUC, contacto o correo"} className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
     <FiltroSegmentado etiqueta="Tipo" parametro="tipo" valorTodos="todos" opciones={opcionesTipo(conteos)} />
     <Popover>
       <PopoverTrigger asChild>

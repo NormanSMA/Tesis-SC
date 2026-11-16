@@ -10,7 +10,7 @@ vi.mock("@/lib/db", () => ({ prisma: { cliente: consultas } }));
 
 const actor: Actor = {
   id: "actor", nombre: "Usuario", correo: "usuario@ejemplo.test",
-  perfil: "OPERACIONES", perfiles: ["OPERACIONES"], permisos: ["cliente:ver"],
+  perfil: "GERENCIA", perfiles: ["GERENCIA"], permisos: ["cliente:ver"],
 };
 
 beforeEach(() => {

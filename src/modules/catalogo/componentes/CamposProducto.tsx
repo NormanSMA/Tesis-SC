@@ -13,8 +13,8 @@ import { SelectorCatalogo } from "./SelectorCatalogo";
 export function CamposIdentificacion({ formulario, categorias }: { formulario: FormularioProducto; categorias: CategoriaDto[] }) {
   const { register, control, formState: { errors } } = formulario;
   return <div className="grid gap-5 sm:grid-cols-2">
-    <FormField id="codigo" etiqueta="Código" requerido error={errors.codigo?.message}>
-      {(atributos) => <Input {...atributos} {...register("codigo")} maxLength={30} autoComplete="off" />}
+    <FormField id="codigo" etiqueta="Código automático" ayuda="Se asigna según la categoría al guardar; después permanece fijo." error={errors.codigo?.message}>
+      {(atributos) => <Input {...atributos} {...register("codigo")} readOnly placeholder="Se genera al guardar" />}
     </FormField>
     <FormField id="nombre" etiqueta="Nombre del producto" requerido error={errors.nombre?.message}>
       {(atributos) => <Input {...atributos} {...register("nombre")} maxLength={160} />}

@@ -15,6 +15,9 @@ describeConBase("cotizaciones v9: aprobación y versiones corregidas", () => {
   beforeAll(async () => {
     entorno = await prepararCotizaciones(db);
     operaciones = await abrirSesion(db, entorno.modulos, "OPERACIONES");
+    const permiso = await db.permiso.findUniqueOrThrow({ where: { recurso_accion: { recurso: "cotizacion", accion: "ver_todas" } } });
+    await db.usuarioPermiso.create({ data: { usuarioId: operaciones.usuarioId, permisoId: permiso.id } });
+    operaciones.actor = { ...operaciones.actor, permisos: [...operaciones.actor.permisos, "cotizacion:ver_todas"] };
   });
   afterAll(async () => { await liberarClienteGlobal(); await db.$disconnect(); });
 
@@ -78,7 +81,7 @@ describeConBase("cotizaciones v9: aprobación y versiones corregidas", () => {
         detalle: { motivoAjuste: "Cambiar las medidas", fechaRespuesta: solicitada.fechaRespuesta } });
   });
 
-  it("crear versión corregida copia los ítems y registra versión 2 con origen", async () => {
+  it("crear versión corregida copia los productos y registra versión 2 con origen", async () => {
     const solicitada = await solicitarAjustes(await enviada());
     const respuesta = await invocar<CotizacionDto>(entorno.modulos.versionCorregida.POST,
       peticion("POST", `/api/v1/cotizaciones/${solicitada.id}/version-corregida`, { cookie: entorno.ventas.cookie, cuerpo: {} }), solicitada.id);

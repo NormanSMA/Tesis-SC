@@ -14,6 +14,7 @@ import type { cargarUsuarios } from "@/modules/admin/paginas";
 import type { UsuarioDto } from "@/modules/admin/tipos";
 
 import { estadoUsuario, FILTRO_ESTADO_PREDETERMINADO, hrefUsuarios, type EstadoUsuario, type FiltrosUsuarios } from "./interfaz";
+import estilos from "./ResponsividadUsuarios.module.css";
 
 const OPCIONES_PERFIL: OpcionSegmento[] = [
   { valor: "todos", etiqueta: "Todos" },
@@ -30,8 +31,8 @@ function opcionesEstado(activos: number, bloqueados: number): OpcionSegmento[] {
 export function FiltrosListaUsuarios({ filtros, activos, bloqueados }: { filtros: FiltrosUsuarios; activos: number; bloqueados: number }) {
   const hayFiltros = Boolean(filtros.q || filtros.perfil) || filtros.estado !== FILTRO_ESTADO_PREDETERMINADO;
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3">
-      <BuscadorEnVivo etiqueta="Buscar usuarios" marcador="Buscar por nombre o correo" className="basis-full sm:max-w-md lg:basis-auto lg:flex-1" />
+    <div className="mb-4 flex flex-wrap items-end gap-3">
+      <BuscadorEnVivo etiqueta="Buscar usuarios" marcador="Buscar por nombre o correo" className="min-w-0 basis-full lg:basis-64 lg:flex-1" />
       <FiltroSegmentado etiqueta="Estado" parametro="estado" valorTodos={FILTRO_ESTADO_PREDETERMINADO} opciones={opcionesEstado(activos, bloqueados)} />
       <FiltroSegmentado etiqueta="Perfil" parametro="perfil" valorTodos="todos" opciones={OPCIONES_PERFIL} />
       {hayFiltros ? <Button asChild variant="ghost" className="h-10"><Link href="/admin/usuarios">Limpiar filtros</Link></Button> : null}
@@ -52,7 +53,7 @@ function columnasDe(ahora: number): ColumnaTabla<UsuarioDto>[] {
         <AvatarIniciales nombre={usuario.nombre} />
         <Link href={`/admin/usuarios/${usuario.id}`} className={`${ENLACE_FILA} min-w-0 break-words`}>{usuario.nombre}</Link>
       </div>) },
-    { id: "correo", encabezado: "Correo", celda: (usuario) => <span className="break-all text-muted-foreground">{usuario.correo}</span> },
+    { id: "correo", encabezado: "Correo", celda: (usuario) => <span className="text-muted-foreground [overflow-wrap:anywhere]">{usuario.correo}</span> },
     { id: "perfiles", encabezado: "Perfiles", celda: (usuario) => <PerfilesUsuario perfiles={usuario.perfiles} /> },
     { id: "estado", encabezado: "Estado", celda: (usuario) => <EstadoUsuarioBadge estado={estadoUsuario(usuario, ahora)} /> },
   ];
@@ -69,7 +70,7 @@ export function TablaUsuarios({ lista, filtros }: { lista: Lista; filtros: Filtr
   return (
     <ZonaResultados>
       <DataTable apilarEnMovil titulo="Lista de usuarios" columnas={columnasDe(lista.ahora)} filas={lista.datos}
-        idFila={(usuario) => usuario.id} className={CLASES_TABLA} vacio={vacio}
+        idFila={(usuario) => usuario.id} className={`${CLASES_TABLA} ${estilos.tabla}`} vacio={vacio}
         claveConsulta={hrefUsuarios(filtros, lista.pagina)}
         paginacion={{ pagina: lista.pagina, total: lista.total, tamano: lista.porPagina,
           hrefPagina: (pagina) => hrefUsuarios(filtros, pagina) }} />

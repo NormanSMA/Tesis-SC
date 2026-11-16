@@ -9,14 +9,22 @@ import { Fecha } from "@/components/comunes/ValorFormateado";
 import { formatearFechaHora } from "@/lib/formato";
 import { AccionesEtapa, type PermisosEtapas } from "@/modules/produccion/componentes/AccionesEtapa";
 import { AccionesProduccionOrden } from "@/modules/produccion/componentes/AccionesProduccionOrden";
+import { materialesPorEtapa } from "../materiales-por-area";
 import type { EtapaOrdenDto, OrdenDto, ReferenciaOrden } from "../tipos";
 
-const columnas: ColumnaTabla<EtapaOrdenDto>[] = [
+function ListaMateriales({ nombres }: { nombres: string[] }) {
+  return nombres.length ? <ul className="space-y-0.5 text-xs">{nombres.map((nombre) => <li key={nombre}>{nombre}</li>)}</ul>
+    : <span className="text-xs text-muted-foreground">—</span>;
+}
+
+const columnasBase: ColumnaTabla<EtapaOrdenDto>[] = [
   { id: "nombre", encabezado: "Etapa y área", principal: true, celda: (etapa) => <div className="space-y-1">
     <p className="font-medium">{etapa.secuencia}. {etapa.nombre}</p><p className="text-xs text-muted-foreground">{etapa.area.nombre}</p>
+    {etapa.instrucciones ? <p className="whitespace-pre-wrap text-sm">{etapa.instrucciones}</p> : null}
     {etapa.observaciones ? <p className="text-xs">{etapa.observaciones}</p> : null}</div> },
   { id: "estado", encabezado: "Estado y responsable", celda: (etapa) => <div className="space-y-2">
     <EstadoBadge tipo="etapa" estado={etapa.estado} /><p className="text-xs">{etapa.responsable?.nombre ?? "Sin responsable"}</p></div> },
+  { id: "materiales", encabezado: "Materiales", celda: () => null },
   { id: "plan", encabezado: "Fechas planificadas", celda: (etapa) => <div className="space-y-1 text-xs">
     <p>Inicio: <Fecha valor={etapa.fechaInicioPlan} /></p><p>Fin: <Fecha valor={etapa.fechaFinPlan} /></p></div> },
   { id: "reales", encabezado: "Fechas reales", celda: (etapa) => <div className="space-y-1 text-xs">
@@ -77,10 +85,20 @@ function useFocoEtapas() {
   return { seccion, estado, registrarAccion };
 }
 
-export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables = [] }: {
+function columnasConMateriales(porEtapa: Map<string, string[]>): ColumnaTabla<EtapaOrdenDto>[] {
+  return columnasBase.map((columna) => columna.id === "materiales"
+    ? { ...columna, celda: (etapa) => <ListaMateriales nombres={porEtapa.get(etapa.id) ?? []} /> } : columna);
+}
+
+export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables = [], ejecutables, materiales = [] }: {
   etapas: EtapaOrdenDto[]; orden?: Pick<OrdenDto, "id" | "estado" | "actualizadoEn" | "etapas">;
   permisos?: PermisosEtapas; areas?: ReferenciaOrden[]; responsables?: ReferenciaOrden[];
+  /** Etapas que este usuario puede marcar como hechas; sin valor, decide solo el permiso. */
+  ejecutables?: string[];
+  /** Materiales del trabajo: cada etapa muestra los de su área. */
+  materiales?: OrdenDto["materialesTrabajo"];
 }) {
+  const { porEtapa, sinEtapa } = materialesPorEtapa(etapas, materiales);
   const { seccion, estado, registrarAccion } = useFocoEtapas();
   // "Marcar lista" vive en el encabezado de la ficha (siguiente paso) mientras la orden está en producción.
   const acciones = orden && permisos && (permisos.planificar || permisos.ejecutar);
@@ -91,11 +109,14 @@ export function EtapasOrden({ etapas, orden, permisos, areas = [], responsables 
       {orden && permisos ? <div className="hidden border-b border-slate-100 p-5 has-[button,p,[role=alert]]:block">
         <AccionesProduccionOrden orden={orden} areas={areas}
           permisos={{ ...permisos, avanzar: permisos.avanzar && orden.estado !== "EN_PRODUCCION" }} /></div> : null}
-      <DataTable titulo="Etapas de la orden" columnas={columnas} filas={etapas} idFila={(etapa) => etapa.id}
+      <DataTable titulo="Etapas de la orden" columnas={columnasConMateriales(porEtapa)} filas={etapas} idFila={(etapa) => etapa.id}
         acciones={acciones ? (etapa) => <AccionesEtapa key={etapa.actualizadoEn} etapa={etapa} estadoOrden={orden.estado}
-          permisos={permisos} responsables={responsables} /> : undefined}
+          permisos={{ ...permisos, ejecutar: permisos.ejecutar && (!ejecutables || ejecutables.includes(etapa.id)) }}
+          responsables={responsables} /> : undefined}
         apilarEnMovil
         className="min-w-0 rounded-none border-0 shadow-none md:[&_table]:table-fixed [&_th]:whitespace-normal [&_td]:whitespace-normal [&_td]:break-words [&_td]:[overflow-wrap:anywhere] md:[&_th]:px-2 md:[&_td]:px-2" />
+      {sinEtapa.length ? <div className="border-t px-5 py-3 text-sm">
+        <p className="font-medium">Sin área asignada</p><ListaMateriales nombres={sinEtapa} /></div> : null}
     </TarjetaSeccion>
   </section>;
 }

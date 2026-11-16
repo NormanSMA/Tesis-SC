@@ -4,8 +4,8 @@ import { consultarSelectores } from "@/modules/cotizaciones/repo";
 import { leerIdCotizacion, obtenerCotizacion } from "@/modules/cotizaciones/service";
 
 // Datos del editor de ítems para el paso 2 del drawer: los mismos que carga /cotizaciones/[id]/editar.
-export const GET = manejar({ permiso: "cotizacion:gestionar" }, async ({ params }) => {
-  const cotizacion = await obtenerCotizacion(leerIdCotizacion(params.id));
+export const GET = manejar({ permiso: "cotizacion:gestionar" }, async ({ params, actor }) => {
+  const cotizacion = await obtenerCotizacion(leerIdCotizacion(params.id), actor);
   if (cotizacion.estado !== "BORRADOR" || cotizacion.archivada) {
     throw new AppError({ codigo: "NO_EDITABLE", mensaje: "Solo se editan borradores sin archivar.", status: 409 });
   }

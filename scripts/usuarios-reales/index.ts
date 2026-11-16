@@ -3,6 +3,7 @@ import type { Actor } from "../../src/core/autorizacion";
 import { PERFILES, perfilPrincipal } from "../../src/core/permisos";
 import { prisma } from "../../src/lib/db";
 import { crearUsuario, desactivarUsuario } from "../../src/modules/admin/service";
+import { nombresEquivalentesArea } from "../../src/modules/ordenes/areas-conversion";
 import ficticios from "../../prisma/seed/datos/usuarios.json";
 import { personas } from "./personas";
 import { reasignarActivos } from "./asignaciones";
@@ -67,6 +68,19 @@ async function retirarFicticios(actor: Actor) {
   }
 }
 
+async function asignarAreas() {
+  const areas = await prisma.area.findMany({ where: { activo: true }, select: { id: true, nombre: true } });
+  const usuarios = await prisma.usuario.findMany({ where: { activo: true }, select: { id: true, correo: true } });
+  const datos = personas.filter(({ perfil }) => perfil === "PRODUCCION").flatMap((persona) => {
+    const usuario = usuarios.find(({ correo }) => correo === persona.correo);
+    const nombres = [persona.area, ...persona.areasAdicionales].flatMap((area) =>
+      nombresEquivalentesArea(area === "Acabado y Montaje" ? "Acabado" : area));
+    return usuario ? areas.filter(({ nombre }) => nombres.some((opcion) => opcion === nombre))
+      .map(({ id }) => ({ usuarioId: usuario.id, areaId: id })) : [];
+  });
+  await prisma.usuarioArea.createMany({ data: datos, skipDuplicates: true });
+}
+
 async function main() {
   await validarExistentes();
   // Abrir antes de crear cuentas evita altas sin un destino disponible para las claves.
@@ -76,6 +90,7 @@ async function main() {
       "Claves temporales: vencen en 48 horas y deben cambiarse al entrar. Solo cuentas nuevas.\n\n" +
       "| Nombre | Correo de acceso | Contraseña temporal |\n|---|---|---|\n");
     const actor = await crearCuentas(archivo);
+    await asignarAreas();
     await reasignarActivos(actor);
     await retirarFicticios(actor);
     console.log("Usuarios reales preparados. Credenciales guardadas únicamente en el archivo local.");

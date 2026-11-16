@@ -5,7 +5,8 @@ import type { AreaDto, PlantillaDto } from "./tipos";
 
 export function aEtapaDto(etapa: EtapaGuardada): EtapaOrdenDto {
   return { id: etapa.id, secuencia: etapa.secuencia, nombre: etapa.nombre, estado: etapa.estado, area: etapa.area,
-    responsable: etapa.responsable, observaciones: etapa.observaciones, actualizadoEn: etapa.actualizadoEn.toISOString(),
+    responsable: etapa.responsable, observaciones: etapa.observaciones, instrucciones: etapa.instrucciones,
+    actualizadoEn: etapa.actualizadoEn.toISOString(),
     fechaInicioPlan: etapa.fechaInicioPlan?.toISOString().slice(0, 10) ?? null,
     fechaFinPlan: etapa.fechaFinPlan?.toISOString().slice(0, 10) ?? null,
     fechaInicioReal: etapa.fechaInicioReal?.toISOString() ?? null, fechaFinReal: etapa.fechaFinReal?.toISOString() ?? null };

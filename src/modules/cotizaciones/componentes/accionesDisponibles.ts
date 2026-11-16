@@ -8,7 +8,7 @@ type CotizacionAcciones = Pick<CotizacionDto, "estado" | "archivada"> & {
 function pasoBorrador(cotizacion: CotizacionAcciones, permisos: PermisosCotizacion) {
   if (!permisos.enviar) return "Corresponde a un usuario con permiso de envío.";
   if (cotizacion.items.length) return "Envíe la cotización al cliente.";
-  return permisos.gestionar ? "Agregue ítems para poder enviar la cotización." : "Corresponde a un usuario con permiso de gestión.";
+  return permisos.gestionar ? "Agregue productos para poder enviar la cotización." : "Corresponde a un usuario con permiso de gestión.";
 }
 
 function siguientePaso(cotizacion: CotizacionAcciones, permisos: PermisosCotizacion) {
@@ -19,7 +19,7 @@ function siguientePaso(cotizacion: CotizacionAcciones, permisos: PermisosCotizac
       return permisos.responder ? "Registre la respuesta del cliente: aprobación, rechazo o ajustes." : "Corresponde a un usuario con permiso de respuesta.";
     case "AJUSTE_SOLICITADO":
       return permisos.gestionar ? "Cree la versión corregida con los ajustes pedidos." : "Corresponde a un usuario con permiso de gestión.";
-    case "APROBADA": return "Cotización aprobada. Espere a que Operaciones la convierta en orden.";
+    case "APROBADA": return "La cotización aprobada puede convertirse en una orden.";
     default:
       return permisos.gestionar ? "Cotización cerrada. Puede duplicarla para preparar una nueva." : "Cotización cerrada. Solo consulta.";
   }

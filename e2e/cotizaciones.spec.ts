@@ -7,14 +7,14 @@ dotenv.config();
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const CARPETA_CAPTURAS = path.join("docs", "capturas", "cotizaciones");
 const CLIENTE_SEMBRADO = "Agencia Viajes Tropical";
-const CATEGORIA = "Rotulación y gran formato";
+const CATEGORIA = "Rotulación";
 const APROBADOR = "Karla Reyes";
 const PLEGABLES = ["Condiciones y fechas", "Costos internos"];
 test.use({ baseURL: BASE });
 // Las pruebas comparten la cotización mixta: cada paso depende del anterior.
 test.describe.configure({ mode: "serial" });
 type Perfil = (typeof PERFILES)[number];
-type Totales = { subtotal: number; impuesto: number; total: number };
+type Totales = { subtotal: number; total: number };
 type Cotizacion = { id: string; numero: string; asunto: string; actualizadoEn: string };
 const GERENCIA = PERFILES.find((perfil) => perfil.codigo === "GERENCIA") as Perfil;
 const OPERACIONES = PERFILES.find((perfil) => perfil.codigo === "OPERACIONES") as Perfil;
@@ -50,7 +50,9 @@ function porId(page: Page, id: string): Locator {
   return page.locator(`[id="${id}"]`);
 }
 async function elegirEn(page: Page, id: string, opcion: string | RegExp): Promise<void> {
-  await porId(page, id).click(); await page.getByRole("option", { name: opcion }).click();
+  await porId(page, id).click();
+  if (id === "clienteId" && typeof opcion === "string") await page.getByLabel("Buscar cliente por nombre").fill(opcion);
+  await page.getByRole("option", { name: opcion }).click();
 }
 // Los plegables de la ficha vienen cerrados: ábralos antes de leer su contenido.
 async function abrirPlegable(page: Page, nombre: string): Promise<void> {
@@ -66,18 +68,17 @@ function aNumero(texto: string | null): number {
 async function leerTotales(page: Page): Promise<Totales> {
   const tarjeta = page.getByLabel("Totales de cotización");
   await expect(tarjeta).toBeVisible();
+  await expect(tarjeta.getByText(/IVA|Cargo histórico/)).toHaveCount(0);
   const valorDe = async (etiqueta: RegExp) =>
     aNumero(await tarjeta.getByText(etiqueta).locator("xpath=following-sibling::dd").first().textContent());
   return {
     subtotal: await valorDe(/^Subtotal$/),
-    impuesto: await valorDe(/^IVA \(15(\.0+)? %\)$/),
     total: await valorDe(/^Total$/),
   };
 }
 function verificarAritmetica(totales: Totales): void {
   expect(totales.subtotal).toBeGreaterThan(0);
-  expect(Math.abs(totales.impuesto - totales.subtotal * 0.15)).toBeLessThanOrEqual(0.01);
-  expect(Math.abs(totales.total - (totales.subtotal + totales.impuesto))).toBeLessThanOrEqual(0.01);
+  expect(totales.total).toBeCloseTo(totales.subtotal, 2);
 }
 async function archivarPorApi(page: Page, id: string): Promise<void> {
   const actual = await page.request.get(`/api/v1/cotizaciones/${id}`);
@@ -106,11 +107,10 @@ test.afterAll(async ({ browser }, info) => {
   if (info.project.name === "portatil") await archivarCotizacionesE2E(browser);
 });
 async function crearCabecera(page: Page, asunto: string): Promise<void> {
-  await page.goto("/cotizaciones"); await page.getByRole("button", { name: "Nueva cotización", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Nueva cotización", exact: true })).toBeVisible(); await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
-  await page.locator("#asunto").fill(asunto); await page.getByRole("button", { name: "Crear cotización" }).click();
-  await expect(page.getByRole("button", { name: "Guardar borrador", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Abrir editor completo", exact: true }).click(); await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
+  await page.goto("/cotizaciones"); await page.getByRole("link", { name: "Nueva cotización", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Nueva cotización" })).toBeVisible();
+  await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
+  await page.locator("#asunto").fill(asunto);
 }
 async function agregarItemPorM2(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Agregar catálogo" }).click(); await elegirEn(page, "items.0.productoId", /ROT-VIN-001/); await porId(page, "items.0.ancho").fill("2");
@@ -126,14 +126,14 @@ async function agregarItemPersonalizado(page: Page): Promise<void> {
   await porId(page, "items.2.lineas.0.descripcion").fill("Vinil E2E"); await porId(page, "items.2.lineas.0.cantidad").fill("2");
   await porId(page, "items.2.lineas.0.costoUnitario").fill("10"); await page.getByRole("button", { name: "Agregar mano de obra" }).click();
   await porId(page, "items.2.lineas.1.horas").fill("3"); await porId(page, "items.2.lineas.1.tarifa").fill("50");
-  await page.getByRole("button", { name: "Agregar tercero" }).click(); await porId(page, "items.2.lineas.2.costo").fill("100");
+  await page.getByRole("button", { name: "Agregar servicio externo" }).click(); await porId(page, "items.2.lineas.2.costo").fill("100");
   await expect(page.getByRole("group", { name: /Línea 3: Tercero/ })).toBeVisible();
 }
 async function guardarItemsYComparar(page: Page): Promise<Totales> {
   await expect(page.getByLabel("Totales de cotización")).toBeVisible();
   const enEditor = await leerTotales(page);
   verificarAritmetica(enEditor);
-  await page.getByRole("button", { name: "Guardar ítems" }).click(); await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Guardar borrador" }).click(); await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
   const enDetalle = await leerTotales(page);
   expect(enDetalle).toEqual(enEditor);
   return enDetalle;
@@ -143,7 +143,7 @@ async function verificarItemsDelDetalle(page: Page): Promise<void> {
   await expect(vinil).toContainText("m²"); await expect(vinil).toContainText("C$ 4,950.00");
   await expect(page.getByRole("row", { name: /Panel ACM con vinil/ })).toContainText("C$ 9,200.00");
   await expect(page.getByRole("row", { name: /Trabajo personalizado E2E/ }).first()).toBeVisible(); await abrirPlegable(page, "Costos internos");
-  await expect(page.getByText("Costos del ítem 3: Trabajo personalizado E2E")).toBeVisible();
+  await expect(page.getByText("Costos del producto 3: Trabajo personalizado E2E")).toBeVisible();
 }
 async function enviarDesdeDetalle(page: Page): Promise<void> {
   await expect(page.getByText(/Siguiente paso:/).first()).toBeVisible(); await page.getByRole("button", { name: "Enviar cotización" }).click();
@@ -156,7 +156,9 @@ test.describe("Atención al cliente cotiza y Operaciones aprueba", () => {
     soloUnaVez(info.project.name);
     test.setTimeout(120_000);
     const asunto = marcaE2E();
-    await entrarComo(page, ATENCION_CLIENTE); await crearCabecera(page, asunto); await expect(page.getByRole("heading", { level: 1, name: /^Editar COT-/ })).toBeVisible();
+    await entrarComo(page, ATENCION_CLIENTE); await crearCabecera(page, asunto);
+    await page.getByRole("checkbox", { name: "Mostrar condiciones comerciales" }).check();
+    await page.getByLabel("Condiciones comerciales", { exact: true }).fill("Entrega según acuerdo E2E");
     await agregarItemPorM2(page); await agregarItemPorUnidad(page); await agregarItemPersonalizado(page);
     const totales = await guardarItemsYComparar(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^COT-/);
@@ -206,7 +208,7 @@ test.describe("Atención al cliente cotiza y Operaciones aprueba", () => {
     await expect(page.getByText("Vigencia").first()).toBeVisible();
     referenciaAprobacion = referencia;
   });
-  test("Gerencia ve la aprobación y quién la registró sin botones de gestión", async ({ page }, info) => {
+  test("Gerencia ve la aprobación y puede convertir la cotización aprobada", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     const { id } = datosMixta();
     const referencia = datosAprobacion();
@@ -220,11 +222,7 @@ test.describe("Atención al cliente cotiza y Operaciones aprueba", () => {
       await expect(page.getByRole("button", { name: nombre, exact: true })).toHaveCount(0);
       await expect(page.getByRole("link", { name: nombre, exact: true })).toHaveCount(0);
     }
-    const respuesta = await page.request.post(`/api/v1/cotizaciones/${id}/responder`, {
-      headers: { Origin: BASE },
-      data: { version: new Date().toISOString(), resultado: "APROBADA", referencia: "E2E-sin-permiso" },
-    });
-    expect(respuesta.status()).toBe(403);
+    await expect(page.getByRole("link", { name: "Convertir en orden", exact: true })).toBeVisible();
   });
   test("la vista de impresión muestra el número y el total", async ({ page }, info) => {
     soloUnaVez(info.project.name);
@@ -233,10 +231,12 @@ test.describe("Atención al cliente cotiza y Operaciones aprueba", () => {
     await page.goto(`/cotizaciones/${id}/imprimir`);
     await expect(page.getByRole("heading", { level: 1, name: "Proforma imprimible" })).toBeVisible();
     const proforma = page.locator("#proforma");
-    await expect(proforma).toContainText(`Proforma ${numero}`);
+    await expect(proforma).toHaveAttribute("aria-label", `Proforma ${numero}`);
     const total = totales.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     await expect(proforma).toContainText(`C$ ${total}`);
     await expect(proforma).toContainText(CLIENTE_SEMBRADO);
+    await expect(proforma.getByRole("heading", { name: "Condiciones comerciales" })).toBeVisible();
+    await expect(proforma).toContainText("Entrega según acuerdo E2E");
   });
 });
 async function crearBorradorPorApi(page: Page): Promise<Cotizacion> {
@@ -293,34 +293,28 @@ test.describe("Ajustes solicitados y versión corregida", () => {
   });
 });
 test.describe("Lista, borradores y permisos", () => {
-  test("crea un cliente desde el drawer y conserva el asunto", async ({ page }, info) => {
+  test("crea un cliente desde el formulario y conserva el asunto", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
     await page.goto("/cotizaciones");
-    await page.getByRole("button", { name: "Nueva cotización", exact: true }).click();
-    const drawer = page.getByRole("dialog", { name: "Nueva cotización", exact: true });
+    await page.getByRole("link", { name: "Nueva cotización", exact: true }).click();
+    const formulario = page.getByRole("form", { name: "Nueva cotización", exact: true });
     const asunto = marcaE2E();
     const nombre = `Cliente ${asunto}`;
-    await drawer.getByLabel("Asunto").fill(asunto);
-    await drawer.getByRole("button", { name: "Nuevo cliente", exact: true }).click();
+    await formulario.getByLabel(/Asunto/).fill(asunto);
+    await formulario.getByRole("button", { name: "Nuevo cliente", exact: true }).click();
     const modal = page.getByRole("dialog", { name: "Nuevo cliente", exact: true });
     // La etiqueta lleva la marca de obligatorio: se busca por prefijo.
     await modal.getByLabel(/^Nombre/).fill(nombre);
     await modal.getByLabel("Correo", { exact: true }).fill(`${asunto.toLowerCase()}@example.test`);
     await modal.getByRole("button", { name: "Guardar cliente" }).click();
     await expect(modal).toHaveCount(0);
-    await expect(drawer.getByLabel("Asunto")).toHaveValue(asunto);
-    await expect(drawer.getByLabel(/^Cliente/)).toContainText(nombre);
-    await expect(drawer.getByRole("button", { name: "Nuevo cliente", exact: true })).toBeFocused();
-    await expect(drawer).toHaveCSS("pointer-events", "auto");
-    const respuesta = page.waitForResponse((res) => res.url().endsWith("/api/v1/cotizaciones") && res.request().method() === "POST");
-    await drawer.getByRole("button", { name: "Crear cotización" }).click();
-    const cotizacion = (await (await respuesta).json()).datos as Cotizacion;
-    await expect(drawer.getByRole("form", { name: "Ítems de cotización" })).toBeVisible();
-    await drawer.getByRole("button", { name: "Guardar borrador", exact: true }).click();
-    await expect(drawer).toHaveCount(0);
-    await expect(page.locator("body")).not.toHaveCSS("pointer-events", "none");
-    await expect(page.getByRole("row").filter({ hasText: cotizacion.numero })).toContainText(nombre);
+    await expect(formulario.getByLabel(/Asunto/)).toHaveValue(asunto);
+    await expect(formulario.getByLabel(/^Cliente/)).toContainText(nombre);
+    await expect(formulario.getByRole("button", { name: "Nuevo cliente", exact: true })).toBeFocused();
+    await formulario.getByRole("button", { name: "Guardar borrador", exact: true }).click();
+    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
+    await expect(page.getByText(nombre, { exact: true })).toBeVisible();
   });
   test("conserva el acceso directo a nueva cotización", async ({ page }, info) => {
     soloUnaVez(info.project.name);
@@ -328,8 +322,8 @@ test.describe("Lista, borradores y permisos", () => {
     await page.goto("/cotizaciones/nueva");
     await elegirEn(page, "clienteId", CLIENTE_SEMBRADO);
     await page.getByLabel("Asunto").fill(marcaE2E());
-    await page.getByRole("button", { name: "Crear cotización", exact: true }).click();
-    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}\/editar$/);
+    await page.getByRole("button", { name: "Guardar borrador", exact: true }).click();
+    await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/);
   });
   test("la lista no muestra las columnas Asunto ni Emisión y la fila enlaza a la ficha", async ({ page }, info) => {
     soloUnaVez(info.project.name);
@@ -360,7 +354,7 @@ test.describe("Lista, borradores y permisos", () => {
     await expect(page.getByRole("link", { name: "Ver cotización original" })).toHaveAttribute("href", `/cotizaciones/${borrador.id}`);
     await expect(page.getByRole("link", { name: "Editar" })).toBeVisible();
   });
-  test("Gerencia no ve Nueva cotización ni Editar", async ({ page }, info) => {
+  test("Gerencia puede crear cotizaciones y gestionar borradores", async ({ page }, info) => {
     soloUnaVez(info.project.name);
     await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
@@ -368,13 +362,12 @@ test.describe("Lista, borradores y permisos", () => {
     await entrarComo(page, GERENCIA);
     await page.goto("/cotizaciones");
     await expect(page.getByRole("heading", { level: 1, name: "Cotizaciones" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Nueva cotización" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Nueva cotización" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Nueva cotización" })).toBeVisible();
     await page.goto(`/cotizaciones/${borrador.id}`);
     await expect(page.getByText("Borrador", { exact: true })).toBeVisible();
-    for (const nombre of ["Editar", "Duplicar", "Archivar", "Enviar cotización"]) {
-      await expect(page.getByRole("link", { name: nombre })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: nombre })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Editar" })).toBeVisible();
+    for (const nombre of ["Duplicar", "Archivar", "Enviar cotización"]) {
+      await expect(page.getByRole("button", { name: nombre })).toBeVisible();
     }
     await expect(page.getByRole("link", { name: "Ver proforma" })).toBeVisible();
     await page.goto("/cotizaciones/nueva");
@@ -412,6 +405,7 @@ test.describe("Descuento comercial como porcentaje o monto", () => {
     const descuentoEsperado = Math.round(Math.round(subtotal * 100) / 10) / 100;
     // Porcentaje: el monto se ve en la edición y la ficha lo etiqueta con el porcentaje.
     await page.goto(`/cotizaciones/${borrador.id}/editar`);
+    await page.getByRole("checkbox", { name: "Aplicar descuento manual en lugar de la tarifa" }).check();
     await elegirEn(page, "cabecera-descuento-modo", "Porcentaje (%)");
     await porId(page, "cabecera-descuento-pct").fill("10");
     await expect(porId(page, "cabecera-descuento-monto")).toContainText(enMoneda(descuentoEsperado));
@@ -421,8 +415,7 @@ test.describe("Descuento comercial como porcentaje o monto", () => {
     await expect(tarjeta.getByText(/^Descuento \(10 %\)$/)).toBeVisible();
     expect(await leerDescuento(page)).toBeCloseTo(descuentoEsperado, 2);
     const conPorcentaje = await leerTotales(page);
-    expect(Math.abs(conPorcentaje.impuesto - (subtotal - descuentoEsperado) * 0.15)).toBeLessThanOrEqual(0.01);
-    expect(Math.abs(conPorcentaje.total - (subtotal - descuentoEsperado + conPorcentaje.impuesto))).toBeLessThanOrEqual(0.01);
+    expect(conPorcentaje.total).toBeCloseTo(subtotal - descuentoEsperado, 2);
     // Monto: al guardar un monto fijo desaparece el porcentaje.
     await page.goto(`/cotizaciones/${borrador.id}/editar`);
     await expect(porId(page, "cabecera-descuento-pct")).toHaveValue("10.00");
@@ -448,8 +441,8 @@ test.describe("Accesibilidad (axe)", () => {
       expect(await violacionesGraves(page), "lista").toEqual([]);
       const borrador = await crearBorradorPorApi(page);
       await page.goto(`/cotizaciones/${borrador.id}/editar`);
-      await expect(page.getByRole("button", { name: "Guardar ítems" })).toBeEnabled();
-      await expect(page.getByRole("heading", { level: 2, name: "Ítem 3: Personalizado" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Guardar productos" })).toBeEnabled();
+      await expect(page.getByRole("heading", { level: 2, name: "Producto 3: Personalizado" })).toBeVisible();
       expect(await violacionesGraves(page), "editor").toEqual([]);
       await page.goto(`/cotizaciones/${datosMixta().id}`);
       await expect(page.getByLabel("Totales de cotización")).toBeVisible();
@@ -488,7 +481,7 @@ test.describe("CF-10: capturas de la cotización mixta aprobada", () => {
     await entrarComo(page, ATENCION_CLIENTE);
     const borrador = await crearBorradorPorApi(page);
     await page.goto(`/cotizaciones/${borrador.id}/editar`);
-    await expect(page.getByRole("heading", { level: 2, name: "Ítem 3: Personalizado" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Producto 3: Personalizado" })).toBeVisible();
     await expect(page.getByLabel("Totales de cotización")).toBeVisible();
     await capturar(page, "CF-10-editor-ventas-portatil.png");
   });

@@ -26,7 +26,8 @@ it("omite ceros y conserva los tonos sin modificar las filas", () => {
 
 it.each([
   ["GERENCIA", 4], ["ADMINISTRACION", 4], ["OPERACIONES", 4],
-  ["ATENCION_CLIENTE", 3], ["PRODUCCION", 2], ["ADMIN", 0],
+  // Producción solo consulta sus etapas: el total de órdenes ajenas no le corresponde.
+  ["ATENCION_CLIENTE", 3], ["PRODUCCION", 1], ["ADMIN", 0],
 ] as const)("%s consulta únicamente los módulos permitidos", async (perfil, consultas) => {
   consultar.mockResolvedValue([{ total: 1, atrasadas: 0 }]);
   const contadores = await obtenerContadores(actor(perfil), instante);
@@ -48,7 +49,7 @@ it("omite módulos sin alertas y eleva el tono de órdenes atrasadas", async () 
 
 it("mantiene el tono neutro cuando solo falta responsable", async () => {
   consultar.mockResolvedValue([{ total: 2, atrasadas: 0 }]);
-  const contadores = await obtenerContadores({ ...actor("PRODUCCION"), permisos: ["orden:ver"] }, instante);
+  const contadores = await obtenerContadores({ ...actor("OPERACIONES"), permisos: ["orden:ver"] }, instante);
   expect(contadores).toEqual({ "/ordenes": { total: 2, tono: "neutro" } });
 });
 

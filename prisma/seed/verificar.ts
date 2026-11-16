@@ -1,5 +1,7 @@
 import { Prisma, type PrismaClient } from "../../src/generated/prisma/client";
 import { crearCliente } from "../../src/lib/db";
+import { SERVICIOS_SC } from "../../src/modules/cotizaciones/servicios-sc";
+import { nombreOficialArea } from "../../src/modules/ordenes/areas-conversion";
 import { cargarDatos, type DatosSiembra } from "./cargar-datos";
 import { CLAVE_MARCADOR, VERSION_SIEMBRA } from "./catalogos";
 import { cargarArchivosDeEntorno } from "./entorno";
@@ -55,8 +57,8 @@ async function comprobarConteos(db: Lector, datos: DatosSiembra): Promise<Compro
     ["Materiales", "material", datos.materiales.length],
     ["Productos", "producto", datos.productos.length],
     ["Líneas de receta", "receta_producto", datos.recetas.reduce((suma, r) => suma + r.materiales.length, 0)],
-    ["Áreas", "area", datos.areas.length],
-    ["Categorías", "categoria", datos.categorias.length],
+    ["Áreas", "area", new Set([...datos.areas.map(({ nombre }) => nombreOficialArea(nombre)), "Bordado y Serigrafía"]).size],
+    ["Categorías", "categoria", new Set([...datos.categorias.map(({ nombre }) => nombre), ...SERVICIOS_SC]).size],
     ["Etapas de plantilla", "etapa_plantilla", datos.plantillas.reduce((suma, p) => suma + p.etapas.length, 0)],
     ["Cotizaciones", "cotizacion", datos.escenarios.length],
     ["Órdenes de trabajo", "orden_trabajo", datos.escenarios.filter((e) => e.orden).length],
@@ -64,7 +66,10 @@ async function comprobarConteos(db: Lector, datos: DatosSiembra): Promise<Compro
   ];
   const comprobaciones: Comprobacion[] = [];
   for (const [nombre, tabla, esperado] of esperados) {
-    comprobaciones.push(igual(nombre, esperado, await contarFilas(db, tabla)));
+    const obtenido = tabla === "area"
+      ? await numero(db, Prisma.sql`SELECT count(*) AS valor FROM area WHERE activo`)
+      : await contarFilas(db, tabla);
+    comprobaciones.push(igual(nombre, esperado, obtenido));
   }
   const marcador = await numero(
     db,

@@ -5,10 +5,10 @@ import { aFichaProducto, aProductoDto, type FilaFicha } from "@/modules/catalogo
 
 const fecha = new Date("2026-10-10T12:00:00.000Z");
 const producto: FilaFicha = {
-  id: "producto", codigo: "P-01", nombre: "Lona", descripcion: null,
+  id: "producto", codigo: "P-01", codigosAnteriores: [], nombre: "Lona", descripcion: null,
   categoriaId: "categoria", unidadCobro: "M2", precioBase: new Prisma.Decimal("100"),
   costoUnitario: new Prisma.Decimal("12.3456"), activo: true, creadoEn: fecha, actualizadoEn: fecha,
-  categoria: { id: "categoria", nombre: "Lonas", descripcion: null, activo: true, actualizadoEn: fecha },
+  categoria: { prefijoCodigo: null, id: "categoria", nombre: "Lonas", descripcion: null, activo: true, actualizadoEn: fecha },
   receta: [],
 };
 

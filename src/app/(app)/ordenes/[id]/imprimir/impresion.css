@@ -1,0 +1,46 @@
+#orden-impresa {
+  margin: 0 auto;
+  padding: 1.5rem;
+  max-width: 8.5in;
+  background: white;
+  color: #111;
+  font: 11pt/1.4 Arial, sans-serif;
+  color-scheme: light;
+  overflow-wrap: anywhere;
+}
+#orden-impresa .encabezado-orden-impresa {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 2px solid #2d264f;
+  margin-bottom: 1rem;
+  padding-bottom: .5rem;
+}
+#orden-impresa .encabezado-orden-impresa img { width: min(9rem, 40%); height: auto; }
+#orden-impresa h2 { font-size: 16pt; }
+#orden-impresa h2, #orden-impresa h3 { font-weight: 700; }
+#orden-impresa h3 { margin-bottom: .25rem; }
+#orden-impresa p, #orden-impresa td { white-space: pre-wrap; }
+#orden-impresa section { margin-top: 1rem; }
+#orden-impresa small { display: block; }
+#orden-impresa table { width: 100%; border-collapse: collapse; text-align: left; }
+#orden-impresa th, #orden-impresa td { padding: .35rem .45rem; vertical-align: top; border: 1px solid #555; }
+
+@media print {
+  @page orden { size: letter; margin: .55in; }
+  html:has(#orden-impresa) { page: orden; }
+  body:has(#orden-impresa) { background: white; }
+  body:has(#orden-impresa) aside,
+  body:has(#orden-impresa) header,
+  body:has(#orden-impresa) .controles-orden-impresa,
+  body:has(#orden-impresa) [data-sonner-toaster],
+  body:has(#orden-impresa) a[href="#contenido"] { display: none !important; }
+  body:has(#orden-impresa) div:has(> #contenido) { padding-left: 0 !important; }
+  body:has(#orden-impresa) #contenido, #orden-impresa { padding: 0; }
+  #orden-impresa { animation: none; padding-inline: 1px; }
+  #orden-impresa .encabezado-orden-impresa { break-inside: avoid; }
+  #orden-impresa h3 { break-after: avoid; }
+  #orden-impresa tr { break-inside: avoid; }
+  #orden-impresa thead { display: table-header-group; }
+}

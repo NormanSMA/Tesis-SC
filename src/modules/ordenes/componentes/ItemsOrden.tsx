@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Money } from "@/components/comunes/ValorFormateado";
+import { textoMedidas } from "@/core/medidas";
 import type { Moneda } from "@/core/moneda";
 import { formatearCantidadPorUnidad } from "@/lib/formato";
 import { monedaDe } from "@/modules/cotizaciones/moneda";
@@ -19,7 +20,7 @@ function FichaItem({ item, moneda }: { item: ItemOrden; moneda: Moneda }) {
     {item.secuencia}. {item.descripcion}</h3>
     <p className="text-sm break-words">{item.categoria.nombre} · {item.tipo === "CATALOGO" ? "Catálogo" : "Personalizado"}</p>
     <p>Cantidad: {formatearCantidadPorUnidad(item.cantidad, item.unidadCobro === "M2" ? "M2" : "UNIDAD")} {item.unidadCobro === "M2" ? "m²" : "unidades"}</p>
-    {item.ancho && item.alto ? <p>Medidas: {item.ancho} × {item.alto} m</p> : null}
+    {textoMedidas(item) ? <p>Medidas{item.profundidad ? " (ancho × alto × profundidad)" : ""}: {textoMedidas(item)}</p> : null}
     {item.precioUnitario !== undefined ? <dl className="grid gap-3 sm:grid-cols-2">
       <div><dt className="text-sm text-muted-foreground">Precio unitario</dt><dd><Money valor={item.precioUnitario} moneda={moneda} /></dd></div>
       <div><dt className="text-sm text-muted-foreground">Importe</dt><dd><Money valor={item.importe} moneda={moneda} /></dd></div>
@@ -34,7 +35,7 @@ function FichaItem({ item, moneda }: { item: ItemOrden; moneda: Moneda }) {
 
 export function ItemsOrden({ items, moneda }: { items: ItemOrden[]; moneda?: string }) {
   const monedaItems = monedaDe(moneda);
-  return <section aria-labelledby="titulo-items-orden"><h2 id="titulo-items-orden" className="mb-4 text-xl font-semibold">Ítems</h2>
+  return <section aria-labelledby="titulo-items-orden"><h2 id="titulo-items-orden" className="mb-4 text-xl font-semibold">Productos y servicios</h2>
     <div className="grid min-w-0 items-start gap-5 lg:grid-cols-2">{items.map((item) => <FichaItem key={item.id} item={item} moneda={monedaItems} />)}</div>
   </section>;
 }

@@ -35,7 +35,7 @@ Reserve gestión de catálogo para Operaciones y gestión de cotizaciones para A
 
 ## Catálogo
 Productos (`producto`): código único, nombre, descripción, categoría, unidad de cobro (UNIDAD o M2), precio base, activo.
-Recetas (`receta_producto`): materiales por unidad de cobro. Opcionales.
+Materiales del producto (`receta_producto`; en la interfaz, "Materiales del producto" desde el 2026-11-11): materiales por unidad de cobro. Opcionales.
 Categorías (`categoria`): nombre único, descripción, activo.
 Reglas:
 1. Un producto archivado no se puede agregar a una cotización nueva ni editada. Las cotizaciones existentes lo conservan.
@@ -166,3 +166,72 @@ Revisión cruzada del código de Codex por Sonnet (solo lectura). Ningún hallaz
 | Ítem de catálogo por unidad guarda `ancho` y `alto` si llegan | Aceptado (baja) |
 
 Cobertura contra la tesis (Gemini Pro): CF-10, R-03 y Tabla C2 cubiertos; R-02 cubierto mediante el supuesto S-12 (duplicar como plantilla), pendiente de confirmación del cliente. Jev clasifica CF-10 como parcial (0.79) por la conversión a orden del módulo 3 y la proforma sin PDF de servidor.
+
+## Ajustes del 2026-11-12
+- COT-17: las partidas por m² muestran Ancho, Alto y Profundidad (opcional). La fórmula está en `docs/modulos/02-costeo.md`.
+- COT-18: la lista de cotizaciones deja de mostrar Vencimiento y Creada. Ambos datos siguen en la ficha.
+
+## Tipos configurables para cotizaciones personalizadas — COT-19
+
+Entrega inicial del 12 de noviembre de 2026. Configuración → Cotizaciones personalizadas permite agregar categorías comerciales, tipos de producto, unidad de cobro, margen sugerido y materiales habituales. Puede prepararse el listado de ocho categorías de SC y guardarlo. Las categorías son referencias comerciales; no cambian las áreas productivas. Gerencia y Administración acceden mediante tarifa:gestionar, también concedible individualmente.
+
+**Regla histórica sustituida por COT-24 el 2026-11-13:** en el editor se seleccionaba categoría y tipo, se marcaban materiales y luego se pulsaba Aplicar. Se agregan solo materiales seleccionados que aún no estén en la partida. Las líneas conservan cantidades editables o el cálculo por área vigente. El margen sugerido se aplica explícitamente; una descripción ya escrita se conserva. Las partidas guardadas mantienen sus instantáneas; para aplicar nuevas sugerencias a una existente se requiere actualizar su precio. La retirada de un tipo afecta futuras selecciones y no borra cotizaciones.
+
+Los tipos pueden configurarse sin precios ni cantidades. Los datos faltantes se revisan al cotizar con las validaciones existentes. Esta entrega no cambia el cálculo de profundidad, instalación, renta ni rentabilidad, no incorpora reservas o compras y no carga nuevos materiales. Esos puntos siguen pendientes en el plan.
+
+## Configuración guiada y gastos personalizados — COT-20 y COT-21
+
+Regla vigente del 12 de noviembre de 2026. COT-20 sustituye el formulario de configuración COT-19: primero se elige una categoría comercial de SC, luego un producto, su nombre, unidad y margen sugeridos y, por último, sus materiales habituales. Guardar producto persiste la selección. Agregar una categoría distinta es opcional. Al cambiar de producto o categoría se advierte sobre cambios sin guardar. No se cargan productos de ejemplo en la base real.
+
+COT-21 permite definir tarifas sugeridas opcionales por producto (moneda, km, hora por persona, viático por día, hospedaje por noche y renta fija). Se copian al aplicar el tipo solo si coincide la moneda y la partida aún no tiene gastos; una edición del registro no actualiza cotizaciones existentes. Los materiales conservan su tarifa de cotización independiente de estas tarifas.
+
+**Regla histórica de COT-21 sustituida el 2026-11-13 por COT-23:** Cada partida personalizada admitía gastos estructurados con distancia de ida y viajes, además de renta, personas y horas, viáticos y hospedaje. Las cantidades corresponden al total de la partida, no se multiplican otra vez por la cantidad de productos. La distancia se duplica para ida y vuelta; C$16/km es el valor inicial editable. No se presume una tarifa de hora, viático u hospedaje desconocida. Al activar su cantidad se exige una tarifa positiva.
+
+Imprevistos (0/5/6/10 %) e impuestos internos (0/2/3 %) se calculan sobre el precio de venta final de la partida. La renta porcentual usa la misma base, indicada expresamente. Se mantiene el margen sobre venta; las tasas acumuladas deben ser menores que 100 %. Los cargos se conservan como líneas internas generadas y se regeneran al recalcular; no se editan como terceros manuales. El usuario debe evitar duplicar gastos compartidos entre partidas, mano de obra ya capturada o instalación general.
+
+Límite de COT-21: las partidas con cargos porcentuales requieren descuento cero, validado tanto en vista previa como en servidor. Se puede negociar ajustando el margen; el reparto de descuentos entre partidas queda pendiente. Los gastos fijos permiten descuentos normales. No hay asignación automática de gastos compartidos, reservas ni nuevas alertas de abastecimiento en esta entrega. La proforma conserva el precio integrado sin desglosar gastos internos.
+
+## COT-22 Controles y distribución — 2026-11-13
+
+Las secciones plegables muestran una flecha de apertura clara, separada del texto. El editor de partidas deja de reservar una columna lateral para totales: los campos ocupan el ancho disponible y los totales se presentan debajo. Se conservan encabezados por encima de los campos y grupos de dos o tres columnas según el ancho.
+
+## COT-23 Traslado único en Instalación — 2026-11-13
+
+Regla vigente: los kilómetros y la tarifa de traslado se registran únicamente en Instalación. Se retiran de la captura de gastos por partida y de las tarifas sugeridas por producto. Los parámetros antiguos se conservan para interpretar cotizaciones guardadas: un traslado histórico en la partida se muestra como aviso de solo lectura y puede retirarse al actualizar costos. No se traslada ni suma automáticamente al mapa.
+
+Al marcar instalación fuera de Estelí, el mapa permite elegir un punto o pegar latitud, longitud de cualquier mapa. También se reconocen enlaces con coordenadas explícitas: query/q/destination/ll/center/cp, coordenadas de Google Maps en el enlace y fragmentos de OpenStreetMap. No se resuelven enlaces cortos ni direcciones escritas sin coordenadas; la interfaz explica cómo copiar las coordenadas. El destino se centra y se dibuja la ruta desde el centro de Estelí. Se muestran distancia de ida, ida y vuelta y costo de traslado. La ruta de ida redondeada a tres decimales se multiplica por dos para estimar ambos trayectos.
+
+La tarifa visible se toma de Configuración y se conserva al guardar. Puede modificarse para la cotización con permiso cotizacion:gestionar, incluido cero; no modifica la tarifa general. Al cambiar moneda en una cotización nueva se vuelve al valor configurado convertido a esa moneda. La mano de obra de instalación se suma al traslado, integrada en el total sin desglose al cliente. Si el proveedor falla, se ofrece distancia de ida comprobada manualmente; no se sustituye por distancia en línea recta.
+
+La migración distingue el cálculo histórico de solo ida del nuevo de ida y vuelta. Los borradores antiguos conservan sus importes hasta seleccionar de nuevo el destino. Cambiar otro campo o duplicar la cotización no duplica sus kilómetros. Distancia, tarifa, modo e importe quedan auditados con la cabecera. Los datos recibidos del servidor gobiernan el importe, no el total enviado por el cliente.
+
+## COT-24 Producto configurado y lenguaje claro — 2026-11-13
+
+Regla vigente: elegir un producto personalizable desde Configuración carga inmediatamente sus materiales disponibles, unidad y margen sugeridos. Se elimina el paso separado de marcar sugerencias y pulsar Aplicar. Los materiales configurados quedan marcados e incluidos inicialmente; el usuario puede desmarcar los que no utilizará y ajustar cantidades. Las cantidades iniciales de materiales por unidad son 1 para el trabajo completo, pendientes de revisión; los consumos por m² siguen calculándose con medidas y cantidad a realizar. No se inventa una receta geométrica completa ni se prometen consumos verificados.
+
+El producto configurado presenta una sección Materiales de [producto] con selección, cantidades, desperdicio y precios leídos del material. No exige crear manualmente registros de costo. La alternativa Usar captura manual conserva lo capturado y permite agregar materiales, mano de obra o servicios externos. Si había otros costos antes de elegir un producto, se conservan y se advierte que se revisan en captura manual. Cambiar de producto pide confirmación antes de sustituir los materiales sugeridos; otros costos y gastos capturados se conservan.
+
+La selección se conserva como instantánea con el nombre del producto y sus materiales sugeridos. Una recarga o duplicación no depende del registro actual de Configuración. Las cotizaciones anteriores mantienen su forma de captura hasta que se elija explícitamente un producto y se apliquen cambios de costos. Cambiar Configuración no recalcula una oferta emitida.
+
+Los servicios sin materiales pueden calcularse con horas u otros gastos fijos registrados, sin obligar a agregar un costo manual vacío. El servidor genera los registros internos y mantiene la suma que exige la base de datos. Si solo hay porcentajes de renta o ganancia sin materiales, horas ni gastos fijos, se pide completar esa base: el nombre del producto no determina por sí solo un precio. Las tarifas pendientes siguen impidiendo el envío como material gratuito.
+
+Los textos visibles sustituyen partidas por trabajos/productos, ítems por productos y terceros por servicios externos; se usan materiales y otros costos, desperdicio y ganancia sobre el precio de venta. Los nombres técnicos del modelo, API y fórmulas permanecen. Permisos, privacidad por autor, precios autorizados por servidor y auditoría se conservan.
+
+
+## CAT-05 Códigos automáticos del catálogo — 2026-11-13
+
+El código del producto se genera al guardar: P-prefijo de categoría-consecutivo, por ejemplo P-ROT-001. La categoría recibe un prefijo único y estable al usarla; categorías con nombre parecido usan un sufijo para evitar colisiones. Cambiar el nombre de la categoría o reclasificar un producto no altera códigos ya asignados. Se elimina la edición manual de códigos. La migración renumera por fecha de alta con desempate por código anterior e ID, conserva todos los identificadores y costos y registra la correspondencia en la bitácora. Los códigos anteriores permanecen disponibles para búsqueda. La numeración es transaccional y no reutiliza números de productos archivados.
+
+## COT-25 Materiales y servicios en tablas editables — 2026-11-13
+
+La presentación por tarjetas repetidas de cada costo queda sustituida por tablas. Los productos configurados muestran uso, material, cantidad total, precio por unidad, desperdicio y costo total. La alternativa manual usa material o servicio, cantidad, unidad, costo unitario, desperdicio y costo total con acción para quitar la fila. Los encabezados de columnas sustituyen las etiquetas visuales repetidas; cada campo conserva su etiqueta accesible y mensaje de error. En pantallas estrechas se desplaza la tabla dentro de una región identificada y accesible con teclado, sin ensanchar la página.
+
+La superficie de materiales en m² sigue calculándose con las medidas y la cantidad del trabajo; las otras cantidades son editables. No se modifican las fórmulas, instantáneas, permisos, auditoría ni reglas de tarifas pendientes y porcentajes. COT-24 sigue vigente: elegir un producto carga sus materiales y la captura manual es alternativa.
+
+La tabla manual conserva la descripción particular de cada material registrado: se edita en Descripción para este trabajo, dentro de su celda. Para materiales sin registrar y servicios el campo sigue visible directamente.
+
+## COT-26 Alineación de tablas de costos — 2026-11-14
+
+Ajusta la presentación de COT-25: columnas con ancho estable, controles de 40 px alineados por arriba y cantidades/precios/importes alineados a la derecha. La tabla manual incorpora una columna Acciones para Quitar; esta acción deja de compartir celda con el costo total. La información del tipo de costo y la descripción particular se muestran debajo del control principal sin desplazar la cantidad o la tarifa de esa fila. Los nombres largos se truncan en el selector dentro de su celda; las opciones desplegadas y los campos de descripción siguen disponibles.
+
+La tabla de productos configurados alinea casilla, cantidad calculada o editable, tarifa, desperdicio y total. Se conservan la superficie automática, las cantidades, los costos y los errores. Las tablas desplazan su contenido dentro de su región en móvil y no ensanchan toda la página. No se cambian fórmulas, validaciones de negocio, instantáneas ni permisos.

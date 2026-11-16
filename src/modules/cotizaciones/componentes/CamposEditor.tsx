@@ -7,24 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Campo = { id: string; etiqueta: string; valor: string; alCambiar: (valor: string) => void;
-  error?: string; ayuda?: string; requerido?: boolean; deshabilitado?: boolean };
+  error?: string; ayuda?: string; requerido?: boolean; deshabilitado?: boolean; compacto?: boolean };
 
 export function CampoTexto({ decimal, ...campo }: Campo & { decimal?: boolean }) {
-  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido}>
+  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido} compacto={campo.compacto}>
     {(atributos) => <Input {...atributos} value={campo.valor} onChange={(evento) => campo.alCambiar(evento.target.value)}
       disabled={campo.deshabilitado} inputMode={decimal ? "decimal" : undefined} autoComplete="off" />}
   </FormField>;
 }
 
 export function CampoArea(campo: Campo) {
-  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido}>
+  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido} compacto={campo.compacto}>
     {(atributos) => <Textarea {...atributos} value={campo.valor} onChange={(evento) => campo.alCambiar(evento.target.value)}
       disabled={campo.deshabilitado} />}
   </FormField>;
 }
 
 export function CampoSeleccion({ opciones, ...campo }: Campo & { opciones: { id: string; nombre: string }[] }) {
-  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido}>
+  return <FormField id={campo.id} etiqueta={campo.etiqueta} ayuda={campo.ayuda} error={campo.error} requerido={campo.requerido} compacto={campo.compacto}>
     {(atributos) => opciones.length >= OPCIONES_PARA_BUSCAR
       ? <SelectorBuscable id={atributos.id} atributos={atributos} valor={campo.valor} opciones={opciones} alCambiar={campo.alCambiar}
         deshabilitado={campo.deshabilitado} marcador={`Buscar ${campo.etiqueta.toLowerCase()}`} vacio="Seleccione una opción" />

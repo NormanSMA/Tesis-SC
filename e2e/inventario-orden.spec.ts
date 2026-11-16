@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 
 import { PERFILES, VIEWPORTS, usarSesion, sinDesbordeHorizontal, violacionesGraves } from "./ayudas";
+import { elegirAreasDeOrden } from "./elegir";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const ORIGIN = new URL(BASE).origin;
@@ -17,7 +18,7 @@ const UNIDAD = "PLIEGO";
 // La ficha muestra la unidad legible en minúscula, con espacio duro tras la cifra sin ceros sobrantes.
 const UNIDAD_FICHA = "pliego";
 const CLIENTE = "Agencia Viajes Tropical";
-const CATEGORIA = "Rotulación y gran formato";
+const CATEGORIA = "Rotulación";
 type Perfil = (typeof PERFILES)[number];
 type Material = { id: string; codigo: string; activo: boolean; existencia: string; actualizadoEn: string };
 type Cotizacion = { id: string; asunto: string | null; actualizadoEn: string };
@@ -96,16 +97,11 @@ async function prepararMaterial(page: Page): Promise<void> {
 }
 
 async function crearCotizacion(page: Page): Promise<void> {
-  await page.goto("/cotizaciones");
-  await page.goto("/cotizaciones/nueva"); // El botón de la lista abre el drawer; aquí se usa la página completa.
-  await elegir(page.getByRole("combobox", { name: /^Cliente/ }), CLIENTE, page);
+  await page.goto("/cotizaciones/nueva");
+  await page.getByRole("combobox", { name: /^Cliente/ }).click();
+  await page.getByLabel("Buscar cliente por nombre").fill(CLIENTE);
+  await page.getByRole("option", { name: CLIENTE, exact: true }).click();
   await page.getByLabel("Asunto").fill(MARCA);
-  const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
-  await page.getByRole("button", { name: "Crear cotización" }).click();
-  const respuesta = await creada;
-  expect(respuesta.status()).toBe(201);
-  cotizacion = (await respuesta.json()).datos as Cotizacion;
-  await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}/editar$`));
   await page.getByRole("button", { name: "Agregar personalizado" }).click();
   await elegir(page.getByRole("combobox", { name: /^Categoría/ }), CATEGORIA, page);
   await page.getByLabel("Descripción del trabajo").fill(`${MARCA}-personalizado`);
@@ -116,8 +112,12 @@ async function crearCotizacion(page: Page): Promise<void> {
   await linea.getByLabel("Descripción de costo").fill(`${MARCA}-material`);
   await linea.getByLabel("Cantidad total consumida").fill("4");
   await expect(linea.getByLabel("Costo unitario (C$)")).toBeDisabled();
-  await linea.getByLabel("Merma (%)").fill("0");
-  await page.getByRole("button", { name: "Guardar ítems" }).click();
+  await linea.getByLabel("Desperdicio (%)").fill("0");
+  const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/cotizaciones") && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Guardar borrador" }).click();
+  const respuesta = await creada;
+  expect(respuesta.status()).toBe(201);
+  cotizacion = (await respuesta.json()).datos as Cotizacion;
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${cotizacion.id}$`));
   await page.getByRole("button", { name: "Enviar cotización" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Enviar", exact: true }).click();
@@ -139,7 +139,8 @@ async function convertirEnOrden(page: Page): Promise<void> {
   await page.goto(`/cotizaciones/${datos(cotizacion, "la cotización").id}`);
   await page.getByRole("link", { name: "Convertir en orden", exact: true }).click();
   await expect(page.getByRole("form", { name: "Convertir cotización en orden" })).toBeVisible();
-  await elegir(page.getByLabel("Responsable", { exact: true }), "Marco López", page);
+  await elegir(page.getByRole("combobox", { name: /^Responsable de la orden/ }), "Marco López", page);
+  await elegirAreasDeOrden(page, ["Impresión Digital"]);
   await page.getByLabel("Fecha de entrega").fill(fechaFutura(14));
   await page.getByLabel("Especificaciones").fill(`${MARCA}-especificaciones`);
   const creada = page.waitForResponse((r) => r.url().endsWith("/api/v1/ordenes") && r.request().method() === "POST");
@@ -471,11 +472,11 @@ test.describe("Consumo y devolución sobre una orden propia", () => {
     for (const perfil of [GERENCIA, ADMINISTRACION, OPERACIONES]) await verCostos(page, perfil);
   });
 
-  test("Gerencia, Operaciones, Atención al cliente y Producción no registran consumos ni devoluciones", async ({ page }, info) => {
+  test("Operaciones, Atención al cliente y Producción no registran consumos ni devoluciones", async ({ page }, info) => {
     soloPortatil(info.project.name);
     test.setTimeout(120000);
     const ordenId = datos(orden, "la orden").id;
-    for (const perfil of [GERENCIA, OPERACIONES, ATENCION_CLIENTE, PRODUCCION]) {
+    for (const perfil of [OPERACIONES, ATENCION_CLIENTE, PRODUCCION]) {
       await entrarComo(page, perfil);
       await abrirOrden(page);
       if (await page.getByRole("tab", { name: "Materiales consumidos", exact: true }).count() > 0) {

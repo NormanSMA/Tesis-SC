@@ -78,7 +78,30 @@ Informes de auditoría: `docs/auditoria/<fase>-<parte>.md`.
 ## Reparto de archivos
 Un agente es dueño de sus rutas. Nunca edites archivos de otro agente.
 Si necesitas un cambio en un archivo ajeno, descríbelo en tu informe final.
-No ejecutes git. El orquestador revisa y hace los commits.
+Git de lectura permitido (`status`, `diff`, `log`, `show`). Git de escritura (`add`, `commit`, `branch`, `worktree`, `merge`, `push`, `reset`, `stash`) solo cuando el usuario lo pide en el chat. Los commits no agregan coautores.
+
+## Coordinación entre agentes
+Claude Code y Codex comparten estas reglas. CLAUDE.md solo remite a este archivo.
+Al empezar y al terminar sigue docs/coordinacion/README.md y actualiza docs/coordinacion/estado.md (reserva, estado verificado, traspaso).
+Base real, app en 3000, db_test y el Word del registro de cambios son recursos exclusivos: un agente a la vez.
+Mapa de la carpeta superior (tesis, insumos del cliente, accesos de prueba, respaldos): `../LEEME.md`.
+
+## Documentación de cada cambio
+Un cambio no está terminado hasta documentarse. Usa el mismo código (`PROD-04`, `ACC-05`...) en todos los lugares.
+
+| Qué cambió | Dónde se documenta |
+|---|---|
+| Regla o comportamiento de un módulo | `docs/modulos/<NN-modulo>.md`: se reescribe la regla vigente; la anterior se conserva marcada como sustituida, con fecha y código |
+| Decisión del usuario o de diseño | `docs/decisiones.md` |
+| Modelo de datos o migración | `docs/analisis/05-modelo-datos.md` |
+| Requisito o criterio CF afectado | `docs/trazabilidad.md` |
+| Personas, perfiles o áreas de producción | `docs/usuarios-reales.md` |
+| Impacto en la tesis | `docs/alineacion-tesis.md` y `../Registro de cambios por módulo.docx` (mismo código y estado) |
+| Estado operativo, pendientes y traspaso | `docs/coordinacion/estado.md` |
+
+No dejes dos reglas vigentes que se contradigan. Si una cifra cambia (cuentas, áreas, pruebas), actualízala donde se usa como dato vigente; en entradas históricas añade la fecha.
+
+Antes de publicar cambios en GitHub, sincroniza la copia revisada del registro Word en `docs/registro/Registro de cambios por módulo.docx`. El maestro local y su respaldo siguen las rutas del mapa de la carpeta superior.
 
 ## Entorno
 - Puertos solo en 127.0.0.1. App 3000. Base de datos 5442. Base de pruebas 5443.

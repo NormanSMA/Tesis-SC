@@ -45,7 +45,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
       await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn, ...cambios }, actor))
         .rejects.toMatchObject({ status: 403 });
     }
-    expect(await leerOrden(entorno, orden.id)).toEqual(orden);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
   });
 
   it("permite dejar sin responsable y registra la desasignación", async () => {
@@ -81,7 +81,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
   it("un PATCH sin cambios conserva la versión, incluso con fecha vencida", async () => {
     const inicial = await crearOrden(entorno);
     await db.ordenTrabajo.update({ where: { id: inicial.id }, data: { fechaEntrega: new Date("2000-01-01") } });
-    const orden = await leerOrden(entorno, inicial.id);
+    const orden = await leerOrden(entorno, inicial.id, "OPERACIONES");
     const respuesta = await entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn,
       responsableId: entorno.sesiones.PRODUCCION.usuarioId, fechaEntrega: orden.fechaEntrega, especificaciones: orden.especificaciones }, entorno.sesiones.OPERACIONES.actor);
     expect(respuesta).toEqual(orden);
@@ -107,6 +107,18 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
       .rejects.toMatchObject({ status: 422 });
     await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn, responsableId: randomUUID() }, entorno.sesiones.OPERACIONES.actor))
       .rejects.toMatchObject({ status: 422 });
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
+  });
+
+  it("protege la fecha de entrega de una orden lista en el servicio y en PostgreSQL", async () => {
+    const inicial = await crearOrden(entorno);
+    await ponerEstado(db, inicial.id, "LISTA");
+    const orden = await leerOrden(entorno, inicial.id);
+    const actor = entorno.sesiones.OPERACIONES.actor;
+    await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn,
+      fechaEntrega: ENTREGA_NUEVA }, actor)).rejects.toMatchObject({ status: 409, codigo: "FECHA_ENTREGA_FIJA" });
+    await expect(db.$executeRaw`UPDATE orden_trabajo SET fecha_entrega = ${ENTREGA_NUEVA}::date WHERE id = ${orden.id}::uuid`)
+      .rejects.toThrow(/fecha de entrega queda fija/);
     expect(await leerOrden(entorno, orden.id)).toEqual(orden);
   });
 
@@ -115,7 +127,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     const nueva = await entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn, especificaciones: "Primer cambio" }, entorno.sesiones.OPERACIONES.actor);
     await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn, especificaciones: "Primer cambio" }, entorno.sesiones.OPERACIONES.actor))
       .rejects.toMatchObject({ status: 409, codigo: "CONFLICTO_EDICION" });
-    expect(await leerOrden(entorno, orden.id)).toEqual(nueva);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(nueva);
   });
 
   it("dos ediciones simultáneas dejan un ganador y una fila de bitácora", async () => {
@@ -133,7 +145,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     const orden = await crearOrden(entorno);
     await expect(entorno.modulos.servicio.editarOrden(orden.id, { version: orden.actualizadoEn, especificaciones: "No persistir" },
       { ...entorno.sesiones.OPERACIONES.actor, id: randomUUID() })).rejects.toThrow();
-    expect(await leerOrden(entorno, orden.id)).toEqual(orden);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
   });
 
   it("entrega una orden LISTA y cierra una ENTREGADA con fechas y eventos", async () => {
@@ -208,7 +220,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
       await ponerEstado(db, inicial.id, estado);
       const orden = await leerOrden(entorno, inicial.id);
       const servicio = entorno.modulos.servicio;
-      const operacion = accion === "entregar" ? servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.ATENCION_CLIENTE.actor)
+      const operacion = accion === "entregar" ? servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.ADMINISTRACION.actor)
         : accion === "cerrar" ? servicio.cerrarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.OPERACIONES.actor)
           : servicio.cancelarOrden(orden.id, { version: orden.actualizadoEn, motivo: "Motivo inválido por estado" }, entorno.sesiones.OPERACIONES.actor);
       await expect(operacion).rejects.toMatchObject({ status: 409, codigo: "TRANSICION_INVALIDA" });
@@ -230,7 +242,7 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     await ponerEstado(db, inicial.id, "LISTA");
     const orden = await leerOrden(entorno, inicial.id);
     const resultados = await Promise.allSettled([
-      entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.ATENCION_CLIENTE.actor),
+      entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.ADMINISTRACION.actor),
       entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.OPERACIONES.actor),
     ]);
     expect(resultados.filter((resultado) => resultado.status === "fulfilled")).toHaveLength(1);
@@ -245,12 +257,12 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
     const version = "2000-01-01T00:00:00.000Z";
     for (const accion of ["entregar", "cerrar", "cancelar"] as const) {
       const servicio = entorno.modulos.servicio;
-      const operacion = accion === "entregar" ? servicio.entregarOrden(inicial.id, version, entorno.sesiones.ATENCION_CLIENTE.actor)
+      const operacion = accion === "entregar" ? servicio.entregarOrden(inicial.id, version, entorno.sesiones.ADMINISTRACION.actor)
         : accion === "cerrar" ? servicio.cerrarOrden(inicial.id, version, entorno.sesiones.OPERACIONES.actor)
           : servicio.cancelarOrden(inicial.id, { version, motivo: "Versión desactualizada" }, entorno.sesiones.OPERACIONES.actor);
       await expect(operacion).rejects.toMatchObject({ codigo: "CONFLICTO_EDICION", status: 409 });
     }
-    expect(await leerOrden(entorno, inicial.id)).toEqual(inicial);
+    expect(await leerOrden(entorno, inicial.id, "OPERACIONES")).toEqual(inicial);
   });
 
   it("revierte cancelación y etapas cuando falla la bitácora", async () => {
@@ -264,17 +276,17 @@ describeConBase("órdenes: edición, transiciones y bitácora", () => {
       await expect(entorno.modulos.servicio.cancelarOrden(orden.id, { version: orden.actualizadoEn, motivo: "No persistir etapas" }, entorno.sesiones.OPERACIONES.actor))
         .rejects.toThrow();
     } finally { espia.mockRestore(); }
-    expect(await leerOrden(entorno, orden.id)).toEqual(orden);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
   });
 
   it("revierte entregar y cerrar si falla el evento", async () => {
     const inicial = await crearOrden(entorno);
     await ponerEstado(db, inicial.id, "LISTA");
-    const orden = await leerOrden(entorno, inicial.id);
-    await expect(entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, { ...entorno.sesiones.ATENCION_CLIENTE.actor, id: randomUUID() })).rejects.toThrow();
-    expect(await leerOrden(entorno, orden.id)).toEqual(orden);
-    const entregada = await entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.ATENCION_CLIENTE.actor);
+    const orden = await leerOrden(entorno, inicial.id, "OPERACIONES");
+    await expect(entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, { ...entorno.sesiones.OPERACIONES.actor, id: randomUUID() })).rejects.toThrow();
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(orden);
+    const entregada = await entorno.modulos.servicio.entregarOrden(orden.id, orden.actualizadoEn, entorno.sesiones.OPERACIONES.actor);
     await expect(entorno.modulos.servicio.cerrarOrden(orden.id, entregada.actualizadoEn, { ...entorno.sesiones.OPERACIONES.actor, id: randomUUID() })).rejects.toThrow();
-    expect(await leerOrden(entorno, orden.id)).toEqual(entregada);
+    expect(await leerOrden(entorno, orden.id, "OPERACIONES")).toEqual(entregada);
   });
 });

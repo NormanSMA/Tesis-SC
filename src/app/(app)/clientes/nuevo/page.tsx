@@ -7,7 +7,7 @@ import { FormularioCliente } from "@/modules/clientes/componentes/FormularioClie
 export const metadata: Metadata = { title: "Nuevo cliente" };
 
 export default async function PaginaNuevoCliente() {
-  await exigirPermisoPagina("cliente:gestionar");
+  await exigirPermisoPagina("cliente:crear", "cliente:gestionar");
   return (
     <>
       <CabeceraFicha

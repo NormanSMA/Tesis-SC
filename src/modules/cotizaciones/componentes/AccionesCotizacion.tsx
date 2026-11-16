@@ -14,7 +14,7 @@ type Accion = "enviar" | "duplicar" | "archivar" | "version-corregida";
 const CONFIRMACION = {
   "version-corregida": { titulo: "Crear versión corregida", descripcion: "Cree la siguiente versión en borrador para atender los ajustes solicitados." },
   enviar: { titulo: "Enviar cotización", descripcion: "Fije los montos y las fechas. Después del envío, corrija mediante un duplicado." },
-  duplicar: { titulo: "Duplicar cotización", descripcion: "Cree un borrador con los ítems guardados, el IVA vigente y la vigencia vigente." },
+  duplicar: { titulo: "Duplicar cotización", descripcion: "Cree un borrador con los trabajos y la tarifa guardadas. Se aplicará la vigencia actual." },
   archivar: { titulo: "Archivar cotización", descripcion: "Oculte la cotización de la lista predeterminada. Conserve los datos y el historial." },
 };
 const ETIQUETA_CONFIRMAR: Record<Accion, string> = {

@@ -12,6 +12,15 @@ const especificaciones = z.string().trim().max(10000, "Admite hasta 10000 caract
 export const esquemaCrearOrden = z.object({
   cotizacionId: id, categoriaId: id, responsableId: id.nullable().optional(), fechaEntrega: fecha,
   especificaciones: especificaciones.optional(),
+  etapas: z.array(z.object({
+    areaId: id, responsableId: id,
+    instrucciones: z.string().trim().min(1, "Indique las instrucciones del área.").max(4000),
+  })).min(1, "Seleccione al menos un área.").max(6).optional(),
+}).superRefine(({ etapas, responsableId }, contexto) => {
+  if (!responsableId) contexto.addIssue({ code: "custom", path: ["responsableId"], message: "Seleccione el responsable general de la orden." });
+  if (etapas && new Set(etapas.map(({ areaId }) => areaId)).size !== etapas.length) {
+    contexto.addIssue({ code: "custom", path: ["etapas"], message: "Seleccione cada área una sola vez." });
+  }
 });
 export const esquemaEditarOrden = z.object({
   version, responsableId: id.nullable().optional(), fechaEntrega: fecha.optional(),

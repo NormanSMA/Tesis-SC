@@ -164,3 +164,14 @@ Hallazgos de la revisión:
 | Quitar la comprobación previa de duplicados y confiar solo en el UNIQUE (Gemini) | Rechazado: contradice la auditoría de Codex; con la comprobación el mensaje trae el número ganador |
 Cobertura (Gemini Pro y Jev): CF-01 y R-04 cubiertos (Jev 1.0); CF-02 parcial (Jev 1.0) y CF-09 parcial, por las acciones de etapas y estados EN_PRODUCCION y LISTA (módulo 5) y el consumo real (módulo 4).
 Pendiente: E2E del enlace desde la ficha del cliente a sus órdenes (CF-11, R-13).
+
+## Ajustes del 2026-11-12
+- ORD-08: los materiales del trabajo se muestran en la tabla de etapas, en la ficha y en la hoja imprimible. Cada etapa lista los materiales de su área (por nombre oficial o equivalente de `areas-conversion.ts`); si dos etapas comparten área, ambas los muestran. Los materiales sin área, o cuya área no tiene etapa en la orden, quedan en "Sin área asignada". Sustituye la sección separada "Materiales para el trabajo".
+- ORD-09: la lista de órdenes ya no muestra el código del cliente bajo su nombre, y el avance se muestra como un anillo con "completadas/total" de etapas.
+- Las medidas de cada ítem incluyen la profundidad cuando existe (COT-17).
+
+## ORD-10 Acciones de etapa mediante íconos — 2026-11-14
+
+En la ficha de ODT, las acciones de cada etapa se muestran como botones de ícono de 40 × 40 px en una cuadrícula uniforme de dos columnas: asignar responsable, planificar fechas, marcar como hecha, omitir o restaurar. La explicación aparece al pasar el cursor o enfocar mediante teclado y puede cerrarse con Escape. Cada botón conserva su nombre accesible con el nombre de la etapa, por lo que no depende solo del dibujo.
+
+La presentación sustituye las etiquetas visibles de las acciones, no sus reglas. Se mantienen los permisos, estados habilitados, diálogos y confirmaciones existentes. Hecho conserva la confirmación antes de completar la etapa. Las acciones de cabecera y la orden imprimible mantienen su presentación.

@@ -54,6 +54,7 @@ describeConBase("concurrencia cruzada: carreras pendientes entre módulos", () =
     entorno = await prepararProduccion(db);
     const modulos = entorno.ordenes.cotizaciones.modulos;
     segundaVenta = await abrirSesion(db, modulos, "ATENCION_CLIENTE");
+    segundaVenta.actor = { ...segundaVenta.actor, permisos: [...segundaVenta.actor.permisos, "cotizacion:ver_todas"] };
     segundaProduccion = await abrirSesion(db, modulos, "PRODUCCION");
   });
   afterAll(async () => {
@@ -68,7 +69,7 @@ describeConBase("concurrencia cruzada: carreras pendientes entre módulos", () =
         { version: preparada.actualizadoEn }, entorno.actor);
       const servicio = entorno.ordenes.modulos.servicio;
       const entregar = () => servicio.entregarOrden(orden.id, orden.actualizadoEn,
-        entorno.ordenes.sesiones.ATENCION_CLIENTE.actor);
+        entorno.ordenes.sesiones.ADMINISTRACION.actor);
       const cancelar = () => servicio.cancelarOrden(orden.id,
         { version: orden.actualizadoEn, motivo: "Cancelación contra entrega" }, entorno.operaciones);
       const operaciones = ronda % 2 ? [cancelar, entregar] : [entregar, cancelar];
@@ -101,7 +102,7 @@ describeConBase("concurrencia cruzada: carreras pendientes entre módulos", () =
       const iniciada = await entorno.servicio.iniciarEtapa(primera.id,
         { version: primera.actualizadoEn }, entorno.actor);
       await entorno.servicio.completarEtapa(iniciada.id, { version: iniciada.actualizadoEn }, entorno.actor);
-      const pendiente = await asignarEtapa(entorno, orden.etapas[1]);
+      const pendiente = await asignarEtapa(entorno, orden.etapas[1], segundaProduccion.actor);
       const actual = await db.ordenTrabajo.findUniqueOrThrow({ where: { id: orden.id } });
       // Iniciar exige PENDIENTE; esa etapa impide LISTA antes y después del inicio.
       const lista = () => entorno.servicio.marcarLista(orden.id,

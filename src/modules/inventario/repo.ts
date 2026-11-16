@@ -22,10 +22,11 @@ export function ordenLista<C extends string>(orden: Orden<C> | undefined, defect
   return [{ [campo]: direccion }, { id: direccion }] as [Partial<Record<C, DireccionOrden>>, { id: DireccionOrden }];
 }
 export async function consultarMateriales(consulta: ConsultaMateriales) {
-  const where: Prisma.MaterialWhereInput = { activo: consulta.activo === "todos" ? undefined : consulta.activo === "true" };
+  const where: Prisma.MaterialWhereInput = { activo: consulta.activo === "todos" ? undefined : consulta.activo === "true",
+    ...(consulta.area && { areaProduccion: consulta.area === "SIN_CLASIFICAR" ? null : consulta.area }) };
   if (consulta.q) {
     const texto = { contains: consulta.q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" as const };
-    where.OR = [{ nombre: texto }, { codigo: texto }, { descripcion: texto }];
+    where.OR = [{ nombre: texto }, { codigo: texto }, { descripcion: texto }, { codigosAnteriores: { has: consulta.q.toUpperCase() } }];
   }
   if (consulta.bajoMinimo === "true") where.AND = [filtroAlerta()];
   const [filas, total, materiales, enAlerta, sinExistencia] = await Promise.all([
@@ -46,12 +47,23 @@ export async function consultarConciliacion(id: string) {
   return fila;
 }
 const COLUMNAS = { nombre: "nombre", descripcion: "descripcion", stockMinimo: "stock_minimo",
-  costoPromedio: "costo_promedio", activo: "activo" } as const;
-export type CambiosMaterial = Omit<EditarMaterial, "version"> & { activo?: boolean };
+  costoPromedio: "costo_promedio", activo: "activo", tipoPresentacion: "tipo_presentacion", areaProduccion: "area_produccion",
+  anchoPresentacion: "ancho_presentacion", largoPresentacion: "largo_presentacion",
+  unidadCotizacion: "unidad_cotizacion", areaUnidadInventario: "area_unidad_inventario", precioCotizacion: "precio_cotizacion" } as const;
+export type CambiosMaterial = Omit<EditarMaterial, "version" | "presentacion" | "fotoBase64"> & {
+  activo?: boolean;
+  tipoPresentacion?: "ROLLO" | "LAMINA" | null;
+  anchoPresentacion?: string | null;
+  largoPresentacion?: string | null;
+  precioCotizacion?: string | null;
+};
 export async function actualizarCondicionado(tx: Tx, condicion: { id: string; version: string }, cambios: CambiosMaterial) {
   const asignaciones = Object.entries(cambios).map(([campo, valor]) => {
     const columna = Prisma.raw(COLUMNAS[campo as keyof typeof COLUMNAS]);
-    return campo === "stockMinimo" || campo === "costoPromedio"
+    if (campo === "tipoPresentacion") return Prisma.sql`${columna} = ${valor}::tipo_presentacion_material`;
+    if (campo === "unidadCotizacion") return Prisma.sql`${columna} = ${valor}::unidad_material`;
+    if (campo === "areaProduccion") return Prisma.sql`${columna} = ${valor}::area_material`;
+    return ["stockMinimo", "costoPromedio", "anchoPresentacion", "largoPresentacion", "areaUnidadInventario", "precioCotizacion"].includes(campo)
       ? Prisma.sql`${columna} = ${valor}::numeric` : Prisma.sql`${columna} = ${valor}`;
   });
   const desde = new Date(condicion.version);

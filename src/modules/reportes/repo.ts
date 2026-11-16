@@ -5,7 +5,7 @@ import { TERMINALES } from "@/modules/ordenes/reglas";
 import type { ConsultaReporte } from "./schema";
 
 // El importe se expresa en córdobas equivalentes: nunca se suman monedas distintas (ADR-018).
-export function consultarCotizaciones(consulta: ConsultaReporte) {
+export function consultarCotizaciones(consulta: ConsultaReporte, autorId?: string) {
   const { gte, lt } = limitesFecha(consulta);
   return prisma.$queryRaw<{ estado: string; cantidad: number; importe: string }[]>`
     SELECT estado::text AS estado, count(*)::int AS cantidad,
@@ -13,6 +13,7 @@ export function consultarCotizaciones(consulta: ConsultaReporte) {
     FROM cotizacion
     WHERE (${gte ?? null}::timestamptz IS NULL OR creado_en >= ${gte ?? null}::timestamptz)
       AND (${lt ?? null}::timestamptz IS NULL OR creado_en < ${lt ?? null}::timestamptz)
+    AND (${autorId ?? null}::uuid IS NULL OR creado_por_id = ${autorId ?? null}::uuid)
     GROUP BY estado ORDER BY estado`;
 }
 type MaterialReporte = { codigo: string; material: string; unidad: string; existencia: string;

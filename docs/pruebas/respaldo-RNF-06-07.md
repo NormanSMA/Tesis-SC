@@ -11,7 +11,8 @@ Fecha: 2026-10-10. Entorno: Docker Compose local, PostgreSQL 17, base de demostr
 - Respaldo programado: servicio `respaldo` de `compose.yaml`, sin perfil adicional.
   - Inicie aplicación y respaldo mediante `docker compose up -d`.
   - Inicie solo respaldo mediante `docker compose up -d respaldo`.
-  - Ejecuta `scripts/respaldo-programado.sh`: respalda al arrancar y cada `INTERVALO_HORAS` (24 por defecto).
+  - Ejecuta `scripts/respaldo-programado.sh`: respalda al arrancar y cada `INTERVALO_HORAS` (23 por defecto), medidas con la hora real.
+  - Revisa cada `REVISION_SEGUNDOS` (300) si toca respaldar. Un `sleep` largo no avanza con el equipo suspendido; con la revisión corta, el respaldo pendiente corre a los pocos minutos de reanudar.
   - Solo cuenta un respaldo que `pg_restore --list` puede leer.
   - Conserva `RETENCION_DIAS` (7). Reintenta cada hora si falla.
   - Bitácora: `/respaldos/registro.log` en el volumen `sc_respaldos` (fecha ISO, OK o FALLO, archivo, bytes).
@@ -47,3 +48,4 @@ Revise el registro mediante `docker compose exec respaldo cat /respaldos/registr
 - Volumen de datos de demostración (cientos de filas). El tiempo crece con el tamaño; el margen frente a 4 horas es amplio.
 - Se probó en la misma máquina y volumen de Docker. Para operación real, copiar el volumen `sc_respaldos` a otro equipo o disco.
 - El intervalo programado es de 23 horas (`INTERVALO_HORAS`) para dejar margen frente a las 24 horas de RNF-06. La verificación depende de que el servicio `respaldo` esté activo; el registro es la evidencia.
+- 2026-11-11: con la espera anterior (`sleep` de 23 horas) no hubo respaldo entre el 9 y el 11 de noviembre porque el equipo estuvo suspendido. El healthcheck lo detectó como unhealthy. Tras la corrección, el servicio respaldó al reiniciar y volvió a healthy. Un equipo apagado no respalda: RNF-06 exige que el servidor permanezca encendido.

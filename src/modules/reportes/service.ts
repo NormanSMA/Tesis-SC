@@ -1,3 +1,4 @@
+import { filtroAutor } from "@/modules/cotizaciones/acceso";
 import { can, exigir, type Actor } from "@/core/autorizacion";
 import { CERO, formatear, leerDecimal, sumar } from "@/core/decimal";
 import { hoyManagua } from "@/modules/cotizaciones/fechas";
@@ -10,8 +11,8 @@ import { tasaAprobacion } from "./reglas";
 import type { ConsultaReporte, NombreReporte } from "./schema";
 import type { FilaReporte, ReporteDto } from "./tipos";
 
-async function cotizaciones(consulta: ConsultaReporte, dinero: boolean) {
-  const grupos = await consultarCotizaciones(consulta);
+async function cotizaciones(consulta: ConsultaReporte, dinero: boolean, autorId?: string) {
+  const grupos = await consultarCotizaciones(consulta, autorId);
   const estados = ["BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA", "VENCIDA", "AJUSTE_SOLICITADO"];
   const filas = estados.map((estado) => {
     const grupo = grupos.find((fila) => fila.estado === estado);
@@ -61,7 +62,7 @@ export async function obtenerReporte(entrada: { nombre: NombreReporte; consulta:
   const instante = entrada.instante ?? new Date();
   const dinero = can(entrada.actor, "cotizacion:ver");
   const operaciones = {
-    "cotizaciones-por-estado": () => cotizaciones(entrada.consulta, dinero), existencias: () => existencias(entrada.consulta, dinero),
+    "cotizaciones-por-estado": () => cotizaciones(entrada.consulta, dinero, filtroAutor(entrada.actor).creadoPorId), existencias: () => existencias(entrada.consulta, dinero),
     "carga-por-operario": () => carga(entrada.consulta, hoyManagua(instante)),
     "ordenes-por-etapa": () => etapas(entrada.consulta, hoyManagua(instante)),
   };

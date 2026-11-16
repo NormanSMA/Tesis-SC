@@ -25,7 +25,7 @@ export function ordenProductos(orden: ConsultaProductos["orden"]): Prisma.Produc
 }
 export async function consultarProductos(consulta: ConsultaProductos) {
   const where: Prisma.ProductoWhereInput = { activo: consulta.activo, categoriaId: consulta.categoriaId };
-  if (consulta.q) where.OR = [{ nombre: contiene(consulta.q) }, { codigo: contiene(consulta.q) }, { descripcion: contiene(consulta.q) }];
+  if (consulta.q) where.OR = [{ nombre: contiene(consulta.q) }, { codigo: contiene(consulta.q) }, { descripcion: contiene(consulta.q) }, { codigosAnteriores: { has: consulta.q.toUpperCase() } }];
   const [filas, total] = await Promise.all([
     prisma.producto.findMany({ where, include: { categoria: true }, orderBy: ordenProductos(consulta.orden),
       skip: (consulta.pagina - 1) * consulta.porPagina, take: consulta.porPagina }),
@@ -38,7 +38,7 @@ export function buscarProducto(tx: Tx, id: string) {
     categoria: true, receta: { include: { material: true }, orderBy: { materialId: "asc" } },
   } });
 }
-export function insertarProducto(tx: Tx, entrada: EntradaCrearProducto) {
+export function insertarProducto(tx: Tx, entrada: EntradaCrearProducto & { codigosAnteriores?: string[] }) {
   return tx.producto.create({ data: entrada, include: { categoria: true } });
 }
 function asignacionProducto(campo: keyof typeof COLUMNAS_PRODUCTO, valor: unknown) {

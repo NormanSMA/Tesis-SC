@@ -11,7 +11,7 @@ export default async function Pagina() {
   const actor = await exigirPermisoPagina("catalogo:gestionar");
   return <>
     <CabeceraFicha titulo="Nuevo producto" volver={{ href: "/catalogo", etiqueta: "Catálogo" }}
-      meta={<span>Defina el producto y su precio base. Agregue su receta después de crearlo.</span>} />
+      meta={<span>Defina el producto y su precio base. Agregue sus materiales después de crearlo.</span>} />
     <FormularioProducto categorias={await listarCategorias()} puedeVerCosto={can(actor, "cotizacion:ver")} />
   </>;
 }

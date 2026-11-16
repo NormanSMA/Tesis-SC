@@ -23,7 +23,7 @@ export const esquemaConsultaBitacora = z.object({
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 }).refine((consulta) => !consulta.desde || !consulta.hasta || consulta.desde <= consulta.hasta,
   { path: ["hasta"], message: "La fecha final debe ser igual o posterior a la inicial." });
-export type ConsultaBitacora = z.output<typeof esquemaConsultaBitacora>;
+export type ConsultaBitacora = z.output<typeof esquemaConsultaBitacora> & { autorId?: string };
 
 export function leerConsulta(parametros: URLSearchParams | Record<string, string | string[] | undefined>) {
   const lectura = esquemaConsultaBitacora.safeParse(objetoDeParametros(parametros));

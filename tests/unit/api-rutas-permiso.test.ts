@@ -11,6 +11,10 @@ const PERMISOS = new Set<string>(CATALOGO_PERMISOS.map(({ permiso }) => permiso)
 
 // Las excepciones autorizan solamente el método indicado, nunca toda la ruta.
 const EXCEPCIONES = [
+  { ruta: "clientes", metodo: "POST", motivo: "Admite cliente:crear o cliente:gestionar dentro del handler y del servicio." },
+  { ruta: "configuracion", metodo: "GET", motivo: "El servicio filtra parámetros por configuracion:gestionar o tarifa:gestionar." },
+  { ruta: "configuracion", metodo: "PATCH", motivo: "El servicio exige el permiso de la clase de parámetro editado." },
+  { ruta: "cotizaciones/clientes", metodo: "GET", motivo: "El selector exige cotizacion:gestionar o cotizacion:ver en el handler." },
   { ruta: "salud", metodo: "GET", motivo: "Comprueba la disponibilidad sin usar manejar." },
   { ruta: "auth/login", metodo: "POST", motivo: "Inicia una sesión mediante una ruta pública." },
   { ruta: "auth/logout", metodo: "POST", motivo: "Finaliza una sesión mediante una ruta pública." },
@@ -19,6 +23,8 @@ const EXCEPCIONES = [
   { ruta: "ordenes/opciones", metodo: "GET", motivo: "Filtra las opciones según los permisos en el servicio." },
   { ruta: "ordenes/[id]", metodo: "PATCH", motivo: "Exige el permiso correspondiente dentro del handler." },
   { ruta: "reportes/[nombre]", metodo: "GET", motivo: "Selecciona el permiso del reporte dentro del handler." },
+  { ruta: "notificaciones", metodo: "GET", motivo: "Cada fuente de avisos exige su permiso en el servicio." },
+  { ruta: "notificaciones/leidas", metodo: "POST", motivo: "Marca como leídos los avisos propios con una sesión autenticada." },
 ] as const;
 
 type Handler = { ruta: string; metodo: string; nodo: ts.Node | undefined };

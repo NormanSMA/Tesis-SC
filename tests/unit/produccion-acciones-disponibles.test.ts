@@ -4,7 +4,7 @@ import { accionesDisponibles, type PermisosEtapas } from "@/modules/produccion/c
 
 const estados: EstadoEtapa[] = ["PENDIENTE", "EN_CURSO", "COMPLETADA", "OMITIDA"];
 const planificacion = [["asignar", "fechas", "omitir"], ["asignar", "fechas"], [], ["asignar", "restaurar"]];
-const ejecucion = [["iniciar"], ["completar"], [], []];
+const ejecucion = [["hecho"], ["hecho"], [], []];
 const permisos: PermisosEtapas[] = Array.from({ length: 8 }, (_, mascara) => ({
   planificar: Boolean(mascara & 1), ejecutar: Boolean(mascara & 2), avanzar: Boolean(mascara & 4),
 }));
@@ -21,7 +21,7 @@ describe("acciones de etapa: permisos y planificación", () => {
     if (entrada.permisos.ejecutar) {
       for (const accion of ejecucion[indice]) esperadas.add(accion);
     }
-    if (entrada.estadoOrden === "PENDIENTE" && !entrada.permisos.avanzar) esperadas.delete("iniciar");
+    if (entrada.estadoEtapa === "PENDIENTE" && entrada.estadoOrden === "PENDIENTE" && !entrada.permisos.avanzar) esperadas.delete("hecho");
     const acciones = accionesDisponibles(Object.freeze({ ...entrada, permisos: Object.freeze(entrada.permisos) }));
     expect(acciones).not.toBeNull();
     expect(Object.entries(acciones!).filter(([, visible]) => visible).map(([accion]) => accion).sort())

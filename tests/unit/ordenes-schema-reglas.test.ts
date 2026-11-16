@@ -23,11 +23,11 @@ describe("órdenes: esquemas zod", () => {
       expect(esquemaCrearOrden.safeParse(entrada).success).toBe(false);
     });
   }
-  it("crear y editar admiten responsable omitido o nulo y rechazan identificadores inválidos", () => {
+  it("exige responsable al crear y conserva la edición de órdenes anteriores", () => {
     const { responsableId, ...sinResponsable } = creacion;
     expect(responsableId).toBe(id);
-    expect(esquemaCrearOrden.parse(sinResponsable)).not.toHaveProperty("responsableId");
-    expect(esquemaCrearOrden.parse({ ...sinResponsable, responsableId: null }).responsableId).toBeNull();
+    expect(esquemaCrearOrden.safeParse(sinResponsable).success).toBe(false);
+    expect(esquemaCrearOrden.safeParse({ ...sinResponsable, responsableId: null }).success).toBe(false);
     expect(esquemaEditarOrden.parse({ version, responsableId: null }).responsableId).toBeNull();
     for (const responsableId of ["", "inválido"]) {
       expect(esquemaCrearOrden.safeParse({ ...sinResponsable, responsableId }).success).toBe(false);

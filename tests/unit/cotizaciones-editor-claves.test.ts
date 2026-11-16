@@ -57,7 +57,7 @@ const cotizacion = { id, numero: "C-01", moneda: "NIO", tipoCambio: "1", actuali
   items: [], descuento: "0", descuentoPct: null, tasaImpuesto: "15" } as unknown as CotizacionDto;
 const selectores: SelectoresEditor = { productos: [{ id, codigo: "P-01", nombre: "Producto", categoriaId: id,
   categoria: "Categoría", unidadCobro: "UNIDAD", precioBase: "10" }], materiales: [], categorias: [{ id, nombre: "Categoría" }] };
-const locales = new Set(["EditorItems", "CamposItems", "EditorItem", "ItemConFormulario", "ContenidoItem",
+const locales = new Set(["EditorItems", "CamposItems", "CamposPartidas", "EditorItem", "ItemConFormulario", "ContenidoItem",
   "LineasItem", "PieEditor", "PieTotales", "EditorLinea"]);
 let raiz: ReactNode;
 const hojas: ReactElement<Record<string, unknown>>[] = [];
@@ -107,8 +107,8 @@ function lineas() { return hojas.filter((hoja) => typeof hoja.props.alCambiar ==
 
 beforeEach(() => { motor.instancias.clear(); motor.enviar.mockReset(); motor.enfocar.mockReset(); });
 
-describe("editor con suscripciones por ítem y línea", () => {
-  it("conserva claves al agregar, editar y quitar ítems", () => {
+describe("editor con suscripciones por producto y línea", () => {
+  it("conserva claves al agregar, editar y quitar productos", () => {
     montar(); boton("Agregar catálogo")(); actualizar();
     const form = formulario();
     form.setValue("items.0.productoId", id);
@@ -118,7 +118,7 @@ describe("editor con suscripciones por ítem y línea", () => {
     form.setValue("items.1.cantidad", "2"); actualizar();
     const siguientes = hojas.filter((hoja) => hoja.props.etiqueta === "Productos y trabajos")[0].props.children as ReactElement[];
     expect(siguientes.map((campo) => campo.key)).toEqual(claves);
-    (hojas.find((hoja) => hoja.props["aria-label"] === "Quitar ítem 1")!.props.onClick as () => void)(); actualizar();
+    (hojas.find((hoja) => hoja.props["aria-label"] === "Quitar producto 1")!.props.onClick as () => void)(); actualizar();
     const restantes = hojas.filter((hoja) => hoja.props.etiqueta === "Productos y trabajos")[0].props.children as ReactElement[];
     expect(restantes.map((campo) => campo.key)).toEqual([claves[1]]);
     expect(form.getValues("items.0.cantidad")).toBe("2");
@@ -126,7 +126,7 @@ describe("editor con suscripciones por ítem y línea", () => {
 
   it("teclear en una línea conserva los renders de otra línea", () => {
     montar(); boton("Agregar personalizado")(); actualizar();
-    boton("Agregar tercero")(); actualizar(); boton("Agregar tercero")(); actualizar();
+    boton("Agregar servicio externo")(); actualizar(); boton("Agregar servicio externo")(); actualizar();
     formulario().setValue("items.0.lineas.0.costo", "100");
     formulario().setValue("items.0.lineas.1.costo", "50"); actualizar();
     const segunda = [...motor.instancias.values()].find((instancia) => instancia.props?.prefijo === "items.0.lineas.1")!;
@@ -164,7 +164,7 @@ describe("editor con suscripciones por ítem y línea", () => {
 
   it("actualiza totales con varias líneas y descuento porcentual", () => {
     montar({ ...cotizacion, descuentoPct: "10" }); boton("Agregar personalizado")(); actualizar();
-    boton("Agregar tercero")(); actualizar(); boton("Agregar tercero")(); actualizar();
+    boton("Agregar servicio externo")(); actualizar(); boton("Agregar servicio externo")(); actualizar();
     const form = formulario();
     form.setValue("items.0.margenPct", "0");
     form.setValue("items.0.lineas.0.costo", "100"); form.setValue("items.0.lineas.1.costo", "50"); actualizar();

@@ -1,11 +1,19 @@
 import { Prisma } from "@/generated/prisma/client";
-import type { Tx } from "@/lib/db";
+import { prisma, type Tx } from "@/lib/db";
+import { nombreOficialArea, nombresAreasConversion } from "@/modules/ordenes/areas-conversion";
 import { campoInvalido, conflictoEdicion, noEncontrado } from "./errores";
 
 export const incluirEtapa = { area: { select: { id: true, nombre: true } }, responsable: { select: { id: true, nombre: true } } };
 export type EtapaGuardada = Prisma.EtapaOrdenGetPayload<{ include: typeof incluirEtapa }>;
 export const incluirPlantilla = { area: { select: { id: true, nombre: true } } };
 export type PlantillaGuardada = Prisma.EtapaPlantillaGetPayload<{ include: typeof incluirPlantilla }>;
+
+export function consultarAreasProduccion() {
+  const nombresAnteriores = nombresAreasConversion.filter((nombre) => nombreOficialArea(nombre) !== nombre);
+  return prisma.area.findMany({ where: { OR: [{ activo: true }, { nombre: { notIn: nombresAnteriores } }] },
+    orderBy: [{ nombre: "asc" }, { id: "asc" }] });
+}
+
 export async function bloquearOrden(tx: Tx, id: string) {
   await tx.$queryRaw`SELECT id FROM orden_trabajo WHERE id = ${id}::uuid FOR UPDATE`;
   const orden = await tx.ordenTrabajo.findUnique({ where: { id } });

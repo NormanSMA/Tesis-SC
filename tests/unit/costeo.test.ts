@@ -241,7 +241,7 @@ describe("costearItemPersonalizado", () => {
     expect(validarItemPersonalizado({ ...base, margenPct: "100" })).toEqual({ margenPct: margenFueraDeRango });
     expect(validarItemPersonalizado({ ...base, margenPct: "-0.01" })).toEqual({ margenPct: margenFueraDeRango });
     expect(validarItemPersonalizado({ ...base, cantidad: "0" })).toEqual({ cantidad: "Debe ser mayor que 0." });
-    expect(validarItemPersonalizado({ ...base, lineas: [] })).toEqual({ lineas: "Agrega al menos una línea de costo." });
+    expect(validarItemPersonalizado({ ...base, lineas: [] })).toEqual({ lineas: "Seleccione materiales o registre las horas y otros costos del trabajo." });
   });
 
   it("ubica los errores de cada línea con su índice", () => {
@@ -267,6 +267,7 @@ describe("costearItemCatalogo", () => {
       cantidad: "3.000",
       ancho: null,
       alto: null,
+      profundidad: null,
       precioUnitario: "1320.00",
       costoTotal: null,
       margenPct: null,
@@ -387,14 +388,14 @@ describe("totalizarCotizacion", () => {
     });
   });
 
-  it("margen resultante de los ítems personalizados", () => {
+  it("margen resultante de los productos personalizados", () => {
     const items = [personalizado("125", "100"), personalizado("250", "200"), catalogo("999")];
     expect(totalizarCotizacion({ items, descuento: "0", tasaImpuesto: "15" }).margenPct).toBe("20.00");
     const sinImporte = [personalizado("0", "0")];
     expect(totalizarCotizacion({ items: sinImporte, descuento: "0", tasaImpuesto: "15" }).margenPct).toBeNull();
   });
 
-  it("sin ítems todo es cero", () => {
+  it("sin productos todo es cero", () => {
     expect(totalizarCotizacion({ items: [], descuento: "0", tasaImpuesto: "15" })).toEqual({
       subtotal: "0.00",
       descuento: "0.00",
@@ -405,7 +406,7 @@ describe("totalizarCotizacion", () => {
     });
   });
 
-  it("exige el costo de los ítems personalizados", () => {
+  it("exige el costo de los productos personalizados", () => {
     const sinCosto = { tipo: "PERSONALIZADO", importe: "10", costoTotal: null } as ItemTotalizable;
     expect(validarCotizacion({ items: [sinCosto], descuento: "0", tasaImpuesto: "15" })).toEqual({
       "items.0.costoTotal": "Es obligatorio.",
@@ -414,7 +415,7 @@ describe("totalizarCotizacion", () => {
 });
 
 describe("paridad con prisma/seed/calculos.ts", () => {
-  it("coincide con la siembra en líneas, ítems y totales aleatorios", () => {
+  it("coincide con la siembra en líneas, productos y totales aleatorios", () => {
     const azar = crearAzar(SEMILLA);
     for (let i = 0; i < MUESTRAS; i++) {
       const entrada = personalizadoAleatorio(azar);

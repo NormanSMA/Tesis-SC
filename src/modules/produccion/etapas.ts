@@ -1,4 +1,5 @@
 import { exigir, type Actor } from "@/core/autorizacion";
+import { etapasVisibles, exigirEjecucion, exigirParticipacion } from "./acceso";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 import { exigirOrden, guardarCambios, registrarCambio } from "@/modules/ordenes/escritura";
@@ -11,8 +12,11 @@ import type { EntradaAgregarEtapa, EntradaEditarEtapa, EntradaOmitirEtapa, Entra
 
 export async function obtenerEtapasOrden(id: string, actor: Actor) {
   exigir(actor, "produccion:ver");
-  if (!await prisma.ordenTrabajo.findUnique({ where: { id }, select: { id: true } })) throw noEncontrado("orden");
-  return (await prisma.etapaOrden.findMany({ where: { ordenId: id }, include: incluirEtapa, orderBy: { secuencia: "asc" } })).map(aEtapaDto);
+  const orden = await prisma.ordenTrabajo.findUnique({ where: { id }, select: { responsableId: true } });
+  if (!orden) throw noEncontrado("orden");
+  const etapas = await prisma.etapaOrden.findMany({ where: { ordenId: id }, include: incluirEtapa, orderBy: { secuencia: "asc" } });
+  exigirParticipacion(actor, { responsableId: orden.responsableId, etapas });
+  return etapasVisibles({ responsableId: orden.responsableId, etapas }, actor).map(aEtapaDto);
 }
 export async function crearEtapaManual(tx: Tx, datos: { ordenId: string; entrada: EntradaAgregarEtapa; actor: Actor }) {
   await validarArea(tx, datos.entrada.areaId);
@@ -77,27 +81,46 @@ export async function editarEtapa(id: string, entrada: EntradaEditarEtapa, actor
   });
 }
 type CambioEtapa = { id: string; entrada: EntradaVersion & { motivo?: string }; actor: Actor; accion: AccionEtapa };
+type Paso = { orden: OrdenTomada; etapa: EtapaGuardada; actor: Actor; accion: AccionEtapa; motivo?: string };
+type OrdenTomada = Awaited<ReturnType<typeof tomarEtapa>>["orden"];
+const EJECUCION: readonly AccionEtapa[] = ["iniciar", "completar"];
+
+async function aplicarPaso(tx: Tx, { orden, etapa, actor, accion, motivo }: Paso) {
+  const estado = exigirTransicionEtapa(etapa.estado, accion);
+  if (accion === "iniciar" && !etapa.responsableId) throw regla("ETAPA_SIN_RESPONSABLE", "Asigne un responsable antes de iniciar la etapa.");
+  if (accion === "iniciar" && orden.estado === "PENDIENTE") exigir(actor, "orden:avanzar");
+  if (accion === "restaurar") await validarArea(tx, etapa.areaId);
+  if (EJECUCION.includes(accion) && etapa.responsableId) await validarResponsable(tx, etapa.responsableId);
+  const ahora = new Date();
+  if (accion === "iniciar" && orden.estado === "PENDIENTE") {
+    await guardarCambios(tx, await exigirOrden(tx, orden.id), { estado: "EN_PRODUCCION", fechaInicioReal: ahora });
+    await registrarCambio(tx, { ordenId: orden.id, actor, accion: "CAMBIAR_ESTADO", estadoAnterior: "PENDIENTE", estadoNuevo: "EN_PRODUCCION" });
+  }
+  const guardada = await actualizarEtapa(tx, etapa, { estado,
+    ...(accion === "iniciar" && { fechaInicioReal: ahora }), ...(accion === "completar" && { fechaFinReal: ahora }),
+    ...(motivo && { observaciones: motivo }), ...(accion === "restaurar" && { observaciones: null }) });
+  await registrarEtapa(tx, { etapa: guardada, actor, accion: "CAMBIAR_ESTADO", estadoAnterior: etapa.estado,
+    estadoNuevo: estado, detalle: motivo ? { motivo } : {} });
+  return guardada;
+}
 async function ejecutarCambio(datos: CambioEtapa) {
-  exigir(datos.actor, datos.accion === "iniciar" || datos.accion === "completar" ? "produccion:ejecutar" : "produccion:planificar");
+  exigir(datos.actor, EJECUCION.includes(datos.accion) ? "produccion:ejecutar" : "produccion:planificar");
   const motivo = datos.accion === "omitir" ? validarMotivo(datos.entrada.motivo ?? "") : undefined;
   return transaccionProduccion(async (tx) => {
     const { orden, etapa } = await tomarEtapa(tx, { id: datos.id, version: datos.entrada.version });
-    const estado = exigirTransicionEtapa(etapa.estado, datos.accion);
-    if (datos.accion === "iniciar" && !etapa.responsableId) throw regla("ETAPA_SIN_RESPONSABLE", "Asigne un responsable antes de iniciar la etapa.");
-    if (datos.accion === "iniciar" && orden.estado === "PENDIENTE") exigir(datos.actor, "orden:avanzar");
-    if (datos.accion === "restaurar") await validarArea(tx, etapa.areaId);
-    if ((datos.accion === "iniciar" || datos.accion === "completar") && etapa.responsableId) await validarResponsable(tx, etapa.responsableId);
-    const ahora = new Date();
-    if (datos.accion === "iniciar" && orden.estado === "PENDIENTE") {
-      await guardarCambios(tx, await exigirOrden(tx, orden.id), { estado: "EN_PRODUCCION", fechaInicioReal: ahora });
-      await registrarCambio(tx, { ordenId: orden.id, actor: datos.actor, accion: "CAMBIAR_ESTADO", estadoAnterior: "PENDIENTE", estadoNuevo: "EN_PRODUCCION" });
-    }
-    const guardada = await actualizarEtapa(tx, etapa, { estado,
-      ...(datos.accion === "iniciar" && { fechaInicioReal: ahora }), ...(datos.accion === "completar" && { fechaFinReal: ahora }),
-      ...(motivo && { observaciones: motivo }), ...(datos.accion === "restaurar" && { observaciones: null }) });
-    await registrarEtapa(tx, { etapa: guardada, actor: datos.actor, accion: "CAMBIAR_ESTADO", estadoAnterior: etapa.estado,
-      estadoNuevo: estado, detalle: motivo ? { motivo } : {} });
-    return aEtapaDto(guardada);
+    if (EJECUCION.includes(datos.accion)) await exigirEjecucion(tx, etapa, datos.actor);
+    return aEtapaDto(await aplicarPaso(tx, { orden, etapa, actor: datos.actor, accion: datos.accion, motivo }));
+  });
+}
+/** "Hecho": una etapa pendiente pasa por EN_CURSO y COMPLETADA en la misma transacción; la bitácora conserva ambos pasos. */
+export async function terminarEtapa(id: string, entrada: EntradaVersion, actor: Actor) {
+  exigir(actor, "produccion:ejecutar");
+  return transaccionProduccion(async (tx) => {
+    const { orden, etapa } = await tomarEtapa(tx, { id, version: entrada.version });
+    await exigirEjecucion(tx, etapa, actor);
+    if (etapa.estado !== "PENDIENTE" && etapa.estado !== "EN_CURSO") throw regla("TRANSICION_INVALIDA", "La etapa no admite esa transición.");
+    const enCurso = etapa.estado === "PENDIENTE" ? await aplicarPaso(tx, { orden, etapa, actor, accion: "iniciar" }) : etapa;
+    return aEtapaDto(await aplicarPaso(tx, { orden, etapa: enCurso, actor, accion: "completar" }));
   });
 }
 export function iniciarEtapa(id: string, entrada: EntradaVersion, actor: Actor) { return ejecutarCambio({ id, entrada, actor, accion: "iniciar" }); }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Tx } from "../../src/lib/db";
+import { nombreOficialArea } from "../../src/modules/ordenes/areas-conversion";
 import type { DatosSiembra } from "./cargar-datos";
 import type { Catalogos, UnidadCobro } from "./tipos";
 
@@ -32,13 +33,15 @@ export type OpcionesCatalogos = {
 type Entrada = OpcionesCatalogos & { db: Tx };
 
 async function sembrarAreasYCategorias({ db, datos }: Entrada) {
-  const areas = new Map(datos.areas.map((a) => [a.nombre, randomUUID()]));
-  const categorias = new Map(datos.categorias.map((c) => [c.nombre, randomUUID()]));
-  await db.area.createMany({ data: datos.areas.map((a) => ({ id: areas.get(a.nombre), nombre: a.nombre })) });
+  await db.area.createMany({ data: datos.areas.map(({ nombre }) => ({ nombre: nombreOficialArea(nombre) })), skipDuplicates: true });
   await db.categoria.createMany({
-    data: datos.categorias.map((c) => ({ id: categorias.get(c.nombre), nombre: c.nombre, descripcion: c.descripcion })),
+    data: datos.categorias.map(({ nombre, descripcion }) => ({ nombre, descripcion })), skipDuplicates: true,
   });
-  return { areas, categorias };
+  const [areas, categorias] = await Promise.all([db.area.findMany(), db.categoria.findMany()]);
+  const idsArea = new Map(areas.map(({ nombre, id }) => [nombre, id]));
+  for (const { nombre } of datos.areas) idsArea.set(nombre, idsArea.get(nombreOficialArea(nombre))!);
+  return { areas: idsArea,
+    categorias: new Map(categorias.map(({ nombre, id }) => [nombre, id])) };
 }
 
 async function sembrarPlantillas(entrada: Entrada, areas: Map<string, string>, categorias: Map<string, string>) {
@@ -67,7 +70,7 @@ async function sembrarPlantillas(entrada: Entrada, areas: Map<string, string>, c
   return plantillas;
 }
 
-async function sembrarUsuarios({ db, datos, hashes, creadoEn }: Entrada) {
+async function sembrarUsuarios({ db, datos, hashes, creadoEn }: Entrada, areas: Map<string, string>) {
   const perfiles = await db.perfil.findMany({ select: { id: true, codigo: true } });
   const idPerfil = new Map(perfiles.map((p) => [p.codigo as string, p.id]));
   const usuarios: Catalogos["usuarios"] = new Map();
@@ -90,6 +93,10 @@ async function sembrarUsuarios({ db, datos, hashes, creadoEn }: Entrada) {
       creadoEn,
     })),
   });
+  await db.usuarioArea.createMany({ data: datos.usuarios.flatMap((usuario) => {
+    const areaId = usuario.area ? areas.get(usuario.area) : undefined;
+    return areaId ? [{ usuarioId: usuarios.get(usuario.clave)!.id, areaId }] : [];
+  }) });
   return usuarios;
 }
 
@@ -153,7 +160,7 @@ export async function sembrarCatalogos(db: Tx, opciones: OpcionesCatalogos): Pro
   const entrada = { db, ...opciones };
   const { areas, categorias } = await sembrarAreasYCategorias(entrada);
   const plantillas = await sembrarPlantillas(entrada, areas, categorias);
-  const usuarios = await sembrarUsuarios(entrada);
+  const usuarios = await sembrarUsuarios(entrada, areas);
   const materiales = await sembrarMateriales(entrada);
   const { productos, recetas } = await sembrarProductosYRecetas(entrada, categorias, materiales);
   const clientes = await sembrarClientes(entrada);

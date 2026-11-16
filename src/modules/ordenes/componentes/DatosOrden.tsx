@@ -4,8 +4,10 @@ import { ListaDatos, TarjetaSeccion } from "@/components/comunes/TarjetaSeccion"
 import { monedaDe } from "@/modules/cotizaciones/moneda";
 import type { OrdenDto } from "../tipos";
 
-export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: OrdenDto; verCliente: boolean; verCotizacion: boolean }) {
-  const moneda = monedaDe(orden.cotizacion.moneda);
+export function DatosCliente({ orden, verCliente }: { orden: OrdenDto; verCliente: boolean }) {
+  const cotizacion = orden.cotizacion;
+  if (!cotizacion) return null;
+  const moneda = monedaDe(cotizacion.moneda);
   const enlace = (href: string, texto: string) => <Link href={href} className="text-primary underline">{texto}</Link>;
   return <TarjetaSeccion titulo="Cliente y cotización" className="min-w-0">
     <div className="space-y-5">
@@ -14,14 +16,15 @@ export function DatosCliente({ orden, verCliente, verCotizacion }: { orden: Orde
         { etiqueta: "Tipo", valor: orden.cliente.tipo === "EMPRESA" ? "Empresa" : "Persona" },
         { etiqueta: "Teléfono", valor: orden.cliente.telefono || null }, { etiqueta: "Correo", valor: orden.cliente.correo || null },
         ...(verCliente ? [{ etiqueta: "RUC", valor: orden.cliente.ruc || null }, { etiqueta: "Dirección", valor: orden.cliente.direccion || null }] : []),
-        { etiqueta: "Cotización", valor: verCotizacion ? enlace(`/cotizaciones/${orden.cotizacion.id}`, orden.cotizacion.numero) : orden.cotizacion.numero },
-        { etiqueta: "Asunto", valor: orden.cotizacion.asunto || null },
+        { etiqueta: "Cotización", valor: enlace(`/cotizaciones/${cotizacion.id}`, cotizacion.numero) },
+        { etiqueta: "Asunto", valor: cotizacion.asunto || null },
       ]} />
-      {orden.cotizacion.total !== undefined ? <ListaDatos className="border-t border-slate-100 pt-5" datos={[
-        { etiqueta: "Subtotal", valor: <Money valor={orden.cotizacion.subtotal} moneda={moneda} /> },
-        { etiqueta: "Descuento", valor: <Money valor={orden.cotizacion.descuento} moneda={moneda} /> },
-        { etiqueta: `IVA (${orden.cotizacion.tasaImpuesto} %)`, valor: <Money valor={orden.cotizacion.impuesto} moneda={moneda} /> },
-        { etiqueta: "Total", valor: <Money valor={orden.cotizacion.total} moneda={moneda} /> },
+      {cotizacion.total !== undefined ? <ListaDatos className="border-t border-slate-100 pt-5" datos={[
+        { etiqueta: "Subtotal", valor: <Money valor={cotizacion.subtotal} moneda={moneda} /> },
+        { etiqueta: "Descuento", valor: <Money valor={cotizacion.descuento} moneda={moneda} /> },
+        ...(Number(cotizacion.impuesto) !== 0
+          ? [{ etiqueta: "Cargo histórico", valor: <Money valor={cotizacion.impuesto} moneda={moneda} /> }] : []),
+        { etiqueta: "Total", valor: <Money valor={cotizacion.total} moneda={moneda} /> },
       ]} /> : null}
     </div>
   </TarjetaSeccion>;

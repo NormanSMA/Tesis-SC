@@ -23,7 +23,7 @@ import { ordenDeCotizacion } from "@/modules/ordenes/service";
 
 const cargarPagina = cache(async (id: string) => {
   const actor = await exigirPermisoPagina("cotizacion:ver");
-  return { actor, cotizacion: await cargarCotizacion(id) };
+  return { actor, cotizacion: await cargarCotizacion(id, actor) };
 });
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -61,7 +61,7 @@ export default async function PaginaDetalleCotizacion({ params }: { params: Prom
       {cotizacion.avisos.map((aviso) => <Alert key={aviso} role="status"><CircleAlert aria-hidden="true" />
         <AlertTitle>Información de la cotización</AlertTitle><AlertDescription>{aviso}</AlertDescription></Alert>)}
       <div className="grid items-start gap-4 lg:grid-cols-3">
-        <TarjetaSeccion titulo="Ítems de cotización" sinRelleno className="lg:col-span-2">
+        <TarjetaSeccion titulo="Productos y servicios de la cotización" sinRelleno className="lg:col-span-2">
           <ItemsCotizacion items={cotizacion.items} mostrarCostos={false} categorias={categorias} moneda={monedaDe(cotizacion.moneda)} sinMarco apilarEnMovil />
         </TarjetaSeccion>
         <div className="min-w-0 space-y-4">

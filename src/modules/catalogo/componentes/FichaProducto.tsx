@@ -52,7 +52,7 @@ export function FichaProducto({ ficha }: { ficha: Ficha }) {
   return <Tabs defaultValue="resumen">
     <TabsList variant="line" className={LISTA_PESTANAS} aria-label="Secciones de la ficha">
       <TabsTrigger value="resumen" className={PESTANA}>Resumen</TabsTrigger>
-      <TabsTrigger value="receta" className={PESTANA}>Receta</TabsTrigger>
+      <TabsTrigger value="receta" className={PESTANA}>Materiales</TabsTrigger>
     </TabsList>
     <TabsContent value="resumen" className="pt-4">
       <div className="grid items-start gap-4 lg:grid-cols-3">
@@ -61,9 +61,9 @@ export function FichaProducto({ ficha }: { ficha: Ficha }) {
       </div>
     </TabsContent>
     <TabsContent value="receta" className="pt-4">
-      <TarjetaSeccion titulo="Receta de materiales" descripcion={`Cantidades por ${unidadDe(ficha)} de cobro.`} sinRelleno>
-        <DataTable titulo="Receta del producto" filas={ficha.receta} idFila={(fila) => fila.materialId} className="rounded-none border-0 shadow-none"
-          vacio={<EmptyState titulo="Sin receta" descripcion="Este producto no tiene materiales definidos." />}
+      <TarjetaSeccion titulo="Materiales del producto" descripcion={`Cantidades por ${unidadDe(ficha)} de cobro.`} sinRelleno>
+        <DataTable titulo="Materiales del producto" filas={ficha.receta} idFila={(fila) => fila.materialId} className="rounded-none border-0 shadow-none"
+          vacio={<EmptyState titulo="Sin materiales" descripcion="Este producto no tiene materiales definidos." />}
           columnas={[
             { id: "material", encabezado: "Material", principal: true, celda: (fila) => <span className="whitespace-normal break-words">{fila.material.codigo} · {fila.material.nombre}{!fila.material.activo ? " (archivado)" : ""}</span> },
             { id: "unidad", encabezado: "Unidad", celda: (fila) => fila.material.unidad.toLowerCase() },

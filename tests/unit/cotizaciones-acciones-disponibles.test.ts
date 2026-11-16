@@ -6,12 +6,13 @@ import type { EstadoCotizacion } from "@/modules/cotizaciones/tipos";
 import { accionesDisponibles, type PermisosCotizacion } from "@/modules/cotizaciones/componentes/accionesDisponibles";
 
 const pagina = vi.hoisted(() => ({
-  exigirPermiso: vi.fn(), clientes: vi.fn(), configuracion: vi.fn(), consultarCliente: vi.fn(),
+  exigirPermiso: vi.fn(), clientes: vi.fn(), configuracion: vi.fn(),
 }));
 vi.mock("@/lib/auth/guardia", () => ({ exigirPermisoPagina: pagina.exigirPermiso }));
-vi.mock("@/lib/db", () => ({ prisma: { cliente: { findFirst: pagina.consultarCliente } } }));
+vi.mock("@/lib/db", () => ({ prisma: {} }));
 vi.mock("@/modules/cotizaciones/repo", () => ({
   consultarClientesSelector: pagina.clientes, configuracionCotizacion: pagina.configuracion,
+  consultarSelectores: vi.fn(),
 }));
 vi.mock("@/components/comunes/PageHeader", () => ({ PageHeader: () => null }));
 vi.mock("@/modules/cotizaciones/componentes/NuevaCotizacion", () => ({
@@ -60,14 +61,14 @@ const pasos: { estado: EstadoCotizacion; items?: unknown[];
   permisos: PermisosCotizacion; texto: string }[] = [
   { estado: "BORRADOR", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de envío." },
   { estado: "BORRADOR", permisos: permisos[2], texto: "Corresponde a un usuario con permiso de gestión." },
-  { estado: "BORRADOR", permisos: permisos[3], texto: "Agregue ítems para poder enviar la cotización." },
+  { estado: "BORRADOR", permisos: permisos[3], texto: "Agregue productos para poder enviar la cotización." },
   { estado: "BORRADOR", items: [{}], permisos: permisos[2], texto: "Envíe la cotización al cliente." },
   { estado: "ENVIADA", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de respuesta." },
   { estado: "ENVIADA", permisos: permisos[4], texto: "Registre la respuesta del cliente: aprobación, rechazo o ajustes." },
   { estado: "AJUSTE_SOLICITADO", permisos: permisos[0], texto: "Corresponde a un usuario con permiso de gestión." },
   { estado: "AJUSTE_SOLICITADO", permisos: permisos[1], texto: "Cree la versión corregida con los ajustes pedidos." },
-  { estado: "APROBADA", permisos: permisos[0], texto: "Cotización aprobada. Espere a que Operaciones la convierta en orden." },
-  { estado: "APROBADA", permisos: permisos[7], texto: "Cotización aprobada. Espere a que Operaciones la convierta en orden." },
+  { estado: "APROBADA", permisos: permisos[0], texto: "La cotización aprobada puede convertirse en una orden." },
+  { estado: "APROBADA", permisos: permisos[7], texto: "La cotización aprobada puede convertirse en una orden." },
   { estado: "RECHAZADA", permisos: permisos[1], texto: "Cotización cerrada. Puede duplicarla para preparar una nueva." },
   { estado: "VENCIDA", permisos: permisos[0], texto: "Cotización cerrada. Solo consulta." },
 ];
@@ -86,25 +87,23 @@ describe("nueva cotización: cliente desde la ficha", () => {
   const clienteId = "12345678-1234-4234-8234-123456789abc";
   beforeEach(() => {
     vi.clearAllMocks();
-    pagina.clientes.mockResolvedValue([{ id: clienteId, nombre: "Cliente activo" }]);
+    pagina.exigirPermiso.mockResolvedValue({ permisos: ["cotizacion:gestionar"] });
+    pagina.clientes.mockImplementation(async (id) => id === clienteId ? [{ id, nombre: "Cliente activo" }] : []);
     pagina.configuracion.mockResolvedValue({ condiciones: "Condiciones" });
-    pagina.consultarCliente.mockResolvedValue({ id: clienteId });
   });
   it("preselecciona un UUID existente y activo", async () => {
     const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId }) });
     expect(renderToStaticMarkup(resultado)).toContain(`value="${clienteId}"`);
     expect(pagina.exigirPermiso).toHaveBeenCalledWith("cotizacion:gestionar");
-    expect(pagina.consultarCliente).toHaveBeenCalledWith({
-      where: { id: clienteId, activo: true }, select: { id: true },
-    });
+    expect(pagina.clientes).toHaveBeenCalledWith(clienteId, true);
   });
   it.each([undefined, "", "invalido", [clienteId, clienteId]])("ignora el parámetro inválido %s", async (valor) => {
     const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId: valor }) });
     expect(renderToStaticMarkup(resultado)).toContain('value=""');
-    expect(pagina.consultarCliente).not.toHaveBeenCalled();
+    expect(pagina.clientes).toHaveBeenCalledWith(undefined, true);
   });
   it.each(["inexistente", "archivado"])("ignora un cliente %s", async () => {
-    pagina.consultarCliente.mockResolvedValue(null);
+    pagina.clientes.mockResolvedValue([]);
     const resultado = await PaginaNuevaCotizacion({ searchParams: Promise.resolve({ clienteId }) });
     expect(renderToStaticMarkup(resultado)).toContain('value=""');
   });

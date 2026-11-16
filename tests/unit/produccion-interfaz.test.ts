@@ -41,9 +41,9 @@ const conteos = { todas: 1, activas: 1, archivadas: 0 };
 const categorias = [{ id, nombre: "Gran formato" }];
 const referencia = "2026-10-06T12:00:00.000Z";
 const ESPERADO: Record<PerfilCodigo, PermisosEtapas & { gestionarCatalogo: boolean }> = {
-  GERENCIA: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
+  GERENCIA: { planificar: true, ejecutar: true, avanzar: true, gestionarCatalogo: true },
   ADMINISTRACION: { planificar: true, ejecutar: true, avanzar: true, gestionarCatalogo: false },
-  OPERACIONES: { planificar: true, ejecutar: false, avanzar: true, gestionarCatalogo: true },
+  OPERACIONES: { planificar: true, ejecutar: true, avanzar: true, gestionarCatalogo: true },
   ATENCION_CLIENTE: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
   PRODUCCION: { planificar: false, ejecutar: true, avanzar: true, gestionarCatalogo: false },
   ADMIN: { planificar: false, ejecutar: false, avanzar: false, gestionarCatalogo: false },
@@ -120,8 +120,8 @@ describe("producción: permisos de interfaz", () => {
     it(`muestra acciones autorizadas para ${perfil}`, () => {
       const tablero = renderToStaticMarkup(createElement(TableroProduccion, { porArea, porResponsable,
         permisos: permisos(perfil), vistaInicial: "responsable", referencia }));
-      expect(tablero.includes('aria-label="Iniciar:')).toBe(ESPERADO[perfil].ejecutar && ESPERADO[perfil].avanzar);
-      expect(tablero.includes('aria-label="Completar:')).toBe(ESPERADO[perfil].ejecutar);
+      expect(tablero.includes('aria-label="Hecho:')).toBe(ESPERADO[perfil].ejecutar);
+      expect(tablero.includes('aria-label="Iniciar:') || tablero.includes('aria-label="Completar:')).toBe(false);
       expect(tablero.includes('aria-label="Asignar responsable:')).toBe(false);
       const acciones = renderToStaticMarkup(createElement(AccionesEtapa, { etapa, estadoOrden: "PENDIENTE",
         permisos: permisos(perfil), ...opciones }));
@@ -139,12 +139,12 @@ describe("producción: permisos de interfaz", () => {
     });
   }
 
-  it("exige ambos permisos para mostrar el primer inicio", () => {
+  it("exige ambos permisos para marcar hecha la primera etapa", () => {
     const sinAvanzar = { ...permisos("PRODUCCION"), avanzar: false };
     const primera = renderToStaticMarkup(createElement(AccionesEtapa, { etapa, estadoOrden: "PENDIENTE", permisos: sinAvanzar }));
     const posterior = renderToStaticMarkup(createElement(AccionesEtapa, { etapa, estadoOrden: "EN_PRODUCCION", permisos: sinAvanzar }));
-    expect(primera.includes('aria-label="Iniciar:')).toBe(false);
-    expect(posterior.includes('aria-label="Iniciar:')).toBe(true);
+    expect(primera.includes('aria-label="Hecho:')).toBe(false);
+    expect(posterior.includes('aria-label="Hecho:')).toBe(true);
   });
 
   for (const estadoOrden of ["LISTA", "ENTREGADA", "CERRADA", "CANCELADA"] as const) {

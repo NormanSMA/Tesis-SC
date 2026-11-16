@@ -2,10 +2,10 @@ import type { AccionBitacora } from "@/generated/prisma/client";
 import { formatearCantidad, formatearMoneda } from "@/lib/formato";
 import { textoValor } from "./etiquetas";
 
-type Regla = "valor" | "dinero" | "cliente" | { [campo: string]: Regla } | readonly [Regla];
+type Regla = "valor" | "dinero" | "cliente" | "consumo" | { [campo: string]: Regla } | readonly [Regla];
 type Escalar = string | number | boolean | null;
 export type DetalleVisible = { [campo: string]: Escalar | DetalleVisible | (Escalar | DetalleVisible)[] };
-export type AccesoDetalle = { dinero: boolean; cliente: boolean; nombres?: ReadonlyMap<string, string> };
+export type AccesoDetalle = { dinero: boolean; cliente: boolean; consumo?: boolean; nombres?: ReadonlyMap<string, string> };
 const cambio: Regla = { anterior: "valor", nuevo: "valor" };
 const cambioDinero: Regla = { anterior: "dinero", nuevo: "dinero" };
 const material: Regla = { id: "valor", codigo: "valor", nombre: "valor", unidad: "valor" };
@@ -20,12 +20,12 @@ const campos: Record<string, Regla> = {
   costoPromedio: cambioDinero, precioBase: cambioDinero, descuento: cambioDinero, margenPct: cambioDinero,
 };
 const fichaMaterial: Regla = { ...material, stockMinimo: "valor", costoPromedio: "dinero" };
-const linea: Regla = { secuencia: "valor", tipo: "valor", descripcion: "valor", unidad: "valor", cantidad: "valor",
-  materialId: "valor", mermaPct: "valor", costoUnitario: "dinero", importe: "dinero" };
+const linea: Regla = { secuencia: "valor", tipo: "valor", descripcion: "valor", unidad: "valor", cantidad: "consumo",
+  materialId: "valor", mermaPct: "consumo", costoUnitario: "dinero", importe: "dinero" };
 const item: Regla = { secuencia: "valor", descripcion: "valor", tipo: "valor", unidadCobro: "valor", cantidad: "valor",
-  ancho: "valor", alto: "valor", importe: "dinero", precioUnitario: "dinero", costoTotal: "dinero", margenPct: "dinero", lineas: [linea] };
-const movimiento = { motivo: "valor", referencia: "valor", cantidad: "valor", material, materialId: "valor",
-  existenciaResultante: "valor", costoUnitario: "dinero", costoPromedioResultante: "dinero" } satisfies Record<string, Regla>;
+  ancho: "valor", alto: "valor", profundidad: "valor", importe: "dinero", precioUnitario: "dinero", costoTotal: "dinero", margenPct: "dinero", lineas: [linea] };
+const movimiento = { motivo: "valor", referencia: "valor", cantidad: "consumo", material, materialId: "valor",
+  existenciaResultante: "consumo", costoUnitario: "dinero", costoPromedioResultante: "dinero" } satisfies Record<string, Regla>;
 
 // Cada nivel se proyecta por su propia lista; nunca se copian objetos del evento.
 export const LISTA_DETALLE: Record<AccionBitacora, Record<string, Regla>> = {
@@ -50,8 +50,8 @@ export const LISTA_DETALLE: Record<AccionBitacora, Record<string, Regla>> = {
   CAMBIAR_CLAVE: { ip: "valor", sesionesRevocadas: "valor" },
 };
 
-function permiteDetalle(regla: "valor" | "dinero" | "cliente", acceso: AccesoDetalle): boolean {
-  return regla === "valor" || acceso[regla];
+function permiteDetalle(regla: "valor" | "dinero" | "cliente" | "consumo", acceso: AccesoDetalle): boolean {
+  return regla === "valor" || (regla === "consumo" ? acceso.consumo !== false : acceso[regla]);
 }
 
 function proyectarEscalar(valor: unknown, acceso: AccesoDetalle): Escalar | undefined {
@@ -103,12 +103,12 @@ const ETIQUETAS: Record<string, string> = { nombre: "Nombre", asunto: "Asunto", 
   telefono: "Teléfono", correo: "Correo", ruc: "RUC", direccion: "Dirección", condiciones: "Condiciones",
   vigenciaDias: "Vigencia en días", stockMinimo: "Existencia mínima", activo: "Activo", archivada: "Archivada",
   fechaEmision: "Fecha de emisión", fechaVencimiento: "Fecha de vencimiento", unidad: "Unidad", unidadCobro: "Unidad de cobro",
-  ancho: "Ancho", alto: "Alto", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
+  ancho: "Ancho", alto: "Alto", profundidad: "Profundidad", costoTotal: "Costo total", precioUnitario: "Precio unitario", mermaPct: "Merma" };
 
 const CAMPOS_MONEDA = new Set(["costoUnitario", "costoPromedioResultante", "costoPromedio", "precioBase", "importe",
   "subtotal", "descuento", "impuesto", "total", "precioUnitario", "costoTotal"]);
 const CAMPOS_PORCENTAJE = new Set(["margenPct", "tasaImpuesto", "mermaPct"]);
-const CAMPOS_CANTIDAD = new Set(["cantidad", "existenciaResultante", "stockMinimo", "ancho", "alto"]);
+const CAMPOS_CANTIDAD = new Set(["cantidad", "existenciaResultante", "stockMinimo", "ancho", "alto", "profundidad"]);
 
 function sinCerosSobrantes(numero: string): string {
   return numero.includes(".") ? numero.replace(/\.?0+$/, "") : numero;

@@ -215,13 +215,13 @@ describe("Configuración", () => {
 
   it("muestra sufijo de porcentaje y nombre de moneda", () => {
     const base = { tipo: "TEXTO" as const, actualizadoEn: VERSION, actualizadoPorId: null };
-    const iva = renderToStaticMarkup(createElement(FilaConfiguracion, {
-      inicial: { ...base, clave: "iva_porcentaje", valor: "15", tipo: "DECIMAL" as const, descripcion: "IVA vigente." },
+    const descuento = renderToStaticMarkup(createElement(FilaConfiguracion, {
+      inicial: { ...base, clave: "tarifa_intermedia_pct", valor: "5", tipo: "DECIMAL" as const, descripcion: "Descuento de tarifa intermedia." },
     }));
     const moneda = renderToStaticMarkup(createElement(FilaConfiguracion, {
       inicial: { ...base, clave: "moneda", valor: "NIO", descripcion: "Moneda de los documentos (ISO 4217)" },
     }));
-    expect(iva).toContain(">%</span>");
+    expect(descuento).toContain(">%</span>");
     expect(moneda).toContain("Córdoba (C$)");
     expect(moneda).not.toContain("ISO 4217");
   });

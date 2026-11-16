@@ -2,7 +2,7 @@ import { Calculator } from "lucide-react";
 import Link from "next/link";
 import { DataTable, type ColumnaTabla } from "@/components/comunes/DataTable";
 import { EmptyState } from "@/components/comunes/EmptyState";
-import { Fecha, Money } from "@/components/comunes/ValorFormateado";
+import { Money } from "@/components/comunes/ValorFormateado";
 import { ZonaResultados } from "@/components/comunes/ZonaResultados";
 import { Button } from "@/components/ui/button";
 import type { Orden } from "@/lib/listas/orden";
@@ -25,10 +25,7 @@ const columnas: ColumnaTabla<CotizacionFila>[] = [
   { id: "cliente", encabezado: "Cliente", ordenable: "cliente", celda: (fila) => <span className="block max-w-56 truncate max-md:max-w-full" title={fila.cliente.nombre}>{fila.cliente.nombre}</span> },
   { id: "estado", encabezado: "Estado", celda: (fila) => <EstadoCotizacion estado={fila.estado} /> },
   { id: "total", encabezado: "Total", ordenable: "total", alinear: "derecha", celda: (fila) => <Money valor={fila.total} moneda={monedaDe(fila.moneda)} className="font-medium" /> },
-  { id: "vencimiento", encabezado: "Vencimiento", ordenable: "vencimiento", celda: (fila) => <span><span className="text-muted-foreground md:hidden">Vence: </span>
-    <Fecha valor={fila.fechaVencimiento} /></span> },
-  { id: "creadoEn", encabezado: "Creada", ordenable: "creadoEn", celda: (fila) => <span><span className="text-muted-foreground md:hidden">Creada: </span>
-    <Fecha valor={fila.creadoEn} /></span> },
+  // Vencimiento y fecha de creación se consultan en la ficha: no son decisivos a primera vista (2026-11-12).
 ];
 /** Escritorio: tabla. Móvil (menos de 768 px): una tarjeta apilada por fila, sin desplazamiento horizontal. */
 const CLASES_TABLA = [

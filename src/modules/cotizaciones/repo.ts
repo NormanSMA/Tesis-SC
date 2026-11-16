@@ -3,10 +3,15 @@ import { esMoneda, type Moneda } from "@/core/moneda";
 import { prisma, type Tx } from "@/lib/db";
 import { AppError } from "@/lib/errores";
 import { esquemaValorPorClaveConfiguracion } from "@/modules/admin/configuracion-schema";
+import { escaparComodines } from "@/modules/clientes/repo";
 
 import { hoyManagua, sumarDias } from "./fechas";
 import { CONDICIONES_PREDETERMINADAS, type ConsultaCotizaciones } from "./schema";
 import type { CampoOrdenCotizacion, ConteosCotizaciones, SelectoresEditor } from "./tipos";
+import { leerPersonalizadas } from "@/modules/personalizadas/service";
+import { SERVICIOS_SC } from "./servicios-sc";
+import { precioParaCotizar } from "./materiales";
+import { esquemaPorcentajeTarifa, TARIFAS_INICIALES, type PorcentajesTarifa } from "./tarifas";
 
 const incluirFicha = {
   cliente: true,
@@ -29,7 +34,7 @@ function filtroPorVencer(hoy: string): Prisma.CotizacionWhereInput {
 }
 
 function filtroLista(consulta: ConsultaCotizaciones, hoy: string): Prisma.CotizacionWhereInput {
-  const where: Prisma.CotizacionWhereInput = {};
+  const where: Prisma.CotizacionWhereInput = { creadoPorId: consulta.autorId };
   if (consulta.archivadas !== "todas") where.archivada = consulta.archivadas === "true";
   if (consulta.estado) where.estado = consulta.estado;
   if (consulta.porVencer) where.AND = [filtroPorVencer(hoy)];
@@ -99,36 +104,52 @@ export async function siguienteNumero(tx: Tx): Promise<string> {
 
 export async function configuracionCotizacion(tx: Tx) {
   const filas = await tx.configuracion.findMany({ where: {
-    clave: { in: ["iva_porcentaje", "cotizacion_vigencia_dias", "cotizacion_condiciones", "empresa_nombre",
-      "moneda", "tipo_cambio_usd"] },
+    clave: { in: ["cotizacion_vigencia_dias", "cotizacion_condiciones", "empresa_nombre",
+      "moneda", "tipo_cambio_usd", "tarifa_ocasional_pct", "tarifa_intermedia_pct", "tarifa_preferencial_pct", "tarifa_instalacion_km"] },
   } });
   const valores = Object.fromEntries(filas.map(({ clave, valor }) => [clave, valor]));
   const vigenciaDias = Number(valores.cotizacion_vigencia_dias);
-  if (!valores.iva_porcentaje || !Number.isInteger(vigenciaDias) || vigenciaDias < 1 || vigenciaDias > 365) {
+  if (!Number.isInteger(vigenciaDias) || vigenciaDias < 1 || vigenciaDias > 365) {
     throw new AppError({ codigo: "CONFIGURACION_INVALIDA", status: 409,
-      mensaje: "Revise el IVA y la vigencia en la configuración." });
+      mensaje: "Revise la vigencia en la configuración." });
   }
   const moneda: Moneda = esMoneda(valores.moneda) ? valores.moneda : "NIO";
   const tipoCambio = esquemaValorPorClaveConfiguracion("tipo_cambio_usd")?.safeParse(valores.tipo_cambio_usd);
-  return { tasaImpuesto: valores.iva_porcentaje, vigenciaDias, moneda,
+  const tarifas: PorcentajesTarifa = {
+    OCASIONAL: esquemaPorcentajeTarifa.safeParse(valores.tarifa_ocasional_pct).data ?? TARIFAS_INICIALES.OCASIONAL,
+    INTERMEDIA: esquemaPorcentajeTarifa.safeParse(valores.tarifa_intermedia_pct).data ?? TARIFAS_INICIALES.INTERMEDIA,
+    PREFERENCIAL: esquemaPorcentajeTarifa.safeParse(valores.tarifa_preferencial_pct).data ?? TARIFAS_INICIALES.PREFERENCIAL,
+  };
+  const tarifaInstalacion = esquemaValorPorClaveConfiguracion("tarifa_instalacion_km")?.safeParse(valores.tarifa_instalacion_km).data ?? "20";
+  return { vigenciaDias, moneda, tarifas, tarifaInstalacion,
     tipoCambioUsd: tipoCambio?.success ? tipoCambio.data : null,
     condiciones: valores.cotizacion_condiciones ?? CONDICIONES_PREDETERMINADAS,
     empresaNombre: valores.empresa_nombre ?? "Soluciones Creativas" };
 }
 
-/** Tope de clientes en el selector. El cliente seleccionado se agrega siempre. */
-export const TOPE_CLIENTES_SELECTOR = 200;
-export async function consultarClientesSelector(clienteActualId?: string) {
-  const [base, actual] = await Promise.all([
-    prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true },
-      orderBy: [{ nombre: "asc" }, { id: "asc" }], take: TOPE_CLIENTES_SELECTOR }),
-    clienteActualId ? prisma.cliente.findMany({ where: { id: clienteActualId }, select: { id: true, nombre: true } }) : [],
-  ]);
-  return [...base, ...actual.filter((cliente) => !base.some((fila) => fila.id === cliente.id))];
+export async function consultarClientesSelector(clienteActualId?: string, soloActivos = false) {
+  if (!clienteActualId) return [];
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteActualId, ...(soloActivos ? { activo: true } : {}) },
+    select: { id: true, nombre: true },
+  });
+  return cliente ? [cliente] : [];
 }
 
-export function consultarCategoriasSelector() {
-  return prisma.categoria.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
+export async function buscarClientesSelector(q: string) {
+  if (!q) return [];
+  return prisma.cliente.findMany({
+    where: { activo: true, nombre: { contains: escaparComodines(q), mode: "insensitive" } },
+    select: { id: true, nombre: true, codigoCliente: true },
+    orderBy: [{ nombre: "asc" }, { id: "asc" }],
+    take: 20,
+  });
+}
+
+export async function consultarCategoriasSelector() {
+  const personalizadas = await leerPersonalizadas();
+  return prisma.categoria.findMany({ where: { activo: true, OR: [{ nombre: { in: SERVICIOS_SC } }, { id: { in: personalizadas.categorias.map(c => c.id) } }] },
+    select: { id: true, nombre: true }, orderBy: { nombre: "asc" } });
 }
 
 export async function consultarSelectores(): Promise<SelectoresEditor> {
@@ -139,13 +160,16 @@ export async function consultarSelectores(): Promise<SelectoresEditor> {
     }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
     prisma.material.findMany({ where: { activo: true }, select: {
       id: true, codigo: true, nombre: true, unidad: true, costoPromedio: true,
+      unidadCotizacion: true, precioCotizacion: true, areaUnidadInventario: true,
     }, orderBy: [{ nombre: "asc" }, { id: "asc" }] }),
     consultarCategoriasSelector(),
   ]);
   return {
     productos: productos.map((producto) => ({ ...producto,
       precioBase: producto.precioBase.toFixed(2), categoria: producto.categoria.nombre })),
-    materiales: materiales.map((material) => ({ ...material, costoPromedio: material.costoPromedio.toFixed(4) })),
+    materiales: materiales.map(({ id, codigo, nombre, unidad, unidadCotizacion, ...precios }) =>
+      ({ id, codigo, nombre, unidad, unidadCotizacion, costoPromedio: precios.costoPromedio.toFixed(4),
+        precioCotizacion: precioParaCotizar(precios) })),
     categorias,
   };
 }

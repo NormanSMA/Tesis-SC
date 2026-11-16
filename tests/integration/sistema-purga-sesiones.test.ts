@@ -41,7 +41,7 @@ describeConBase("purga de sesiones del sistema", () => {
   let ruta: typeof import("@/app/api/v1/sistema/sesiones/purga/route");
   let actor: Actor;
   let cookieAdmin: string;
-  let cookieGerencia: string;
+  let cookieOperaciones: string;
 
   beforeAll(async () => {
     await sembrarReferencia(db);
@@ -49,17 +49,17 @@ describeConBase("purga de sesiones del sistema", () => {
     servicio = await import("@/modules/sistema/service");
     ruta = await import("@/app/api/v1/sistema/sesiones/purga/route");
     const admin = await crearUsuarioPrueba(db, { perfil: "ADMIN" });
-    const gerencia = await crearUsuarioPrueba(db, { perfil: "GERENCIA" });
+    const operaciones = await crearUsuarioPrueba(db, { perfil: "OPERACIONES" });
     actor = {
       id: admin.id, nombre: admin.nombre, correo: admin.correo,
       perfil: "ADMIN", perfiles: ["ADMIN"], permisos: ["configuracion:gestionar"],
     };
     const sesionAdmin = await iniciarSesionPrueba(auth, admin.correo);
-    const sesionGerencia = await iniciarSesionPrueba(auth, gerencia.correo);
+    const sesionOperaciones = await iniciarSesionPrueba(auth, operaciones.correo);
     expect(sesionAdmin.respuesta.status).toBe(200);
-    expect(sesionGerencia.respuesta.status).toBe(200);
+    expect(sesionOperaciones.respuesta.status).toBe(200);
     cookieAdmin = sesionAdmin.cookie;
-    cookieGerencia = sesionGerencia.cookie;
+    cookieOperaciones = sesionOperaciones.cookie;
   });
 
   beforeEach(async () => {
@@ -117,7 +117,7 @@ describeConBase("purga de sesiones del sistema", () => {
     await db.sesion.createMany({ data: sesiones });
     const eventosAntes = await db.bitacora.count();
 
-    const respuesta = await ruta.POST(peticion("POST", RUTA, { cookie: cookieGerencia }));
+    const respuesta = await ruta.POST(peticion("POST", RUTA, { cookie: cookieOperaciones }));
 
     expect(respuesta.status).toBe(403);
     expect(await respuesta.json()).toMatchObject({ error: { codigo: "SIN_PERMISO" } });

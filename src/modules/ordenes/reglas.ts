@@ -8,6 +8,10 @@ import type { EntradaEditarOrden } from "./schema";
 export const TERMINALES: EstadoOrden[] = ["ENTREGADA", "CERRADA", "CANCELADA"];
 export const EDITABLES: EstadoOrden[] = ["PENDIENTE", "EN_PRODUCCION", "LISTA"];
 
+export function permiteCambiarFechaEntrega(estado: EstadoOrden) {
+  return estado === "PENDIENTE" || estado === "EN_PRODUCCION";
+}
+
 export function estaAtrasada(orden: { estado: EstadoOrden; fechaEntrega: string }, hoy = hoyManagua()): boolean {
   return !TERMINALES.includes(orden.estado) && orden.fechaEntrega < hoy;
 }

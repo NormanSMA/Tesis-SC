@@ -171,3 +171,22 @@ Comando: `pnpm exec vitest run tests/unit/costeo.test.ts tests/integration/coste
 - P-01: confirmar margen sobre precio. Si cambia, solo cambia el paso 5.
 - La siembra aún usa `prisma/seed/calculos.ts`. La migración al motor la decide el orquestador.
 - La siembra acepta `number` y redondea entradas. El motor exige cadenas exactas.
+
+## Profundidad opcional (2026-11-12, COT-17)
+Las partidas admiten una tercera medida opcional, profundidad (m). Con profundidad, la superficie de una pieza se calcula como caja abierta: ancho × alto + 2 × profundidad × (ancho + alto). Ejemplo: 1 × 0,5 × 0,1 m = 0,8 m². Esa superficie se usa para el precio de los productos cobrados por m², para el material en m² de las partidas personalizadas y para el consumo estimado de la orden. Sin profundidad, el cálculo sigue siendo ancho × alto. Fuente única: `src/core/medidas.ts`; la base lo comprueba en el CHECK `item_importe_catalogo`.
+
+## Gastos estructurados — COT-21
+
+Vigente desde 2026-11-12. Se suma el costo de materiales, mano de obra y terceros manuales con renta fija, traslado (km de ida × 2 × viajes × tarifa), personas × horas × tarifa, viáticos y hospedaje. Para renta porcentual, imprevistos e impuestos internos, el precio se despeja dividiendo el costo fijo entre uno menos la suma de sus fracciones y el margen sobre venta. Las tasas deben sumar menos de 100 %. Cada cargo porcentual se redondea a dos decimales y se concilia con el motor existente; si no converge se rechaza con validación legible. El costo total sigue siendo la suma de líneas y satisface las restricciones SQL.
+
+Las cantidades de gastos son totales por partida. Las cotizaciones conservan sus parámetros e importes; cambiar cantidades o medidas recalcula el consumo como antes y vuelve a conciliar gastos usando las tarifas guardadas, salvo actualización explícita de precio. Los porcentajes se protegen exigiendo descuento cero; el reparto posterior a descuentos no está implementado. La renta fija y porcentual son modalidades excluyentes. No se reemplaza el impuesto comercial de la cabecera con la provisión interna.
+
+## COT-23 Instalación y compatibilidad histórica — 2026-11-13
+
+La captura de traslado por partida descrita en COT-21 queda sustituida: el motor la interpreta solo por compatibilidad con instantáneas antiguas; las partidas nuevas no ofrecen esos campos. La instalación general calcula mano de obra y otros costos más kilómetros de ida × factor (2 para ida y vuelta; 1 en registros históricos) × tarifa guardada. Los kilómetros de ruta tienen tres decimales y el importe dos. Se permite una tarifa excepcional por oferta sin editar Configuración. La restricción SQL cotizacion_instalacion_valida comprueba la misma fórmula. No se altera retrospectivamente el precio de documentos emitidos.
+
+## COT-24 Servicios sin materiales — 2026-11-13
+
+Se permite que la entrada manual de materiales y servicios esté vacía cuando existen gastos fijos válidos: horas × personas × tarifa, renta fija, viáticos, hospedaje o traslado histórico. El costo inicial es cero y el servidor agrega los costos derivados reales antes de aplicar el motor. No se inserta un material ficticio ni un tercero de costo cero para superar la validación. El costo total sigue siendo la suma exacta de las líneas internas y el importe mantiene su margen sobre venta.
+
+Si no hay materiales ni gastos fijos, el mensaje pide seleccionar materiales o registrar las horas y costos del trabajo. Los porcentajes sobre venta por sí solos no constituyen una base de costo. En la vista previa y el servidor se usa el mismo cálculo. El caso de dos horas por una persona a C$350 y margen 30 % produce costo C$700 y precio C$1000, sin materiales ni captura manual adicional.

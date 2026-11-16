@@ -28,15 +28,19 @@ describeConBase("trazabilidad: API por perfil", () => {
   });
   it.each(["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION", "ADMIN"] as const)("%s consulta trazabilidad según la matriz", async (perfil) => {
     const respuesta = await invocar(entorno.rutas.orden.GET, peticion("GET", `/api/v1/ordenes/${orden.id}/trazabilidad`, { cookie: cookies[perfil] }), orden.id);
-    expect(respuesta.status).toBe(perfil === "ADMIN" ? 403 : 200);
-    if (perfil === "PRODUCCION") { comprobarSinDinero(respuesta.cuerpo); comprobarSinCliente(respuesta.cuerpo); }
-    if (["ATENCION_CLIENTE", "GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil)) expect(respuesta.datos).toHaveProperty("costoRealTotal");
+    // Producción ejecuta etapas; la trazabilidad de la orden no le corresponde (2026-11-12).
+    expect(respuesta.status).toBe(["ADMIN", "PRODUCCION"].includes(perfil) ? 403 : 200);
+    if (["GERENCIA", "ADMINISTRACION", "OPERACIONES"].includes(perfil)) expect(respuesta.datos).toHaveProperty("costoRealTotal");
+    if (perfil === "ATENCION_CLIENTE") {
+      expect(respuesta.datos).toMatchObject({ materiales: [], verConsumo: false });
+      expect(respuesta.datos).not.toHaveProperty("costoRealTotal");
+    }
   });
   it.each(["global", "orden"] as const)("%s responde 401 sin sesión", async (ruta) => {
     const respuesta = await invocar(entorno.rutas[ruta].GET, peticion("GET", "/api/v1/bitacora"), ruta === "orden" ? orden.id : undefined);
     expect(respuesta.status).toBe(401); expect(respuesta.error?.codigo).toBe("SIN_SESION");
   });
-  it.each(["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE", "PRODUCCION"] as const)("%s recibe 404 para orden inexistente", async (perfil) => {
+  it.each(["GERENCIA", "ADMINISTRACION", "OPERACIONES", "ATENCION_CLIENTE"] as const)("%s recibe 404 para orden inexistente", async (perfil) => {
     const id = randomUUID();
     const respuesta = await invocar(entorno.rutas.orden.GET, peticion("GET", `/api/v1/ordenes/${id}/trazabilidad`, { cookie: cookies[perfil] }), id);
     expect(respuesta.status).toBe(404); expect(respuesta.error?.codigo).toBe("NO_ENCONTRADO");

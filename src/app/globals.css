@@ -3,34 +3,38 @@
 
 /* Tokens del sistema de diseño. Fuente única: ver docs/diseno.md */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  color-scheme: light;
+  --background: #eeedf1;
+  --foreground: #2d2022;
+  --card: #fbfbfc;
+  --card-foreground: var(--foreground);
+  --popover: #fdfdfe;
+  --popover-foreground: var(--foreground);
 
-  --primary: #1f2a6b;
-  --primary-hover: #161f52;
+  --primary: #2d264f;
+  --primary-hover: #403563;
   --primary-foreground: #ffffff;
-  --primary-soft: #f1f5f9;
-  --primary-soft-border: #cbd5e1;
-  /* Dorado de la marca: acento puntual (indicador del menú). No sustituye al color principal. */
-  --brand-gold: #c9962f;
+  --primary-soft: #eeebf5;
+  --primary-soft-border: #d7d0e5;
+  --brand-gold: #f3a320;
+  --brand-indigo: #2d264f;
+  --brand-charcoal: #2d2022;
+  --brand-gray: #a4a3a3;
 
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --secondary: #e9e8ee;
+  --secondary-foreground: #1f1b2a;
+  --muted: #e9e8ee;
+  --muted-foreground: #4b4757;
+  --accent: #e9e8ee;
+  --accent-foreground: #1f1b2a;
 
-  --border: #e2e8f0;
+  --border: #d9d7e0;
+  --form-border: #a6a0b3;
   /* Separadores internos de tarjetas y listas. */
-  --border-subtle: #f1f5f9;
+  --border-subtle: #e6e4eb;
   /* Borde de controles: 4.76:1 sobre blanco (WCAG 1.4.11 exige 3:1) */
   --input: #64748b;
-  --ring: #1f2a6b;
+  --ring: #2d264f;
 
   /* Estados: fondo desaturado y texto de alto contraste (emerald, amber, rose y blue 700). */
   --success: #047857;
@@ -54,15 +58,92 @@
   --destructive: #b91c1c;
   --destructive-foreground: #ffffff;
 
-  /* Menú lateral gris claro: el ítem activo resalta como pastilla blanca elevada (estilo Mise). */
-  --sidebar: #f1f5f9;
-  --sidebar-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
+  /* Claro con menos blanco (2026-11-12): fondo gris neutro con un leve tinte índigo de la marca; tarjetas casi blancas. */
+  --sidebar: #e6e4ec;
+  --sidebar-foreground: #1f1b2a;
+  --sidebar-border: #d9d7e0;
 
   --radius: 6px;
   --altura-barra-superior: 3.5rem;
   --ancho-menu: 16rem;
   --ancho-riel: 4rem;
+}
+
+@media screen {
+  /* Oscuro neutro (2026-11-12): grafito con leve calidez del carbón de la marca; el dorado queda como acción. */
+  :root[data-tema="oscuro"] {
+    color-scheme: dark;
+    --background: #141316;
+    --foreground: #ecebef;
+    --card: #1d1c21;
+    --card-foreground: var(--foreground);
+    --popover: #232228;
+    --popover-foreground: var(--foreground);
+    --primary: #f3a320;
+    --primary-hover: #f6b44a;
+    --primary-foreground: #1d1c21;
+    --primary-soft: #2c2720;
+    --primary-soft-border: #5c4b2b;
+    --secondary: #27262c;
+    --secondary-foreground: var(--foreground);
+    --muted: #27262c;
+    --muted-foreground: #aaa8b2;
+    --accent: #2d2c33;
+    --accent-foreground: var(--foreground);
+    --border: #35343c;
+    --form-border: #68616f;
+    --border-subtle: #2a292f;
+    --input: #7a7883;
+    --ring: #f6b44a;
+    --success: #80e3b8;
+    --success-soft: #16291f;
+    --success-soft-border: #2f5a44;
+    --warning: #ffce79;
+    --warning-soft: #2e2516;
+    --warning-soft-border: #5f4a25;
+    --danger: #ff9fae;
+    --danger-soft: #321c22;
+    --danger-soft-border: #66323d;
+    --info: #aec6ff;
+    --info-soft: #1b2335;
+    --info-soft-border: #34456b;
+    --neutral-strong: #e4e3e8;
+    --neutral-strong-foreground: #1d1c21;
+    --chart-series: #8e8c97;
+    --chart-series-border: #aaa8b2;
+    --destructive: #ac2749;
+    --sidebar: #18171b;
+    --sidebar-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+
+    --color-slate-50: #1d1c21;
+    --color-slate-100: #27262c;
+    --color-slate-200: #35343c;
+    --color-slate-300: #6f6d78;
+    --color-slate-400: #8e8c97;
+    --color-slate-500: #aaa8b2;
+    --color-slate-600: #c3c1c9;
+    --color-slate-700: #d7d6dc;
+    --color-slate-800: #e6e5ea;
+    --color-slate-900: #f1f0f3;
+    --color-indigo-50: var(--primary-soft);
+    --color-indigo-100: var(--primary-soft-border);
+    --color-indigo-700: #cdc8e6;
+    --color-blue-50: var(--info-soft);
+    --color-blue-100: var(--info-soft-border);
+    --color-blue-700: var(--info);
+    --color-emerald-50: var(--success-soft);
+    --color-emerald-100: var(--success-soft-border);
+    --color-emerald-700: var(--success);
+    --color-amber-50: var(--warning-soft);
+    --color-amber-100: var(--warning-soft-border);
+    --color-amber-700: var(--warning);
+    --color-amber-800: var(--warning);
+    --color-rose-50: var(--danger-soft);
+    --color-rose-100: var(--danger-soft-border);
+    --color-rose-700: var(--danger);
+    --color-rose-800: var(--danger);
+  }
 }
 
 
@@ -81,6 +162,9 @@
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-border: var(--primary-soft-border);
   --color-brand-gold: var(--brand-gold);
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-gray: var(--brand-gray);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -88,6 +172,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
+  --color-formulario: var(--form-border);
   --color-border-subtle: var(--border-subtle);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -194,6 +279,10 @@
 /* Secciones plegables: la flecha indica que el contenido se puede abrir y cerrar. */
 details > summary {
   list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.5rem;
 }
 details > summary::-webkit-details-marker {
   display: none;
@@ -213,35 +302,6 @@ details[open] > summary::after {
   transform: translateY(20%) rotate(-135deg);
 }
 
-/* Cascada del panel del login: los puntos blancos bajan hacia la esquina inferior izquierda. */
-@keyframes cascada-puntos {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -20px 20px;
-  }
-}
-@keyframes cascada-puntos-grandes {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -48px 48px;
-  }
-}
-.cascada-puntos {
-  background-image: radial-gradient(circle, rgb(255 255 255 / 0.5) 1px, transparent 1.5px);
-  background-size: 20px 20px;
-  animation: cascada-puntos 2.4s linear infinite;
-}
-.cascada-puntos-grandes {
-  background-image: radial-gradient(circle, rgb(255 255 255 / 0.35) 1.5px, transparent 2.5px);
-  background-size: 48px 48px;
-  background-position: 10px 14px;
-  animation: cascada-puntos-grandes 5s linear infinite;
-}
-
 /*
  * Movimiento de la interfaz. Solo opacity y transform (sin reflujo).
  * Interfaz: 100 a 200 ms. Datos (conteo, barras, anillos): hasta 500 ms.
@@ -255,7 +315,6 @@ details[open] > summary::after {
 }
 @keyframes entrada-fila {
   from {
-    opacity: 0;
     transform: translateY(3px);
   }
 }
@@ -311,4 +370,18 @@ details[open] > summary::after {
 /* Anillo SVG: requiere --anillo-inicio (circunferencia) en el estilo del trazo. */
 @utility animate-ring-fill {
   animation: llenar-anillo 500ms var(--ease-data) both;
+}
+
+/* GEN-06: campos editables claros, grupos suaves y resultados diferenciados. */
+@layer components {
+  .tabla-costos { position: relative; width: 100%; min-width: 50rem; table-layout: fixed; border-collapse: collapse; font-size: .875rem; }
+  .tabla-costos th { background: var(--secondary); padding: .75rem; text-align: left; font-weight: 600; }
+  .tabla-costos td { position: relative; padding: .75rem; border-top: 1px solid var(--border); vertical-align: top; }
+  .tabla-costos-manual { min-width: 58rem; }
+  .tabla-costos .valor-costo { display: flex; min-height: 2.5rem; align-items: center; justify-content: flex-end; text-align: right; font-variant-numeric: tabular-nums; }
+  .tabla-costos input[inputmode="decimal"] { text-align: right; font-variant-numeric: tabular-nums; }
+  .tabla-costos tbody tr:nth-child(even) { background: color-mix(in srgb, var(--secondary) 35%, var(--card)); }
+  .tabla-costos td:last-child { background: color-mix(in srgb, var(--primary) 6%, var(--card)); }
+  .tabla-costos input:disabled { opacity: 1; color: var(--foreground); background: var(--secondary); }
+  .tabla-costos [data-slot="select-trigger"] { white-space: nowrap; height: 2.5rem; }
 }

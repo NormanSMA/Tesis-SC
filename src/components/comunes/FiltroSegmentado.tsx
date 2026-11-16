@@ -1,38 +1,21 @@
 "use client";
-
-import { ToggleGroup } from "radix-ui";
-
+import { useId } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
 import { cn } from "@/lib/utils";
-
 export type OpcionSegmento = { valor: string; etiqueta: string; conteo?: number };
-
-type PropiedadesFiltro = {
-  etiqueta: string;
-  opciones: OpcionSegmento[];
-  parametro: string;
-  /** Valor que significa "sin filtro"; no se escribe en la URL. */
-  valorTodos?: string;
-  className?: string;
-};
-
-/** Pastillas de filtro rápido (segmented control). El valor vive en la URL y vuelve a la página 1. */
-export function FiltroSegmentado({ etiqueta, opciones, parametro, valorTodos = "", className }: PropiedadesFiltro) {
+type Props = { etiqueta: string; opciones: OpcionSegmento[]; parametro: string; valorTodos?: string; className?: string };
+/** Conserva el contrato anterior y sustituye las tiras de opciones por un desplegable. */
+export function FiltroSegmentado({ etiqueta, opciones, parametro, valorTodos = "", className }: Props) {
   const { parametros, navegar } = useParametrosUrl();
-  const actual = parametros.get(parametro) ?? valorTodos;
-  return (
-    <ToggleGroup.Root type="single" value={actual} aria-label={etiqueta}
-      onValueChange={(valor) => { if (valor !== "" && valor !== actual) navegar({ [parametro]: valor === valorTodos ? null : valor }); }}
-      className={cn("inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-border/80 bg-slate-100/70 p-1", className)}>
-      {opciones.map((opcion) => (
-        <ToggleGroup.Item key={opcion.valor} value={opcion.valor}
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors duration-100 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm">
-          {opcion.etiqueta}
-          {opcion.conteo !== undefined ? (
-            <span className="rounded bg-slate-200/70 px-1.5 text-[11px] font-semibold text-slate-600 tabular-nums">{opcion.conteo}</span>
-          ) : null}
-        </ToggleGroup.Item>
-      ))}
-    </ToggleGroup.Root>
-  );
+  const id = useId(), vacio = "__sin_filtro__", actual = parametros.get(parametro) ?? valorTodos;
+  return <div className={cn("flex min-w-40 max-w-full flex-col gap-1.5", className)}>
+    <label htmlFor={id} className="text-sm font-medium">{etiqueta}</label>
+    <Select value={actual || vacio} onValueChange={valor => navegar({ [parametro]: valor === vacio || valor === valorTodos ? null : valor })}>
+      <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent>{opciones.map(opcion => <SelectItem key={opcion.valor} value={opcion.valor || vacio}>
+        {opcion.etiqueta}{opcion.conteo !== undefined ? ` (${opcion.conteo})` : ""}
+      </SelectItem>)}</SelectContent>
+    </Select>
+  </div>;
 }

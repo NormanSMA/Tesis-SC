@@ -233,7 +233,7 @@ describeConBase("siembra de datos de demostración", () => {
     }
   });
 
-  it("las cotizaciones copian IVA, moneda y vigencia de la configuración", async () => {
+  it("las emitidas copian IVA y los borradores conservan tasa cero", async () => {
     const configuracion = await db.configuracion.findMany();
     const valor = (clave: string) => configuracion.find((c) => c.clave === clave)?.valor;
     expect(valor("iva_porcentaje")).toBe("15.00");
@@ -242,7 +242,7 @@ describeConBase("siembra de datos de demostración", () => {
     expect(valor("empresa_nombre")).toBe("Soluciones Creativas");
     const cotizaciones = await db.cotizacion.findMany();
     for (const cotizacion of cotizaciones) {
-      expect(cotizacion.tasaImpuesto.toString()).toBe("15");
+      expect(cotizacion.tasaImpuesto.toString()).toBe(cotizacion.estado === "BORRADOR" ? "0" : "15");
       expect(cotizacion.moneda).toBe("NIO");
     }
   });
