@@ -13,7 +13,7 @@ Cubre el criterio CF-08 (adaptabilidad) y la accesibilidad WCAG 2.2 AA.
 - La línea gráfica usa índigo (#2d264f), dorado (#f3a320), carbón (#2d2022) y gris (#a4a3a3). Los estados usan color, ícono y texto.
 - Reemplaza el paquete `cn` que instaló la CLI por `clsx` y `tailwind-merge` en `src/lib/utils.ts`.
 - Omite `ui/form.tsx`. `FormField` de `comunes` cubre ese papel con react-hook-form y zod.
-- Omite `next-themes`. El control de tema está disponible en el acceso y en la barra superior.
+- Omite `next-themes`. El control de tema está disponible en el acceso y en el menú del avatar.
 
 ## Tokens
 
@@ -125,7 +125,7 @@ Cambios sobre shadcn:
 | `navegacion.ts` | Ítems, grupos y permiso de cada ítem |
 | `filtrarNavegacion(grupos, permisos)` | Oculta ítems sin permiso |
 | `Migas` | Migas de pan derivadas de la ruta |
-| `MenuUsuario` | Nombre, perfil y "Cerrar sesión" |
+| `TarjetaUsuario` | Avatar con menú de tema, nombre, perfil y acceso directo a "Cerrar sesión" |
 | `Marca` e `Isotipo` | Isotipo oficial de Soluciones Creativas (public/brand/isotipo.png) y nombre. El logo con texto queda guardado en public/brand/logo-completo.png |
 
 Cierre de sesión: hace `POST /api/v1/auth/logout` y luego `router.replace("/login")`.

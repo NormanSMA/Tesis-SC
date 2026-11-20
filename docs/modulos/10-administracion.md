@@ -51,6 +51,7 @@ Accesibilidad WCAG 2.2 AA y cuatro viewports, igual que los otros módulos.
 
 ## Actualización del 2026-11-11 (ACC-05)
 Perfiles y permisos se divide en dos pestañas: "Permisos por perfil" (matriz) y "Permisos por usuario" (funciones adicionales, ACC-03).
+El selector de usuarios activos filtra por nombre o correo sin distinguir tildes. Al elegir un usuario, muestra sus perfiles y sus permisos.
 
 ## COT-19 Tipos de cotización personalizada
 

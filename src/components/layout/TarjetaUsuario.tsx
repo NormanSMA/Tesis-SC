@@ -1,14 +1,18 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { ChevronUp, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useId, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ETIQUETA_PERFIL } from "@/core/permisos";
 import type { UsuarioSesion } from "@/lib/auth/sesion";
 import { cn } from "@/lib/utils";
+
+import { OpcionesTema } from "./AlternarTema";
 
 function iniciales(nombre: string): string {
   const partes = nombre.trim().split(/\s+/).filter(Boolean);
@@ -57,6 +61,25 @@ function BotonSalir({ onClick }: { onClick: () => void }) {
   );
 }
 
+function MenuTema({ usuario, children }: { usuario: UsuarioSesion; children?: ReactNode }) {
+  const idPerfil = useId();
+  const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(" · ");
+  return <DropdownMenu modal={false}>
+    <DropdownMenuTrigger asChild>
+      <Button type="button" variant="ghost" size="icon-lg" aria-label={`Opciones de ${usuario.nombre}`} aria-describedby={idPerfil}
+        title={children ? usuario.correo : `${usuario.nombre} · ${perfiles}`}
+        className={cn("data-[state=open]:bg-accent", children && "w-full min-w-0 flex-1 justify-start px-1 text-left")}>
+        <Iniciales usuario={usuario} className="size-9" />
+        <span id={idPerfil} className="sr-only">{perfiles}</span>
+        {children}
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent side="top" align="start" className="min-w-44 motion-reduce:animate-none">
+      <OpcionesTema />
+    </DropdownMenuContent>
+  </DropdownMenu>;
+}
+
 /** Tarjeta completa: avatar, nombre, correo, perfil y salida (menú ancho y panel móvil). */
 function TarjetaAmplia({ usuario, className }: { usuario: UsuarioSesion; className?: string }) {
   const cerrarSesion = useCerrarSesion();
@@ -64,14 +87,16 @@ function TarjetaAmplia({ usuario, className }: { usuario: UsuarioSesion; classNa
   const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(" · ");
   return (
     <section aria-label="Sesión de usuario" className={cn("p-3", className)}>
-      <div className="flex items-center gap-3 rounded-xl px-1 py-1" title={usuario.correo}>
-        <Iniciales usuario={usuario} className="size-9" />
-        <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-sm font-medium text-foreground" title={usuario.nombre}>{usuario.nombre}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            <span className="sr-only">{etiquetaPerfil}: </span>{perfiles}
-          </p>
-        </div>
+      <div className="flex items-center gap-1 rounded-xl">
+        <MenuTema usuario={usuario}>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-sm font-medium text-foreground" title={usuario.nombre}>{usuario.nombre}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              <span className="sr-only">{etiquetaPerfil}: </span>{perfiles}
+            </span>
+          </span>
+          <ChevronUp aria-hidden="true" className="text-muted-foreground" />
+        </MenuTema>
         <BotonSalir onClick={cerrarSesion} />
       </div>
     </section>
@@ -81,12 +106,9 @@ function TarjetaAmplia({ usuario, className }: { usuario: UsuarioSesion; classNa
 /** Versión angosta para el riel de íconos: avatar y salida apilados. */
 function TarjetaRiel({ usuario, className }: { usuario: UsuarioSesion; className?: string }) {
   const cerrarSesion = useCerrarSesion();
-  const perfiles = usuario.perfiles.map((codigo) => ETIQUETA_PERFIL[codigo]).join(", ");
   return (
     <section aria-label="Sesión de usuario" className={cn("flex flex-col items-center gap-1 p-2", className)}>
-      <span title={`${usuario.nombre} · ${perfiles}`} role="img" aria-label={usuario.nombre}>
-        <Iniciales usuario={usuario} className="size-9" />
-      </span>
+      <MenuTema usuario={usuario} />
       <BotonSalir onClick={cerrarSesion} />
     </section>
   );
