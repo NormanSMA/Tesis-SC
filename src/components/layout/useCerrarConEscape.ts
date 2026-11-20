@@ -4,7 +4,7 @@ export function useCerrarConEscape(activo: boolean, cerrar: () => void) {
   useEffect(() => {
     if (!activo) return;
     const alPulsar = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") cerrar();
+      if (evento.key === "Escape" && !evento.defaultPrevented) cerrar();
     };
     document.addEventListener("keydown", alPulsar);
     return () => document.removeEventListener("keydown", alPulsar);

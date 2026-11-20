@@ -7,7 +7,6 @@ import { CentroNotificaciones } from "@/modules/notificaciones/componentes/Centr
 import { cn } from "@/lib/utils";
 
 import { Migas } from "./Migas";
-import { AlternarTema } from "./AlternarTema";
 import { Reloj } from "./Reloj";
 import { gruposNavegacion, itemActivo } from "./navegacion";
 
@@ -54,7 +53,6 @@ export function BarraSuperior({ ruta, usuarioId, fechaHoy, rielExpandido, compac
       </div>
       <Reloj />
       <CentroNotificaciones usuarioId={usuarioId} />
-      <AlternarTema />
     </header>
   );
 }

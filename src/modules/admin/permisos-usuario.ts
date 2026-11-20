@@ -14,7 +14,7 @@ export async function listarAccesosIndividuales(actor: Actor) {
     const heredados = [...new Set(usuario.perfiles.flatMap(({ perfil }) =>
       perfil.permisos.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`)))].sort();
     const adicionales = usuario.permisosAdicionales.map(({ permiso }) => `${permiso.recurso}:${permiso.accion}`).sort();
-    return { id: usuario.id, nombre: usuario.nombre, perfiles: usuario.perfiles.map(({ perfil }) => perfil.nombre),
+    return { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, perfiles: usuario.perfiles.map(({ perfil }) => perfil.nombre),
       heredados, adicionales, version: versionPermisos(adicionales) };
   });
 }

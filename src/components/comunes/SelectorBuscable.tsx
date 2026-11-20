@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { useId, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useParametrosUrl } from "@/lib/listas/useParametrosUrl";
@@ -30,6 +30,12 @@ export const OPCIONES_PARA_BUSCAR = 7;
 const MAXIMO_RESULTADOS = 60;
 const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
 
+function filtrarOpciones(opciones: OpcionBuscable[], texto: string) {
+  const busqueda = normalizar(texto);
+  const filtradas = busqueda ? opciones.filter(({ nombre, detalle }) => normalizar(`${nombre} ${detalle ?? ""}`).includes(busqueda)) : opciones;
+  return filtradas.slice(0, MAXIMO_RESULTADOS);
+}
+
 /**
  * Lista desplegable en la que también se escribe para filtrar. Para elegir datos (clientes, materiales,
  * usuarios, órdenes, áreas); los estados cortos siguen en Select o pastillas. Teclado: flechas, Enter, Escape.
@@ -39,13 +45,11 @@ export function SelectorBuscable({ id, valor, opciones, alCambiar, marcador, vac
   const [texto, setTexto] = useState("");
   const [activo, setActivo] = useState(0);
   const idLista = useId();
-  const resultados = useMemo(() => {
-    const busqueda = normalizar(texto);
-    const filtradas = busqueda ? opciones.filter(({ nombre, detalle }) => normalizar(`${nombre} ${detalle ?? ""}`).includes(busqueda)) : opciones;
-    return filtradas.slice(0, MAXIMO_RESULTADOS);
-  }, [opciones, texto]);
+  const resultados = useMemo(() => filtrarOpciones(opciones, texto), [opciones, texto]);
   const elegida = opciones.find((opcion) => opcion.id === valor);
-
+  useEffect(() => {
+    if (abierto) document.getElementById(`${idLista}-${activo}`)?.scrollIntoView({ block: "nearest" });
+  }, [abierto, activo, idLista, texto]);
   function elegir(opcion: OpcionBuscable) { alCambiar(opcion.id); setAbierto(false); setTexto(""); }
   function alTeclear(evento: KeyboardEvent<HTMLInputElement>) {
     if (evento.key === "ArrowDown") { evento.preventDefault(); setActivo((indice) => Math.min(indice + 1, resultados.length - 1)); }
@@ -62,7 +66,7 @@ export function SelectorBuscable({ id, valor, opciones, alCambiar, marcador, vac
           <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[max(var(--radix-popover-trigger-width),22rem)] max-w-[calc(100vw-2rem)] p-0">
+      <PopoverContent align="start" aria-label={marcador} className="w-[max(var(--radix-popover-trigger-width),22rem)] max-w-[calc(100vw-2rem)] p-0">
         <div className="flex items-center gap-2 border-b border-slate-100 px-3">
           <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           <input autoFocus value={texto} onChange={(evento) => { setTexto(evento.target.value); setActivo(0); }} onKeyDown={alTeclear}
@@ -72,12 +76,12 @@ export function SelectorBuscable({ id, valor, opciones, alCambiar, marcador, vac
         </div>
         <ul id={idLista} role="listbox" aria-label={marcador} className="max-h-72 overflow-y-auto p-1">
           {resultados.map((opcion, indice) => (
-            <li key={opcion.id} id={`${idLista}-${indice}`} role="option" aria-selected={opcion.id === valor}
+            <li key={opcion.id} id={`${idLista}-${indice}`} role="option" aria-selected={opcion.id === valor} aria-describedby={opcion.detalle ? `${idLista}-${indice}-detalle` : undefined}
               onMouseDown={(evento) => evento.preventDefault()} onClick={() => elegir(opcion)} onMouseEnter={() => setActivo(indice)}
-              className={cn("flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm", indice === activo && "bg-slate-100")}>
+              className={cn("flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm", indice === activo && "bg-slate-100")}>
               <Check aria-hidden="true" className={cn("size-4 shrink-0 text-primary", opcion.id !== valor && "invisible")} />
               <span className="min-w-0 flex-1 truncate">{opcion.nombre}</span>
-              {opcion.detalle ? <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground">{opcion.detalle}</span> : null}
+              {opcion.detalle ? <span id={`${idLista}-${indice}-detalle`} aria-hidden="true" title={opcion.detalle} className="max-w-1/2 shrink-0 truncate text-xs text-muted-foreground">{opcion.detalle}</span> : null}
             </li>
           ))}
         </ul>

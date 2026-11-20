@@ -1,25 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import { SelectorBuscable } from "@/components/comunes/SelectorBuscable";
 import { Button } from "@/components/ui/button";
 import { peticionAdministracion } from "./peticion";
 
-type Usuario = { id: string; nombre: string; perfiles: string[]; heredados: string[]; adicionales: string[]; version: string };
+type Usuario = { id: string; nombre: string; correo: string; perfiles: string[]; heredados: string[]; adicionales: string[]; version: string };
 type Permiso = { permiso: string; descripcion: string | null };
 
 export function PermisosIndividuales({ usuarios, catalogo }: { usuarios: Usuario[]; catalogo: Permiso[] }) {
   const [id, setId] = useState("");
   const [vigentes, setVigentes] = useState(usuarios);
+  const idSelector = useId();
   const usuario = vigentes.find(u => u.id === id);
+  const opciones = usuarios.map(u => ({ id: u.id, nombre: u.nombre, detalle: u.correo }));
+  if (usuario) opciones.unshift({ id: "", nombre: "Quitar selección", detalle: "" });
   return <section className="space-y-4 rounded-lg border p-4" aria-label="Permisos por usuario">
     <h2 className="text-xl font-semibold">Permisos por usuario</h2>
     <p>Agregue funciones a una persona además de las que recibe de sus perfiles.</p>
-    <label className="block">Usuario
-      <select className="mt-2 block w-full rounded-md border bg-background p-3" value={id} onChange={e => setId(e.target.value)}>
-        <option value="">Seleccione un usuario</option>
-        {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre} · {u.perfiles.join(", ")}</option>)}
-      </select>
-    </label>
+    <div className="max-w-xl space-y-2">
+      <label htmlFor={idSelector} className="block text-sm font-medium">Usuario</label>
+      <SelectorBuscable id={idSelector} valor={id} opciones={opciones} alCambiar={setId}
+        marcador="Buscar por nombre o correo" vacio="Seleccione un usuario" className="h-11" />
+      {usuario ? <div className="text-sm text-muted-foreground">
+        <p className="wrap-anywhere">{usuario.correo}</p>
+        <p>{usuario.perfiles.join(" · ")}</p>
+      </div> : null}
+    </div>
     {usuario ? <Editor key={id} usuario={usuario} catalogo={catalogo}
       alGuardar={datos => setVigentes(actuales => actuales.map(u => u.id === id ? { ...u, ...datos } : u))} /> : null}
   </section>;

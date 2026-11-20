@@ -44,8 +44,8 @@ export function CentroNotificaciones({ usuarioId }: { usuarioId: string }) {
   const etiqueta = centro.noLeidas ? `Notificaciones, ${centro.noLeidas} sin leer` : "Notificaciones";
   return <Popover open={abierto} onOpenChange={alternar}>
     <PopoverTrigger asChild>
-      <Button variant="ghost" size="icon" className="relative text-slate-500 hover:bg-slate-200/60 hover:text-slate-900" aria-label={etiqueta}>
-        <Bell aria-hidden="true" />
+      <Button variant="ghost" size="icon-lg" className="relative text-slate-500 hover:bg-slate-200/60 hover:text-slate-900" aria-label={etiqueta}>
+        <Bell aria-hidden="true" className="size-5" />
         {centro.noLeidas ? <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[11px] leading-5 font-semibold text-white">
           {centro.noLeidas > 9 ? "9+" : centro.noLeidas}</span> : null}
       </Button>
